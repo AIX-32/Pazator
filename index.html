@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -62,11 +63,50 @@
             overflow: hidden;
             position: relative;
         }
-        
+
         .sidebar {
             grid-row: 2 / 4;
+            overflow-y: auto;
         }
-        
+
+        .sidebar-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(30, 30, 30, 0.5);
+            border-radius: 15px;
+            border: 1px solid #2c2b2b;
+        }
+
+        .sidebar-section h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #ff6b39;
+            font-size: 1.2rem;
+        }
+
+        .tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .tag {
+            background: linear-gradient(145deg, #ff6b39, #ff8c5a);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .tag .remove-tag {
+            cursor: pointer;
+            font-weight: bold;
+        }
+
         .navbar {
             grid-row: 1 / 2;
             display: flex;
@@ -80,7 +120,7 @@
             position: relative;
             overflow: hidden;
         }
-        
+
         .navbar::before {
             content: '';
             position: absolute;
@@ -96,7 +136,7 @@
             gap: 10px;
             flex: 1;
         }
-        
+
         button {
             background: linear-gradient(145deg, #262525, #212020);
             border: 1px solid #444343;
@@ -111,14 +151,14 @@
             font-weight: 500;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
         }
-        
+
         button:hover {
             transform: translateY(-3px);
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
             border-color: #4a4949;
             background: linear-gradient(145deg, #2a2929, #252424);
         }
-        
+
         .logo {
             text-align: center;
             margin-bottom: 24px;
@@ -136,7 +176,6 @@
             letter-spacing: 0.5px;
         }
 
-        /* Web canvas styles */
         .web-container {
             position: relative;
             width: 100%;
@@ -169,11 +208,11 @@
             transform: scale(1.1);
             z-index: 20;
             box-shadow: 0 6px 15px rgba(255, 107, 57, 0.4);
-            border-color: #ff6b39;
+            border-color: #e4714a;
         }
 
         .data-node.human {
-            background: linear-gradient(145deg, #398fff, #5a9cff);
+            background: #ff6b39;
         }
 
         .data-node.other {
@@ -209,7 +248,6 @@
             z-index: 5;
         }
 
-        /* Modal styles */
         .modal {
             display: none;
             position: fixed;
@@ -238,6 +276,8 @@
             overflow-y: auto;
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
             position: relative;
+            display: flex;
+            flex-direction: column;
         }
 
         .modal-header {
@@ -257,6 +297,12 @@
             -webkit-text-fill-color: transparent;
         }
 
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 0;
+        }
+
         .close {
             background: none;
             border: none;
@@ -267,10 +313,12 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: all 0.3s ease;
         }
 
         .close:hover {
             background: rgba(255, 255, 255, 0.1);
+            transform: scale(0.9);
         }
 
         .form-group {
@@ -291,6 +339,7 @@
             border-radius: 12px;
             color: #e0e0e0;
             font-size: 1rem;
+            transition: all 0.3s ease;
         }
 
         .form-control:focus {
@@ -306,6 +355,11 @@
 
         select.form-control {
             height: auto;
+            padding: 12px 15px;
+        }
+
+        select.form-control[multiple] {
+            min-height: 120px;
         }
 
         .form-actions {
@@ -325,6 +379,9 @@
             cursor: pointer;
             border: none;
             transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .btn-primary {
@@ -359,7 +416,13 @@
             box-shadow: 0 6px 12px rgba(255, 57, 57, 0.3);
         }
 
-        /* Detail view modal */
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
         .detail-view {
             display: none;
             position: fixed;
@@ -384,6 +447,8 @@
             overflow-y: auto;
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
             position: relative;
+            display: flex;
+            flex-direction: column;
         }
 
         .detail-header {
@@ -404,6 +469,9 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 25px;
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 0;
         }
 
         .detail-section {
@@ -490,7 +558,6 @@
             border-top: 1px solid #2c2b2b;
         }
 
-        /* AI Chat Modal */
         .ai-chat-modal {
             display: none;
             position: fixed;
@@ -564,10 +631,27 @@
 
         .ai-message.system {
             background: rgba(107, 57, 255, 0.2);
-            margin-left: auto;
-            margin-right: auto;
+            margin: 0 auto;
             max-width: 100%;
-            text-align: center;
+            text-align: left;
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .ai-message.system ul {
+            text-align: left;
+            padding-left: 20px;
+            margin: 10px 0;
+        }
+
+        .ai-message.system li {
+            margin-bottom: 8px;
+            text-align: left;
+        }
+
+        .ai-message.system p {
+            margin: 10px 0;
+            text-align: left;
         }
 
         .ai-input-container {
@@ -613,7 +697,6 @@
             box-shadow: none;
         }
 
-        /* Responsive adjustments */
         @media (max-width: 1200px) {
             .data-node {
                 width: 50px;
@@ -626,41 +709,41 @@
                 grid-template-columns: 1fr;
                 grid-template-rows: auto auto auto;
             }
-            
+
             .conva {
                 grid-row: 3 / 4;
             }
-            
+
             .navbar {
                 grid-row: 1 / 2;
             }
-            
+
             .sidebar {
                 grid-row: 2 / 3;
             }
-            
+
             .detail-body {
                 grid-template-columns: 1fr;
             }
-            
+
             .family-graph-container {
                 grid-column: s pan 1;
             }
-            
+
             .ai-input-container {
                 flex-direction: column;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="panel conva" id="convaPanel">
             <div class="logo">
-                <h1>Pazator.</h1>
+                <h1>Pazator - MSS</h1>
             </div>
             <div class="web-container" id="webContainer">
-                <!-- Data nodes will be dynamically added here -->
             </div>
         </div>
         <div class="panel navbar">
@@ -670,7 +753,55 @@
                 <button>Menu</button>
             </div>
         </div>
-        <div class="panel sidebar"></div>
+        <div class="panel sidebar">
+            <div class="sidebar-section">
+                <h3>Search & Filter</h3>
+                <div class="form-group">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search entries...">
+                </div>
+                <div class="form-group">
+                    <select id="filterType" class="form-control">
+                        <option value="all">All Types</option>
+                        <option value="human">Humans</option>
+                        <option value="other">Others</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button id="applyFilterBtn" class="btn btn-primary" style="width: 100%;">Apply Filter</button>
+                </div>
+            </div>
+
+            <!-- Tagging System -->
+            <div class="sidebar-section">
+                <h3>Tags</h3>
+                <div class="form-group">
+                    <input type="text" id="tagInput" class="form-control" placeholder="Add new tag...">
+                </div>
+                <div class="form-group">
+                    <button id="addTagBtn" class="btn btn-secondary" style="width: 100%;">Add Tag</button>
+                </div>
+                <div id="tagsContainer" class="tags-container">
+                    <!-- Tags will be dynamically added here -->
+                </div>
+            </div>
+
+            <!-- Data Visualization Enhancements -->
+            <div class="sidebar-section">
+                <h3>Visualization</h3>
+                <div class="form-group">
+                    <button id="refreshViewBtn" class="btn btn-secondary"
+                        style="width: 100%; margin-bottom: 10px;">Refresh View</button>
+                </div>
+                <div class="form-group">
+                    <button id="toggleConnectionsBtn" class="btn btn-secondary"
+                        style="width: 100%; margin-bottom: 10px;">Toggle Connections</button>
+                </div>
+                <div class="form-group">
+                    <button id="showStatisticsBtn" class="btn btn-secondary" style="width: 100%;">Show
+                        Statistics</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Type Selection Modal -->
@@ -680,15 +811,19 @@
                 <h2>Select Data Type</h2>
                 <button class="close">&times;</button>
             </div>
-            <div class="form-group">
-                <p>Choose the type of data you want to create:</p>
-                <div style="display: flex; gap: 20px; margin-top: 25px;">
-                    <button id="humanTypeBtn" class="btn btn-primary" style="flex: 1; padding: 20px; font-size: 1.2rem;">
-                        Human
-                    </button>
-                    <button id="otherTypeBtn" class="btn btn-primary" style="flex: 1; padding: 20px; font-size: 1.2rem;">
-                        Other
-                    </button>
+            <div class="modal-body">
+                <div class="form-group">
+                    <p>Choose the type of data you want to create:</p>
+                    <div style="display: flex; gap: 20px; margin-top: 25px;">
+                        <button id="humanTypeBtn" class="btn btn-primary"
+                            style="flex: 1; padding: 20px; font-size: 1.2rem;">
+                            Human
+                        </button>
+                        <button id="otherTypeBtn" class="btn btn-primary"
+                            style="flex: 1; padding: 20px; font-size: 1.2rem;">
+                            Other
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -701,52 +836,60 @@
                 <h2 id="humanModalTitle">Create Human Entry</h2>
                 <button class="close">&times;</button>
             </div>
-            <form id="humanForm">
-                <input type="hidden" id="humanId">
-                <div class="form-group">
-                    <label for="humanName">Name</label>
-                    <input type="text" id="humanName" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label for="humanGender">Gender</label>
-                    <select id="humanGender" class="form-control">
-                        <option value="">Select Gender</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Non-binary">Non-binary</option>
-                        <option value="Other">Other</option>
-                        <option value="Prefer not to say">Prefer not to say</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="birthDate">Birth Date</label>
-                    <input type="date" id="birthDate" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label for="friends">Friends</label>
-                    <select id="friends" class="form-control" multiple size="4">
-                        <!-- Options will be populated dynamically -->
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="family">Family</label>
-                    <select id="family" class="form-control" multiple size="4">
-                        <!-- Options will be populated dynamically -->
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="extraNotes">Extra Notes</label>
-                    <textarea id="extraNotes" class="form-control"></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="humanImage">Image</label>
-                    <input type="file" id="humanImage" class="form-control" accept="image/*">
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" id="cancelHumanBtn">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save</button>
-                </div>
-            </form>
+            <div class="modal-body">
+                <form id="humanForm">
+                    <input type="hidden" id="humanId">
+                    <div class="form-group">
+                        <label for="humanName">Name</label>
+                        <input type="text" id="humanName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="humanGender">Gender</label>
+                        <select id="humanGender" class="form-control">
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Non-binary">Non-binary</option>
+                            <option value="Other">Other</option>
+                            <option value="Prefer not to say">Prefer not to say</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="humanTags">Tags</label>
+                        <select id="humanTags" class="form-control" multiple size="4">
+                            <!-- Tags will be populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="birthDate">Birth Date</label>
+                        <input type="date" id="birthDate" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="friends">Friends</label>
+                        <select id="friends" class="form-control" multiple size="4">
+                            <!-- Options will be populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="family">Family</label>
+                        <select id="family" class="form-control" multiple size="4">
+                            <!-- Options will be populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="extraNotes">Extra Notes</label>
+                        <textarea id="extraNotes" class="form-control"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="humanImage">Image</label>
+                        <input type="file" id="humanImage" class="form-control" accept="image/*">
+                    </div>
+                </form>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="cancelHumanBtn">Cancel</button>
+                <button type="submit" class="btn btn-primary" form="humanForm">Save</button>
+            </div>
         </div>
     </div>
 
@@ -757,25 +900,27 @@
                 <h2 id="otherModalTitle">Create Other Entry</h2>
                 <button class="close">&times;</button>
             </div>
-            <form id="otherForm">
-                <input type="hidden" id="otherId">
-                <div class="form-group">
-                    <label for="otherName">Name</label>
-                    <input type="text" id="otherName" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label for="otherNote">Note</label>
-                    <textarea id="otherNote" class="form-control"></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="otherImage">Image</label>
-                    <input type="file" id="otherImage" class="form-control" accept="image/*">
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" id="cancelOtherBtn">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save</button>
-                </div>
-            </form>
+            <div class="modal-body">
+                <form id="otherForm">
+                    <input type="hidden" id="otherId">
+                    <div class="form-group">
+                        <label for="otherName">Name</label>
+                        <input type="text" id="otherName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="otherNote">Note</label>
+                        <textarea id="otherNote" class="form-control"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="otherImage">Image</label>
+                        <input type="file" id="otherImage" class="form-control" accept="image/*">
+                    </div>
+                </form>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="cancelOtherBtn">Cancel</button>
+                <button type="submit" class="btn btn-primary" form="otherForm">Save</button>
+            </div>
         </div>
     </div>
 
@@ -812,6 +957,10 @@
                         <div class="detail-label">Notes</div>
                         <div id="detailNotes" class="detail-value"></div>
                     </div>
+                    <div class="detail-item" id="detailTagsContainer">
+                        <div class="detail-label">Tags</div>
+                        <div id="detailTags" class="detail-value"></div>
+                    </div>
                     <div class="detail-item" id="detailFriendsContainer">
                         <div class="detail-label">Friends</div>
                         <div id="detailFriends" class="detail-value"></div>
@@ -846,14 +995,23 @@
             </div>
             <div class="ai-chat-messages" id="aiChatMessages">
                 <div class="ai-message system">
-                    Hello! I'm your AI assistant for the Pazator application. I can help you manage your data. You can ask me to:
+                    <h3>Welcome to Pazator AI Assistant</h3>
+                    <p>I can help you manage your data. Here's what I can do:</p>
                     <ul>
                         <li>Add new human or other entries</li>
                         <li>Modify existing entries</li>
                         <li>Delete entries</li>
                         <li>Answer questions about your data</li>
+                        <li>Create and assign tags to humans</li>
+                        <li>Perform multiple actions at once (in proper JSON array format)</li>
                     </ul>
-                    <p>Try asking something like "Add a new human named John born on 1990-05-15" or "Show me all humans"</p>
+                    <p><strong>Examples:</strong></p>
+                    <p>• "Add a new human named John born on 1990-05-15 with tags employee and manager"</p>
+                    <p>• "Show me all humans"</p>
+                    <p>• "Add two people named John and Jane"</p>
+                    <p>• "Give every person a political view" (I'll assign unique views to all humans)</p>
+                    <p><strong>Note:</strong> When requesting multiple actions, I need them in proper JSON array format
+                        for execution.</p>
                 </div>
             </div>
             <div class="ai-input-container">
@@ -865,16 +1023,16 @@
 
     <script src="https://js.puter.com/v2/"></script>
     <script>
-        // Data storage
+
         let pazatorData = {
             humans: [],
             others: []
         };
 
-        // AI Chat history
+        let tags = [];
+
         let aiChatHistory = [];
 
-        // DOM Elements
         const newDataBtn = document.getElementById('newDataBtn');
         const askAIBtn = document.getElementById('askAIBtn');
         const typeModal = document.getElementById('typeModal');
@@ -887,39 +1045,64 @@
         const aiSendBtn = document.getElementById('aiSendBtn');
         const aiChatMessages = document.getElementById('aiChatMessages');
 
-        // Load data from localStorage on page load
+        const searchInput = document.getElementById('searchInput');
+        const filterType = document.getElementById('filterType');
+        const applyFilterBtn = document.getElementById('applyFilterBtn');
+        const tagInput = document.getElementById('tagInput');
+        const addTagBtn = document.getElementById('addTagBtn');
+        const tagsContainer = document.getElementById('tagsContainer');
+        const refreshViewBtn = document.getElementById('refreshViewBtn');
+        const toggleConnectionsBtn = document.getElementById('toggleConnectionsBtn');
+        const showStatisticsBtn = document.getElementById('showStatisticsBtn');
+
+        function saveData() {
+            const dataToSave = {
+                pazatorData: pazatorData,
+                tags: tags
+            };
+            localStorage.setItem('pazatorData', JSON.stringify(dataToSave));
+        }
+
         function loadData() {
             const storedData = localStorage.getItem('pazatorData');
             if (storedData) {
-                pazatorData = JSON.parse(storedData);
+                const parsedData = JSON.parse(storedData);
+                pazatorData = parsedData.pazatorData || { humans: [], others: [] };
+                tags = parsedData.tags || [];
             }
             renderWebNodes();
         }
 
-        // Save data to localStorage
-        function saveData() {
-            localStorage.setItem('pazatorData', JSON.stringify(pazatorData));
-        }
-
-        // Render data nodes in the web container
         function renderWebNodes() {
-            // Clear existing nodes
+
             webContainer.innerHTML = '';
 
-            // Combine all data entries
-            const allData = [
-                ...pazatorData.humans.map(h => ({...h, type: 'human'})),
-                ...pazatorData.others.map(o => ({...o, type: 'other'}))
+            const searchTerm = searchInput.value.toLowerCase();
+            const selectedType = filterType.value;
+
+            let allData = [
+                ...pazatorData.humans.map(h => ({ ...h, type: 'human' })),
+                ...pazatorData.others.map(o => ({ ...o, type: 'other' }))
             ];
 
-            // Create nodes for each data entry
+            if (searchTerm) {
+                allData = allData.filter(data =>
+                    data.name.toLowerCase().includes(searchTerm) ||
+                    (data.type === 'human' && data.extraNotes && data.extraNotes.toLowerCase().includes(searchTerm)) ||
+                    (data.type === 'other' && data.note && data.note.toLowerCase().includes(searchTerm))
+                );
+            }
+
+            if (selectedType !== 'all') {
+                allData = allData.filter(data => data.type === selectedType);
+            }
+
             allData.forEach((data, index) => {
                 const node = document.createElement('div');
                 node.className = `data-node ${data.type}`;
                 node.dataset.id = data.id;
                 node.dataset.type = data.type;
 
-                // Position nodes in a grid pattern
                 const containerWidth = webContainer.offsetWidth;
                 const containerHeight = webContainer.offsetHeight;
                 const nodeSize = 60;
@@ -935,29 +1118,24 @@
                 node.style.left = `${x}px`;
                 node.style.top = `${y}px`;
 
-                // Add shortened name to the node
                 const shortenedName = data.name.length > 8 ? data.name.substring(0, 8) + '...' : data.name;
                 node.textContent = shortenedName;
 
-                // Add label that shows on hover with full name
                 const label = document.createElement('div');
                 label.className = 'node-label';
                 label.textContent = data.name;
                 node.appendChild(label);
 
-                // Add click event to show detail view
                 node.addEventListener('click', () => showDetailView(data, data.type));
 
                 webContainer.appendChild(node);
             });
 
-            // Draw connection lines for family relationships
             drawFamilyConnections();
         }
 
-        // Draw connection lines between family members
         function drawFamilyConnections() {
-            // Remove existing lines
+
             document.querySelectorAll('.connection-line').forEach(line => line.remove());
 
             pazatorData.humans.forEach(human => {
@@ -969,7 +1147,6 @@
                         const familyNode = document.querySelector(`.data-node[data-id="${familyId}"]`);
                         if (!familyNode) return;
 
-                        // Get positions of both nodes
                         const humanRect = humanNode.getBoundingClientRect();
                         const familyRect = familyNode.getBoundingClientRect();
                         const containerRect = webContainer.getBoundingClientRect();
@@ -979,11 +1156,9 @@
                         const x2 = familyRect.left + familyRect.width / 2 - containerRect.left;
                         const y2 = familyRect.top + familyRect.height / 2 - containerRect.top;
 
-                        // Create connection line
                         const line = document.createElement('div');
                         line.className = 'connection-line';
 
-                        // Calculate line dimensions and rotation
                         const dx = x2 - x1;
                         const dy = y2 - y1;
                         const length = Math.sqrt(dx * dx + dy * dy);
@@ -1001,39 +1176,45 @@
             });
         }
 
-        // Show detail view for a data entry
         function showDetailView(data, type) {
-            // Store current data for editing/deleting
+
             document.currentDetailData = { ...data, type };
 
             document.getElementById('detailTitle').textContent = `${data.name} - Details`;
             document.getElementById('detailName').textContent = data.name;
             document.getElementById('detailType').textContent = type.charAt(0).toUpperCase() + type.slice(1);
 
-            // Handle type-specific details
             if (type === 'human') {
                 document.getElementById('detailGenderContainer').style.display = 'block';
                 document.getElementById('detailGender').textContent = data.gender || 'Not specified';
-                
+
                 document.getElementById('detailBirthDateContainer').style.display = 'block';
                 document.getElementById('detailBirthDate').textContent = data.birthDate || 'N/A';
-                
+
                 document.getElementById('detailNotesContainer').style.display = 'block';
                 document.getElementById('detailNotes').textContent = data.extraNotes || 'None';
-                
+
                 document.getElementById('detailFriendsContainer').style.display = 'block';
-                const friendsList = data.friends && data.friends.length > 0 
-                    ? data.friends.map(id => getHumanNameById(id)).join(', ') 
+                const friendsList = data.friends && data.friends.length > 0
+                    ? data.friends.map(id => getHumanNameById(id)).join(', ')
                     : 'None';
                 document.getElementById('detailFriends').textContent = friendsList;
-                
+
                 document.getElementById('detailFamilyContainer').style.display = 'block';
-                const familyList = data.family && data.family.length > 0 
-                    ? data.family.map(id => getHumanNameById(id)).join(', ') 
+                const familyList = data.family && data.family.length > 0
+                    ? data.family.map(id => getHumanNameById(id)).join(', ')
                     : 'None';
                 document.getElementById('detailFamily').textContent = familyList;
-                
-                // Show family graph for humans
+
+                const detailTagsContainer = document.getElementById('detailTagsContainer');
+                if (detailTagsContainer) {
+                    detailTagsContainer.style.display = 'block';
+                    const tagsList = data.tags && data.tags.length > 0
+                        ? data.tags.join(', ')
+                        : 'None';
+                    document.getElementById('detailTags').textContent = tagsList;
+                }
+
                 document.getElementById('familyGraphContainer').style.display = 'block';
                 renderFamilyGraph(data);
             } else {
@@ -1042,12 +1223,11 @@
                 document.getElementById('detailFriendsContainer').style.display = 'none';
                 document.getElementById('detailFamilyContainer').style.display = 'none';
                 document.getElementById('familyGraphContainer').style.display = 'none';
-                
+
                 document.getElementById('detailNotesContainer').style.display = 'block';
                 document.getElementById('detailNotes').textContent = data.note || 'None';
             }
 
-            // Handle image
             const imageContainer = document.getElementById('detailImageContainer');
             const imagePlaceholder = document.getElementById('detailImagePlaceholder');
             if (data.imagePreview) {
@@ -1065,27 +1245,23 @@
             detailViewModal.style.zIndex = '1000';
         }
 
-        // Get human name by ID
         function getHumanNameById(id) {
             const human = pazatorData.humans.find(h => h.id === id);
             return human ? human.name : 'Unknown';
         }
 
-        // Render family relationship graph
         function renderFamilyGraph(human) {
             const graphContainer = document.getElementById('familyGraph');
             graphContainer.innerHTML = '';
 
-            // Only render if the human has family members
             if (!human.family || human.family.length === 0) {
                 graphContainer.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#666;">No family relationships</div>';
                 return;
             }
 
-            // Create central node for the person
             const centerX = graphContainer.offsetWidth / 2;
             const centerY = graphContainer.offsetHeight / 2;
-            
+
             const centralNode = document.createElement('div');
             centralNode.className = 'graph-node';
             centralNode.textContent = human.name;
@@ -1094,19 +1270,16 @@
             centralNode.style.background = 'linear-gradient(145deg, #398fff, #5a9cff)';
             graphContainer.appendChild(centralNode);
 
-            // Create family nodes and connecting lines
             const familyCount = human.family.length;
             human.family.forEach((familyId, index) => {
                 const familyMember = pazatorData.humans.find(h => h.id === familyId);
                 if (!familyMember) return;
 
-                // Calculate position in a circle around the central node
                 const angle = (index / familyCount) * Math.PI * 2;
                 const distance = 120;
                 const x = centerX + Math.cos(angle) * distance - 40;
                 const y = centerY + Math.sin(angle) * distance - 40;
 
-                // Create family node
                 const node = document.createElement('div');
                 node.className = 'graph-node';
                 node.textContent = familyMember.name;
@@ -1115,36 +1288,52 @@
                 node.style.background = 'linear-gradient(145deg, #ff6b39, #ff8c5a)';
                 graphContainer.appendChild(node);
 
-                // Create connecting line
                 const line = document.createElement('div');
                 line.className = 'graph-line';
-                
-                // Calculate line dimensions and rotation
+
                 const dx = x + 40 - centerX;
                 const dy = y + 40 - centerY;
                 const length = Math.sqrt(dx * dx + dy * dy);
                 const angleDeg = Math.atan2(dy, dx) * 180 / Math.PI;
-                
+
                 line.style.width = `${length}px`;
                 line.style.height = '3px';
                 line.style.left = `${centerX}px`;
                 line.style.top = `${centerY}px`;
                 line.style.transform = `rotate(${angleDeg}deg)`;
-                
+
                 graphContainer.appendChild(line);
             });
         }
 
-        // Populate select options for friends and family
+        function renderTags() {
+            tagsContainer.innerHTML = '';
+
+            tags.forEach(tag => {
+                const tagElement = document.createElement('div');
+                tagElement.className = 'tag';
+                tagElement.innerHTML = `
+                    ${tag}
+                    <span class="remove-tag" data-tag="${tag}">&times;</span>
+                `;
+
+                const removeBtn = tagElement.querySelector('.remove-tag');
+                removeBtn.addEventListener('click', () => {
+                    tags = tags.filter(t => t !== tag);
+                    renderTags();
+                });
+
+                tagsContainer.appendChild(tagElement);
+            });
+        }
+
         function populateSelectOptions(selectedFriends = [], selectedFamily = []) {
             const friendsSelect = document.getElementById('friends');
             const familySelect = document.getElementById('family');
-            
-            // Clear existing options
+
             friendsSelect.innerHTML = '';
             familySelect.innerHTML = '';
-            
-            // Add options for each human
+
             pazatorData.humans.forEach(human => {
                 const friendOption = document.createElement('option');
                 friendOption.value = human.id;
@@ -1153,7 +1342,7 @@
                     friendOption.selected = true;
                 }
                 friendsSelect.appendChild(friendOption);
-                
+
                 const familyOption = document.createElement('option');
                 familyOption.value = human.id;
                 familyOption.textContent = human.name;
@@ -1164,7 +1353,22 @@
             });
         }
 
-        // Open human form for editing
+        function populateTagsForHuman(selectedTags = []) {
+            const tagsSelect = document.getElementById('humanTags');
+
+            tagsSelect.innerHTML = '';
+
+            tags.forEach(tag => {
+                const tagOption = document.createElement('option');
+                tagOption.value = tag;
+                tagOption.textContent = tag;
+                if (selectedTags.includes(tag)) {
+                    tagOption.selected = true;
+                }
+                tagsSelect.appendChild(tagOption);
+            });
+        }
+
         function openHumanFormForEdit(human) {
             document.getElementById('humanModalTitle').textContent = 'Edit Human Entry';
             document.getElementById('humanId').value = human.id;
@@ -1172,26 +1376,25 @@
             document.getElementById('humanGender').value = human.gender || '';
             document.getElementById('birthDate').value = human.birthDate || '';
             document.getElementById('extraNotes').value = human.extraNotes || '';
-            
-            // Populate select options with current selections
+
             populateSelectOptions(human.friends || [], human.family || []);
-            
+
+            populateTagsForHuman(human.tags || []);
+
             humanModal.style.display = 'flex';
             humanModal.style.zIndex = '1000';
         }
 
-        // Open other form for editing
         function openOtherFormForEdit(other) {
             document.getElementById('otherModalTitle').textContent = 'Edit Other Entry';
             document.getElementById('otherId').value = other.id;
             document.getElementById('otherName').value = other.name;
             document.getElementById('otherNote').value = other.note || '';
-            
+
             otherModal.style.display = 'flex';
             otherModal.style.zIndex = '1000';
         }
 
-        // Delete current entry
         function deleteCurrentEntry() {
             const data = document.currentDetailData;
             if (!data) return;
@@ -1202,7 +1405,7 @@
                 } else {
                     pazatorData.others = pazatorData.others.filter(o => o.id !== data.id);
                 }
-                
+
                 saveData();
                 renderWebNodes();
                 detailViewModal.style.display = 'none';
@@ -1210,96 +1413,250 @@
             }
         }
 
-        // Add message to AI chat
         function addMessageToAIChat(message, sender) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `ai-message ${sender}`;
             messageDiv.textContent = message;
             aiChatMessages.appendChild(messageDiv);
             aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
-            
-            // Add to chat history
+
             aiChatHistory.push({ role: sender === 'user' ? 'user' : 'assistant', content: message });
         }
 
-        // Process AI command using Puter.js
         async function processAICommand(command) {
             command = command.trim();
-            
-            // Add user message to chat
+
             addMessageToAIChat(command, 'user');
-            
-            // Disable send button while processing
+
             aiSendBtn.disabled = true;
             aiSendBtn.textContent = 'Processing...';
-            
+
             try {
-                // Prepare context with current data and chat history
+
                 const context = `
                     You are an AI assistant for the Pazator application. The user wants to manage their data entries.
                     Current data:
                     Humans: ${JSON.stringify(pazatorData.humans)}
                     Others: ${JSON.stringify(pazatorData.others)}
-                    
+                    Tags: ${JSON.stringify(tags)}
+
                     The user can ask you to:
-                    1. Add new human entries (with name, gender, birth date, friends, family, notes, image)
+                    1. Add new human entries (with name, gender, birth date, friends, family, notes, tags, image)
                     2. Add new other entries (with name, note, image)
-                    3. Modify existing entries
+                    3. Modify existing entries (including adding/removing tags)
                     4. Delete entries
                     5. Answer questions about the data
-                    
+                    6. Create tags
+                    7. Assign tags to humans
+
                     When the user wants to perform an action that changes data, respond with a JSON object in this format:
-                    {"action": "add_human", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "friends": [], "family": [], "extraNotes": "", "imagePreview": null}}
+                    {"action": "add_human", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "friends": [], "family": [], "extraNotes": "", "tags": ["employee", "manager"], "imagePreview": null}}
+
+                    Or respond with an array of JSON objects to perform multiple actions:
+                    [{"action": "add_human", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "tags": ["employee"]}}, {"action": "add_human", "data": {"name": "Jane", "gender": "Female", "birthDate": "1992-08-22", "tags": ["manager"]}}]
+
+                    For multiple modification actions, always use the array format:
+                    [{"action": "modify_human", "id": "12345", "data": {"extraNotes": "Political view: Liberal"}}, {"action": "modify_human", "id": "67890", "data": {"extraNotes": "Political view: Conservative"}}]
+
+                    When the user asks to give every person a political view or similar requests, you should:
+                    1. Create a unique political view for each human entry
+                    2. Return an array of modify_human actions, one for each human
+                    3. Use realistic and diverse political views
+                    4. Always include all humans in the response, not just one
+
+                    Example response for "Give every person a political view":
+                    [{"action": "modify_human", "id": "12345", "data": {"extraNotes": "Political view: Liberal"}}, {"action": "modify_human", "id": "67890", "data": {"extraNotes": "Political view: Conservative"}}, ...]
+
+                    Other action formats:
                     {"action": "add_other", "data": {"name": "ProjectX", "note": "", "imagePreview": null}}
                     {"action": "delete_human", "id": "12345"}
                     {"action": "delete_other", "id": "67890"}
-                    {"action": "modify_human", "id": "12345", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15"}}
+                    {"action": "modify_human", "id": "12345", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "tags": ["employee", "manager"]}}
                     {"action": "modify_other", "id": "67890", "data": {"name": "ProjectX", "note": "Updated note"}}
                     {"action": "list_humans"}
                     {"action": "list_others"}
                     {"action": "count_entries"}
-                    
+                    {"action": "add_tag", "tag": "newTag"}
+                    {"action": "assign_tag", "id": "12345", "tag": "employee"}
+                    {"action": "remove_tag", "id": "12345", "tag": "employee"}
+
                     For questions that don't require data changes, provide a natural language response.
                     For data modification requests, ONLY respond with the JSON object, nothing else.
-                    
+
                     Previous conversation:
                     ${aiChatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
-                    
+
                     User request: ${command}
                 `;
-                
-                // Get response from Puter AI
+
                 const aiResponse = await puter.ai.chat([
                     { role: "system", content: context },
                     { role: "user", content: command }
                 ]);
-                
+
                 const responseText = aiResponse.content ? aiResponse.content : aiResponse;
-                
-                // Try to parse as JSON for data modification commands
+
                 try {
-                    const jsonResponse = JSON.parse(responseText);
-                    handleAIAction(jsonResponse);
-                    return;
+
+                    let parsedResponse;
+                    try {
+                        parsedResponse = JSON.parse(responseText);
+                    } catch (parseError) {
+
+                        if (responseText.includes('"action"') && (responseText.match(/\{/g) || []).length > 1) {
+
+                            const jsonObjects = [];
+                            let braceCount = 0;
+                            let currentObject = '';
+                            let inString = false;
+                            let escapeNext = false;
+
+                            for (let i = 0; i < responseText.length; i++) {
+                                const char = responseText[i];
+
+                                if (escapeNext) {
+                                    escapeNext = false;
+                                } else if (char === '\\') {
+                                    escapeNext = true;
+                                } else if (char === '"' && !escapeNext) {
+                                    inString = !inString;
+                                }
+
+                                if (!inString) {
+                                    if (char === '{') {
+                                        if (braceCount === 0) {
+                                            currentObject = '';
+                                        }
+                                        braceCount++;
+                                    } else if (char === '}') {
+                                        braceCount--;
+                                        if (braceCount === 0 && currentObject) {
+                                            currentObject += char;
+                                            try {
+                                                const obj = JSON.parse(currentObject);
+                                                if (obj.action) { 
+                                                    jsonObjects.push(obj);
+                                                }
+                                            } catch (e) {
+
+                                            }
+                                            currentObject = '';
+                                            continue;
+                                        }
+                                    }
+                                }
+
+                                if (braceCount > 0) {
+                                    currentObject += char;
+                                }
+                            }
+
+                            if (jsonObjects.length > 0) {
+                                parsedResponse = jsonObjects;
+                            } else {
+                                throw parseError; 
+                            }
+                        } else {
+
+                            const jsonMatch = responseText.match(/\{[^\}]*\"action\"[^\}]*\}/);
+                            if (jsonMatch) {
+                                parsedResponse = JSON.parse(jsonMatch[0]);
+                            } else {
+                                throw parseError; 
+                            }
+                        }
+                    }
+
+                    if (Array.isArray(parsedResponse)) {
+
+                        let completedActions = 0;
+                        let totalActions = parsedResponse.length;
+                        let batchResponse = "I've completed the following actions:\n";
+
+                        parsedResponse.forEach((action, index) => {
+                            switch (action.action) {
+                                case "add_human":
+                                    const newHuman = {
+                                        id: Date.now().toString() + index, 
+                                        ...action.data
+                                    };
+                                    pazatorData.humans.push(newHuman);
+                                    batchResponse += `- Added human: ${newHuman.name}\n`;
+                                    completedActions++;
+                                    break;
+
+                                case "add_other":
+                                    const newOther = {
+                                        id: Date.now().toString() + index, 
+                                        ...action.data
+                                    };
+                                    pazatorData.others.push(newOther);
+                                    batchResponse += `- Added other: ${newOther.name}\n`;
+                                    completedActions++;
+                                    break;
+
+                                case "modify_human":
+                                    const modHumanIndex = pazatorData.humans.findIndex(h => h.id === action.id);
+                                    if (modHumanIndex !== -1) {
+                                        pazatorData.humans[modHumanIndex] = {
+                                            ...pazatorData.humans[modHumanIndex],
+                                            ...action.data
+                                        };
+                                        batchResponse += `- Modified human: ${pazatorData.humans[modHumanIndex].name}\n`;
+                                        completedActions++;
+                                    }
+                                    break;
+
+                                case "modify_other":
+                                    const modOtherIndex = pazatorData.others.findIndex(o => o.id === action.id);
+                                    if (modOtherIndex !== -1) {
+                                        pazatorData.others[modOtherIndex] = {
+                                            ...pazatorData.others[modOtherIndex],
+                                            ...action.data
+                                        };
+                                        batchResponse += `- Modified other: ${pazatorData.others[modOtherIndex].name}\n`;
+                                        completedActions++;
+                                    }
+                                    break;
+
+                                default:
+                                    handleAIAction(action, true); 
+                                    completedActions++;
+                            }
+                        });
+
+                        if (completedActions > 0) {
+                            saveData();
+                            renderWebNodes();
+                        }
+
+                        batchResponse += `\nCompleted ${completedActions} out of ${totalActions} actions.`;
+                        addMessageToAIChat(batchResponse, 'ai');
+                        return;
+                    } else {
+
+                        handleAIAction(parsedResponse);
+                        return;
+                    }
                 } catch (e) {
-                    // If not JSON, treat as regular response
+
                     addMessageToAIChat(responseText, 'ai');
                 }
             } catch (error) {
                 console.error('AI Error:', error);
                 addMessageToAIChat("Sorry, I encountered an error processing your request. Please try again.", 'ai');
             } finally {
-                // Re-enable send button
+
                 aiSendBtn.disabled = false;
                 aiSendBtn.textContent = 'Send';
                 aiInput.value = '';
             }
         }
 
-        // Handle AI actions
-        function handleAIAction(action) {
+        function handleAIAction(action, isBatch = false) {
             let response = "Action completed.";
-            
+            let shouldRespond = !isBatch; 
+
             switch (action.action) {
                 case "add_human":
                     const newHuman = {
@@ -1311,7 +1668,7 @@
                     renderWebNodes();
                     response = `I've added a new human entry for ${newHuman.name}.`;
                     break;
-                    
+
                 case "add_other":
                     const newOther = {
                         id: Date.now().toString(),
@@ -1322,7 +1679,7 @@
                     renderWebNodes();
                     response = `I've added a new other entry named ${newOther.name}.`;
                     break;
-                    
+
                 case "delete_human":
                     const humanIndex = pazatorData.humans.findIndex(h => h.id === action.id);
                     if (humanIndex !== -1) {
@@ -1335,7 +1692,7 @@
                         response = "I couldn't find that human entry to delete.";
                     }
                     break;
-                    
+
                 case "delete_other":
                     const otherIndex = pazatorData.others.findIndex(o => o.id === action.id);
                     if (otherIndex !== -1) {
@@ -1348,7 +1705,7 @@
                         response = "I couldn't find that other entry to delete.";
                     }
                     break;
-                    
+
                 case "modify_human":
                     const modHumanIndex = pazatorData.humans.findIndex(h => h.id === action.id);
                     if (modHumanIndex !== -1) {
@@ -1363,7 +1720,7 @@
                         response = "I couldn't find that human entry to modify.";
                     }
                     break;
-                    
+
                 case "modify_other":
                     const modOtherIndex = pazatorData.others.findIndex(o => o.id === action.id);
                     if (modOtherIndex !== -1) {
@@ -1378,53 +1735,101 @@
                         response = "I couldn't find that other entry to modify.";
                     }
                     break;
-                    
+
                 case "list_humans":
                     const humanNames = pazatorData.humans.map(h => h.name).join(', ');
                     response = `Here are your human entries: ${humanNames || 'None'}`;
                     break;
-                    
+
                 case "list_others":
                     const otherNames = pazatorData.others.map(o => o.name).join(', ');
                     response = `Here are your other entries: ${otherNames || 'None'}`;
                     break;
-                    
+
                 case "count_entries":
                     const humanCount = pazatorData.humans.length;
                     const otherCount = pazatorData.others.length;
                     response = `You have ${humanCount} human entries and ${otherCount} other entries, for a total of ${humanCount + otherCount} entries.`;
                     break;
-                    
+
+                case "add_tag":
+                    if (action.tag && !tags.includes(action.tag)) {
+                        tags.push(action.tag);
+                        saveData();
+                        renderTags();
+                        response = `I've added the tag '${action.tag}' to the tag list.`;
+                    } else {
+                        response = `The tag '${action.tag}' already exists or is invalid.`;
+                    }
+                    break;
+
+                case "assign_tag":
+                    const humanToTag = pazatorData.humans.findIndex(h => h.id === action.id);
+                    if (humanToTag !== -1) {
+                        if (!pazatorData.humans[humanToTag].tags) {
+                            pazatorData.humans[humanToTag].tags = [];
+                        }
+                        if (!pazatorData.humans[humanToTag].tags.includes(action.tag)) {
+                            pazatorData.humans[humanToTag].tags.push(action.tag);
+                            saveData();
+                            renderWebNodes();
+                            response = `I've assigned the tag '${action.tag}' to ${pazatorData.humans[humanToTag].name}.`;
+                        } else {
+                            response = `${pazatorData.humans[humanToTag].name} already has the tag '${action.tag}'.`;
+                        }
+                    } else {
+                        response = "I couldn't find that human entry to assign a tag to.";
+                    }
+                    break;
+
+                case "remove_tag":
+                    const humanToRemoveTag = pazatorData.humans.findIndex(h => h.id === action.id);
+                    if (humanToRemoveTag !== -1) {
+                        if (pazatorData.humans[humanToRemoveTag].tags && pazatorData.humans[humanToRemoveTag].tags.includes(action.tag)) {
+                            pazatorData.humans[humanToRemoveTag].tags = pazatorData.humans[humanToRemoveTag].tags.filter(t => t !== action.tag);
+                            saveData();
+                            renderWebNodes();
+                            response = `I've removed the tag '${action.tag}' from ${pazatorData.humans[humanToRemoveTag].name}.`;
+                        } else {
+                            response = `${pazatorData.humans[humanToRemoveTag].name} doesn't have the tag '${action.tag}'.`;
+                        }
+                    } else {
+                        response = "I couldn't find that human entry to remove a tag from.";
+                    }
+                    break;
+
                 default:
                     response = "I'm not sure how to help with that request.";
+                    shouldRespond = true; 
             }
-            
-            addMessageToAIChat(response, 'ai');
+
+            if (shouldRespond) {
+                addMessageToAIChat(response, 'ai');
+            }
         }
 
-        // Event Listeners
         newDataBtn.addEventListener('click', () => {
-            // Reset form titles for new entries
+
             document.getElementById('humanModalTitle').textContent = 'Create Human Entry';
             document.getElementById('otherModalTitle').textContent = 'Create Other Entry';
-            
-            // Clear form fields
+
             document.getElementById('humanForm').reset();
             document.getElementById('otherForm').reset();
             document.getElementById('humanId').value = '';
             document.getElementById('otherId').value = '';
-            
-            // Close any open modals
+
             humanModal.style.display = 'none';
             otherModal.style.display = 'none';
             detailViewModal.style.display = 'none';
             aiChatModal.style.display = 'none';
-            
-            // Reset z-index for all modals
+
             [humanModal, otherModal, detailViewModal, aiChatModal].forEach(modal => {
                 modal.style.zIndex = '-1';
             });
-            
+
+            populateSelectOptions();
+            populateTagsForHuman();
+
             typeModal.style.display = 'flex';
             typeModal.style.zIndex = '1000';
         });
@@ -1435,35 +1840,30 @@
             aiInput.focus();
         });
 
-        // Close modals when clicking on close buttons or outside the modal
         document.querySelectorAll('.close').forEach(button => {
             button.addEventListener('click', (e) => {
-                // Prevent event from bubbling to parent elements
+
                 e.stopPropagation();
-                
-                // Close all modals
+
                 typeModal.style.display = 'none';
                 humanModal.style.display = 'none';
                 otherModal.style.display = 'none';
                 detailViewModal.style.display = 'none';
                 aiChatModal.style.display = 'none';
-                
-                // Reset z-index for all modals
+
                 [typeModal, humanModal, otherModal, detailViewModal, aiChatModal].forEach(modal => {
                     modal.style.zIndex = '-1';
                 });
             });
         });
 
-        // Close modals when clicking outside the modal content
         window.addEventListener('click', (event) => {
             if (event.target === typeModal) typeModal.style.display = 'none';
             if (event.target === humanModal) humanModal.style.display = 'none';
             if (event.target === otherModal) otherModal.style.display = 'none';
             if (event.target === detailViewModal) detailViewModal.style.display = 'none';
             if (event.target === aiChatModal) aiChatModal.style.display = 'none';
-            
-            // Reset z-index for all modals
+
             [typeModal, humanModal, otherModal, detailViewModal, aiChatModal].forEach(modal => {
                 if (modal.style.display === 'none') {
                     modal.style.zIndex = '-1';
@@ -1471,8 +1871,6 @@
             });
         });
 
-
-        // Type selection
         document.getElementById('humanTypeBtn').addEventListener('click', () => {
             typeModal.style.display = 'none';
             populateSelectOptions();
@@ -1486,7 +1884,6 @@
             otherModal.style.zIndex = '1000';
         });
 
-        // Cancel buttons
         document.getElementById('cancelHumanBtn').addEventListener('click', () => {
             humanModal.style.display = 'none';
             humanModal.style.zIndex = '-1';
@@ -1497,19 +1894,16 @@
             otherModal.style.zIndex = '-1';
         });
 
-        // Close detail view
         document.getElementById('closeDetail').addEventListener('click', () => {
             detailViewModal.style.display = 'none';
             detailViewModal.style.zIndex = '-1';
         });
 
-        // Close AI chat
         document.getElementById('closeAIChat').addEventListener('click', () => {
             aiChatModal.style.display = 'none';
             aiChatModal.style.zIndex = '-1';
         });
 
-        // Also close AI chat when clicking outside
         aiChatModal.addEventListener('click', (event) => {
             if (event.target === aiChatModal) {
                 aiChatModal.style.display = 'none';
@@ -1517,15 +1911,13 @@
             }
         });
 
-
-        // Edit entry button
         document.getElementById('editEntryBtn').addEventListener('click', () => {
             const data = document.currentDetailData;
             if (!data) return;
-            
+
             detailViewModal.style.display = 'none';
             detailViewModal.style.zIndex = '-1';
-            
+
             if (data.type === 'human') {
                 openHumanFormForEdit(data);
                 humanModal.style.zIndex = '1000';
@@ -1535,12 +1927,10 @@
             }
         });
 
-        // Delete entry button
         document.getElementById('deleteEntryBtn').addEventListener('click', () => {
             deleteCurrentEntry();
         });
 
-        // AI chat functionality
         aiSendBtn.addEventListener('click', () => {
             const command = aiInput.value.trim();
             if (command) {
@@ -1557,32 +1947,31 @@
             }
         });
 
-        // Human form submission
         document.getElementById('humanForm').addEventListener('submit', (e) => {
             e.preventDefault();
-            
-            // Get form values
+
             const id = document.getElementById('humanId').value;
             const name = document.getElementById('humanName').value;
             const gender = document.getElementById('humanGender').value;
             const birthDate = document.getElementById('birthDate').value;
             const extraNotes = document.getElementById('extraNotes').value;
-            
-            // Get selected friends and family
+
             const friendsSelect = document.getElementById('friends');
             const familySelect = document.getElementById('family');
-            
+
             const selectedFriends = Array.from(friendsSelect.selectedOptions).map(option => option.value);
             const selectedFamily = Array.from(familySelect.selectedOptions).map(option => option.value);
-            
-            // Check if we're editing or creating
+
+            const tagsSelect = document.getElementById('humanTags');
+            const selectedTags = Array.from(tagsSelect.selectedOptions).map(option => option.value);
+
             if (id) {
-                // Editing existing human
+
                 const humanIndex = pazatorData.humans.findIndex(h => h.id === id);
                 if (humanIndex !== -1) {
-                    // Preserve image if not changed
+
                     const existingImage = pazatorData.humans[humanIndex].imagePreview;
-                    
+
                     pazatorData.humans[humanIndex] = {
                         id,
                         name,
@@ -1591,11 +1980,12 @@
                         friends: selectedFriends,
                         family: selectedFamily,
                         extraNotes,
+                        tags: selectedTags,
                         imagePreview: existingImage
                     };
                 }
             } else {
-                // Creating new human
+
                 const newHuman = {
                     id: Date.now().toString(),
                     name,
@@ -1604,29 +1994,29 @@
                     friends: selectedFriends,
                     family: selectedFamily,
                     extraNotes,
+                    tags: selectedTags,
                     imagePreview: null
                 };
-                
+
                 pazatorData.humans.push(newHuman);
             }
-            
-            // Handle image upload if a new file was selected
+
             const imageFile = document.getElementById('humanImage').files[0];
             if (imageFile) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = function (e) {
                     if (id) {
-                        // Update existing human's image
+
                         const humanIndex = pazatorData.humans.findIndex(h => h.id === id);
                         if (humanIndex !== -1) {
                             pazatorData.humans[humanIndex].imagePreview = e.target.result;
                         }
                     } else {
-                        // Update newly created human's image
+
                         const lastIndex = pazatorData.humans.length - 1;
                         pazatorData.humans[lastIndex].imagePreview = e.target.result;
                     }
-                    
+
                     saveData();
                     renderWebNodes();
                     humanModal.style.display = 'none';
@@ -1643,23 +2033,20 @@
             }
         });
 
-        // Other form submission
         document.getElementById('otherForm').addEventListener('submit', (e) => {
             e.preventDefault();
-            
-            // Get form values
+
             const id = document.getElementById('otherId').value;
             const name = document.getElementById('otherName').value;
             const note = document.getElementById('otherNote').value;
-            
-            // Check if we're editing or creating
+
             if (id) {
-                // Editing existing other
+
                 const otherIndex = pazatorData.others.findIndex(o => o.id === id);
                 if (otherIndex !== -1) {
-                    // Preserve image if not changed
+
                     const existingImage = pazatorData.others[otherIndex].imagePreview;
-                    
+
                     pazatorData.others[otherIndex] = {
                         id,
                         name,
@@ -1668,34 +2055,33 @@
                     };
                 }
             } else {
-                // Creating new other
+
                 const newOther = {
                     id: Date.now().toString(),
                     name,
                     note,
                     imagePreview: null
                 };
-                
+
                 pazatorData.others.push(newOther);
             }
-            
-            // Handle image upload if a new file was selected
+
             const imageFile = document.getElementById('otherImage').files[0];
             if (imageFile) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = function (e) {
                     if (id) {
-                        // Update existing other's image
+
                         const otherIndex = pazatorData.others.findIndex(o => o.id === id);
                         if (otherIndex !== -1) {
                             pazatorData.others[otherIndex].imagePreview = e.target.result;
                         }
                     } else {
-                        // Update newly created other's image
+
                         const lastIndex = pazatorData.others.length - 1;
                         pazatorData.others[lastIndex].imagePreview = e.target.result;
                     }
-                    
+
                     saveData();
                     renderWebNodes();
                     otherModal.style.display = 'none';
@@ -1712,13 +2098,57 @@
             }
         });
 
-        // Handle window resize to reposition nodes
         window.addEventListener('resize', () => {
             renderWebNodes();
         });
 
-        // Initialize the app
+        applyFilterBtn.addEventListener('click', () => {
+            renderWebNodes();
+        });
+
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                renderWebNodes();
+            }
+        });
+
+        addTagBtn.addEventListener('click', () => {
+            const tagText = tagInput.value.trim();
+            if (tagText && !tags.includes(tagText)) {
+                tags.push(tagText);
+                renderTags();
+                tagInput.value = '';
+            }
+        });
+
+        refreshViewBtn.addEventListener('click', () => {
+            renderWebNodes();
+        });
+
+        toggleConnectionsBtn.addEventListener('click', () => {
+            const connectionLines = document.querySelectorAll('.connection-line');
+            connectionLines.forEach(line => {
+                line.style.display = line.style.display === 'none' ? 'block' : 'none';
+            });
+        });
+
+        showStatisticsBtn.addEventListener('click', () => {
+            const humanCount = pazatorData.humans.length;
+            const otherCount = pazatorData.others.length;
+            const totalConnections = pazatorData.humans.reduce((total, human) => {
+                return total + (human.family ? human.family.length : 0) + (human.friends ? human.friends.length : 0);
+            }, 0);
+
+            alert(`Statistics:
+- Humans: ${humanCount}
+- Others: ${otherCount}
+- Total Entries: ${humanCount + otherCount}
+- Connections: ${totalConnections}`);
+        });
+
         loadData();
+        renderTags();
     </script>
 </body>
+
 </html>
