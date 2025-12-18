@@ -12,6 +12,16 @@
             box-sizing: border-box;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+        
+        /* Hide scrollbars but keep functionality */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+        
+        * {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
 
         body {
             background: #141313;
@@ -37,6 +47,14 @@
             padding: 20px;
             background: radial-gradient(circle at top right, #1e1c1c, #141313);
         }
+        
+        .container.threats-split {
+            grid-template-columns: 1fr 1fr;
+        }
+        
+        #threatsPanel {
+            grid-row: 1 / 4;
+        }
 
         .panel {
             background: linear-gradient(180deg, #1b1a1a 0%, #191818 100%);
@@ -55,7 +73,7 @@
             left: 0;
             right: 0;
             height: 1px;
-            background: linear-gradient(90deg, transparent, #ff6b3944, transparent);
+            background: linear-gradient(90deg, transparent, #ffffff44, transparent);
         }
 
         .conva {
@@ -63,9 +81,18 @@
             overflow: hidden;
             position: relative;
         }
+        
+        .container.threats-split .conva {
+            grid-column: 1 / 2;
+        }
+        
+        .container:not(.threats-split) .conva {
+            grid-column: 1 / 3;
+        }
 
         .sidebar {
             grid-row: 2 / 4;
+            grid-column: 3 / 4;
             overflow-y: auto;
         }
 
@@ -80,7 +107,7 @@
         .sidebar-section h3 {
             margin-top: 0;
             margin-bottom: 15px;
-            color: #ff6b39;
+            color: #ffffff;
             font-size: 1.2rem;
         }
 
@@ -92,8 +119,8 @@
         }
 
         .tag {
-            background: linear-gradient(145deg, #ff6b39, #ff8c5a);
-            color: white;
+            background: linear-gradient(145deg, #ffffff, #dddddd);
+            color: black;
             padding: 5px 10px;
             border-radius: 15px;
             font-size: 0.8rem;
@@ -109,6 +136,7 @@
 
         .navbar {
             grid-row: 1 / 2;
+            grid-column: 3 / 4;
             display: flex;
             align-items: stretch;
             justify-content: space-between;
@@ -128,7 +156,7 @@
             left: 0;
             right: 0;
             height: 1px;
-            background: linear-gradient(90deg, transparent, #ff6b3944, transparent);
+            background: linear-gradient(90deg, transparent, #ffffff44, transparent);
         }
 
         .buttons {
@@ -175,7 +203,7 @@
         .logo h1 {
             font-size: 1.8rem;
             margin: 0;
-            background: linear-gradient(45deg, #ff6b39, #ff8c5a);
+            background: linear-gradient(45deg, #ffffff, #dddddd);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-weight: 700;
@@ -230,16 +258,16 @@
         .data-node:hover {
             transform: scale(1.1);
             z-index: 20;
-            box-shadow: 0 6px 15px rgba(255, 107, 57, 0.4);
-            border-color: #e4714a;
+            box-shadow: 0 6px 15px rgba(255, 255, 255, 0.4);
+            border-color: #ffffff;
         }
 
         .data-node.human {
-            background: #ff6b39;
+            background: #ffffff;
         }
 
         .data-node.other {
-            background: linear-gradient(145deg, #ff398f, #ff5aa9);
+            background: linear-gradient(145deg, #ffffff, #dddddd);
         }
 
         .node-label {
@@ -266,7 +294,7 @@
 
         .connection-line {
             position: absolute;
-            background: rgba(255, 107, 57, 0.4);
+            background: rgba(255, 255, 255, 0.4);
             transform-origin: 0 0;
             z-index: 5;
             will-change: transform;
@@ -292,7 +320,7 @@
         .connection-loader {
             border: 4px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
-            border-top: 4px solid #ff6b39;
+            border-top: 4px solid #ffffff;
             width: 40px;
             height: 40px;
             animation: spin 1s linear infinite;
@@ -324,14 +352,14 @@
             cursor: pointer;
             z-index: 10;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-            border: 2px solid #ff6b39;
-            background: linear-gradient(145deg, #ff6b39, #ff8c5a);
-            color: white;
+            border: 2px solid #ffffff;
+            background: linear-gradient(145deg, #ffffff, #dddddd);
+            color: black;
         }
 
         .connection-line {
             position: absolute;
-            background: rgba(255, 107, 57, 0.6);
+            background: rgba(255, 255, 255, 0.6);
             transform-origin: 0 0;
             z-index: 5;
         }
@@ -365,8 +393,8 @@
         }
 
         .connection-type {
-            background: linear-gradient(145deg, #ff6b39, #ff8c5a);
-            color: white;
+            background: linear-gradient(145deg, #ffffff, #dddddd);
+            color: black;
             padding: 3px 8px;
             border-radius: 12px;
             font-size: 12px;
@@ -417,7 +445,7 @@
         .modal-header h2 {
             margin: 0;
             font-size: 1.5rem;
-            background: linear-gradient(45deg, #ff6b39, #ff8c5a);
+            background: linear-gradient(45deg, #ffffff, #dddddd);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -474,8 +502,8 @@
 
         .form-control:focus {
             outline: none;
-            border-color: #ff6b39;
-            box-shadow: 0 0 0 2px rgba(255, 107, 57, 0.3);
+            border-color: #ffffff;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
         }
 
         textarea.form-control {
@@ -515,8 +543,8 @@
         }
 
         .btn-primary {
-            background: linear-gradient(145deg, #ff6b39, #ff8c5a);
-            color: white;
+            background: linear-gradient(145deg, #ffffff, #dddddd);
+            color: black;
         }
 
         .btn-secondary {
@@ -532,7 +560,7 @@
 
         .btn-primary:hover {
             transform: translateY(-3px);
-            box-shadow: 0 6px 12px rgba(255, 107, 57, 0.3);
+            box-shadow: 0 6px 12px rgba(255, 255, 255, 0.3);
         }
 
         .btn-secondary:hover {
@@ -611,7 +639,7 @@
         .detail-section h3 {
             font-size: 1.2rem;
             margin-bottom: 15px;
-            color: #ff6b39;
+            color: #ffffff;
         }
 
         .detail-item {
@@ -669,12 +697,12 @@
             cursor: pointer;
             z-index: 10;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-            border: 2px solid #ff6b39;
+            border: 2px solid #ffffff;
         }
 
         .graph-line {
             position: absolute;
-            background: #ff6b39;
+            background: #ffffff;
             transform-origin: 0 0;
             z-index: 5;
         }
@@ -699,13 +727,15 @@
             z-index: -1;
             justify-content: center;
             align-items: center;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         .ai-chat-content {
             background: linear-gradient(180deg, #1b1a1a 0%, #191818 100%);
             border: 1px solid #2c2b2b;
             border-radius: 25px;
-            padding: 30px;
+            padding: 0;
             width: 90%;
             max-width: 800px;
             max-height: 90vh;
@@ -713,20 +743,22 @@
             flex-direction: column;
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
             position: relative;
+            overflow: hidden;
         }
 
         .ai-chat-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px 25px;
+            padding: 20px 30px;
             border-bottom: 1px solid #2c2b2b;
+            flex-shrink: 0;
         }
 
         .ai-chat-header h2 {
             margin: 0;
             font-size: 1.8rem;
-            background: linear-gradient(45deg, #ff6b39, #ff8c5a);
+            background: linear-gradient(45deg, #ffffff, #dddddd);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -734,37 +766,52 @@
         .ai-chat-messages {
             flex: 1;
             overflow-y: auto;
-            padding: 15px;
+            padding: 20px 30px;
             background: rgba(30, 30, 30, 0.5);
             border-radius: 0;
             margin: 0;
             max-height: 50vh;
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+            will-change: scroll-position;
         }
 
         .ai-message {
-            margin-bottom: 15px;
-            padding: 12px 15px;
-            border-radius: 12px;
-            max-width: 80%;
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            border-radius: 15px;
+            max-width: 85%;
+            animation: fadeIn 0.3s ease-out;
+            will-change: transform;
+            transform: translateZ(0);
+            backface-visibility: hidden;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .ai-message.user {
-            background: rgba(255, 107, 57, 0.2);
+            background: linear-gradient(145deg, #2a2929, #252424);
             margin-left: auto;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
 
         .ai-message.ai {
-            background: rgba(255, 169, 57, 0.2);
+            background: linear-gradient(145deg, #3a3939, #353434);
             margin-right: auto;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
 
         .ai-message.system {
-            background: rgba(255, 146, 57, 0.2);
-            margin: 0 auto 15px auto;
+            background: linear-gradient(145deg, #262525, #212020);
+            margin: 0 auto 20px auto;
             max-width: 100%;
             text-align: left;
-            padding: 15px;
+            padding: 20px;
             border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
 
         .ai-message.system ul {
@@ -786,38 +833,52 @@
         .ai-input-container {
             display: flex;
             gap: 15px;
+            padding: 20px 30px;
+            background: rgba(25, 24, 24, 0.8);
+            border-top: 1px solid #2c2b2b;
+            flex-shrink: 0;
         }
 
         .ai-input {
             flex: 1;
-            padding: 15px;
+            padding: 15px 20px;
             background: rgba(30, 30, 30, 0.7);
             border: 1px solid #444343;
             border-radius: 12px;
             color: #e0e0e0;
             font-size: 1rem;
+            transition: all 0.2s ease;
+            outline: none;
         }
-
+        
         .ai-input:focus {
             outline: none;
-            border-color: #ff6b39;
-            box-shadow: 0 0 0 2px rgba(255, 107, 57, 0.3);
+            border-color: #ffffff;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+            background: rgba(40, 40, 40, 0.9);
         }
 
         .ai-send-btn {
             padding: 15px 25px;
             border-radius: 12px;
-            max-width: 200px;
-            background: linear-gradient(145deg, #ff6b39, #ff8c5a);
-            color: white;
+            min-width: 120px;
+            background: linear-gradient(145deg, #ffffff, #dddddd);
+            color: black;
             border: none;
             cursor: pointer;
             font-weight: 500;
+            transition: all 0.2s ease;
+            will-change: transform;
         }
 
         .ai-send-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 12px rgba(255, 107, 57, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(255, 255, 255, 0.3);
+        }
+        
+        .ai-send-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(255, 255, 255, 0.2);
         }
 
         .ai-send-btn:disabled {
@@ -833,7 +894,81 @@
                 height: 50px;
             }
         }
-
+                
+        /* Threats and Fraud Panel Styles */
+        .threats-content {
+            overflow-y: auto;
+            height: calc(100% - 100px);
+            padding: 10px;
+        }
+                
+        .threats-list, .fraud-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+                
+        .finding-item {
+            background: rgba(40, 40, 40, 0.7);
+            border: 1px solid #444;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+                
+        .finding-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+                
+        .finding-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+                
+        .finding-risk {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+                
+        .finding-high {
+            background: linear-gradient(145deg, #ffffff, #dddddd);
+            color: black;
+        }
+                
+        .finding-medium {
+            background: linear-gradient(145deg, #cccccc, #bbbbbb);
+            color: black;
+        }
+                
+        .finding-low {
+            background: linear-gradient(145deg, #aaaaaa, #999999);
+            color: black;
+        }
+                
+        .finding-evidence {
+            font-size: 0.9rem;
+            margin: 10px 0;
+        }
+                
+        .finding-reasons {
+            font-size: 0.85rem;
+            margin-top: 10px;
+        }
+                
+        .finding-reasons ul {
+            padding-left: 20px;
+            margin: 5px 0;
+        }
+                
+        .finding-reasons li {
+            margin-bottom: 3px;
+        }
+                
         @media (max-width: 768px) {
             .container {
                 grid-template-columns: 1fr;
@@ -851,17 +986,44 @@
             .sidebar {
                 grid-row: 2 / 3;
             }
+            
+            #threatsPanel {
+                grid-row: 4 / 5;
+            }
 
             .detail-body {
                 grid-template-columns: 1fr;
             }
 
             .family-graph-container {
-                grid-column: s pan 1;
+                grid-column: span 1;
             }
 
             .ai-input-container {
                 flex-direction: column;
+            }
+            
+            .ai-input-container .ai-send-btn {
+                min-width: auto;
+                width: 100%;
+            }
+            
+            .container.threats-visible {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto auto;
+            }
+            
+            .ai-chat-content {
+                width: 95%;
+                max-height: 95vh;
+            }
+            
+            .ai-chat-header, .ai-input-container {
+                padding: 15px;
+            }
+            
+            .ai-chat-messages {
+                padding: 15px;
             }
         }
     </style>
@@ -878,11 +1040,34 @@
                 </div>
             </div>
         </div>
+        <!-- Threats and Fraud Panel -->
+        <div class="panel" id="threatsPanel" style="display: none;">
+            <div class="logo">
+                <h1>Threats & Fraud</h1>
+            </div>
+            <div class="threats-content">
+                <div class="sidebar-section">
+                    <button id="findBothBtn" class="btn btn-primary" style="width: 100%; margin-bottom: 15px;">Find Both Threats & Fraud</button>
+                </div>
+                <div class="sidebar-section">
+                    <h3>Previous Threat Findings</h3>
+                    <div id="threatsList" class="threats-list">
+                        
+                    </div>
+                </div>                <div class="sidebar-section">
+                    <h3>Previous Fraud Findings</h3>
+                    <div id="fraudList" class="fraud-list">
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="panel navbar">
             <div class="buttons">
                 <button id="newDataBtn" class="navbtnmargin">New data</button>
                 <button id="askAIBtn" class="navbtnmargin">ask AI</button>
-                <button class="navbtnmargin">Menu</button>
+                <button id="menuBtn" class="navbtnmargin">Menu</button>
+                <button id="signInBtn" class="navbtnmargin" style="display: none;">Sign In</button>
             </div>
         </div>
         <div class="panel sidebar">
@@ -1238,7 +1423,7 @@
                     <div class="connection-loader"></div>
                 </div>
                 <div id="connectionsResults" style="display: none;">
-                    <h3 style="color: #ff6b39; margin-bottom: 20px;">Potential Hidden Connections</h3>
+                    <h3 style="color: #ffffff; margin-bottom: 20px;">Potential Hidden Connections</h3>
                     <div id="connectionsGraph"
                         style="height: 300px; position: relative; margin-bottom: 30px; border: 1px solid #444; border-radius: 10px; background: rgba(20, 20, 20, 0.5);">
                     </div>
@@ -1690,7 +1875,7 @@
                 node.textContent = familyMember.name;
                 node.style.left = `${x}px`;
                 node.style.top = `${y}px`;
-                node.style.background = 'linear-gradient(145deg, #ff6b39, #ff8c5a)';
+                node.style.background = 'linear-gradient(145deg, #ffffff, #dddddd)';
                 graphContainer.appendChild(node);
 
                 const line = document.createElement('div');
@@ -1825,261 +2010,290 @@
             const messageDiv = document.createElement('div');
             messageDiv.className = `ai-message ${sender}`;
             messageDiv.textContent = message;
-            aiChatMessages.appendChild(messageDiv);
-            aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+            
+            // Use requestAnimationFrame to reduce jank
+            requestAnimationFrame(() => {
+                aiChatMessages.appendChild(messageDiv);
+                
+                // Smooth scroll to bottom
+                aiChatMessages.scrollTo({
+                    top: aiChatMessages.scrollHeight,
+                    behavior: 'smooth'
+                });
+                
+                // Force reflow to ensure smooth animation
+                messageDiv.offsetHeight;
+            });
 
             aiChatHistory.push({ role: sender === 'user' ? 'user' : 'assistant', content: message });
         }
 
         function generate54PeopleCommand() {
-            const firstNames = [
-                "James", "Mary", "John", "Patricia", "Robert", "Jennifer", "Michael", "Linda",
-                "William", "Elizabeth", "David", "Barbara", "Richard", "Susan", "Joseph", "Jessica",
-                "Thomas", "Sarah", "Charles", "Karen", "Christopher", "Nancy", "Daniel", "Lisa",
-                "Matthew", "Betty", "Anthony", "Helen", "Mark", "Sandra", "Donald", "Donna",
-                "Steven", "Carol", "Paul", "Ruth", "Andrew", "Sharon", "Joshua", "Michelle",
-                "Kenneth", "Laura", "Kevin", "Sarah", "Brian", "Kimberly", "George", "Deborah",
-                "Timothy", "Dorothy", "Ronald", "Lisa", "Jason", "Nancy", "Jacob", "Karen"
-            ];
+            try {
+                const firstNames = [
+                    "James", "Mary", "John", "Patricia", "Robert", "Jennifer", "Michael", "Linda",
+                    "William", "Elizabeth", "David", "Barbara", "Richard", "Susan", "Joseph", "Jessica",
+                    "Thomas", "Sarah", "Charles", "Karen", "Christopher", "Nancy", "Daniel", "Lisa",
+                    "Matthew", "Betty", "Anthony", "Helen", "Mark", "Sandra", "Donald", "Donna",
+                    "Steven", "Carol", "Paul", "Ruth", "Andrew", "Sharon", "Joshua", "Michelle",
+                    "Kenneth", "Laura", "Kevin", "Sarah", "Brian", "Kimberly", "George", "Deborah",
+                    "Timothy", "Dorothy", "Ronald", "Lisa", "Jason", "Nancy", "Jacob", "Karen"
+                ];
 
-            const lastNames = [
-                "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis",
-                "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson",
-                "Thomas", "Taylor", "Moore", "Jackson", "Martin", "Lee", "Perez", "Thompson",
-                "White", "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson", "Walker",
-                "Young", "Allen", "King", "Wright", "Scott", "Torres", "Nguyen", "Hill", "Flores",
-                "Green", "Adams", "Nelson", "Baker", "Hall", "Rivera", "Campbell", "Mitchell"
-            ];
+                const lastNames = [
+                    "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis",
+                    "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson",
+                    "Thomas", "Taylor", "Moore", "Jackson", "Martin", "Lee", "Perez", "Thompson",
+                    "White", "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson", "Walker",
+                    "Young", "Allen", "King", "Wright", "Scott", "Torres", "Nguyen", "Hill", "Flores",
+                    "Green", "Adams", "Nelson", "Baker", "Hall", "Rivera", "Campbell", "Mitchell"
+                ];
 
-            const politicalViews = [
-                "Liberal", "Conservative", "Moderate", "Progressive",
-                "Libertarian", "Socialist", "Green", "Centrist",
-                "Anarchist", "Fascist", "Nationalist", "Populist",
-                "Social Democrat", "Neo-Conservative", "Neo-Liberal",
-                "Technocrat", "Monarchist", "Theocrat"
-            ];
+                const politicalViews = [
+                    "Liberal", "Conservative", "Moderate", "Progressive",
+                    "Libertarian", "Socialist", "Green", "Centrist",
+                    "Anarchist", "Fascist", "Nationalist", "Populist",
+                    "Social Democrat", "Neo-Conservative", "Neo-Liberal",
+                    "Technocrat", "Monarchist", "Theocrat"
+                ];
 
-            const appearanceTraits = [
-                "Tall", "Short", "Athletic", "Slender",
-                "Average", "Stocky", "Petite", "Lanky",
-                "Curvy", "Muscular", "Skinny", "Chubby",
-                "Fit", "Overweight", "Underweight", "Well-proportioned"
-            ];
+                const appearanceTraits = [
+                    "Tall", "Short", "Athletic", "Slender",
+                    "Average", "Stocky", "Petite", "Lanky",
+                    "Curvy", "Muscular", "Skinny", "Chubby",
+                    "Fit", "Overweight", "Underweight", "Well-proportioned"
+                ];
 
-            const professions = [
-                "Doctor", "Teacher", "Engineer", "Artist", "Lawyer", "Nurse", "Manager", "Salesperson",
-                "Chef", "Writer", "Designer", "Accountant", "Police Officer", "Firefighter", "Scientist", "Musician"
-            ];
+                const professions = [
+                    "Doctor", "Teacher", "Engineer", "Artist", "Lawyer", "Nurse", "Manager", "Salesperson",
+                    "Chef", "Writer", "Designer", "Accountant", "Police Officer", "Firefighter", "Scientist", "Musician"
+                ];
 
-            const interests = [
-                "Sports", "Reading", "Travel", "Cooking", "Music", "Art", "Technology", "Gardening",
-                "Photography", "Dancing", "Hiking", "Gaming", "Movies", "Politics", "Volunteering", "Fitness"
-            ];
+                const interests = [
+                    "Sports", "Reading", "Travel", "Cooking", "Music", "Art", "Technology", "Gardening",
+                    "Photography", "Dancing", "Hiking", "Gaming", "Movies", "Politics", "Volunteering", "Fitness"
+                ];
 
-            const actions = [];
+                const actions = [];
 
-            for (let i = 1; i <= 54; i++) {
-                const isImmigrant = (i === 1 || i === 2); 
-                const gender = Math.random() > 0.5 ? "Male" : "Female";
+                for (let i = 1; i <= 54; i++) {
+                    const isImmigrant = (i === 1 || i === 2); 
+                    const gender = Math.random() > 0.5 ? "Male" : "Female";
 
-                const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
-                const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
-                const fullName = `${firstName} ${lastName}`;
+                    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+                    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+                    const fullName = `${firstName} ${lastName}`;
 
-                const year = Math.floor(Math.random() * 55) + 1950;
-                const month = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');
-                const day = String(Math.floor(Math.random() * 28) + 1).padStart(2, '0');
+                    const year = Math.floor(Math.random() * 55) + 1950;
+                    const month = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');
+                    const day = String(Math.floor(Math.random() * 28) + 1).padStart(2, '0');
 
-                const politicalView = politicalViews[Math.floor(Math.random() * politicalViews.length)];
-                const appearance = appearanceTraits[Math.floor(Math.random() * appearanceTraits.length)];
-                const profession = professions[Math.floor(Math.random() * professions.length)];
-                const interest = interests[Math.floor(Math.random() * interests.length)];
+                    const politicalView = politicalViews[Math.floor(Math.random() * politicalViews.length)];
+                    const appearance = appearanceTraits[Math.floor(Math.random() * appearanceTraits.length)];
+                    const profession = professions[Math.floor(Math.random() * professions.length)];
+                    const interest = interests[Math.floor(Math.random() * interests.length)];
 
-                let extraNotes = `Political view: ${politicalView}; Looks: ${appearance}; Profession: ${profession}`;
+                    let extraNotes = `Political view: ${politicalView}; Looks: ${appearance}; Profession: ${profession}`;
 
-                if (isImmigrant) {
-                    const countries = ["Mexico", "Canada", "Germany", "Japan", "India", "Brazil", "Australia", "France"];
-                    const country = countries[Math.floor(Math.random() * countries.length)];
-                    extraNotes = `Immigrant from ${country}; ${extraNotes}`;
+                    if (isImmigrant) {
+                        const countries = ["Mexico", "Canada", "Germany", "Japan", "India", "Brazil", "Australia", "France"];
+                        const country = countries[Math.floor(Math.random() * countries.length)];
+                        extraNotes = `Immigrant from ${country}; ${extraNotes}`;
+                    }
+
+                    const personTags = [profession.toLowerCase(), interest.toLowerCase()];
+
+                    actions.push({
+                        "action": "add_human",
+                        "data": {
+                            "name": fullName,
+                            "gender": gender,
+                            "birthDate": `${year}-${month}-${day}`,
+                            "friends": [],
+                            "family": [],
+                            "extraNotes": extraNotes,
+                            "tags": personTags,
+                            "imagePreview": null
+                        }
+                    });
                 }
 
-                const personTags = [profession.toLowerCase(), interest.toLowerCase()];
+                const humanNames = actions.map(action => action.data.name);
 
-                actions.push({
-                    "action": "add_human",
-                    "data": {
-                        "name": fullName,
-                        "gender": gender,
-                        "birthDate": `${year}-${month}-${day}`,
-                        "friends": [],
-                        "family": [],
-                        "extraNotes": extraNotes,
-                        "tags": personTags,
-                        "imagePreview": null
+                for (let i = 0; i < actions.length; i++) {
+
+                    const familyCount = Math.min(Math.floor(Math.random() * 3) + 1, actions.length - 1);
+                    const familyNames = [];
+
+                    const availableIndices = Array.from({ length: actions.length }, (_, idx) => idx).filter(idx => idx !== i);
+                    for (let j = 0; j < familyCount && availableIndices.length > 0; j++) {
+                        const randomIndex = Math.floor(Math.random() * availableIndices.length);
+                        const familyIndex = availableIndices.splice(randomIndex, 1)[0];
+                        familyNames.push(humanNames[familyIndex]);
                     }
-                });
-            }
 
-            const humanNames = actions.map(action => action.data.name);
-
-            for (let i = 0; i < actions.length; i++) {
-
-                const familyCount = Math.min(Math.floor(Math.random() * 3) + 1, actions.length - 1);
-                const familyNames = [];
-
-                const availableIndices = Array.from({ length: actions.length }, (_, idx) => idx).filter(idx => idx !== i);
-                for (let j = 0; j < familyCount && availableIndices.length > 0; j++) {
-                    const randomIndex = Math.floor(Math.random() * availableIndices.length);
-                    const familyIndex = availableIndices.splice(randomIndex, 1)[0];
-                    familyNames.push(humanNames[familyIndex]);
+                    actions.push({
+                        "action": "modify_human",
+                        "id": `temp_id_${i + 1}`,
+                        "data": {
+                            "family": familyNames
+                        }
+                    });
                 }
 
-                actions.push({
-                    "action": "modify_human",
-                    "id": `temp_id_${i + 1}`,
-                    "data": {
-                        "family": familyNames
-                    }
-                });
+                return actions;
+            } catch (error) {
+                console.error('Error in generate54PeopleCommand:', error);
+                addMessageToAIChat("Sorry, I encountered an error generating people. Please try again.", 'ai');
+                return [];
             }
-
-            return actions;
         }
 
         async function processAICommand(command) {
-            command = command.trim();
-
-            if (command.toLowerCase().includes("make 54") && command.toLowerCase().includes("people")) {
-                addMessageToAIChat(command, 'user');
-                const actions = generate54PeopleCommand();
-                await handleBatchActions(actions);
-                return;
-            }
-
-            addMessageToAIChat(command, 'user');
-
-            aiSendBtn.disabled = true;
-            aiSendBtn.textContent = 'Processing...';
-
             try {
+                command = command.trim();
 
-                const context = `
-                    You are an AI assistant for the Pazator application. The user wants to manage their data entries.
-                    Current data:
-                    Humans: ${JSON.stringify(pazatorData.humans)}
-                    Others: ${JSON.stringify(pazatorData.others)}
-                    Tags: ${JSON.stringify(tags)}
+                if (command.toLowerCase().includes("make 54") && command.toLowerCase().includes("people")) {
+                    addMessageToAIChat(command, 'user');
+                    const actions = generate54PeopleCommand();
+                    await handleBatchActions(actions);
+                    return;
+                }
 
-                    You are named PZ1
-                    The user can ask you to:
-                    1. Add new human entries (with name, gender, birth date, friends, family, notes, tags, image)
-                    2. Add new other entries (with name, note, image)
-                    3. Modify existing entries (including adding/removing tags)
-                    4. Delete entries
-                    5. Answer questions about the data
-                    6. Create tags
-                    7. Assign tags to humans
+                addMessageToAIChat(command, 'user');
 
-                    When the user wants to perform an action that changes data, respond with a JSON object in this format:
-                    {"action": "add_human", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "friends": [], "family": [], "extraNotes": "", "tags": ["employee", "manager"], "imagePreview": null}}
-
-                    Or respond with an array of JSON objects to perform multiple actions:
-                    [{"action": "add_human", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "tags": ["employee"]}}, {"action": "add_human", "data": {"name": "Jane", "gender": "Female", "birthDate": "1992-08-22", "tags": ["manager"]}}]
-
-                    For multiple modification actions, always use the array format:
-                    [{"action": "modify_human", "id": "12345", "data": {"extraNotes": "Political view: Liberal"}}, {"action": "modify_human", "id": "67890", "data": {"extraNotes": "Political view: Conservative"}}]
-
-                    When the user asks to give every person a political view or similar requests, you should:
-                    1. Create a unique political view for each human entry
-                    2. Return an array of modify_human actions, one for each human
-                    3. Use realistic and diverse political views
-                    4. Always include all humans in the response, not just one
-
-                    Example response for "Give every person a political view":
-                    [{"action": "modify_human", "id": "12345", "data": {"extraNotes": "Political view: Liberal"}}, {"action": "modify_human", "id": "67890", "data": {"extraNotes": "Political view: Conservative"}}, ...]
-
-                    Other action formats:
-                    {"action": "add_other", "data": {"name": "ProjectX", "note": "", "imagePreview": null}}
-                    {"action": "delete_human", "id": "12345"}
-                    {"action": "delete_other", "id": "67890"}
-                    {"action": "modify_human", "id": "12345", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "tags": ["employee", "manager"]}}
-                    {"action": "modify_other", "id": "67890", "data": {"name": "ProjectX", "note": "Updated note"}}
-                    {"action": "list_humans"}
-                    {"action": "list_others"}
-                    {"action": "count_entries"}
-                    {"action": "add_tag", "tag": "newTag"}
-                    {"action": "assign_tag", "id": "12345", "tag": "employee"}
-                    {"action": "remove_tag", "id": "12345", "tag": "employee"}
-
-                    For questions that don't require data changes, provide a natural language response.
-                    For data modification requests, ONLY respond with the JSON object, nothing else.
-
-                    Previous conversation:
-                    ${aiChatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
-
-                    User request: ${command}
-
-                    IMPORTANT: When creating multiple people with traits, political views, and realistic looking traits, and making families that connect most people, make sure to:
-                    1. Create all people first with the add_human action
-                    2. Then create the relationships between them using modify_human actions to update their friends and family arrays
-                    3. For immigrants, include that information in their extraNotes
-                    4. Always return a properly formatted JSON array with all actions needed
-
-                    When the user asks to create a specific number of people (e.g., "Make 54 different people"), you MUST create exactly that many people with diverse traits.
-                    Each person should have:
-                    - A unique name
-                    - A gender
-                    - A birth date
-                    - Political views (diverse range: Liberal, Conservative, Moderate, Progressive, Libertarian, Socialist, Green, Centrist, etc.)
-                    - Realistic appearance traits (e.g., Tall, Short, Athletic, Slender, Average, etc.)
-                    - Friends and family connections (most people should be connected)
-                    - 2 of the people should be immigrants with country of origin in their extraNotes
-
-                    Example response for "Make 54 different people with traits political views and realistic looking traits and make families that connect most people, make 2 of the people immigrants":
-                    [{"action": "add_human", "data": {"name": "Person1", "gender": "Male", "birthDate": "1980-01-01", "friends": [], "family": [], "extraNotes": "Political view: Liberal; Looks: Above average", "tags": [], "imagePreview": null}}, {"action": "add_human", "data": {"name": "Person2", "gender": "Female", "birthDate": "1985-02-15", "friends": [], "family": [], "extraNotes": "Political view: Conservative; Looks: Average", "tags": [], "imagePreview": null}}, ...]
-
-                    After creating all people, create relationships between them using modify_human actions.
-
-                    You can also CREATE NEW TAGS when appropriate. For example, if a user asks to tag all doctors, you can:
-                    1. Create a "doctor" tag using the add_tag action
-                    2. Assign that tag to relevant humans using the assign_tag action
-                `;
-
-                const aiResponse = await puter.ai.chat([
-                    { role: "system", content: context },
-                    { role: "user", content: command }
-                ]);
-
-                const responseText = aiResponse.content ? aiResponse.content : aiResponse;
+                aiSendBtn.disabled = true;
+                aiSendBtn.textContent = 'Processing...';
 
                 try {
 
-                    let parsedResponse = extractJSONFromResponse(responseText);
+                    const context = `
+                        You are an AI assistant for the Pazator application. The user wants to manage their data entries.
+                        Current data:
+                        Humans: ${JSON.stringify(pazatorData.humans)}
+                        Others: ${JSON.stringify(pazatorData.others)}
+                        Tags: ${JSON.stringify(tags)}
 
-                    if (parsedResponse) {
-                        if (Array.isArray(parsedResponse)) {
+                        You are named PZ1
+                        The user can ask you to:
+                        1. Add new human entries (with name, gender, birth date, friends, family, notes, tags, image)
+                        2. Add new other entries (with name, note, image)
+                        3. Modify existing entries (including adding/removing tags)
+                        4. Delete entries
+                        5. Answer questions about the data
+                        6. Create tags
+                        7. Assign tags to humans
 
-                            await handleBatchActions(parsedResponse);
+                        When the user wants to perform an action that changes data, respond with a JSON object in this format:
+                        {"action": "add_human", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "friends": [], "family": [], "extraNotes": "", "tags": ["employee", "manager"], "imagePreview": null}}
+
+                        Or respond with an array of JSON objects to perform multiple actions:
+                        [{"action": "add_human", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "tags": ["employee"]}}, {"action": "add_human", "data": {"name": "Jane", "gender": "Female", "birthDate": "1992-08-22", "tags": ["manager"]}}]
+
+                        For multiple modification actions, always use the array format:
+                        [{"action": "modify_human", "id": "12345", "data": {"extraNotes": "Political view: Liberal"}}, {"action": "modify_human", "id": "67890", "data": {"extraNotes": "Political view: Conservative"}}]
+
+                        When the user asks to give every person a political view or similar requests, you should:
+                        1. Create a unique political view for each human entry
+                        2. Return an array of modify_human actions, one for each human
+                        3. Use realistic and diverse political views
+                        4. Always include all humans in the response, not just one
+
+                        Example response for "Give every person a political view":
+                        [{"action": "modify_human", "id": "12345", "data": {"extraNotes": "Political view: Liberal"}}, {"action": "modify_human", "id": "67890", "data": {"extraNotes": "Political view: Conservative"}}, ...]
+
+                        Other action formats:
+                        {"action": "add_other", "data": {"name": "ProjectX", "note": "", "imagePreview": null}}
+                        {"action": "delete_human", "id": "12345"}
+                        {"action": "delete_other", "id": "67890"}
+                        {"action": "modify_human", "id": "12345", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "tags": ["employee", "manager"]}}
+                        {"action": "modify_other", "id": "67890", "data": {"name": "ProjectX", "note": "Updated note"}}
+                        {"action": "list_humans"}
+                        {"action": "list_others"}
+                        {"action": "count_entries"}
+                        {"action": "add_tag", "tag": "newTag"}
+                        {"action": "assign_tag", "id": "12345", "tag": "employee"}
+                        {"action": "remove_tag", "id": "12345", "tag": "employee"}
+
+                        For questions that don't require data changes, provide a natural language response.
+                        For data modification requests, ONLY respond with the JSON object, nothing else.
+
+                        Previous conversation:
+                        ${aiChatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
+
+                        User request: ${command}
+
+                        IMPORTANT: When creating multiple people with traits, political views, and realistic looking traits, and making families that connect most people, make sure to:
+                        1. Create all people first with the add_human action
+                        2. Then create the relationships between them using modify_human actions to update their friends and family arrays
+                        3. For immigrants, include that information in their extraNotes
+                        4. Always return a properly formatted JSON array with all actions needed
+
+                        When the user asks to create a specific number of people (e.g., "Make 54 different people"), you MUST create exactly that many people with diverse traits.
+                        Each person should have:
+                        - A unique name
+                        - A gender
+                        - A birth date
+                        - Political views (diverse range: Liberal, Conservative, Moderate, Progressive, Libertarian, Socialist, Green, Centrist, etc.)
+                        - Realistic appearance traits (e.g., Tall, Short, Athletic, Slender, Average, etc.)
+                        - Friends and family connections (most people should be connected)
+                        - 2 of the people should be immigrants with country of origin in their extraNotes
+
+                        Example response for "Make 54 different people with traits political views and realistic looking traits and make families that connect most people, make 2 of the people immigrants":
+                        [{"action": "add_human", "data": {"name": "Person1", "gender": "Male", "birthDate": "1980-01-01", "friends": [], "family": [], "extraNotes": "Political view: Liberal; Looks: Above average", "tags": [], "imagePreview": null}}, {"action": "add_human", "data": {"name": "Person2", "gender": "Female", "birthDate": "1985-02-15", "friends": [], "family": [], "extraNotes": "Political view: Conservative; Looks: Average", "tags": [], "imagePreview": null}}, ...]
+
+                        After creating all people, create relationships between them using modify_human actions.
+
+                        You can also CREATE NEW TAGS when appropriate. For example, if a user asks to tag all doctors, you can:
+                        1. Create a "doctor" tag using the add_tag action
+                        2. Assign that tag to relevant humans using the assign_tag action
+                    `;
+
+                    const aiResponse = await puter.ai.chat([
+                        { role: "system", content: context },
+                        { role: "user", content: command }
+                    ]);
+
+                    const responseText = aiResponse.content ? aiResponse.content : aiResponse;
+
+                    try {
+
+                        let parsedResponse = extractJSONFromResponse(responseText);
+
+                        if (parsedResponse) {
+                            if (Array.isArray(parsedResponse)) {
+
+                                await handleBatchActions(parsedResponse);
+                            } else {
+
+                                handleAIAction(parsedResponse);
+                            }
+                            return;
                         } else {
 
-                            handleAIAction(parsedResponse);
+                            addMessageToAIChat(responseText, 'ai');
                         }
-                        return;
-                    } else {
-
+                    } catch (e) {
+                        console.error('AI Response Parsing Error:', e);
                         addMessageToAIChat(responseText, 'ai');
                     }
-                } catch (e) {
-                    console.error('AI Response Parsing Error:', e);
-                    addMessageToAIChat(responseText, 'ai');
+                } catch (error) {
+                    console.error('AI Error:', error);
+                    addMessageToAIChat("Sorry, I encountered an error processing your request. Please try again.", 'ai');
                 }
             } catch (error) {
-                console.error('AI Error:', error);
-                addMessageToAIChat("Sorry, I encountered an error processing your request. Please try again.", 'ai');
+                console.error('Critical Error in processAICommand:', error);
+                addMessageToAIChat("Sorry, I encountered a critical error. Please try again.", 'ai');
             } finally {
-                aiSendBtn.disabled = false;
-                aiSendBtn.textContent = 'Send';
-                aiInput.value = '';
+                // Use requestAnimationFrame to ensure UI updates smoothly
+                requestAnimationFrame(() => {
+                    aiSendBtn.disabled = false;
+                    aiSendBtn.textContent = 'Send';
+                    aiInput.value = '';
+                    
+                    // Focus input for better UX
+                    aiInput.focus();
+                });
             }
         }
 
@@ -2182,67 +2396,77 @@
         }
 
         async function handleBatchActions(actions) {
-            let completedActions = 0;
-            let totalActions = actions.length;
-            let batchResponse = "I've completed the following actions:\n";
-            let hasErrors = false;
+            try {
+                let completedActions = 0;
+                let totalActions = actions.length;
+                let batchResponse = "I've completed the following actions:\n";
+                let hasErrors = false;
 
-            const addHumanActions = actions.filter(action => action.action === "add_human");
-            const otherActions = actions.filter(action => action.action !== "add_human");
+                const addHumanActions = actions.filter(action => action.action === "add_human");
+                const otherActions = actions.filter(action => action.action !== "add_human");
 
-            for (const action of addHumanActions) {
-                try {
-                    const result = handleAIAction(action, true);
-                    if (result.success) {
-                        batchResponse += `- ${result.message}\n`;
-                        completedActions++;
-                    } else {
-                        batchResponse += `- Failed to add ${action.data?.name || 'unknown person'}: ${result.message}\n`;
+                // Process add_human actions
+                for (const action of addHumanActions) {
+                    try {
+                        const result = handleAIAction(action, true);
+                        if (result.success) {
+                            batchResponse += `- ${result.message}\n`;
+                            completedActions++;
+                        } else {
+                            batchResponse += `- Failed to add ${action.data?.name || 'unknown person'}: ${result.message}\n`;
+                            hasErrors = true;
+                        }
+                    } catch (e) {
+                        batchResponse += `- Error adding ${action.data?.name || 'unknown person'}: ${e.message}\n`;
                         hasErrors = true;
                     }
-                } catch (e) {
-                    batchResponse += `- Error adding ${action.data?.name || 'unknown person'}: ${e.message}\n`;
-                    hasErrors = true;
                 }
-            }
 
-            if (addHumanActions.length > 0) {
-                saveData();
-                renderWebNodes();
-            }
+                // Save and render after all add_human actions
+                if (addHumanActions.length > 0) {
+                    saveData();
+                    renderWebNodes();
+                }
 
-            for (const action of otherActions) {
-                try {
-                    const result = handleAIAction(action, true);
-                    if (result.success) {
-                        batchResponse += `- ${result.message}\n`;
-                        completedActions++;
-                    } else {
-                        batchResponse += `- Failed action: ${result.message}\n`;
+                // Process other actions
+                for (const action of otherActions) {
+                    try {
+                        const result = handleAIAction(action, true);
+                        if (result.success) {
+                            batchResponse += `- ${result.message}\n`;
+                            completedActions++;
+                        } else {
+                            batchResponse += `- Failed action: ${result.message}\n`;
+                            hasErrors = true;
+                        }
+                    } catch (e) {
+                        batchResponse += `- Error processing action: ${e.message}\n`;
                         hasErrors = true;
                     }
-                } catch (e) {
-                    batchResponse += `- Error processing action: ${e.message}\n`;
-                    hasErrors = true;
                 }
-            }
 
-            if (addHumanActions.length >= 10) { 
-                createFamilyConnections();
-                batchResponse += "- Created family connections between people\n";
-            }
+                // Create family connections if needed
+                if (addHumanActions.length >= 10) { 
+                    createFamilyConnections();
+                    batchResponse += "- Created family connections between people\n";
+                }
 
-            if (completedActions > 0) {
-                saveData();
-                renderWebNodes();
-            }
+                // Final save and render if needed
+                if (completedActions > 0 && addHumanActions.length === 0) {
+                    saveData();
+                    renderWebNodes();
+                }
 
-            batchResponse += `\nCompleted ${completedActions} out of ${totalActions} actions.`;
-            if (hasErrors) {
-                batchResponse += "\nSome actions failed. Please check the data and try again.";
-            }
+                batchResponse += `\nCompleted ${completedActions} out of ${totalActions} actions.`;
+                if (hasErrors) {
+                    batchResponse += "\nSome actions failed. Please check the data and try again.";
+                }
 
-            addMessageToAIChat(batchResponse, 'ai');
+                addMessageToAIChat(batchResponse, 'ai');
+            } catch (error) {
+                console.error('Error in handleBatchActions:', error);
+                addMessageToAIChat("Sorry, I encountered an error processing the batch actions. Please try again.", 'ai');
+            }
 
             function sortByCredit() {
 
@@ -2262,32 +2486,36 @@
         }
 
         function createFamilyConnections() {
+            try {
+                if (pazatorData.humans.length < 5) return;
 
-            if (pazatorData.humans.length < 5) return;
+                for (let i = 0; i < pazatorData.humans.length; i++) {
+                    const person = pazatorData.humans[i];
 
-            for (let i = 0; i < pazatorData.humans.length; i++) {
-                const person = pazatorData.humans[i];
+                    if (person.family && person.family.length > 0) continue;
 
-                if (person.family && person.family.length > 0) continue;
+                    const familyCount = Math.min(Math.floor(Math.random() * 3) + 1, pazatorData.humans.length - 1);
+                    const familyIds = [];
 
-                const familyCount = Math.min(Math.floor(Math.random() * 3) + 1, pazatorData.humans.length - 1);
-                const familyIds = [];
+                    const availablePeople = pazatorData.humans.filter((p, idx) => idx !== i);
+                    for (let j = 0; j < familyCount && availablePeople.length > 0; j++) {
+                        const randomIndex = Math.floor(Math.random() * availablePeople.length);
+                        const familyMember = availablePeople.splice(randomIndex, 1)[0];
+                        familyIds.push(familyMember.id);
+                    }
 
-                const availablePeople = pazatorData.humans.filter((p, idx) => idx !== i);
-                for (let j = 0; j < familyCount && availablePeople.length > 0; j++) {
-                    const randomIndex = Math.floor(Math.random() * availablePeople.length);
-                    const familyMember = availablePeople.splice(randomIndex, 1)[0];
-                    familyIds.push(familyMember.id);
+                    const personIndex = pazatorData.humans.findIndex(p => p.id === person.id);
+                    if (personIndex !== -1) {
+                        pazatorData.humans[personIndex].family = familyIds;
+                    }
                 }
 
-                const personIndex = pazatorData.humans.findIndex(p => p.id === person.id);
-                if (personIndex !== -1) {
-                    pazatorData.humans[personIndex].family = familyIds;
-                }
+                saveData();
+                renderWebNodes();
+            } catch (error) {
+                console.error('Error in createFamilyConnections:', error);
+                addMessageToAIChat("Sorry, I encountered an error creating family connections. Please try again.", 'ai');
             }
-
-            saveData();
-            renderWebNodes();
         }
 
         function testAIResponseParsing() {
@@ -2319,6 +2547,8 @@
                             ...action.data
                         };
                         pazatorData.humans.push(newHuman);
+                        saveData();
+                        renderWebNodes();
                         response = `Added human: ${newHuman.name}`;
                     } catch (e) {
                         response = `Failed to add human: ${e.message}`;
@@ -2553,6 +2783,24 @@
             aiInput.focus();
         });
 
+        document.getElementById('menuBtn').addEventListener('click', () => {
+            const container = document.querySelector('.container');
+            const threatsPanel = document.getElementById('threatsPanel');
+            
+            if (threatsPanel.style.display === 'none' || threatsPanel.style.display === '') {
+                // Show threats panel - split the main canvas
+                threatsPanel.style.display = 'block';
+                container.classList.add('threats-split');
+                
+                // Load previous findings
+                loadPreviousFindings();
+            } else {
+                // Hide threats panel - restore original layout
+                threatsPanel.style.display = 'none';
+                container.classList.remove('threats-split');
+            }
+        });
+
         document.querySelectorAll('.close').forEach(button => {
             button.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -2590,6 +2838,29 @@
                     modal.style.zIndex = '-1';
                 }
             });
+        });
+
+        // Global error handler to prevent crashes
+        window.addEventListener('error', (event) => {
+            console.error('Global error caught:', event.error);
+            // Prevent the error from crashing the site
+            event.preventDefault();
+            
+            // If we're in the AI chat, show an error message
+            if (aiChatModal && aiChatModal.style.display === 'flex') {
+                try {
+                    addMessageToAIChat("Sorry, I encountered an unexpected error. Please try rephrasing your request.", 'ai');
+                    if (aiSendBtn) {
+                        aiSendBtn.disabled = false;
+                        aiSendBtn.textContent = 'Send';
+                    }
+                    if (aiInput) {
+                        aiInput.value = '';
+                    }
+                } catch (e) {
+                    console.error('Error handling global error:', e);
+                }
+            }
         });
 
         document.getElementById('humanTypeBtn').addEventListener('click', () => {
@@ -2666,21 +2937,50 @@
             deleteCurrentEntry();
         });
 
+        // Optimize send button click handler
         aiSendBtn.addEventListener('click', () => {
             const command = aiInput.value.trim();
             if (command) {
-                processAICommand(command);
+                // Disable button immediately to prevent double clicks
+                aiSendBtn.disabled = true;
+                aiSendBtn.textContent = 'Sending...';
+                
+                // Use requestAnimationFrame for better responsiveness
+                requestAnimationFrame(() => {
+                    processAICommand(command);
+                });
             }
         });
 
-        aiInput.addEventListener('keypress', (e) => {
+        // Debounce function to prevent excessive processing
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
+        // Handle Enter key with debouncing
+        aiInput.addEventListener('keydown', debounce((e) => {
             if (e.key === 'Enter' && !aiSendBtn.disabled) {
+                e.preventDefault();
                 const command = aiInput.value.trim();
                 if (command) {
                     processAICommand(command);
                 }
             }
-        });
+        }, 100));
+        
+        // Optimize input performance
+        aiInput.addEventListener('input', debounce(() => {
+            // Reset send button if there's text
+            aiSendBtn.disabled = aiInput.value.trim() === '';
+        }, 50));
 
         document.getElementById('humanForm').addEventListener('submit', (e) => {
             e.preventDefault();
@@ -3028,10 +3328,20 @@
             await findPotentialTerrorists();
         });
 
+        document.getElementById('findBothBtn').addEventListener('click', async () => {
+            // Run both analyses
+            await Promise.all([
+                findPotentialFraud(),
+                findPotentialTerrorists()
+            ]);
+            
+            // Reload the findings display
+            loadPreviousFindings();
+        });
+
         refreshCreditsBtn.addEventListener('click', () => {
             refreshPersonCredits();
         });
-
         sortByCreditBtn.addEventListener('click', () => {
             sortByCredit();
         });
@@ -3530,6 +3840,16 @@
                         renderTerroristsGraph(terrorists, connectionsGraph);
 
                         renderTerroristsList(terrorists, connectionsList);
+                        
+                        // Store findings for later display in the threats panel
+                        terrorists.forEach(terrorist => {
+                            storeFinding('threat', {
+                                name: terrorist.person,
+                                riskLevel: terrorist.threatLevel,
+                                evidence: terrorist.evidence,
+                                reasons: terrorist.reasons
+                            });
+                        });
                     } else {
 
                         connectionsLoading.style.display = 'none';
@@ -3735,6 +4055,16 @@
                         renderFraudstersGraph(fraudsters, connectionsGraph);
 
                         renderFraudstersList(fraudsters, connectionsList);
+                        
+                        // Store findings for later display in the fraud panel
+                        fraudsters.forEach(fraudster => {
+                            storeFinding('fraud', {
+                                name: fraudster.person,
+                                riskLevel: fraudster.riskLevel,
+                                evidence: fraudster.evidence,
+                                reasons: fraudster.reasons
+                            });
+                        });
                     } else {
 
                         connectionsLoading.style.display = 'none';
@@ -3793,7 +4123,7 @@
                 } else if (fraudster.riskLevel === 'medium') {
                     node.style.background = 'linear-gradient(145deg, #ff9939, #ffaa5a)';
                 } else {
-                    node.style.background = 'linear-gradient(145deg, #ff6b39, #ff8c5a)';
+                    node.style.background = 'linear-gradient(145deg, #ffffff, #dddddd)';
                 }
                 node.textContent = fraudster.person.length > 10 ? fraudster.person.substring(0, 10) + '...' : fraudster.person;
                 node.style.left = `${x}px`;
@@ -3841,6 +4171,119 @@
                 listContainer.appendChild(item);
             });
         }
+
+        // Function to load and display previous threat and fraud findings
+        function loadPreviousFindings() {
+            const threatsList = document.getElementById('threatsList');
+            const fraudList = document.getElementById('fraudList');
+            
+            // Clear existing content
+            threatsList.innerHTML = '';
+            fraudList.innerHTML = '';
+            
+            // Get stored findings from localStorage if available
+            const storedThreats = JSON.parse(localStorage.getItem('previousThreats') || '[]');
+            const storedFraud = JSON.parse(localStorage.getItem('previousFraud') || '[]');
+            
+            // If no stored findings, create sample data based on current data
+            if (storedThreats.length === 0 && storedFraud.length === 0) {
+                // Generate sample findings based on existing humans data
+                const sampleThreats = [];
+                const sampleFraud = [];
+                
+                // Take first few humans as examples
+                pazatorData.humans.slice(0, Math.min(3, pazatorData.humans.length)).forEach((human, index) => {
+                    if (index % 2 === 0) {
+                        // Add as threat example
+                        sampleThreats.push({
+                            name: human.name,
+                            riskLevel: index === 0 ? 'high' : 'medium',
+                            evidence: `Suspicious patterns detected for ${human.name}`,
+                            reasons: [
+                                human.workplace ? `Works at ${human.workplace}` : 'Unknown workplace',
+                                human.tags && human.tags.length > 0 ? `Has tags: ${human.tags.join(', ')}` : 'No tags'
+                            ]
+                        });
+                    } else {
+                        // Add as fraud example
+                        sampleFraud.push({
+                            name: human.name,
+                            riskLevel: index === 1 ? 'high' : 'medium',
+                            evidence: `Potential fraudulent activity detected for ${human.name}`,
+                            reasons: [
+                                human.credit !== undefined ? `Credit score: ${human.credit}` : 'No credit score',
+                                human.socialClass ? `Social class: ${human.socialClass}` : 'Unknown social class'
+                            ]
+                        });
+                    }
+                });
+                
+                // Store the generated samples
+                localStorage.setItem('previousThreats', JSON.stringify(sampleThreats));
+                localStorage.setItem('previousFraud', JSON.stringify(sampleFraud));
+                
+                renderFindings(sampleThreats, threatsList);
+                renderFindings(sampleFraud, fraudList);
+            } else {
+                // Render stored findings
+                renderFindings(storedThreats, threatsList);
+                renderFindings(storedFraud, fraudList);
+            }
+        }
+        
+        // Helper function to render findings
+        function renderFindings(findings, container) {
+            findings.forEach(item => {
+                const findingItem = document.createElement('div');
+                findingItem.className = 'finding-item';
+                findingItem.innerHTML = `
+                    <div class="finding-header">
+                        <span class="finding-name">${item.name}</span>
+                        <span class="finding-risk finding-${item.riskLevel}">${item.riskLevel} ${container.id === 'threatsList' ? 'threat' : 'risk'}</span>
+                    </div>
+                    <div class="finding-evidence">Evidence: ${item.evidence}</div>
+                    <div class="finding-reasons">
+                        <strong>Reasons:</strong>
+                        <ul>
+                            ${item.reasons.map(reason => `<li>${reason}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+                container.appendChild(findingItem);
+            });
+        }
+        
+        // Function to store findings after analysis
+        function storeFinding(type, finding) {
+            const storageKey = type === 'threat' ? 'previousThreats' : 'previousFraud';
+            const currentFindings = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            currentFindings.push(finding);
+            // Keep only the last 10 findings
+            if (currentFindings.length > 10) {
+                currentFindings.shift();
+            }
+            localStorage.setItem(storageKey, JSON.stringify(currentFindings));
+        }
+        
+        // Check if user is signed in and show/hide sign in button
+        function checkAuthStatus() {
+            const signInBtn = document.getElementById('signInBtn');
+            if (signInBtn) {
+                if (!puter.auth.isSignedIn()) {
+                    signInBtn.style.display = 'block';
+                } else {
+                    signInBtn.style.display = 'none';
+                }
+            }
+        }
+
+        // Add event listener for sign in button
+        document.getElementById('signInBtn')?.addEventListener('click', () => {
+            puter.auth.signIn();
+        });
+
+        // Check auth status on page load
+        checkAuthStatus();
 
         loadData();
         renderTags();
