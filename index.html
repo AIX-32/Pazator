@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="favicon.png">
     <title>Pazator. - Mass data container</title>
     <style>
         * {
@@ -1295,8 +1296,7 @@
                 <label for="otherImage">Image</label>
                 <input type="file" id="otherImage" class="form-control" accept="image/*">
             </div>
-            </form>
-        </div>
+        </form>
         <div class="form-actions">
             <button type="button" class="btn btn-secondary" id="cancelOtherBtn">Cancel</button>
             <button type="submit" class="btn btn-primary" form="otherForm">Save</button>
@@ -2466,25 +2466,8 @@
             } catch (error) {
                 console.error('Error in handleBatchActions:', error);
                 addMessageToAIChat("Sorry, I encountered an error processing the batch actions. Please try again.", 'ai');
-            }
-
-            function sortByCredit() {
-
-                pazatorData.humans.sort((a, b) => {
-                    const creditA = a.credit !== undefined ? a.credit : -1;
-                    const creditB = b.credit !== undefined ? b.credit : -1;
-                    return creditB - creditA;
-                });
-
-                saveData();
-
-                renderWebNodes();
-
-                alert(`Sorted ${pazatorData.humans.length} people by credit score!`);
-            }
-
         }
-
+        
         function createFamilyConnections() {
             try {
                 if (pazatorData.humans.length < 5) return;
@@ -3346,34 +3329,17 @@
             sortByCredit();
         });
 
-        function refreshPersonCredits() {
-            refreshCreditsBtn.disabled = true;
-            refreshCreditsBtn.textContent = 'Refreshing...';
+        function sortByCredit() {
+            pazatorData.humans.sort((a, b) => {
+                const creditA = a.credit !== undefined ? a.credit : -1;
+                const creditB = b.credit !== undefined ? b.credit : -1;
+                return creditB - creditA;
+            });
 
-            try {
+            saveData();
+            renderWebNodes();
 
-                pazatorData.humans.forEach(human => {
-
-                    const baseScore = Math.floor(Math.random() * 201) + 100; 
-
-                    const distanceFrom200 = Math.abs(baseScore - 200);
-                    const credit = Math.max(0, 100 - distanceFrom200); 
-
-                    human.credit = credit;
-                });
-
-                saveData();
-
-                alert(`Credits refreshed for ${pazatorData.humans.length} people!`);
-
-                renderWebNodes();
-            } catch (error) {
-                console.error('Error refreshing credits:', error);
-                alert('Error refreshing credits. Please try again.');
-            } finally {
-                refreshCreditsBtn.disabled = false;
-                refreshCreditsBtn.textContent = 'Refresh Person Credits';
-            }
+            alert(`Sorted ${pazatorData.humans.length} people by credit score!`);
         }
 
         document.getElementById('closeConnectionsModal').addEventListener('click', () => {
@@ -3562,25 +3528,14 @@
                 const item = document.createElement('div');
                 item.className = 'connection-item';
 
-                const name1 = document.createElement('span');
-                name1.textContent = connection.person1;
+                item.innerHTML = `
+                    <div class="connection-item-header">
+                        <strong>${connection.person1} ↔ ${connection.person2}</strong>
+                        <span class="connection-type">${connection.connectionType}</span>
+                    </div>
+                    <p>${connection.reason}</p>
+                `;
 
-                const name2 = document.createElement('span');
-                name2.textContent = connection.person2;
-
-                const reason = document.createElement('span');
-                reason.className = 'connection-reason';
-                reason.textContent = connection.reason;
-
-                const connectionType = document.createElement('span');
-                connectionType.className = 'connection-type';
-                connectionType.textContent = connection.connectionType;
-
-                item.appendChild(name1);
-                item.appendChild(document.createElement('span').appendChild(document.createTextNode(' ⟺ '))); 
-                item.appendChild(name2);
-                item.appendChild(reason);
-                item.appendChild(connectionType);
                 listContainer.appendChild(item);
             });
         }
