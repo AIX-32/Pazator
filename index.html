@@ -727,13 +727,13 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.85);
-            z-index: -1;
+            z-index: 1000;
             justify-content: center;
             align-items: center;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
-
+                
         .ai-chat-content {
             background: linear-gradient(180deg, #1b1a1a 0%, #191818 100%);
             border: 1px solid #2c2b2b;
@@ -892,13 +892,6 @@
             box-shadow: none;
         }
 
-        @media (max-width: 1200px) {
-            .data-node {
-                width: 50px;
-                height: 50px;
-            }
-        }
-                
         /* Threats and Fraud Panel Styles */
         .threats-content {
             overflow-y: auto;
@@ -966,74 +959,49 @@
                 
         .finding-reasons ul {
             padding-left: 20px;
-            margin: 5px 0;
+       margin: 5px 0;
         }
                 
         .finding-reasons li {
             margin-bottom: 3px;
         }
                 
-        @media (max-width: 768px) {
-            .container {
-                grid-template-columns: 1fr;
-                grid-template-rows: auto auto auto;
-            }
-
-            .conva {
-                grid-row: 3 / 4;
-            }
-
-            .navbar {
-                grid-row: 1 / 2;
-            }
-
-            .sidebar {
-                grid-row: 2 / 3;
-            }
-            
-            #threatsPanel {
-                grid-row: 4 / 5;
-            }
-
-            .detail-body {
-                grid-template-columns: 1fr;
-            }
-
-            .family-graph-container {
-                grid-column: span 1;
-            }
-
-            .ai-input-container {
-                flex-direction: column;
-            }
-            
-            .ai-input-container .ai-send-btn {
-                min-width: auto;
-                width: 100%;
-            }
-            
-            .container.threats-visible {
-                grid-template-columns: 1fr;
-                grid-template-rows: auto auto auto auto;
-            }
-            
-            .ai-chat-content {
-                width: 95%;
-                max-height: 95vh;
-            }
-            
-            .ai-chat-header, .ai-input-container {
-                padding: 15px;
-            }
-            
-            .ai-chat-messages {
-                padding: 15px;
-            }
-        }
     </style>
 </head>
 
 <body>
+    <!-- AI Chat Modal -->
+    <div id="aiChatModal" class="ai-chat-modal">
+        <button class="close" id="closeAIChat"
+            style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
+        <div class="ai-chat-content">
+            <div class="ai-chat-header">
+                <h2>AI Assistant</h2>
+            </div>
+            <div class="ai-chat-messages" id="aiChatMessages">
+                <div class="ai-message system">
+                    <h3>Pazator AI</h3>
+                    <p>I can help you manage your data. Here's what I can do:</p>
+                    <ul>
+                        <li>Add new human or other entries</li>
+                        <li>Modify existing entries</li>
+                        <li>Delete entries</li>
+                        <li>Answer questions about your data</li>
+                        <li>Create and assign tags to humans</li>
+                    </ul>
+                    <p><strong>Examples:</strong></p>
+                    <p>• "Add a new human named John born on 1990-05-15 with tags employee and manager"</p>
+                    <p>• "Show me all humans"</p>
+                    <p>• "Add two people named John and Jane"</p>
+                    <p>• "Give every person a political view" (I'll assign unique views to all humans)</p>
+                </div>
+            </div>
+            <div class="ai-input-container">
+                <input type="text" class="ai-input" id="aiInput" placeholder="Ask me anything about your data...">
+                <button class="ai-send-btn" id="aiSendBtn">Send</button>
+            </div>
+        </div>
+    </div>
     <div class="container">
         <div class="panel conva" id="convaPanel">
             <div class="logo">
@@ -2755,9 +2723,36 @@
         });
 
         askAIBtn.addEventListener('click', () => {
+            console.log('Ask AI button clicked - attempting to show modal');
+            
+            // Hide all other modals first
+            const allModals = [typeModal, humanModal, otherModal, detailViewModal, document.getElementById('hiddenConnectionsModal')];
+            allModals.forEach(modal => {
+                if (modal) {
+                    modal.style.display = 'none';
+                    modal.style.zIndex = '-1';
+                }
+            });
+            
+            // Show the AI chat modal
             aiChatModal.style.display = 'flex';
-            aiChatModal.style.zIndex = '1000';
-            aiInput.focus();
+            aiChatModal.style.zIndex = '2000'; // Higher z-index to ensure it's on top
+            
+            // Also set these properties to be sure
+            aiChatModal.style.visibility = 'visible';
+            aiChatModal.style.opacity = '1';
+            aiChatModal.style.pointerEvents = 'auto';
+            
+            console.log('Modal display style:', aiChatModal.style.display);
+            console.log('Modal z-index:', aiChatModal.style.zIndex);
+            
+            // Focus on the input
+            setTimeout(() => {
+                if (aiInput) {
+                    aiInput.focus();
+                    console.log('Input focused');
+                }
+            }, 100);
         });
 
         document.getElementById('menuBtn').addEventListener('click', () => {
@@ -2871,6 +2866,7 @@
         document.getElementById('closeAIChat').addEventListener('click', () => {
             aiChatModal.style.display = 'none';
             aiChatModal.style.zIndex = '-1';
+            aiChatModal.classList.remove('debug');
         });
 
         document.getElementById('closeConnectionsModal').addEventListener('click', () => {
@@ -2883,6 +2879,7 @@
             if (event.target === aiChatModal) {
                 aiChatModal.style.display = 'none';
                 aiChatModal.style.zIndex = '-1';
+                aiChatModal.classList.remove('debug');
             }
         });
 
@@ -3669,25 +3666,6 @@
                 refreshCreditsBtn.disabled = false;
                 refreshCreditsBtn.textContent = 'Refresh Person Credits';
             }
-        }
-
-        function renderConnectionsList(connections, listContainer) {
-            listContainer.innerHTML = '';
-
-            connections.forEach((connection, index) => {
-                const item = document.createElement('div');
-                item.className = 'connection-item';
-
-                item.innerHTML = `
-                    <div class="connection-item-header">
-                        <strong>${connection.person1} ↔ ${connection.person2}</strong>
-                        <span class="connection-type">${connection.connectionType}</span>
-                    </div>
-                    <p>${connection.reason}</p>
-                `;
-
-                listContainer.appendChild(item);
-            });
         }
 
         async function findPotentialTerrorists() {
