@@ -206,6 +206,7 @@
             margin: 0;
             background: linear-gradient(45deg, #ffffff, #dddddd);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             font-weight: 700;
             letter-spacing: 0.5px;
@@ -448,6 +449,7 @@
             font-size: 1.5rem;
             background: linear-gradient(45deg, #ffffff, #dddddd);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -761,6 +763,7 @@
             font-size: 1.8rem;
             background: linear-gradient(45deg, #ffffff, #dddddd);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -1286,17 +1289,7 @@
                         <label for="extraNotes">Extra Notes</label>
                         <textarea id="extraNotes" class="form-control"></textarea>
                     </div>
-                    <input type="text" id="otherName" class="form-control" required>
-            </div>
-            <div class="form-group">
-                <label for="otherNote">Note</label>
-                <textarea id="otherNote" class="form-control"></textarea>
-            </div>
-            <div class="form-group">
-                <label for="otherImage">Image</label>
-                <input type="file" id="otherImage" class="form-control" accept="image/*">
-            </div>
-        </form>
+                </form>
         <div class="form-actions">
             <button type="button" class="btn btn-secondary" id="cancelOtherBtn">Cancel</button>
             <button type="submit" class="btn btn-primary" form="otherForm">Save</button>
@@ -2466,6 +2459,7 @@
             } catch (error) {
                 console.error('Error in handleBatchActions:', error);
                 addMessageToAIChat("Sorry, I encountered an error processing the batch actions. Please try again.", 'ai');
+            }
         }
         
         function createFamilyConnections() {
