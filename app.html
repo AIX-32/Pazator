@@ -414,7 +414,7 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.7);
-            z-index: -1;
+            z-index: 1000;
             justify-content: center;
             align-items: center;
         }
@@ -595,7 +595,7 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.85);
-            z-index: -1;
+            z-index: 1000;
             justify-content: center;
             align-items: center;
         }
@@ -1259,6 +1259,28 @@
         .whitetextnowbruh {
             color: white !important;
         }
+        
+        .ai-notification {
+            display: none;
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            z-index: 1001;
+            animation: fadeInOut 3s ease-in-out;
+        }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 0; bottom: 0px; }
+            10% { opacity: 1; bottom: 10px; }
+            90% { opacity: 1; bottom: 10px; }
+            100% { opacity: 0; bottom: 0px; }
+        }
     </style>
 </head>
 
@@ -1363,6 +1385,9 @@
                         <span class="btn-icon-text"></span>
                     </button>
                 </div>
+            </div>
+            <div class="ai-notification" id="aiNotification" style="display: none; position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: white; padding: 8px 16px; border-radius: 20px; font-size: 0.9rem; z-index: 1001;">
+                <span id="notificationText"></span>
             </div>
         </div>
     </div>
@@ -1630,8 +1655,9 @@
                 </div>
             </div>
         </div>
+</div>
 
-        <!-- Detail View Modal -->
+<!-- Detail View Modal -->
         <div id="detailViewModal" class="detail-view">
             <button class="close" id="closeDetail"
                 style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
@@ -1702,39 +1728,7 @@
             </div>
         </div>
 
-        <!-- AI Chat Modal -->
-        <div id="aiChatModal" class="ai-chat-modal">
-            <button class="close" id="closeAIChat"
-                style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
-            <div class="ai-chat-content">
-                <div class="ai-chat-header">
-                    <h2>AI Assistant</h2>
-                </div>
-                <div class="ai-chat-messages" id="aiChatMessages">
-                    <div class="ai-message system">
-                        <h3>Pazator AI</h3>
-                        <p>I can help you manage your data. Here's what I can do:</p>
-                        <ul>
-                            <li>Add new human or other entries</li>
-                            <li>Modify existing entries</li>
-                            <li>Delete entries</li>
-                            <li>Answer questions about your data</li>
-                            <li>Create and assign tags to humans</li>
-                        </ul>
-                        <p><strong>Examples:</strong></p>
-                        <p>• "Add a new human named John born on 1990-05-15 with tags employee and manager"</p>
-                        <p>• "Show me all humans"</p>
-                        <p>• "Add two people named John and Jane"</p>
-                        <p>• "Give every person a political view" (I'll assign unique views to all humans)</p>
-                    </div>
-                </div>
-                <div class="ai-input-container">
-                    <input type="text" class="ai-input" id="aiInput" placeholder="Ask me anything about your data...">
-                    <button class="ai-send-btn" id="aiImproveBtn">Improve</button>
-                    <button class="ai-send-btn" id="aiSendBtn">Send</button>
-                </div>
-            </div>
-        </div>
+
 
         <!-- Hidden Connections Modal -->
         <div id="hiddenConnectionsModal" class="ai-chat-modal">
@@ -2027,7 +2021,10 @@
                     }
                     node.appendChild(label);
 
-                    node.addEventListener('click', () => showDetailView(data, data.type));
+                    node.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        showDetailView(data, data.type);
+                    });
 
                     webContent.appendChild(node);
                 });
@@ -2544,7 +2541,7 @@
                     addMessageToAIChat(command, 'user');
 
                     aiSendBtn.disabled = true;
-                    updateSendButtonText('Processing...');
+                    showNotification('Processing command...');
 
                     try {
 
@@ -2669,7 +2666,7 @@
                     // Use requestAnimationFrame to ensure UI updates smoothly
                     requestAnimationFrame(() => {
                         aiSendBtn.disabled = false;
-                        updateSendButtonText('Send');
+                        // Don't reset button text - keep it as is
                         aiInput.value = '';
 
                         // Focus input for better UX
@@ -3244,7 +3241,7 @@
                         addMessageToAIChat("Sorry, I encountered an unexpected error. Please try rephrasing your request.", 'ai');
                         if (aiSendBtn) {
                             aiSendBtn.disabled = false;
-                            updateSendButtonText('Send');
+                            // Don't reset button text - keep it as is
                         }
                         if (aiInput) {
                             aiInput.value = '';
@@ -3341,7 +3338,7 @@
                     aiSendBtn.innerHTML = `<i class="fas fa-paper-plane"></i><span class="btn-icon-text">${text}</span>`;
                 }
             }
-
+                        
             // Helper function to update improve button text while preserving icon
             function updateImproveButtonText(text) {
                 const span = aiImproveBtn.querySelector('.btn-icon-text');
@@ -3350,6 +3347,30 @@
                 } else {
                     // Fallback if span doesn't exist
                     aiImproveBtn.innerHTML = `<i class="fas fa-wand"></i><span class="btn-icon-text">${text}</span>`;
+                }
+            }
+                        
+            // Function to show notification
+            function showNotification(message) {
+                const notification = document.getElementById('aiNotification');
+                const notificationText = document.getElementById('notificationText');
+                            
+                if (notification && notificationText) {
+                    notificationText.textContent = message;
+                    notification.style.display = 'block';
+                                
+                    // Hide notification after animation completes
+                    setTimeout(() => {
+                        notification.style.display = 'none';
+                    }, 3000);
+                }
+            }
+                        
+            // Function to clear notifications
+            function clearNotifications() {
+                const notification = document.getElementById('aiNotification');
+                if (notification) {
+                    notification.style.display = 'none';
                 }
             }
 
@@ -3366,7 +3387,7 @@
                     aiImproveBtn.disabled = true;
                     aiSendBtn.disabled = true;
 
-                    updateImproveButtonText('Improving...');
+                    showNotification('Improving prompt...');
 
                     const context = `
                     You are an expert prompt engineer. Your job is to improve prompts that will be used with another AI system.
@@ -3409,7 +3430,7 @@
                     // Re-enable send button if it wasn't already disabled
                     if (!aiSendBtn.disabled) {
                         aiSendBtn.disabled = false;
-                        updateSendButtonText('Send');
+                        // Don't reset button text - keep it as is
                     }
 
                     // Focus on input for better UX
@@ -3428,7 +3449,7 @@
                 if (command) {
                     // Disable button immediately to prevent double clicks
                     aiSendBtn.disabled = true;
-                    updateSendButtonText('Sending...');
+                    showNotification('Sending command...');
 
                     // Use requestAnimationFrame for better responsiveness
                     requestAnimationFrame(() => {
@@ -3761,8 +3782,6 @@
                 startY = e.clientY;
                 startTranslateX = currentTranslateX;
                 startTranslateY = currentTranslateY;
-
-                e.preventDefault();
             });
 
             webContainer.addEventListener('mousemove', (e) => {
@@ -3776,9 +3795,11 @@
                 e.preventDefault();
             });
 
-            webContainer.addEventListener('mouseup', () => {
-                isDragging = false;
-                webContainer.classList.remove('dragging');
+            webContainer.addEventListener('mouseup', (e) => {
+                if (isDragging) {
+                    isDragging = false;
+                    webContainer.classList.remove('dragging');
+                }
             });
 
             webContainer.addEventListener('mouseleave', () => {
