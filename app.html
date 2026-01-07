@@ -414,9 +414,15 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
             z-index: 1000;
             justify-content: center;
             align-items: center;
+            animation: modalFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        .modal.hiding {
+            animation: modalFadeOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
 
         .modal:target {
@@ -436,6 +442,12 @@
             position: relative;
             display: flex;
             flex-direction: column;
+            animation: modalZoomIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            transform-origin: center;
+        }
+
+        .modal.hiding .modal-content {
+            animation: modalZoomOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
 
         .modal-header {
@@ -600,9 +612,15 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
             z-index: 1000;
             justify-content: center;
             align-items: center;
+            animation: modalFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        .detail-view.hiding {
+            animation: modalFadeOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
 
         .detail-content {
@@ -618,6 +636,12 @@
             position: relative;
             display: flex;
             flex-direction: column;
+            animation: modalZoomIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            transform-origin: center;
+        }
+
+        .detail-view.hiding .detail-content {
+            animation: modalZoomOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
 
         .detail-header {
@@ -735,11 +759,17 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
             z-index: 1000;
             justify-content: center;
             align-items: center;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            animation: modalFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        .ai-chat-modal.hiding {
+            animation: modalFadeOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
 
         .ai-chat-content {
@@ -755,6 +785,12 @@
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
             position: relative;
             overflow: hidden;
+            animation: modalZoomIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            transform-origin: center;
+        }
+
+        .ai-chat-modal.hiding .ai-chat-content {
+            animation: modalZoomOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
 
         .ai-chat-header {
@@ -808,6 +844,51 @@
             to {
                 opacity: 1;
                 transform: translateY(0);
+            }
+        }
+
+        /* Modal Animations */
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                backdrop-filter: blur(0px);
+            }
+            to {
+                opacity: 1;
+                backdrop-filter: blur(5px);
+            }
+        }
+
+        @keyframes modalFadeOut {
+            from {
+                opacity: 1;
+                backdrop-filter: blur(5px);
+            }
+            to {
+                opacity: 0;
+                backdrop-filter: blur(0px);
+            }
+        }
+
+        @keyframes modalZoomIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes modalZoomOut {
+            from {
+                opacity: 1;
+                transform: scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: scale(0.8);
             }
         }
 
@@ -3217,34 +3298,63 @@
 
                 const modal = button.closest('.modal') || button.closest('.detail-view') || button.closest('.ai-chat-modal');
                 if (modal) {
-                    modal.style.display = 'none';
-                    modal.style.zIndex = '-1';
+                    modal.classList.add('hiding');
+                    setTimeout(() => {
+                        modal.style.display = 'none';
+                        modal.style.zIndex = '-1';
+                        modal.classList.remove('hiding');
+                    }, 300);
                 } else {
 
-                    typeModal.style.display = 'none';
-                    humanModal.style.display = 'none';
-                    otherModal.style.display = 'none';
-                    detailViewModal.style.display = 'none';
-                    aiChatModal.style.display = 'none';
-                    document.getElementById('hiddenConnectionsModal').style.display = 'none';
-
+                    // Add hiding class to all modals first
                     [typeModal, humanModal, otherModal, detailViewModal, aiChatModal, document.getElementById('hiddenConnectionsModal')].forEach(modal => {
-                        modal.style.zIndex = '-1';
+                        if (modal && modal.style.display !== 'none') {
+                            modal.classList.add('hiding');
+                        }
                     });
+
+                    // Then hide them after animation
+                    setTimeout(() => {
+                        typeModal.style.display = 'none';
+                        humanModal.style.display = 'none';
+                        otherModal.style.display = 'none';
+                        detailViewModal.style.display = 'none';
+                        aiChatModal.style.display = 'none';
+                        document.getElementById('hiddenConnectionsModal').style.display = 'none';
+
+                        [typeModal, humanModal, otherModal, detailViewModal, aiChatModal, document.getElementById('hiddenConnectionsModal')].forEach(modal => {
+                            modal.style.zIndex = '-1';
+                            modal.classList.remove('hiding');
+                        });
+                    }, 300);
                 }
             });
         });
 
         window.addEventListener('click', (event) => {
-            if (event.target === typeModal) typeModal.style.display = 'none';
-            if (event.target === humanModal) humanModal.style.display = 'none';
-            if (event.target === otherModal) otherModal.style.display = 'none';
-            if (event.target === detailViewModal) detailViewModal.style.display = 'none';
-            if (event.target === aiChatModal) aiChatModal.style.display = 'none';
-            if (event.target === document.getElementById('hiddenConnectionsModal')) document.getElementById('hiddenConnectionsModal').style.display = 'none';
+            // Handle clicking outside modals to close them with animation
+            const modals = [
+                { element: typeModal, condition: event.target === typeModal },
+                { element: humanModal, condition: event.target === humanModal },
+                { element: otherModal, condition: event.target === otherModal },
+                { element: detailViewModal, condition: event.target === detailViewModal },
+                { element: aiChatModal, condition: event.target === aiChatModal },
+                { element: document.getElementById('hiddenConnectionsModal'), condition: event.target === document.getElementById('hiddenConnectionsModal') }
+            ];
+
+            modals.forEach(({ element, condition }) => {
+                if (element && condition && element.style.display === 'flex') {
+                    element.classList.add('hiding');
+                    setTimeout(() => {
+                        element.style.display = 'none';
+                        element.style.zIndex = '-1';
+                        element.classList.remove('hiding');
+                    }, 300);
+                }
+            });
 
             [typeModal, humanModal, otherModal, detailViewModal, aiChatModal, document.getElementById('hiddenConnectionsModal')].forEach(modal => {
-                if (modal.style.display === 'none') {
+                if (modal && modal.style.display === 'none') {
                     modal.style.zIndex = '-1';
                 }
             });
@@ -3297,14 +3407,22 @@
         });
 
         document.getElementById('closeDetail').addEventListener('click', () => {
-            detailViewModal.style.display = 'none';
-            detailViewModal.style.zIndex = '-1';
+            detailViewModal.classList.add('hiding');
+            setTimeout(() => {
+                detailViewModal.style.display = 'none';
+                detailViewModal.style.zIndex = '-1';
+                detailViewModal.classList.remove('hiding');
+            }, 300);
         });
 
         document.getElementById('closeAIChat').addEventListener('click', () => {
-            aiChatModal.style.display = 'none';
-            aiChatModal.style.zIndex = '-1';
-            aiChatModal.classList.remove('debug');
+            aiChatModal.classList.add('hiding');
+            setTimeout(() => {
+                aiChatModal.style.display = 'none';
+                aiChatModal.style.zIndex = '-1';
+                aiChatModal.classList.remove('hiding');
+                aiChatModal.classList.remove('debug');
+            }, 300);
         });
 
         document.getElementById('closeConnectionsModal').addEventListener('click', () => {
@@ -3315,17 +3433,25 @@
 
         aiChatModal.addEventListener('click', (event) => {
             if (event.target === aiChatModal) {
-                aiChatModal.style.display = 'none';
-                aiChatModal.style.zIndex = '-1';
-                aiChatModal.classList.remove('debug');
+                aiChatModal.classList.add('hiding');
+                setTimeout(() => {
+                    aiChatModal.style.display = 'none';
+                    aiChatModal.style.zIndex = '-1';
+                    aiChatModal.classList.remove('hiding');
+                    aiChatModal.classList.remove('debug');
+                }, 300);
             }
         });
 
         document.getElementById('hiddenConnectionsModal').addEventListener('click', (event) => {
             if (event.target === document.getElementById('hiddenConnectionsModal')) {
                 const hiddenConnectionsModal = document.getElementById('hiddenConnectionsModal');
-                hiddenConnectionsModal.style.display = 'none';
-                hiddenConnectionsModal.style.zIndex = '-1';
+                hiddenConnectionsModal.classList.add('hiding');
+                setTimeout(() => {
+                    hiddenConnectionsModal.style.display = 'none';
+                    hiddenConnectionsModal.style.zIndex = '-1';
+                    hiddenConnectionsModal.classList.remove('hiding');
+                }, 300);
             }
         });
 
