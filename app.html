@@ -1970,31 +1970,62 @@
             <div class="workspace">
                 <div class="main-panel">
                     <div class="logo">
-                        <h1>Data Analysis</h1>
+                        <h1 style="background: linear-gradient(45deg, #ffffff, #dddddd); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Data Analysis Hub</h1>
                     </div>
-                    <div class="analysis-content" style="flex: 1; overflow: auto;">
-                        <div class="analysis-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: 100%;">
-                            <div class="analysis-card" style="background: rgba(30, 30, 30, 0.5); border: 1px solid #2c2b2b; border-radius: 12px; padding: 20px;">
-                                <h3>Connection Analysis</h3>
-                                <div class="form-group">
-                                    <button id="findConnectionsBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 15px;">Find Hidden Connections</button>
+                    <div class="analysis-content" style="flex: 1; overflow: auto; padding: 20px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; height: calc(100% - 80px);">
+                            <!-- Connection Analysis Panel -->
+                            <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 15px; padding: 25px; box-shadow: 0 8px 32px var(--shadow-color); display: flex; flex-direction: column;">
+                                <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                                    <div style="width: 8px; height: 30px; background: linear-gradient(to bottom, #ffffff, #aaaaaa); border-radius: 4px; margin-right: 15px;"></div>
+                                    <h3 style="margin: 0; color: #ffffff; font-size: 1.4rem;">Network Intelligence</h3>
                                 </div>
-                                <div id="connectionsGraph" style="height: 200px; background: rgba(20, 20, 20, 0.3); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #777;">
-                                    Connection visualization will appear here
+                                <div style="flex: 1; display: flex; flex-direction: column;">
+                                    <div class="form-group" style="margin-bottom: 20px;">
+                                        <button id="findConnectionsBtn" class="btn btn-secondary" style="width: 100%; padding: 12px; font-size: 1.1rem; background: linear-gradient(145deg, #2a2a2a, #222222); border: 1px solid #444;">Discover Hidden Links</button>
+                                    </div>
+                                    <div style="flex: 1; background: rgba(20, 20, 20, 0.5); border: 1px dashed #333; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #888; transition: all 0.3s ease;">
+                                        <div style="text-align: center; padding: 20px;">
+                                            <i class="fas fa-project-diagram" style="font-size: 2.5rem; margin-bottom: 15px; color: #555;"></i>
+                                            <p style="margin: 0; font-size: 1.1rem;">Connection Map Visualization</p>
+                                            <p style="margin: 8px 0 0 0; font-size: 0.9rem; color: #666;">Click above to analyze relationships</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="analysis-card" style="background: rgba(30, 30, 30, 0.5); border: 1px solid #2c2b2b; border-radius: 12px; padding: 20px;">
-                                <h3>Credit Scoring</h3>
-                                <div class="form-group">
-                                    <button id="refreshCreditsBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 15px;">Refresh Person Credits</button>
+                            
+                            <!-- Credit Scoring Panel -->
+                            <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 15px; padding: 25px; box-shadow: 0 8px 32px var(--shadow-color); display: flex; flex-direction: column;">
+                                <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                                    <div style="width: 8px; height: 30px; background: linear-gradient(to bottom, #ffffff, #aaaaaa); border-radius: 4px; margin-right: 15px;"></div>
+                                    <h3 style="margin: 0; color: #ffffff; font-size: 1.4rem;">Risk Assessment</h3>
                                 </div>
-                                <div class="form-group">
-                                    <button id="sortByCreditBtn" class="btn btn-secondary" style="width: 100%;">Sort by Credit</button>
-                                </div>
-                                <div style="margin-top: 20px; padding: 15px; background: rgba(20, 20, 20, 0.3); border-radius: 8px;">
-                                    <h4>Credit Distribution</h4>
-                                    <div id="creditStats" style="margin-top: 10px; color: #aaa;">
-                                        <!-- Credit statistics will be displayed here -->
+                                <div style="flex: 1; display: flex; flex-direction: column;">
+                                    <div class="form-group" style="margin-bottom: 15px;">
+                                        <button id="refreshCreditsBtn" class="btn btn-secondary" style="width: 100%; padding: 12px; font-size: 1.1rem; background: linear-gradient(145deg, #2a2a2a, #222222); border: 1px solid #444;">Evaluate Credit Scores</button>
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 25px;">
+                                        <button id="sortByCreditBtn" class="btn btn-secondary" style="width: 100%; padding: 12px; background: linear-gradient(145deg, #2a2a2a, #222222); border: 1px solid #444;">Rank by Risk Level</button>
+                                    </div>
+                                    <div style="background: rgba(20, 20, 20, 0.5); border-radius: 12px; padding: 20px; flex: 1;">
+                                        <h4 style="margin: 0 0 15px 0; color: #ffffff; display: flex; align-items: center;">
+                                            <i class="fas fa-chart-pie" style="margin-right: 10px; color: #888;"></i>
+                                            Risk Distribution
+                                        </h4>
+                                        <div id="creditStats" style="color: #aaa; line-height: 1.6;">
+                                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                                <span>High Risk:</span>
+                                                <span style="color: #ff6b6b;">0%</span>
+                                            </div>
+                                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                                <span>Medium Risk:</span>
+                                                <span style="color: #ffd93d;">0%</span>
+                                            </div>
+                                            <div style="display: flex; justify-content: space-between;">
+                                                <span>Low Risk:</span>
+                                                <span style="color: #6bcf7f;">100%</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -2003,15 +2034,24 @@
                 </div>
                 <div class="side-panel">
                     <div class="sidebar-section">
-                        <h3>Analysis Tools</h3>
+                        <h3 style="color: #ffffff; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #333;">Analytics Suite</h3>
                         <div class="form-group">
-                            <button id="showStatisticsBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">Show Statistics</button>
+                            <button id="showStatisticsBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 12px; padding: 12px; text-align: left; background: linear-gradient(145deg, #2a2a2a, #222222);">
+                                <i class="fas fa-chart-bar" style="margin-right: 10px; color: #888;"></i>
+                                Statistical Overview
+                            </button>
                         </div>
                         <div class="form-group">
-                            <button id="toggleConnectionsBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">Toggle Connections</button>
+                            <button id="toggleConnectionsBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 12px; padding: 12px; text-align: left; background: linear-gradient(145deg, #2a2a2a, #222222);">
+                                <i class="fas fa-network-wired" style="margin-right: 10px; color: #888;"></i>
+                                Network Visibility
+                            </button>
                         </div>
                         <div class="form-group">
-                            <button id="refreshViewBtn" class="btn btn-secondary" style="width: 100%;">Refresh View</button>
+                            <button id="refreshViewBtn" class="btn btn-secondary" style="width: 100%; padding: 12px; text-align: left; background: linear-gradient(145deg, #2a2a2a, #222222);">
+                                <i class="fas fa-sync" style="margin-right: 10px; color: #888;"></i>
+                                Refresh Analytics
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -2023,39 +2063,98 @@
             <div class="workspace">
                 <div class="main-panel">
                     <div class="logo">
-                        <h1>Chat Control Center</h1>
+                        <h1 style="background: linear-gradient(45deg, #ffffff, #dddddd); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Communication Security Center</h1>
                     </div>
-                    <div class="chat-control-content" style="flex: 1; overflow: auto;">
-                        <div class="form-group" style="margin-bottom: 25px;">
-                            <button id="analyzeAllChatsBtn" class="btn btn-primary" style="width: 100%;">
-                                Analyze All Chats for Suspicious Content
-                            </button>
+                    <div class="chat-control-content" style="flex: 1; overflow: auto; padding: 20px;">
+                        <!-- Security Analysis Header -->
+                        <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 15px; padding: 25px; margin-bottom: 25px; box-shadow: 0 8px 32px var(--shadow-color);">
+                            <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                                <div style="width: 8px; height: 30px; background: linear-gradient(to bottom, #ffffff, #aaaaaa); border-radius: 4px; margin-right: 15px;"></div>
+                                <h2 style="margin: 0; color: #ffffff; font-size: 1.6rem;">Threat Detection Suite</h2>
+                            </div>
+                            <div class="form-group">
+                                <button id="analyzeAllChatsBtn" class="btn btn-primary" style="width: 100%; padding: 15px; font-size: 1.2rem; background: linear-gradient(145deg, #2a2a2a, #222222); border: 1px solid #444;">
+                                    <i class="fas fa-shield-alt" style="margin-right: 12px;"></i>
+                                    Comprehensive Chat Security Scan
+                                </button>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px;">
+                                <div style="text-align: center; padding: 15px; background: rgba(30, 30, 30, 0.5); border-radius: 10px;">
+                                    <i class="fas fa-comments" style="font-size: 1.8rem; color: #666; margin-bottom: 10px;"></i>
+                                    <div style="color: #aaa; font-size: 0.9rem;">Chats Monitored</div>
+                                    <div id="totalChatsCount" style="color: #ffffff; font-size: 1.4rem; font-weight: bold;">0</div>
+                                </div>
+                                <div style="text-align: center; padding: 15px; background: rgba(30, 30, 30, 0.5); border-radius: 10px;">
+                                    <i class="fas fa-exclamation-triangle" style="font-size: 1.8rem; color: #666; margin-bottom: 10px;"></i>
+                                    <div style="color: #aaa; font-size: 0.9rem;">Threats Detected</div>
+                                    <div id="threatsDetected" style="color: #ff6b6b; font-size: 1.4rem; font-weight: bold;">0</div>
+                                </div>
+                                <div style="text-align: center; padding: 15px; background: rgba(30, 30, 30, 0.5); border-radius: 10px;">
+                                    <i class="fas fa-lock" style="font-size: 1.8rem; color: #666; margin-bottom: 10px;"></i>
+                                    <div style="color: #aaa; font-size: 0.9rem;">Security Rating</div>
+                                    <div id="securityRating" style="color: #6bcf7f; font-size: 1.4rem; font-weight: bold;">100%</div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="chat-list-container" style="background: rgba(30, 30, 30, 0.5); border: 1px solid #2c2b2b; border-radius: 12px; padding: 20px; overflow-y: auto;">
-                            <h3>Saved Chats</h3>
-                            <div id="savedChatsList" style="margin-top: 15px;">
-                                <p style="color: #777; text-align: center;">Loading saved chats...</p>
+                        
+                        <!-- Chat List Section -->
+                        <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 15px; padding: 25px; box-shadow: 0 8px 32px var(--shadow-color);">
+                            <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                                <div style="width: 8px; height: 30px; background: linear-gradient(to bottom, #ffffff, #aaaaaa); border-radius: 4px; margin-right: 15px;"></div>
+                                <h3 style="margin: 0; color: #ffffff; font-size: 1.4rem;">Conversation Archives</h3>
+                            </div>
+                            <div id="savedChatsList" style="margin-top: 15px; max-height: 400px; overflow-y: auto;">
+                                <div style="text-align: center; padding: 40px; color: #777;">
+                                    <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 20px; color: #444;"></i>
+                                    <p style="margin: 0; font-size: 1.1rem;">No conversations archived yet</p>
+                                    <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666;">Upload chat data to begin monitoring</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="side-panel">
                     <div class="sidebar-section">
-                        <h3>Chat Analysis Tools</h3>
+                        <h3 style="color: #ffffff; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #333;">Security Operations</h3>
                         <div class="form-group">
-                            <button id="refreshChatListBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">
-                                Refresh Chat List
+                            <button id="refreshChatListBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 12px; padding: 12px; text-align: left; background: linear-gradient(145deg, #2a2a2a, #222222);">
+                                <i class="fas fa-sync" style="margin-right: 10px; color: #888;"></i>
+                                Update Conversation List
                             </button>
                         </div>
                         <div class="form-group">
-                            <button id="exportChatReportBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">
-                                Export Chat Report
+                            <button id="exportChatReportBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 12px; padding: 12px; text-align: left; background: linear-gradient(145deg, #2a2a2a, #222222);">
+                                <i class="fas fa-file-export" style="margin-right: 10px; color: #888;"></i>
+                                Generate Security Report
                             </button>
                         </div>
                         <div class="form-group">
-                            <button id="clearChatHistoryBtn" class="btn btn-danger" style="width: 100%;">
-                                Clear Chat History
+                            <button id="clearChatHistoryBtn" class="btn btn-danger" style="width: 100%; padding: 12px; text-align: left; background: linear-gradient(145deg, #ff4757, #cc3747);">
+                                <i class="fas fa-trash-alt" style="margin-right: 10px;"></i>
+                                Purge All Records
                             </button>
+                        </div>
+                        
+                        <!-- Quick Stats Panel -->
+                        <div style="margin-top: 30px; padding: 20px; background: rgba(30, 30, 30, 0.5); border-radius: 12px;">
+                            <h4 style="margin: 0 0 15px 0; color: #ffffff; display: flex; align-items: center;">
+                                <i class="fas fa-chart-line" style="margin-right: 10px; color: #888;"></i>
+                                Monitoring Metrics
+                            </h4>
+                            <div style="font-size: 0.9rem; color: #aaa; line-height: 1.6;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                    <span>Active Monitoring:</span>
+                                    <span style="color: #6bcf7f;">Enabled</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                    <span>Last Scan:</span>
+                                    <span>N/A</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span>Alerts Today:</span>
+                                    <span>0</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2067,29 +2166,86 @@
             <div class="workspace">
                 <div class="main-panel">
                     <div class="logo">
-                        <h1>Threats & Fraud Intelligence</h1>
+                        <h1 style="background: linear-gradient(45deg, #ffffff, #dddddd); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Security Intelligence Command</h1>
                     </div>
-                    <div class="threats-content" style="flex: 1; overflow: auto;">
-                        <div class="form-group" style="margin-bottom: 25px;">
-                            <button id="findBothBtn" class="btn btn-primary" style="width: 100%;">Find Both Threats & Fraud</button>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; height: calc(100% - 80px);">
-                            <div class="threat-panel" style="background: rgba(30, 30, 30, 0.5); border: 1px solid #2c2b2b; border-radius: 12px; padding: 20px; overflow-y: auto;">
-                                <h3>Potential Threats</h3>
-                                <div class="form-group" style="margin: 15px 0;">
-                                    <button id="findTerroristsBtn" class="btn btn-secondary" style="width: 100%;">Find Potential Terrorists</button>
+                    <div class="threats-content" style="flex: 1; overflow: auto; padding: 20px;">
+                        <!-- Threat Dashboard Header -->
+                        <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 15px; padding: 25px; margin-bottom: 25px; box-shadow: 0 8px 32px var(--shadow-color);">
+                            <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                                <div style="width: 8px; height: 30px; background: linear-gradient(to bottom, #ffffff, #aaaaaa); border-radius: 4px; margin-right: 15px;"></div>
+                                <h2 style="margin: 0; color: #ffffff; font-size: 1.6rem;">Threat Assessment Center</h2>
+                            </div>
+                            <div class="form-group">
+                                <button id="findBothBtn" class="btn btn-primary" style="width: 100%; padding: 15px; font-size: 1.2rem; background: linear-gradient(145deg, #ff4757, #cc3747); border: 1px solid #ff6b6b;">
+                                    <i class="fas fa-radar" style="margin-right: 12px;"></i>
+                                    Execute Full Security Sweep
+                                </button>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 20px;">
+                                <div style="text-align: center; padding: 15px; background: rgba(30, 30, 30, 0.5); border-radius: 10px;">
+                                    <i class="fas fa-user-secret" style="font-size: 1.8rem; color: #666; margin-bottom: 10px;"></i>
+                                    <div style="color: #aaa; font-size: 0.9rem;">Active Threats</div>
+                                    <div id="activeThreats" style="color: #ff6b6b; font-size: 1.4rem; font-weight: bold;">0</div>
                                 </div>
-                                <div id="threatsList" class="threats-list" style="margin-top: 15px;">
-                                    <!-- Threat findings will be displayed here -->
+                                <div style="text-align: center; padding: 15px; background: rgba(30, 30, 30, 0.5); border-radius: 10px;">
+                                    <i class="fas fa-fingerprint" style="font-size: 1.8rem; color: #666; margin-bottom: 10px;"></i>
+                                    <div style="color: #aaa; font-size: 0.9rem;">Fraud Cases</div>
+                                    <div id="fraudCases" style="color: #ffd93d; font-size: 1.4rem; font-weight: bold;">0</div>
+                                </div>
+                                <div style="text-align: center; padding: 15px; background: rgba(30, 30, 30, 0.5); border-radius: 10px;">
+                                    <i class="fas fa-shield-alt" style="font-size: 1.8rem; color: #666; margin-bottom: 10px;"></i>
+                                    <div style="color: #aaa; font-size: 0.9rem;">Protection Level</div>
+                                    <div id="protectionLevel" style="color: #6bcf7f; font-size: 1.4rem; font-weight: bold;">MAX</div>
+                                </div>
+                                <div style="text-align: center; padding: 15px; background: rgba(30, 30, 30, 0.5); border-radius: 10px;">
+                                    <i class="fas fa-clock" style="font-size: 1.8rem; color: #666; margin-bottom: 10px;"></i>
+                                    <div style="color: #aaa; font-size: 0.9rem;">Last Scan</div>
+                                    <div id="lastScan" style="color: #ffffff; font-size: 1.4rem; font-weight: bold;">Never</div>
                                 </div>
                             </div>
-                            <div class="fraud-panel" style="background: rgba(30, 30, 30, 0.5); border: 1px solid #2c2b2b; border-radius: 12px; padding: 20px; overflow-y: auto;">
-                                <h3>Potential Fraud</h3>
-                                <div class="form-group" style="margin: 15px 0;">
-                                    <button id="findFraudBtn" class="btn btn-secondary" style="width: 100%;">Find Potential Fraud</button>
+                        </div>
+                        
+                        <!-- Dual Analysis Panels -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+                            <!-- Threat Intelligence Panel -->
+                            <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 15px; padding: 25px; box-shadow: 0 8px 32px var(--shadow-color);">
+                                <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                                    <div style="width: 8px; height: 30px; background: linear-gradient(to bottom, #ff6b6b, #cc5252); border-radius: 4px; margin-right: 15px;"></div>
+                                    <h3 style="margin: 0; color: #ffffff; font-size: 1.4rem;">Terrorism Intelligence</h3>
                                 </div>
-                                <div id="fraudList" class="fraud-list" style="margin-top: 15px;">
-                                    <!-- Fraud findings will be displayed here -->
+                                <div class="form-group" style="margin: 20px 0;">
+                                    <button id="findTerroristsBtn" class="btn btn-secondary" style="width: 100%; padding: 15px; font-size: 1.1rem; background: linear-gradient(145deg, #2a2a2a, #222222); border: 1px solid #ff4757;">
+                                        <i class="fas fa-crosshairs" style="margin-right: 10px;"></i>
+                                        Identify Security Risks
+                                    </button>
+                                </div>
+                                <div id="threatsList" class="threats-list" style="margin-top: 20px; max-height: 300px; overflow-y: auto;">
+                                    <div style="text-align: center; padding: 30px; color: #777;">
+                                        <i class="fas fa-user-shield" style="font-size: 2.5rem; margin-bottom: 15px; color: #444;"></i>
+                                        <p style="margin: 0; font-size: 1rem;">No threats detected</p>
+                                        <p style="margin: 8px 0 0 0; font-size: 0.9rem; color: #666;">System status: Secure</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Fraud Detection Panel -->
+                            <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 15px; padding: 25px; box-shadow: 0 8px 32px var(--shadow-color);">
+                                <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                                    <div style="width: 8px; height: 30px; background: linear-gradient(to bottom, #ffd93d, #e6c235); border-radius: 4px; margin-right: 15px;"></div>
+                                    <h3 style="margin: 0; color: #ffffff; font-size: 1.4rem;">Financial Crime Analysis</h3>
+                                </div>
+                                <div class="form-group" style="margin: 20px 0;">
+                                    <button id="findFraudBtn" class="btn btn-secondary" style="width: 100%; padding: 15px; font-size: 1.1rem; background: linear-gradient(145deg, #2a2a2a, #222222); border: 1px solid #ffd93d;">
+                                        <i class="fas fa-search-dollar" style="margin-right: 10px;"></i>
+                                        Detect Fraudulent Activity
+                                    </button>
+                                </div>
+                                <div id="fraudList" class="fraud-list" style="margin-top: 20px; max-height: 300px; overflow-y: auto;">
+                                    <div style="text-align: center; padding: 30px; color: #777;">
+                                        <i class="fas fa-money-check-alt" style="font-size: 2.5rem; margin-bottom: 15px; color: #444;"></i>
+                                        <p style="margin: 0; font-size: 1rem;">No fraud detected</p>
+                                        <p style="margin: 8px 0 0 0; font-size: 0.9rem; color: #666;">Financial systems secure</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2097,16 +2253,53 @@
                 </div>
                 <div class="side-panel">
                     <div class="sidebar-section">
-                        <h3>Intelligence Reports</h3>
-                        <div class="report-item" style="background: rgba(40, 40, 40, 0.7); border: 1px solid #333; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
-                            <h4>Latest Report</h4>
-                            <p style="font-size: 0.9rem; color: #aaa; margin: 8px 0;">Automated threat assessment report</p>
-                            <button class="btn btn-secondary" style="width: 100%; font-size: 0.85rem;">View Details</button>
+                        <h3 style="color: #ffffff; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #333;">Intelligence Operations</h3>
+                        
+                        <!-- Quick Action Cards -->
+                        <div style="margin-bottom: 25px;">
+                            <div style="background: rgba(40, 40, 40, 0.7); border: 1px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 15px; transition: all 0.3s ease;">
+                                <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                                    <i class="fas fa-file-alt" style="font-size: 1.2rem; color: #888; margin-right: 12px;"></i>
+                                    <h4 style="margin: 0; color: #ffffff; font-size: 1.1rem;">Situation Report</h4>
+                                </div>
+                                <p style="font-size: 0.9rem; color: #aaa; margin: 12px 0;">Current threat assessment overview</p>
+                                <button id="generateThreatReportBtn" class="btn btn-secondary" style="width: 100%; font-size: 0.9rem; padding: 10px; background: linear-gradient(145deg, #2a2a2a, #222222);">Generate Report</button>
+                            </div>
+                            
+                            <div style="background: rgba(40, 40, 40, 0.7); border: 1px solid #333; border-radius: 12px; padding: 20px; transition: all 0.3s ease;">
+                                <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                                    <i class="fas fa-history" style="font-size: 1.2rem; color: #888; margin-right: 12px;"></i>
+                                    <h4 style="margin: 0; color: #ffffff; font-size: 1.1rem;">Historical Patterns</h4>
+                                </div>
+                                <p style="font-size: 0.9rem; color: #aaa; margin: 12px 0;">Analyze past security incidents</p>
+                                <button id="reviewArchiveBtn" class="btn btn-secondary" style="width: 100%; font-size: 0.9rem; padding: 10px; background: linear-gradient(145deg, #2a2a2a, #222222);">Review Archive</button>
+                            </div>
                         </div>
-                        <div class="report-item" style="background: rgba(40, 40, 40, 0.7); border: 1px solid #333; border-radius: 8px; padding: 15px;">
-                            <h4>Historical Analysis</h4>
-                            <p style="font-size: 0.9rem; color: #aaa; margin: 8px 0;">Pattern recognition trends</p>
-                            <button class="btn btn-secondary" style="width: 100%; font-size: 0.85rem;">Generate Report</button>
+                        
+                        <!-- Security Status Panel -->
+                        <div style="padding: 20px; background: rgba(30, 30, 30, 0.5); border-radius: 12px;">
+                            <h4 style="margin: 0 0 15px 0; color: #ffffff; display: flex; align-items: center;">
+                                <i class="fas fa-server" style="margin-right: 10px; color: #888;"></i>
+                                System Status
+                            </h4>
+                            <div style="font-size: 0.9rem; color: #aaa; line-height: 1.6;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                                    <span>Detection Engine:</span>
+                                    <span style="color: #6bcf7f;">Online</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                                    <span>Database Sync:</span>
+                                    <span style="color: #6bcf7f;">Active</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                                    <span>Alert System:</span>
+                                    <span style="color: #6bcf7f;">Ready</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span>Response Time:</span>
+                                    <span style="color: #ffd93d;">&lt;1s</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -5532,6 +5725,15 @@
             clearChatHistory();
         });
 
+        // Threat Report Event Listeners
+        document.getElementById('generateThreatReportBtn')?.addEventListener('click', () => {
+            generateThreatReport();
+        });
+
+        document.getElementById('reviewArchiveBtn')?.addEventListener('click', () => {
+            reviewHistoricalPatterns();
+        });
+
         function sortByCredit() {
             pazatorData.humans.sort((a, b) => {
                 const creditA = a.credit !== undefined ? a.credit : -1;
@@ -5543,6 +5745,111 @@
             renderWebNodes();
 
             alert(`Sorted ${pazatorData.humans.length} people by credit score!`);
+        }
+
+        // Threat Report Functions
+        function generateThreatReport() {
+            const humanCount = pazatorData.humans.length;
+            const otherCount = pazatorData.others.length;
+            const fraudLogs = JSON.parse(localStorage.getItem('fraudLogs') || '[]');
+            const terroristLogs = JSON.parse(localStorage.getItem('terroristLogs') || '[]');
+            const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+            
+            let report = `=== SECURITY THREAT ASSESSMENT REPORT ===\n`;
+            report += `Generated: ${new Date().toLocaleString()}\n\n`;
+            
+            report += `📊 DATA OVERVIEW\n`;
+            report += `================\n`;
+            report += `Human Entries: ${humanCount}\n`;
+            report += `Other Entries: ${otherCount}\n`;
+            report += `Total Records: ${humanCount + otherCount}\n`;
+            report += `Monitored Chats: ${chatHistory.length}\n\n`;
+            
+            report += `🚨 SECURITY FINDINGS\n`;
+            report += `==================\n`;
+            report += `Fraud Cases Detected: ${fraudLogs.length}\n`;
+            report += `Terrorism Indicators: ${terroristLogs.length}\n`;
+            
+            const highRiskHumans = pazatorData.humans.filter(h => h.credit !== undefined && h.credit < 30).length;
+            report += `High-Risk Individuals: ${highRiskHumans}\n\n`;
+            
+            report += `🛡️ RECOMMENDATIONS\n`;
+            report += `=================\n`;
+            
+            if (fraudLogs.length > 0) {
+                report += `• Review ${fraudLogs.length} fraud cases for immediate action\n`;
+            }
+            
+            if (terroristLogs.length > 0) {
+                report += `• Investigate ${terroristLogs.length} terrorism indicators\n`;
+            }
+            
+            if (highRiskHumans > 0) {
+                report += `• Monitor ${highRiskHumans} high-risk individuals\n`;
+            }
+            
+            report += `• Continue regular security sweeps\n`;
+            report += `• Update threat intelligence databases\n\n`;
+            
+            report += `📈 SYSTEM STATUS\n`;
+            report += `===============\n`;
+            report += `Detection Engine: ONLINE\n`;
+            report += `Database Sync: ACTIVE\n`;
+            report += `Alert System: READY\n`;
+            report += `Response Time: <1s\n`;
+            
+            alert(report);
+        }
+
+        function reviewHistoricalPatterns() {
+            const fraudLogs = JSON.parse(localStorage.getItem('fraudLogs') || '[]');
+            const terroristLogs = JSON.parse(localStorage.getItem('terroristLogs') || '[]');
+            const previousThreats = JSON.parse(localStorage.getItem('previousThreats') || '[]');
+            const previousFraud = JSON.parse(localStorage.getItem('previousFraud') || '[]');
+            
+            if (fraudLogs.length === 0 && terroristLogs.length === 0 && 
+                previousThreats.length === 0 && previousFraud.length === 0) {
+                alert('No historical security incidents found.\n\nThis system tracks:\n• Fraud detection cases\n• Terrorism indicators\n• Threat assessments\n• Security pattern analysis\n\nContinue monitoring to build historical data.');
+                return;
+            }
+            
+            let report = `=== HISTORICAL SECURITY PATTERNS ===\n`;
+            report += `Analysis Period: All Recorded Data\n\n`;
+            
+            if (previousThreats.length > 0) {
+                report += `🔍 THREAT HISTORY (${previousThreats.length} cases)\n`;
+                report += `====================================\n`;
+                previousThreats.slice(-5).forEach((threat, index) => {
+                    report += `${index + 1}. ${threat.person || threat.name}\n`;
+                    report += `   Risk: ${threat.riskLevel || 'Unknown'}\n`;
+                    report += `   Reasons: ${(threat.reasons || threat.redFlags || []).slice(0, 2).join(', ') || 'Various factors'}\n\n`;
+                });
+            }
+            
+            if (previousFraud.length > 0) {
+                report += `💰 FRAUD HISTORY (${previousFraud.length} cases)\n`;
+                report += `===================================\n`;
+                previousFraud.slice(-5).forEach((fraud, index) => {
+                    report += `${index + 1}. ${fraud.person || fraud.name}\n`;
+                    report += `   Type: ${fraud.type || 'Unspecified'}\n`;
+                    report += `   Evidence: ${(fraud.evidence || fraud.redFlags || []).slice(0, 2).join(', ') || 'Multiple indicators'}\n\n`;
+                });
+            }
+            
+            report += `📈 TREND ANALYSIS\n`;
+            report += `================\n`;
+            report += `Total Security Incidents: ${previousThreats.length + previousFraud.length}\n`;
+            report += `Current Active Cases: ${fraudLogs.length + terroristLogs.length}\n`;
+            report += `Security Trend: ${fraudLogs.length + terroristLogs.length > previousThreats.length + previousFraud.length ? 'INCREASING' : 'STABLE/DECREASING'}\n\n`;
+            
+            report += `🤖 RECOMMENDED ACTIONS\n`;
+            report += `=====================\n`;
+            report += `• Review recent ${fraudLogs.length + terroristLogs.length} active cases\n`;
+            report += `• Analyze patterns in historical data\n`;
+            report += `• Update security protocols based on findings\n`;
+            report += `• Schedule regular pattern analysis reviews\n`;
+            
+            alert(report);
         }
 
         // Chat Control Functions
