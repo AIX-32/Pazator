@@ -8,6 +8,22 @@
     <title>Pazator. - Mass data container</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            /* Color Variables */
+            --primary-bg: #0d0d0d;
+            --secondary-bg: #121212;
+            --tertiary-bg: #0a0a0a;
+            --card-bg: #1a1a1a;
+            --border-color: #2a2a2a;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --text-muted: #777777;
+            --accent-light: #ffffff;
+            --accent-dark: #8a8a8a;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+            --highlight: rgba(255, 255, 255, 0.1);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -15,41 +31,36 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Hide scrollbars but keep functionality */
         ::-webkit-scrollbar {
             display: none;
         }
 
         * {
             -ms-overflow-style: none;
-            /* IE and Edge */
             scrollbar-width: none;
-            /* Firefox */
         }
 
         body {
-            background: #141313;
+            background: var(--primary-bg);
             padding: 0;
             margin: 0;
             min-height: 100vh;
             display: flex;
-            align-items: stretch;
-            justify-content: stretch;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #e0e0e0;
+            flex-direction: column;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            color: var(--text-primary);
             overflow: hidden;
+            letter-spacing: 0.2px;
         }
 
         .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(135deg, var(--primary-bg) 0%, var(--secondary-bg) 50%, var(--tertiary-bg) 100%);
+            overflow: hidden;
             width: 100vw;
-            height: 100vh;
-            min-height: 100vh;
-            display: grid;
-            grid-template-columns: 4fr 1fr;
-            grid-template-rows: 1fr 1fr 2fr;
-            gap: 20px;
-            padding: 20px;
-            background: radial-gradient(circle at top right, #1e1c1c, #141313);
+            height: calc(100vh - 45px);
         }
 
         .container.threats-split {
@@ -61,13 +72,16 @@
         }
 
         .panel {
-            background: linear-gradient(180deg, #1b1a1a 0%, #191818 100%);
-            border: 1px solid #2c2b2b;
-            border-radius: 35px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 7px;
             padding: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            box-shadow: 
+                0 4px 20px var(--shadow-color),
+                inset 0 1px 0 rgba(255, 255, 255, 0.03);
             position: relative;
             overflow: hidden;
+            flex: 1;
         }
 
         .panel::before {
@@ -102,15 +116,15 @@
 
         .sidebar-section {
             margin-bottom: 25px;
-            padding: 15px;
+            padding: 15px ;
             background: rgba(30, 30, 30, 0.5);
-            border-radius: 15px;
+            border-radius: 7px;
             border: 1px solid #2c2b2b;
         }
 
         .sidebar-section h3 {
             margin-top: 0;
-            margin-bottom: 15px;
+            margin-bottom: 17px;
             color: #ffffff;
             font-size: 1.2rem;
         }
@@ -138,19 +152,309 @@
             font-weight: bold;
         }
 
-        .navbar {
-            grid-row: 1 / 2;
-            grid-column: 3 / 4;
+        .tab-bar {
             display: flex;
-            align-items: stretch;
-            justify-content: space-between;
-            padding: 10px 20px;
-            background: linear-gradient(180deg, #1b1a1a 0%, #191818 100%);
-            border: 1px solid #2c2b2b;
-            border-radius: 35px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 10px 15px;
+            margin: 10px 12px;
+            margin-bottom: 0px;
+            height: 65px;
+            flex-shrink: 0;
+            z-index: 1000;
             position: relative;
+            width: calc(100vw - 24px);
+            justify-content: flex-start;
+            align-items: center;
+            border-radius: 7px;
+        }
+
+        .tab {
+            padding: 0 20px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-right: 10px;
+            font-weight: 500;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 0;
+            min-width: 120px;
+            max-width: 200px;
+            text-align: center;
+            white-space: nowrap;
             overflow: hidden;
+            text-overflow: ellipsis;
+            background-position-y: var(--card-bg);
+            border-radius: 7px;
+        }
+
+        .tab:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-close {
+            margin-left: 8px;
+            opacity: 0.6;
+            transition: all 0.2s ease;
+            font-size: 1.1rem;
+            width: 18px;
+            height: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 2px;
+        }
+
+        .tab-action {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-left: 8px;
+            max-width: 80px;
+        }
+
+        .tab-action:hover {
+            background: var(--highlight);
+            color: var(--text-primary);
+            border-color: var(--accent-dark);
+        }
+
+        .tab-action i {
+            font-size: 1rem;
+        }
+
+        .logo-card {
+            width: 43px;
+            height: 43px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 12px;
+            flex-shrink: 0;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px var(--shadow-color);
+        }
+
+        .logo-card:hover {
+            background: var(--highlight);
+            border-color: var(--accent-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px var(--shadow-color);
+        }
+
+        .logo-card img {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+            filter: invert(1) brightness(2) saturate(0);
+        }
+
+        .tab-action[title] {
+            position: relative;
+        }
+
+        .tab-action[title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 30, 30, 0.95);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            z-index: 1001;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            margin-top: 8px;
+            pointer-events: none;
+            opacity: 0;
+            animation: fadeInTooltip 0.2s ease forwards;
+        }
+
+        .tab-action[title]:hover::before {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-bottom-color: rgba(30, 30, 30, 0.95);
+            margin-top: 2px;
+            z-index: 1002;
+            opacity: 0;
+            animation: fadeInTooltip 0.2s ease forwards;
+        }
+
+        /* Smart positioning for edge cases */
+        .tab-bar .tab-action[title]:hover::after {
+            /* Check if tooltip would go off right edge */
+            right: auto;
+            left: 50%;
+        }
+
+        .tab-bar .tab-action:last-child[title]:hover::after {
+            /* For rightmost button, align tooltip to right edge */
+            left: auto;
+            right: 0;
+            transform: translateX(0);
+        }
+
+        .tab-bar .tab-action:last-child[title]:hover::before {
+            left: auto;
+            right: 12px;
+            transform: translateX(0);
+        }
+
+        @keyframes fadeInTooltip {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 45px;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, var(--card-bg) 0%, var(--secondary-bg) 100%);
+            border: 1px solid var(--border-color);
+            border-top: none;
+            box-shadow: 0 8px 25px var(--shadow-color);
+            z-index: 999;
+            display: none;
+            padding: 15px;
+            width: 100%;
+            border-radius: 0 0 7px 7px;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .dropdown-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .dropdown-item {
+            background: rgba(30, 30, 30, 0.6);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(50, 50, 50, 0.8);
+            border-color: #555;
+            transform: translateY(-2px);
+        }
+
+        .dropdown-item i {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .dropdown-item h4 {
+            margin: 0 0 5px 0;
+            font-size: 1rem;
+            color: #ffffff;
+        }
+
+        .dropdown-item p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+
+        .tab-content {
+            flex: 1;
+            display: none;
+            padding: 0;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .workspace {
+            flex: 1;
+            display: grid;
+            gap: 12px;
+            grid-template-columns: 1fr 280px;
+            grid-template-rows: 1fr auto;
+            padding: 12px;
+            overflow: hidden;
+        }
+
+        .main-panel {
+            grid-column: 1;
+            grid-row: 1;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 7px;
+            padding: 20px;
+            box-shadow: 
+                0 4px 20px var(--shadow-color),
+                inset 0 1px 0 rgba(255, 255, 255, 0.03);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .side-panel {
+            grid-column: 2;
+            grid-row: 1 / 3;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 7px;
+            padding: 20px;
+            box-shadow: 
+                0 4px 20px var(--shadow-color),
+                inset 0 1px 0 rgba(255, 255, 255, 0.03);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .bottom-panel {
+            grid-column: 1;
+            grid-row: 2;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 7px;
+            padding: 15px;
+            box-shadow: 
+                0 4px 20px var(--shadow-color),
+                inset 0 1px 0 rgba(255, 255, 255, 0.03);
+            min-height: 180px;
+            overflow-y: auto;
         }
 
         .navbar::before {
@@ -198,20 +502,20 @@
         }
 
         .logo {
-            text-align: center;
-            margin-bottom: 24px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #2c2b2b;
+            text-align: left;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
         }
 
         .logo h1 {
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             margin: 0;
-            background: linear-gradient(45deg, #ffffff, #dddddd);
+            background: linear-gradient(90deg, var(--text-secondary), var(--accent-light));
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
-            font-weight: 700;
+            font-weight: 600;
             letter-spacing: 0.5px;
         }
 
@@ -421,6 +725,15 @@
             animation: modalFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
 
+        .modal.context-modal {
+            z-index: 1005 !important;
+        }
+        
+        /* Ensure context modal overlays AI chat */
+        .ai-chat-modal ~ .modal.context-modal {
+            z-index: 1005 !important;
+        }
+
         .modal.hiding {
             animation: modalFadeOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
@@ -512,7 +825,7 @@
             padding: 12px 15px;
             background: rgba(30, 30, 30, 0.7);
             border: 1px solid #444343;
-            border-radius: 12px;
+            border-radius: 7px;
             color: #e0e0e0;
             font-size: 1rem;
             transition: all 0.3s ease;
@@ -549,7 +862,7 @@
 
         .btn {
             padding: 12px 25px;
-            border-radius: 18px;
+            border-radius: 7px;
             font-size: 1rem;
             font-weight: 500;
             cursor: pointer;
@@ -760,7 +1073,7 @@
             height: 100%;
             background-color: rgba(0, 0, 0, 0.85);
             backdrop-filter: blur(5px);
-            z-index: 1000;
+            z-index: 1001;
             justify-content: center;
             align-items: center;
             -webkit-font-smoothing: antialiased;
@@ -932,7 +1245,7 @@
 
         .ai-input-container {
             display: flex;
-            align-items: center;
+            flex-direction: column;
             gap: 15px;
             padding: 25px 30px;
             background: rgba(25, 24, 24, 0.9);
@@ -940,6 +1253,68 @@
             border-radius: 20px 20px 0 0;
             flex-shrink: 0;
             box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .context-display {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            min-height: 60px;
+            padding: 15px;
+            background: rgba(40, 40, 40, 0.7);
+            border: 1px solid #333;
+            border-radius: 12px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+        
+        .context-card {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            background: linear-gradient(145deg, #2a2929, #252424);
+            border: 1px solid #444;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #e0e0e0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            max-width: 200px;
+        }
+        
+        .context-card:hover {
+            background: linear-gradient(145deg, #3a3939, #353434);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .context-card.people {
+            border-left: 3px solid #ffffff;
+        }
+        
+        .context-card.chats {
+            border-left: 3px solid #ffffff;
+        }
+        
+        .context-card.fraud {
+            border-left: 3px solid #ffffff;
+        }
+        
+        .context-card .card-icon {
+            margin-right: 8px;
+            font-size: 1rem;
+        }
+        
+        .context-card .card-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
 
         .ai-input {
@@ -1352,8 +1727,8 @@
             bottom: 10px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
+            background: var(--background-color);
+            color: var(--text-color);
             padding: 8px 16px;
             border-radius: 20px;
             font-size: 0.9rem;
@@ -1475,16 +1850,21 @@
             </div>
 
             <div class="ai-input-container">
-                <input type="text" class="ai-input" id="aiInput" placeholder="Ask me anything about your data...">
-                <div class="ai-input-buttons">
-                    <button class="ai-action-btn" id="aiImproveBtn" title="Improve your prompt">
-                        <i class="fas fa-magic"></i>
-                        <span class="btn-icon-text"></span>
-                    </button>
-                    <button class="ai-send-btn" id="aiSendBtn">
-                        <i class="fas fa-paper-plane"></i>
-                        <span class="btn-icon-text"></span>
-                    </button>
+                <div class="context-display" id="contextDisplay">
+                    <div style="color: #777; font-style: italic; align-self: center;">No context selected - click "Add Context" to include people, chats, or security logs</div>
+                </div>
+                <div class="input-row">
+                    <input type="text" class="ai-input" id="aiInput" placeholder="Ask me anything about your data...">
+                    <div class="ai-input-buttons">
+                        <button class="ai-action-btn" id="aiImproveBtn" title="Improve your prompt">
+                            <i class="fas fa-magic"></i>
+                            <span class="btn-icon-text"></span>
+                        </button>
+                        <button class="ai-send-btn" id="aiSendBtn">
+                            <i class="fas fa-paper-plane"></i>
+                            <span class="btn-icon-text"></span>
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="ai-notification" id="aiNotification"
@@ -1493,122 +1873,243 @@
             </div>
         </div>
     </div>
+    <!-- Tab Bar -->
+    <div class="tab-bar" id="tabBar">
+        <button class="tab active" data-tab="dashboard">
+            Dashboard
+            <span class="tab-close">&times;</span>
+        </button>
+        <div style="flex: 1;"></div>
+        <!-- Action Buttons -->
+        <button class="tab-action" id="dashboardBtn" title="Main workspace with data visualization">
+            <i class="fas fa-home"></i>
+        </button>
+        <button class="tab-action" id="analysisBtn" title="Data insights and connection mapping">
+            <i class="fas fa-chart-line"></i>
+        </button>
+        <button class="tab-action" id="threatsBtn" title="Security intelligence and risk assessment">
+            <i class="fas fa-shield-alt"></i>
+        </button>
+        <button class="tab-action" id="chatControlBtn" title="Chat management and analysis">
+            <i class="fas fa-comments"></i>
+        </button>
+        <div class="logo-card" title="Pazator Logo">
+            <img src="favicon.png" alt="Pazator Logo">
+        </div>
+    </div>
+
     <div class="container">
-        <div class="panel conva" id="convaPanel">
-            <div class="logo">
-                <h1>Pazator - MSS</h1>
-            </div>
-            <div class="web-container" id="webContainer">
-                <div class="web-content" id="webContent">
-                </div>
-            </div>
-        </div>
-        <!-- Threats and Fraud Panel -->
-        <div class="panel" id="threatsPanel" style="display: none;">
-            <div class="logo">
-                <h1>Threats & Fraud</h1>
-            </div>
-            <div class="threats-content">
-                <div class="sidebar-section">
-                    <button id="findBothBtn" class="btn btn-primary" style="width: 100%; margin-bottom: 15px;">Find Both
-                        Threats & Fraud</button>
-                </div>
-                <div class="sidebar-section">
-                    <h3>Previous Threat Findings</h3>
-                    <div id="threatsList" class="threats-list">
-
+        <!-- Dashboard Tab -->
+        <div class="tab-content active" id="dashboard-tab">
+            <div class="workspace">
+                <div class="main-panel">
+                    <div class="logo">
+                        <h1>Pazator - MSS</h1>
+                    </div>
+                    <div class="web-container" id="webContainer">
+                        <div class="web-content" id="webContent">
+                        </div>
                     </div>
                 </div>
-                <div class="sidebar-section">
-                    <h3>Previous Fraud Findings</h3>
-                    <div id="fraudList" class="fraud-list">
+                <div class="side-panel">
+                    <div class="sidebar-section">
+                        <h3>Quick Actions</h3>
+                        <div class="form-group">
+                            <button id="newDataBtn" class="btn btn-primary" style="width: 100%; margin-bottom: 10px;">New Data</button>
+                        </div>
+                        <div class="form-group">
+                            <button id="askAIBtn" class="btn btn-primary" style="width: 100%; margin-bottom: 10px;">Ask AI</button>
+                        </div>
+                        <div class="form-group">
+                            <button id="chatUploadBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">Upload Chat</button>
+                        </div>
+                        <div class="form-group">
+                            <button id="menuBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">SCF</button>
+                        </div>
+                        <div class="form-group">
+                            <button id="signInBtn" class="btn btn-secondary" style="width: 100%;">Sign In</button>
+                        </div>
+                    </div>
 
+                    <div class="sidebar-section">
+                        <h3>Search & Filter</h3>
+                        <div class="form-group">
+                            <input type="text" id="searchInput" class="form-control" placeholder="Search entries...">
+                        </div>
+                        <div class="form-group">
+                            <select id="filterType" class="form-control">
+                                <option value="all">All Types</option>
+                                <option value="human">Humans</option>
+                                <option value="other">Others</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <button id="applyFilterBtn" class="btn btn-primary" style="width: 100%;">Apply Filter</button>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-section">
+                        <h3>Tags</h3>
+                        <div class="form-group">
+                            <input type="text" id="tagInput" class="form-control" placeholder="Add new tag...">
+                        </div>
+                        <div class="form-group">
+                            <button id="addTagBtn" class="btn btn-secondary" style="width: 100%;">Add Tag</button>
+                        </div>
+                        <div id="tagsContainer" class="tags-container">
+                            <!-- Tags will be dynamically added here -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Analysis Tab -->
+        <div class="tab-content" id="analysis-tab">
+            <div class="workspace">
+                <div class="main-panel">
+                    <div class="logo">
+                        <h1>Data Analysis</h1>
+                    </div>
+                    <div class="analysis-content" style="flex: 1; overflow: auto;">
+                        <div class="analysis-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: 100%;">
+                            <div class="analysis-card" style="background: rgba(30, 30, 30, 0.5); border: 1px solid #2c2b2b; border-radius: 12px; padding: 20px;">
+                                <h3>Connection Analysis</h3>
+                                <div class="form-group">
+                                    <button id="findConnectionsBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 15px;">Find Hidden Connections</button>
+                                </div>
+                                <div id="connectionsGraph" style="height: 200px; background: rgba(20, 20, 20, 0.3); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #777;">
+                                    Connection visualization will appear here
+                                </div>
+                            </div>
+                            <div class="analysis-card" style="background: rgba(30, 30, 30, 0.5); border: 1px solid #2c2b2b; border-radius: 12px; padding: 20px;">
+                                <h3>Credit Scoring</h3>
+                                <div class="form-group">
+                                    <button id="refreshCreditsBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 15px;">Refresh Person Credits</button>
+                                </div>
+                                <div class="form-group">
+                                    <button id="sortByCreditBtn" class="btn btn-secondary" style="width: 100%;">Sort by Credit</button>
+                                </div>
+                                <div style="margin-top: 20px; padding: 15px; background: rgba(20, 20, 20, 0.3); border-radius: 8px;">
+                                    <h4>Credit Distribution</h4>
+                                    <div id="creditStats" style="margin-top: 10px; color: #aaa;">
+                                        <!-- Credit statistics will be displayed here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="side-panel">
+                    <div class="sidebar-section">
+                        <h3>Analysis Tools</h3>
+                        <div class="form-group">
+                            <button id="showStatisticsBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">Show Statistics</button>
+                        </div>
+                        <div class="form-group">
+                            <button id="toggleConnectionsBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">Toggle Connections</button>
+                        </div>
+                        <div class="form-group">
+                            <button id="refreshViewBtn" class="btn btn-secondary" style="width: 100%;">Refresh View</button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="panel navbar">
-            <div class="buttons">
-                <button id="newDataBtn" class="navbtnmargin">New data</button>
-                <button id="askAIBtn" class="navbtnmargin">ask AI</button>
-                <button id="menuBtn" class="navbtnmargin">SCF</button>
-                <button id="signInBtn" class="navbtnmargin" style="display: none;">Sign In</button>
+
+        <!-- Chat Control Tab -->
+        <div class="tab-content" id="chat-control-tab">
+            <div class="workspace">
+                <div class="main-panel">
+                    <div class="logo">
+                        <h1>Chat Control Center</h1>
+                    </div>
+                    <div class="chat-control-content" style="flex: 1; overflow: auto;">
+                        <div class="form-group" style="margin-bottom: 25px;">
+                            <button id="analyzeAllChatsBtn" class="btn btn-primary" style="width: 100%;">
+                                Analyze All Chats for Suspicious Content
+                            </button>
+                        </div>
+                        <div class="chat-list-container" style="background: rgba(30, 30, 30, 0.5); border: 1px solid #2c2b2b; border-radius: 12px; padding: 20px; overflow-y: auto;">
+                            <h3>Saved Chats</h3>
+                            <div id="savedChatsList" style="margin-top: 15px;">
+                                <p style="color: #777; text-align: center;">Loading saved chats...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="side-panel">
+                    <div class="sidebar-section">
+                        <h3>Chat Analysis Tools</h3>
+                        <div class="form-group">
+                            <button id="refreshChatListBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">
+                                Refresh Chat List
+                            </button>
+                        </div>
+                        <div class="form-group">
+                            <button id="exportChatReportBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">
+                                Export Chat Report
+                            </button>
+                        </div>
+                        <div class="form-group">
+                            <button id="clearChatHistoryBtn" class="btn btn-danger" style="width: 100%;">
+                                Clear Chat History
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="panel sidebar">
-            <div class="sidebar-section">
-                <h3>Search & Filter</h3>
-                <div class="form-group">
-                    <input type="text" id="searchInput" class="form-control" placeholder="Search entries...">
-                </div>
-                <div class="form-group">
-                    <select id="filterType" class="form-control">
-                        <option value="all">All Types</option>
-                        <option value="human">Humans</option>
-                        <option value="other">Others</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <button id="applyFilterBtn" class="btn btn-primary" style="width: 100%;">Apply Filter</button>
-                </div>
-            </div>
 
-            <!-- Tagging System -->
-            <div class="sidebar-section">
-                <h3>Tags</h3>
-                <div class="form-group">
-                    <input type="text" id="tagInput" class="form-control" placeholder="Add new tag...">
+        <!-- Threats & Fraud Tab -->
+        <div class="tab-content" id="threats-tab">
+            <div class="workspace">
+                <div class="main-panel">
+                    <div class="logo">
+                        <h1>Threats & Fraud Intelligence</h1>
+                    </div>
+                    <div class="threats-content" style="flex: 1; overflow: auto;">
+                        <div class="form-group" style="margin-bottom: 25px;">
+                            <button id="findBothBtn" class="btn btn-primary" style="width: 100%;">Find Both Threats & Fraud</button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; height: calc(100% - 80px);">
+                            <div class="threat-panel" style="background: rgba(30, 30, 30, 0.5); border: 1px solid #2c2b2b; border-radius: 12px; padding: 20px; overflow-y: auto;">
+                                <h3>Potential Threats</h3>
+                                <div class="form-group" style="margin: 15px 0;">
+                                    <button id="findTerroristsBtn" class="btn btn-secondary" style="width: 100%;">Find Potential Terrorists</button>
+                                </div>
+                                <div id="threatsList" class="threats-list" style="margin-top: 15px;">
+                                    <!-- Threat findings will be displayed here -->
+                                </div>
+                            </div>
+                            <div class="fraud-panel" style="background: rgba(30, 30, 30, 0.5); border: 1px solid #2c2b2b; border-radius: 12px; padding: 20px; overflow-y: auto;">
+                                <h3>Potential Fraud</h3>
+                                <div class="form-group" style="margin: 15px 0;">
+                                    <button id="findFraudBtn" class="btn btn-secondary" style="width: 100%;">Find Potential Fraud</button>
+                                </div>
+                                <div id="fraudList" class="fraud-list" style="margin-top: 15px;">
+                                    <!-- Fraud findings will be displayed here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <button id="addTagBtn" class="btn btn-secondary" style="width: 100%;">Add Tag</button>
+                <div class="side-panel">
+                    <div class="sidebar-section">
+                        <h3>Intelligence Reports</h3>
+                        <div class="report-item" style="background: rgba(40, 40, 40, 0.7); border: 1px solid #333; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                            <h4>Latest Report</h4>
+                            <p style="font-size: 0.9rem; color: #aaa; margin: 8px 0;">Automated threat assessment report</p>
+                            <button class="btn btn-secondary" style="width: 100%; font-size: 0.85rem;">View Details</button>
+                        </div>
+                        <div class="report-item" style="background: rgba(40, 40, 40, 0.7); border: 1px solid #333; border-radius: 8px; padding: 15px;">
+                            <h4>Historical Analysis</h4>
+                            <p style="font-size: 0.9rem; color: #aaa; margin: 8px 0;">Pattern recognition trends</p>
+                            <button class="btn btn-secondary" style="width: 100%; font-size: 0.85rem;">Generate Report</button>
+                        </div>
+                    </div>
                 </div>
-                <div id="tagsContainer" class="tags-container">
-                    <!-- Tags will be dynamically added here -->
-                </div>
-            </div>
-
-            <!-- Data Visualization Enhancements -->
-            <div class="sidebar-section">
-                <h3>Visualization</h3>
-                <div class="form-group">
-                    <button id="refreshViewBtn" class="btn btn-secondary"
-                        style="width: 100%; margin-bottom: 10px;">Refresh View</button>
-                </div>
-                <div class="form-group">
-                    <button id="toggleConnectionsBtn" class="btn btn-secondary"
-                        style="width: 100%; margin-bottom: 10px;">Toggle Connections</button>
-                </div>
-                <!-- Removed toggle view button as grid view is no longer available -->
-                <div class="form-group">
-                    <button id="showStatisticsBtn" class="btn btn-secondary" style="width: 100%;">Show
-                        Statistics</button>
-                </div>
-            </div>
-
-            <!-- AI Analysis -->
-            <div class="sidebar-section">
-                <h3>AI Analysis</h3>
-                <div class="form-group">
-                    <button id="findConnectionsBtn" class="btn btn-secondary"
-                        style="width: 100%; margin-bottom: 10px;">Find Hidden Connections</button>
-                </div>
-                <div class="form-group">
-                    <button id="findFraudBtn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">Find
-                        Potential Fraud</button>
-                </div>
-                <div class="form-group">
-                    <button id="findTerroristsBtn" class="btn btn-secondary"
-                        style="width: 100%; margin-bottom: 10px;">Find Potential Terrorists</button>
-                </div>
-                <div class="form-group">
-                    <button id="refreshCreditsBtn" class="btn btn-secondary" style="width: 100%;">Refresh Person
-                        Credits</button>
-                </div>
-                <div class="form-group">
-                    <button id="sortByCreditBtn" class="btn btn-secondary" style="width: 100%; margin-top: 10px;">Sort
-                        by Credit</button>
-                </div>
-
             </div>
         </div>
     </div>
@@ -1759,6 +2260,106 @@
         </div>
     </div>
 
+    <!-- Chat Upload Modal -->
+    <div id="chatUploadModal" class="modal">
+        <button class="close" style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2>Upload Chat Data</h2>
+            </div>
+            <div class="modal-body">
+                <form id="chatUploadForm">
+                    <div class="form-group">
+                        <label for="chatSource">Chat Source</label>
+                        <select id="chatSource" class="form-control" required>
+                            <option value="">Select source...</option>
+                            <option value="whatsapp">WhatsApp</option>
+                            <option value="telegram">Telegram</option>
+                            <option value="discord">Discord</option>
+                            <option value="signal">Signal</option>
+                            <option value="manual">Manual Input</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="chatFile">Upload TXT File</label>
+                        <input type="file" id="chatFile" class="form-control" accept=".txt" style="display: none;">
+                        <button type="button" class="btn btn-secondary" id="browseFileBtn" style="width: 100%;">Browse for TXT file</button>
+                        <div id="fileNameDisplay" style="margin-top: 10px; font-size: 0.9rem; color: #aaa; display: none;"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="chatContent">Or Paste Chat Content</label>
+                        <textarea id="chatContent" class="form-control" rows="8" placeholder="Paste your chat content here..."></textarea>
+                        <button type="button" class="btn btn-secondary" id="analyzeDiscordBtn" style="margin-top: 10px; width: 100%;">Analyze Discord Chat for Suspicious Content</button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Participants in this chat:</label>
+                        <div id="chatParticipants" style="margin-top: 10px; max-height: 200px; overflow-y: auto; border: 1px solid #444; border-radius: 7px; padding: 10px; background: rgba(30, 30, 30, 0.5);">
+                            <p style="color: #777; text-align: center; margin: 20px 0;">Loading participants...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="chatContext">Additional Context</label>
+                        <textarea id="chatContext" class="form-control" rows="3" placeholder="Any additional context about this chat (topic, purpose, etc.)"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="cancelChatUploadBtn">Cancel</button>
+                <button type="submit" class="btn btn-primary" form="chatUploadForm" id="uploadChatBtn">Process Chat</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Selection Modal -->
+    <div id="contextModal" class="modal context-modal">
+        <button class="close" style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2>Select Context for AI</h2>
+            </div>
+            <div class="modal-body">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+                    <!-- People Section -->
+                    <div>
+                        <h3 style="margin-bottom: 15px; color: #ffffff; border-bottom: 1px solid #444; padding-bottom: 10px;">People</h3>
+                        <div id="contextPeople" style="max-height: 300px; overflow-y: auto; border: 1px solid #444; border-radius: 7px; padding: 10px; background: rgba(30, 30, 30, 0.5);">
+                            <p style="color: #777; text-align: center;">Loading people...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Chats Section -->
+                    <div>
+                        <h3 style="margin-bottom: 15px; color: #ffffff; border-bottom: 1px solid #444; padding-bottom: 10px;">Chats</h3>
+                        <div id="contextChats" style="max-height: 300px; overflow-y: auto; border: 1px solid #444; border-radius: 7px; padding: 10px; background: rgba(30, 30, 30, 0.5);">
+                            <p style="color: #777; text-align: center;">Loading chats...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Fraud Logs Section -->
+                    <div>
+                        <h3 style="margin-bottom: 15px; color: #ffffff; border-bottom: 1px solid #444; padding-bottom: 10px;">Fraud Logs</h3>
+                        <div id="contextFraudLogs" style="max-height: 300px; overflow-y: auto; border: 1px solid #444; border-radius: 7px; padding: 10px; background: rgba(30, 30, 30, 0.5);">
+                            <p style="color: #777; text-align: center;">Loading fraud logs...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-top: 20px;">
+                    <label for="contextNotes">Additional Notes</label>
+                    <textarea id="contextNotes" class="form-control" rows="3" placeholder="Any additional notes about this context..."></textarea>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="cancelContextBtn">Cancel</button>
+                <button type="button" class="btn btn-primary" id="applyContextBtn">Apply Context</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Detail View Modal -->
     <div id="detailViewModal" class="detail-view">
         <button class="close" id="closeDetail"
@@ -1904,7 +2505,19 @@
         const findTerroristsBtn = document.getElementById('findTerroristsBtn');
         const refreshCreditsBtn = document.getElementById('refreshCreditsBtn');
         const sortByCreditBtn = document.getElementById('sortByCreditBtn');
+        
+        // Chat Control elements
+        const chatControlBtn = document.getElementById('chatControlBtn');
+        const analyzeAllChatsBtn = document.getElementById('analyzeAllChatsBtn');
+        const refreshChatListBtn = document.getElementById('refreshChatListBtn');
+        const exportChatReportBtn = document.getElementById('exportChatReportBtn');
+        const clearChatHistoryBtn = document.getElementById('clearChatHistoryBtn');
+        const savedChatsList = document.getElementById('savedChatsList');
 
+        // Tab system elements
+        const tabBar = document.getElementById('tabBar');
+        const addTabBtn = document.getElementById('addTabBtn');
+        
         // Chat menu elements
         const chatMenu = document.getElementById('chatMenu');
 
@@ -1950,6 +2563,167 @@
             // Close the menu after selecting an action
             if (chatMenu) {
                 chatMenu.style.display = 'none';
+            }
+        }
+
+        // Tab System Functions
+        function initTabs() {
+            // Add click handlers for existing tabs
+            document.querySelectorAll('.tab[data-tab]').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    if (!e.target.classList.contains('tab-close')) {
+                        switchTab(tab.dataset.tab);
+                    }
+                });
+                
+                // Add close handler
+                const closeBtn = tab.querySelector('.tab-close');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        closeTab(tab.dataset.tab);
+                    });
+                }
+            });
+            
+            // Add dropdown menu button handler
+            if (addTabBtn) {
+                addTabBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleDropdown();
+                });
+            }
+            
+            // Add dropdown item handlers
+            document.querySelectorAll('.dropdown-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const tabId = item.dataset.tab;
+                    openOrCreateTab(tabId);
+                    hideDropdown();
+                });
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!document.querySelector('.tab-bar').contains(e.target) && 
+                    !document.querySelector('.dropdown-menu').contains(e.target)) {
+                    hideDropdown();
+                }
+            });
+            
+            // Show dashboard by default
+            switchTab('dashboard');
+        }
+
+        function toggleDropdown() {
+            const dropdown = document.getElementById('dropdownMenu');
+            dropdown.classList.toggle('show');
+        }
+
+        function hideDropdown() {
+            const dropdown = document.getElementById('dropdownMenu');
+            dropdown.classList.remove('show');
+        }
+
+        function openOrCreateTab(tabId) {
+            // Check if tab already exists
+            const existingTab = document.querySelector(`.tab[data-tab="${tabId}"]`);
+            if (existingTab) {
+                switchTab(tabId);
+            } else {
+                createTab(tabId);
+            }
+        }
+
+        function createTab(tabId) {
+            // Check if tab already exists
+            const existingTab = document.querySelector(`.tab[data-tab="${tabId}"]`);
+            if (existingTab) {
+                // If tab exists, just switch to it
+                switchTab(tabId);
+                return;
+            }
+            
+            // Create new tab button
+            const newTab = document.createElement('button');
+            newTab.className = 'tab';
+            newTab.dataset.tab = tabId;
+            
+            // Set tab label based on tabId
+            let tabLabel = tabId.charAt(0).toUpperCase() + tabId.slice(1);
+            if (tabId === 'threats') tabLabel = 'Threats & Fraud';
+            
+            newTab.innerHTML = `
+                ${tabLabel}
+                <span class="tab-close">&times;</span>
+            `;
+            
+            // Insert before the flex spacer
+            const flexSpacer = tabBar.querySelector('div[style*="flex: 1"]');
+            tabBar.insertBefore(newTab, flexSpacer);
+            
+            // Add event listeners
+            newTab.addEventListener('click', (e) => {
+                if (!e.target.classList.contains('tab-close')) {
+                    switchTab(tabId);
+                }
+            });
+            
+            newTab.querySelector('.tab-close').addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeTab(tabId);
+            });
+            
+            // Switch to new tab
+            switchTab(tabId);
+        }
+
+        function switchTab(tabId) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            const activeTab = document.querySelector(`.tab[data-tab="${tabId}"]`);
+            if (activeTab) {
+                activeTab.classList.add('active');
+            }
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            const activeContent = document.getElementById(`${tabId}-tab`);
+            if (activeContent) {
+                activeContent.classList.add('active');
+                
+                // Initialize specific tabs
+                if (tabId === 'chat-control') {
+                    loadSavedChats();
+                }
+            }
+        }
+
+        function closeTab(tabId) {
+            const tab = document.querySelector(`.tab[data-tab="${tabId}"]`);
+            const content = document.getElementById(`${tabId}-tab`);
+            
+            if (tab && content) {
+                // Don't close the last tab
+                const tabs = document.querySelectorAll('.tab[data-tab]');
+                if (tabs.length <= 1) return;
+                
+                const isActive = tab.classList.contains('active');
+                
+                tab.remove();
+                content.remove();
+                
+                // Switch to another tab if we closed the active one
+                if (isActive) {
+                    const remainingTabs = document.querySelectorAll('.tab[data-tab]');
+                    if (remainingTabs.length > 0) {
+                        switchTab(remainingTabs[0].dataset.tab);
+                    }
+                }
             }
         }
 
@@ -2647,12 +3421,17 @@
 
                 try {
 
+                    const adminContext = getAdminContext();
                     const context = `
                         You are an AI assistant for the Pazator application. The user wants to manage their data entries.
                         Current data:
                         Humans: ${JSON.stringify(pazatorData.humans)}
                         Others: ${JSON.stringify(pazatorData.others)}
                         Tags: ${JSON.stringify(tags)}
+
+                        ${adminContext ? `ADMIN CONTEXT (USE THIS FOR ANALYSIS):
+                        ${adminContext}
+                        ` : ''}
 
                         You are named PZ1
                         The user can ask you to:
@@ -3241,6 +4020,692 @@
             typeModal.style.zIndex = '1000';
         });
 
+        // Chat Upload functionality
+        const chatUploadBtn = document.getElementById('chatUploadBtn');
+        const chatUploadModal = document.getElementById('chatUploadModal');
+        const chatSource = document.getElementById('chatSource');
+        const chatFile = document.getElementById('chatFile');
+        const browseFileBtn = document.getElementById('browseFileBtn');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const chatContent = document.getElementById('chatContent');
+        const chatParticipants = document.getElementById('chatParticipants');
+        const chatContext = document.getElementById('chatContext');
+        const cancelChatUploadBtn = document.getElementById('cancelChatUploadBtn');
+        const uploadChatBtn = document.getElementById('uploadChatBtn');
+
+        chatUploadBtn.addEventListener('click', () => {
+            // Hide all other modals
+            [humanModal, otherModal, detailViewModal, aiChatModal, typeModal].forEach(modal => {
+                if (modal) {
+                    modal.style.display = 'none';
+                    modal.style.zIndex = '-1';
+                }
+            });
+
+            // Reset form
+            document.getElementById('chatUploadForm').reset();
+            fileNameDisplay.style.display = 'none';
+            chatParticipants.innerHTML = '<p style="color: #777; text-align: center; margin: 20px 0;">Loading participants...</p>';
+            
+            // Show modal
+            chatUploadModal.style.display = 'flex';
+            chatUploadModal.style.zIndex = '1000';
+            
+            // Load participants
+            setTimeout(loadChatParticipants, 500);
+        });
+
+        browseFileBtn.addEventListener('click', () => {
+            chatFile.click();
+        });
+
+        document.getElementById('analyzeDiscordBtn')?.addEventListener('click', async () => {
+            const chatContent = document.getElementById('chatContent').value.trim();
+            
+            if (!chatContent) {
+                alert('Please paste Discord chat content first.');
+                return;
+            }
+            
+            const analyzeBtn = document.getElementById('analyzeDiscordBtn');
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = 'Analyzing... ';
+            
+            try {
+                const context = `
+                    You are a cybersecurity expert analyzing Discord chat conversations for suspicious or potentially fraudulent activity.
+                    
+                    Analyze the following Discord chat transcript and identify any suspicious elements:
+                    
+                    ${chatContent}
+                    
+                    Look for these red flags:
+                    - Requests for money, gift cards, or financial information
+                    - Personal data collection (SSN, bank details, passwords)
+                    - Urgent or threatening language pressuring the user
+                    - Unsolicited offers, prizes, or investment schemes
+                    - Links to unfamiliar or suspicious websites
+                    - Impersonation or claims of needing secrecy
+                    - Requests to download attachments or run programs
+                    - Pressure to abandon official channels
+                    - Phishing attempts or social engineering
+                    
+                    Provide your analysis in this JSON format:
+                    {
+                        "isSuspicious": boolean,
+                        "riskLevel": "low|medium|high",
+                        "redFlags": ["flag1", "flag2"],
+                        "summary": "Brief summary of findings",
+                        "recommendations": ["action1", "action2"]
+                    }
+                `;
+                
+                const aiResponse = await puter.ai.chat([
+                    { role: "system", content: context },
+                    { role: "user", content: "Analyze this Discord chat for suspicious activity." }
+                ]);
+                
+                const responseText = aiResponse.content ? aiResponse.content : aiResponse;
+                
+                try {
+                    const analysis = extractJSONFromResponse(responseText);
+                    
+                    if (analysis && typeof analysis === 'object') {
+                        let result = `=== Discord Chat Security Analysis ===\n\n`;
+                        result += `Suspicious: ${analysis.isSuspicious ? '🔴 YES' : '🟢 NO'}\n`;
+                        result += `Risk Level: ${analysis.riskLevel?.toUpperCase() || 'UNKNOWN'}\n\n`;
+                        
+                        if (analysis.redFlags && analysis.redFlags.length > 0) {
+                            result += "Red Flags Found:\n" + analysis.redFlags.map(flag => "• " + flag).join("\n") + "\n\n";
+                        }
+                        
+                        result += `Summary: ${analysis.summary || 'No specific concerns identified'}\n\n`;
+                        
+                        if (analysis.recommendations && analysis.recommendations.length > 0) {
+                            result += `Recommendations:\n${analysis.recommendations.map(rec => `• ${rec}`).join('\n')}`;
+                        }
+                        
+                        alert(result);
+                    } else {
+                        alert(`Analysis complete!\n\n${responseText}`);
+                    }
+                } catch (parseError) {
+                    console.error('Error parsing analysis response:', parseError);
+                    alert(`Analysis complete!\n\n${responseText}`);
+                }
+                
+            } catch (error) {
+                console.error('Error analyzing Discord chat:', error);
+                alert('Error analyzing chat. Please try again.');
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = 'Analyze Discord Chat for Suspicious Content';
+            }
+        });
+
+        chatFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                fileNameDisplay.textContent = `Selected: ${file.name}`;
+                fileNameDisplay.style.display = 'block';
+                
+                // Read file content
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    chatContent.value = event.target.result;
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        function loadChatParticipants() {
+            if (pazatorData.humans.length === 0) {
+                chatParticipants.innerHTML = '<p style="color: #777; text-align: center; margin: 20px 0;">No people in your database yet. Add some people first.</p>';
+                return;
+            }
+
+            chatParticipants.innerHTML = '';
+            
+            pazatorData.humans.forEach(human => {
+                const participantDiv = document.createElement('div');
+                participantDiv.style.display = 'flex';
+                participantDiv.style.alignItems = 'center';
+                participantDiv.style.marginBottom = '10px';
+                participantDiv.style.padding = '8px';
+                participantDiv.style.borderRadius = '5px';
+                participantDiv.style.background = 'rgba(40, 40, 40, 0.7)';
+                participantDiv.style.cursor = 'pointer';
+                participantDiv.style.transition = 'all 0.2s ease';
+                
+                participantDiv.innerHTML = `
+                    <input type="checkbox" id="participant_${human.id}" value="${human.id}" style="margin-right: 10px;">
+                    <label for="participant_${human.id}" style="flex: 1; cursor: pointer;">${human.name}</label>
+                    <span style="font-size: 0.8rem; color: #aaa;">${human.credit !== undefined ? Math.round(human.credit) : 'N/A'}</span>
+                `;
+                
+                participantDiv.addEventListener('mouseenter', () => {
+                    participantDiv.style.background = 'rgba(60, 60, 60, 0.7)';
+                });
+                
+                participantDiv.addEventListener('mouseleave', () => {
+                    participantDiv.style.background = 'rgba(40, 40, 40, 0.7)';
+                });
+                
+                chatParticipants.appendChild(participantDiv);
+            });
+        }
+
+        cancelChatUploadBtn.addEventListener('click', () => {
+            chatUploadModal.style.display = 'none';
+            chatUploadModal.style.zIndex = '-1';
+        });
+
+        document.getElementById('chatUploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const source = chatSource.value;
+            const content = chatContent.value.trim();
+            const context = chatContext.value.trim();
+            
+            // Get selected participants
+            const selectedParticipants = [];
+            document.querySelectorAll('#chatParticipants input[type="checkbox"]:checked').forEach(checkbox => {
+                const human = pazatorData.humans.find(h => h.id === checkbox.value);
+                if (human) {
+                    selectedParticipants.push({
+                        id: human.id,
+                        name: human.name,
+                        credit: human.credit
+                    });
+                }
+            });
+            
+            if (selectedParticipants.length === 0) {
+                alert('Please select at least one participant from your database.');
+                return;
+            }
+            
+            if (!content) {
+                alert('Please provide chat content either by uploading a file or pasting content.');
+                return;
+            }
+            
+            // Disable button during processing
+            uploadChatBtn.disabled = true;
+            uploadChatBtn.textContent = 'Processing...';
+            
+            try {
+                // Process the chat data
+                const chatData = {
+                    source: source,
+                    content: content,
+                    context: context,
+                    participants: selectedParticipants,
+                    timestamp: new Date().toISOString()
+                };
+                
+                // Store chat data
+                let chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+                chatHistory.push(chatData);
+                localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+                
+                // Add chat as context for AI
+                addChatContextToAI(chatData);
+                
+                // Success message
+                alert(`Successfully processed chat with ${selectedParticipants.length} participants! This chat data is now available for AI analysis.`);
+                
+                // Close modal
+                chatUploadModal.style.display = 'none';
+                chatUploadModal.style.zIndex = '-1';
+                
+                // Ensure data persistence
+                postChatProcessingCleanup();
+                
+            } catch (error) {
+                console.error('Error processing chat:', error);
+                alert('Error processing chat. Please try again.');
+            } finally {
+                // Re-enable button
+                uploadChatBtn.disabled = false;
+                uploadChatBtn.textContent = 'Process Chat';
+            }
+        });
+
+        function addChatContextToAI(chatData) {
+            // Add chat context to AI system
+            const chatSummary = {
+                type: 'chat_context',
+                source: chatData.source,
+                participants: chatData.participants.map(p => p.name).join(', '),
+                wordCount: chatData.content.split(' ').length,
+                context: chatData.context || 'No additional context provided',
+                timestamp: chatData.timestamp
+            };
+            
+            // Store in a way that AI can access it
+            let aiContext = JSON.parse(localStorage.getItem('aiChatContext') || '[]');
+            aiContext.push(chatSummary);
+            localStorage.setItem('aiChatContext', JSON.stringify(aiContext));
+        }
+
+        // Fix data loading to prevent people from disappearing
+        function ensureDataPersistence() {
+            // Make sure we don't accidentally overwrite existing data
+            const storedData = localStorage.getItem('pazatorData');
+            if (storedData) {
+                const parsedData = JSON.parse(storedData);
+                if (parsedData.pazatorData) {
+                    // Merge rather than replace to prevent data loss
+                    pazatorData.humans = [...(pazatorData.humans || []), ...(parsedData.pazatorData.humans || []).filter(h => 
+                        !pazatorData.humans.some(existing => existing.id === h.id)
+                    )];
+                    pazatorData.others = [...(pazatorData.others || []), ...(parsedData.pazatorData.others || []).filter(o => 
+                        !pazatorData.others.some(existing => existing.id === o.id)
+                    )];
+                    tags = [...new Set([...tags, ...(parsedData.tags || [])])];
+                }
+            }
+            saveData();
+            renderWebNodes();
+        }
+
+        // Call this after chat processing to ensure data persistence
+        function postChatProcessingCleanup() {
+            setTimeout(() => {
+                ensureDataPersistence();
+                // Re-render to make sure everything is displayed correctly
+                renderWebNodes();
+            }, 100);
+        }
+
+        // Context Selection Modal functionality
+        const contextModal = document.getElementById('contextModal');
+        const cancelContextBtn = document.getElementById('cancelContextBtn');
+        const applyContextBtn = document.getElementById('applyContextBtn');
+        const contextNotes = document.getElementById('contextNotes');
+
+        document.getElementById('addContextOption')?.addEventListener('click', () => {
+            // Hide chat options menu
+            chatOptionsMenu.classList.remove('active');
+            
+            // Show context modal OVER the AI chat modal
+            loadContextData();
+            contextModal.style.display = 'flex';
+            contextModal.style.zIndex = '1005'; // Highest z-index to ensure it overlays AI chat
+            contextModal.style.visibility = 'visible';
+            contextModal.style.opacity = '1';
+            contextModal.style.pointerEvents = 'auto';
+            
+            // Ensure AI chat modal doesn't block pointer events
+            aiChatModal.style.pointerEvents = 'none';
+        });
+
+        function loadContextData() {
+            loadContextPeople();
+            loadContextChats();
+            loadContextFraudLogs();
+            contextNotes.value = '';
+        }
+
+        function loadContextPeople() {
+            const container = document.getElementById('contextPeople');
+            
+            if (pazatorData.humans.length === 0) {
+                container.innerHTML = '<p style="color: #777; text-align: center;">No people in database</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+            
+            pazatorData.humans.forEach(human => {
+                const personDiv = document.createElement('div');
+                personDiv.style.display = 'flex';
+                personDiv.style.alignItems = 'center';
+                personDiv.style.marginBottom = '10px';
+                personDiv.style.padding = '8px';
+                personDiv.style.borderRadius = '5px';
+                personDiv.style.background = 'rgba(40, 40, 40, 0.7)';
+                personDiv.style.cursor = 'pointer';
+                personDiv.style.transition = 'all 0.2s ease';
+                
+                personDiv.innerHTML = `
+                    <input type="checkbox" id="context_person_${human.id}" value="${human.id}" style="margin-right: 10px;">
+                    <label for="context_person_${human.id}" style="flex: 1; cursor: pointer;">
+                        <strong>${human.name}</strong>
+                        <br>
+                        <small style="color: #aaa;">Credit: ${human.credit !== undefined ? Math.round(human.credit) : 'N/A'}</small>
+                    </label>
+                `;
+                
+                personDiv.addEventListener('mouseenter', () => {
+                    personDiv.style.background = 'rgba(60, 60, 60, 0.7)';
+                });
+                
+                personDiv.addEventListener('mouseleave', () => {
+                    personDiv.style.background = 'rgba(40, 40, 40, 0.7)';
+                });
+                
+                container.appendChild(personDiv);
+            });
+        }
+
+        function loadContextChats() {
+            const container = document.getElementById('contextChats');
+            
+            const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+            
+            if (chatHistory.length === 0) {
+                container.innerHTML = '<p style="color: #777; text-align: center;">No chats uploaded yet</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+            
+            chatHistory.forEach((chat, index) => {
+                const chatDiv = document.createElement('div');
+                chatDiv.style.display = 'flex';
+                chatDiv.style.alignItems = 'center';
+                chatDiv.style.marginBottom = '10px';
+                chatDiv.style.padding = '8px';
+                chatDiv.style.borderRadius = '5px';
+                chatDiv.style.background = 'rgba(40, 40, 40, 0.7)';
+                chatDiv.style.cursor = 'pointer';
+                chatDiv.style.transition = 'all 0.2s ease';
+                
+                const date = new Date(chat.timestamp).toLocaleDateString();
+                const participants = chat.participants.map(p => p.name).join(', ');
+                const wordCount = chat.content.split(' ').length;
+                
+                chatDiv.innerHTML = `
+                    <input type="checkbox" id="context_chat_${index}" value="${index}" style="margin-right: 10px;">
+                    <label for="context_chat_${index}" style="flex: 1; cursor: pointer;">
+                        <strong>${chat.source.toUpperCase()} Chat</strong>
+                        <br>
+                        <small style="color: #aaa;">${participants} • ${wordCount} words • ${date}</small>
+                    </label>
+                `;
+                
+                chatDiv.addEventListener('mouseenter', () => {
+                    chatDiv.style.background = 'rgba(60, 60, 60, 0.7)';
+                });
+                
+                chatDiv.addEventListener('mouseleave', () => {
+                    chatDiv.style.background = 'rgba(40, 40, 40, 0.7)';
+                });
+                
+                container.appendChild(chatDiv);
+            });
+        }
+
+        function loadContextFraudLogs() {
+            const container = document.getElementById('contextFraudLogs');
+            
+            // Load real fraud logs from storage
+            const fraudLogs = JSON.parse(localStorage.getItem('fraudLogs') || '[]');
+            const terroristLogs = JSON.parse(localStorage.getItem('terroristLogs') || '[]');
+            
+            // Combine and sort all security logs
+            const allLogs = [
+                ...fraudLogs.map(log => ({ ...log, category: 'fraud' })),
+                ...terroristLogs.map(log => ({ ...log, category: 'terrorist' }))
+            ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            container.innerHTML = '';
+            
+            if (allLogs.length === 0) {
+                container.innerHTML = '<p style="color: #777; text-align: center;">No security logs generated yet<br>Run fraud/terrorist detection to generate logs</p>';
+                return;
+            }
+            
+            allLogs.forEach((log, index) => {
+                const logDiv = document.createElement('div');
+                logDiv.style.display = 'flex';
+                logDiv.style.alignItems = 'center';
+                logDiv.style.marginBottom = '10px';
+                logDiv.style.padding = '8px';
+                logDiv.style.borderRadius = '5px';
+                logDiv.style.background = 'rgba(40, 40, 40, 0.7)';
+                logDiv.style.cursor = 'pointer';
+                logDiv.style.transition = 'all 0.2s ease';
+                
+                const severityColor = log.severity === 'high' ? '#ff6b6b' : 
+                                     log.severity === 'medium' ? '#ffd93d' : '#6bcf7f';
+                
+                const icon = log.category === 'fraud' ? '💰' : '⚠️';
+                const date = new Date(log.timestamp).toLocaleDateString();
+                
+                logDiv.innerHTML = `
+                    <input type="checkbox" id="context_log_${log.id}" value="${log.id}" style="margin-right: 10px;">
+                    <label for="context_log_${log.id}" style="flex: 1; cursor: pointer;">
+                        <strong style="color: ${severityColor}">${icon} ${log.type}</strong>
+                        <br>
+                        <small style="color: #aaa;">${log.person || 'Unknown person'} • ${log.confidence || 'Medium'} confidence • ${date}</small>
+                    </label>
+                `;
+                
+                logDiv.addEventListener('mouseenter', () => {
+                    logDiv.style.background = 'rgba(60, 60, 60, 0.7)';
+                });
+                
+                logDiv.addEventListener('mouseleave', () => {
+                    logDiv.style.background = 'rgba(40, 40, 40, 0.7)';
+                });
+                
+                container.appendChild(logDiv);
+            });
+        }
+
+        cancelContextBtn.addEventListener('click', () => {
+            contextModal.style.display = 'none';
+            contextModal.style.zIndex = '-1';
+            // Restore AI chat modal pointer events
+            aiChatModal.style.pointerEvents = 'auto';
+        });
+
+        applyContextBtn.addEventListener('click', () => {
+            // Get selected items
+            const selectedContext = {
+                people: [],
+                chats: [],
+                fraudLogs: [],
+                notes: contextNotes.value.trim(),
+                timestamp: new Date().toISOString()
+            };
+            
+            // Collect selected people
+            document.querySelectorAll('#contextPeople input[type="checkbox"]:checked').forEach(checkbox => {
+                const human = pazatorData.humans.find(h => h.id === checkbox.value);
+                if (human) {
+                    selectedContext.people.push({
+                        id: human.id,
+                        name: human.name,
+                        credit: human.credit,
+                        extraNotes: human.extraNotes
+                    });
+                }
+            });
+            
+            // Collect selected chats
+            const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+            document.querySelectorAll('#contextChats input[type="checkbox"]:checked').forEach(checkbox => {
+                const chatIndex = parseInt(checkbox.value);
+                if (chatHistory[chatIndex]) {
+                    selectedContext.chats.push(chatHistory[chatIndex]);
+                }
+            });
+            
+            // Collect selected security logs
+            document.querySelectorAll('#contextFraudLogs input[type="checkbox"]:checked').forEach(checkbox => {
+                const logId = checkbox.value;
+                const allLogs = [
+                    ...JSON.parse(localStorage.getItem('fraudLogs') || '[]'),
+                    ...JSON.parse(localStorage.getItem('terroristLogs') || '[]')
+                ];
+                
+                const selectedLog = allLogs.find(log => log.id === logId);
+                if (selectedLog) {
+                    selectedContext.fraudLogs.push(selectedLog);
+                }
+            });
+            
+            // Store context for AI
+            storeAIContext(selectedContext);
+            
+            // Update context display
+            updateContextDisplay(selectedContext);
+            
+            // Close modal
+            contextModal.style.display = 'none';
+            contextModal.style.zIndex = '-1';
+            // Restore AI chat modal pointer events
+            aiChatModal.style.pointerEvents = 'auto';
+            
+            // Show confirmation
+            alert(`Context applied! Selected: ${selectedContext.people.length} people, ${selectedContext.chats.length} chats, ${selectedContext.fraudLogs.length} fraud logs.`);
+        });
+
+        function updateContextDisplay(context) {
+            const contextDisplay = document.getElementById('contextDisplay');
+            
+            if (!contextDisplay) return;
+            
+            // Clear current display
+            contextDisplay.innerHTML = '';
+            
+            // Check if any context is selected
+            const hasContext = context.people.length > 0 || context.chats.length > 0 || context.fraudLogs.length > 0;
+            
+            if (!hasContext) {
+                contextDisplay.innerHTML = '<div style="color: #777; font-style: italic; align-self: center;">No context selected - click "Add Context" to include people, chats, or security logs</div>';
+                return;
+            }
+            
+            // Add people cards
+            context.people.forEach(person => {
+                const card = document.createElement('div');
+                card.className = 'context-card people';
+                card.innerHTML = `
+                    <span class="card-icon">👤</span>
+                    <span class="card-name" title="${person.name}">${person.name}</span>
+                `;
+                card.addEventListener('click', () => {
+                    alert(`Person: ${person.name}\nCredit: ${person.credit !== undefined ? Math.round(person.credit) : 'N/A'}\nNotes: ${person.extraNotes || 'None'}`);
+                });
+                contextDisplay.appendChild(card);
+            });
+            
+            // Add chat cards
+            context.chats.forEach((chat, index) => {
+                const card = document.createElement('div');
+                card.className = 'context-card chats';
+                const participants = chat.participants.map(p => p.name).join(', ');
+                const wordCount = chat.content.split(' ').length;
+                card.innerHTML = `
+                    <span class="card-icon">💬</span>
+                    <span class="card-name" title="${chat.source.toUpperCase()} Chat - ${participants}">${chat.source.toUpperCase()} Chat (${wordCount} words)</span>
+                `;
+                card.addEventListener('click', () => {
+                    alert(`${chat.source.toUpperCase()} Chat\nParticipants: ${participants}\nWords: ${wordCount}\nContext: ${chat.context || 'None'}`);
+                });
+                contextDisplay.appendChild(card);
+            });
+            
+            // Add fraud log cards
+            context.fraudLogs.forEach(log => {
+                const card = document.createElement('div');
+                card.className = 'context-card fraud';
+                card.innerHTML = `
+                    <span class="card-icon">⚠️</span>
+                    <span class="card-name" title="${log.type} - ${log.person || 'Unknown'}">${log.type} (${log.person || 'Unknown'})</span>
+                `;
+                card.addEventListener('click', () => {
+                    alert(`${log.type}\nPerson: ${log.person || 'Unknown'}\nSeverity: ${log.severity || 'Unknown'}\nEvidence: ${log.evidence || 'None'}`);
+                });
+                contextDisplay.appendChild(card);
+            });
+            
+            // Add clear context button if there's context
+            if (hasContext) {
+                const clearBtn = document.createElement('div');
+                clearBtn.className = 'context-card';
+                clearBtn.style.backgroundColor = 'rgba(200, 50, 50, 0.3)';
+                clearBtn.style.borderColor = '#cc4444';
+                clearBtn.innerHTML = `
+                    <span class="card-icon">🗑️</span>
+                    <span class="card-name">Clear All Context</span>
+                `;
+                clearBtn.addEventListener('click', () => {
+                    localStorage.removeItem('adminProvidedContext');
+                    updateContextDisplay({ people: [], chats: [], fraudLogs: [] });
+                });
+                contextDisplay.appendChild(clearBtn);
+            }
+        }
+
+        function storeAIContext(context) {
+            // Format context for AI
+            let contextSummary = 'Context provided by admin:\n\n';
+            
+            // Add automatic clearing after use (optional)
+            setTimeout(() => {
+                localStorage.removeItem('adminProvidedContext');
+            }, 300000); // Clear after 5 minutes
+            
+            if (context.people.length > 0) {
+                contextSummary += 'PEOPLE:\n';
+                context.people.forEach(person => {
+                    contextSummary += `- ${person.name} (Credit: ${person.credit !== undefined ? Math.round(person.credit) : 'N/A'})\n`;
+                    if (person.extraNotes) {
+                        contextSummary += `  Notes: ${person.extraNotes}\n`;
+                    }
+                });
+                contextSummary += '\n';
+            }
+            
+            if (context.chats.length > 0) {
+                contextSummary += 'CHATS:\n';
+                context.chats.forEach((chat, index) => {
+                    contextSummary += `${index + 1}. ${chat.source.toUpperCase()} chat with ${chat.participants.length} participants (${chat.content.split(' ').length} words)\n`;
+                });
+                contextSummary += '\n';
+            }
+            
+            if (context.fraudLogs.length > 0) {
+                contextSummary += 'FRAUD ALERTS:\n';
+                context.fraudLogs.forEach(log => {
+                    contextSummary += `- ${log.type}\n`;
+                });
+                contextSummary += '\n';
+            }
+            
+            if (context.notes) {
+                contextSummary += `ADDITIONAL NOTES: ${context.notes}\n`;
+            }
+            
+            // Store in localStorage for AI access
+            localStorage.setItem('adminProvidedContext', JSON.stringify({
+                summary: contextSummary,
+                data: context,
+                timestamp: context.timestamp
+            }));
+        }
+
+        // Modify AI context provider to include admin context
+        function getAdminContext() {
+            const storedContext = localStorage.getItem('adminProvidedContext');
+            if (storedContext) {
+                try {
+                    const context = JSON.parse(storedContext);
+                    return context.summary || '';
+                } catch (e) {
+                    console.error('Error parsing admin context:', e);
+                    return '';
+                }
+            }
+            return '';
+        }
+
         askAIBtn.addEventListener('click', () => {
             console.log('Ask AI button clicked - attempting to show modal');
 
@@ -3255,7 +4720,7 @@
 
             // Show the AI chat modal
             aiChatModal.style.display = 'flex';
-            aiChatModal.style.zIndex = '2000'; // Higher z-index to ensure it's on top
+            aiChatModal.style.zIndex = '1001'; // Lower z-index to allow context modal to overlay
 
             // Also set these properties to be sure
             aiChatModal.style.visibility = 'visible';
@@ -3290,6 +4755,19 @@
                 threatsPanel.style.display = 'none';
                 container.classList.remove('threats-split');
             }
+        });
+
+        // Tab action button event listeners - create new tabs
+        document.getElementById('dashboardBtn').addEventListener('click', () => {
+            createTab('dashboard');
+        });
+
+        document.getElementById('analysisBtn').addEventListener('click', () => {
+            createTab('analysis');
+        });
+
+        document.getElementById('threatsBtn').addEventListener('click', () => {
+            createTab('threats');
         });
 
         document.querySelectorAll('.close').forEach(button => {
@@ -3339,6 +4817,7 @@
                 { element: otherModal, condition: event.target === otherModal },
                 { element: detailViewModal, condition: event.target === detailViewModal },
                 { element: aiChatModal, condition: event.target === aiChatModal },
+                { element: chatUploadModal, condition: event.target === chatUploadModal },
                 { element: document.getElementById('hiddenConnectionsModal'), condition: event.target === document.getElementById('hiddenConnectionsModal') }
             ];
 
@@ -3353,7 +4832,7 @@
                 }
             });
 
-            [typeModal, humanModal, otherModal, detailViewModal, aiChatModal, document.getElementById('hiddenConnectionsModal')].forEach(modal => {
+            [typeModal, humanModal, otherModal, detailViewModal, aiChatModal, chatUploadModal, document.getElementById('hiddenConnectionsModal')].forEach(modal => {
                 if (modal && modal.style.display === 'none') {
                     modal.style.zIndex = '-1';
                 }
@@ -3666,10 +5145,7 @@
             chatOptionsMenu.classList.remove('active');
         });
 
-        document.getElementById('addContextOption')?.addEventListener('click', () => {
-            alert('Add context functionality would go here. This is a placeholder for future implementation.');
-            chatOptionsMenu.classList.remove('active');
-        });
+        // Removed the placeholder alert - the actual context modal implementation is above
 
         document.getElementById('humanForm').addEventListener('submit', (e) => {
             e.preventDefault();
@@ -4035,6 +5511,27 @@
             sortByCredit();
         });
 
+        // Chat Control Event Listeners
+        chatControlBtn?.addEventListener('click', () => {
+            switchTab('chat-control');
+        });
+
+        analyzeAllChatsBtn?.addEventListener('click', async () => {
+            await analyzeAllChats();
+        });
+
+        refreshChatListBtn?.addEventListener('click', () => {
+            loadSavedChats();
+        });
+
+        exportChatReportBtn?.addEventListener('click', () => {
+            exportChatReport();
+        });
+
+        clearChatHistoryBtn?.addEventListener('click', () => {
+            clearChatHistory();
+        });
+
         function sortByCredit() {
             pazatorData.humans.sort((a, b) => {
                 const creditA = a.credit !== undefined ? a.credit : -1;
@@ -4046,6 +5543,268 @@
             renderWebNodes();
 
             alert(`Sorted ${pazatorData.humans.length} people by credit score!`);
+        }
+
+        // Chat Control Functions
+        function loadSavedChats() {
+            const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+            
+            if (chatHistory.length === 0) {
+                savedChatsList.innerHTML = '<p style="color: #777; text-align: center;">No saved chats found</p>';
+                return;
+            }
+
+            savedChatsList.innerHTML = '';
+            
+            chatHistory.forEach((chat, index) => {
+                const chatCard = document.createElement('div');
+                chatCard.style.background = 'rgba(40, 40, 40, 0.7)';
+                chatCard.style.border = '1px solid #333';
+                chatCard.style.borderRadius = '8px';
+                chatCard.style.padding = '15px';
+                chatCard.style.marginBottom = '15px';
+                chatCard.style.cursor = 'pointer';
+                chatCard.style.transition = 'all 0.2s ease';
+                
+                const date = new Date(chat.timestamp).toLocaleDateString();
+                const participants = chat.participants.map(p => p.name).join(', ');
+                const wordCount = chat.content.split(' ').length;
+                
+                chatCard.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0 0 8px 0; color: #ffffff;">${chat.source.toUpperCase()} Chat</h4>
+                            <p style="margin: 0 0 8px 0; color: #aaa; font-size: 0.9rem;">Participants: ${participants}</p>
+                            <p style="margin: 0 0 8px 0; color: #aaa; font-size: 0.9rem;">${wordCount} words • ${date}</p>
+                            ${chat.context ? `<p style="margin: 0; color: #888; font-size: 0.85rem;">Context: ${chat.context}</p>` : ''}
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-secondary" style="padding: 5px 10px; font-size: 0.8rem;" 
+                                    onclick="analyzeSingleChat(${index})">
+                                <i class="fas fa-search"></i> Analyze
+                            </button>
+                            <button class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8rem;" 
+                                    onclick="deleteChat(${index})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                chatCard.addEventListener('mouseenter', () => {
+                    chatCard.style.background = 'rgba(60, 60, 60, 0.7)';
+                    chatCard.style.transform = 'translateY(-2px)';
+                });
+                
+                chatCard.addEventListener('mouseleave', () => {
+                    chatCard.style.background = 'rgba(40, 40, 40, 0.7)';
+                    chatCard.style.transform = 'translateY(0)';
+                });
+                
+                savedChatsList.appendChild(chatCard);
+            });
+        }
+
+        async function analyzeAllChats() {
+            const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+            
+            if (chatHistory.length === 0) {
+                alert('No chats to analyze!');
+                return;
+            }
+            
+            analyzeAllChatsBtn.disabled = true;
+            analyzeAllChatsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+            
+            try {
+                let totalSuspicious = 0;
+                let totalChats = chatHistory.length;
+                let analysisResults = [];
+                
+                for (let i = 0; i < chatHistory.length; i++) {
+                    const chat = chatHistory[i];
+                    const result = await analyzeChatContent(chat.content, chat.source);
+                    
+                    if (result.isSuspicious) {
+                        totalSuspicious++;
+                    }
+                    
+                    analysisResults.push({
+                        index: i,
+                        source: chat.source,
+                        participants: chat.participants.map(p => p.name).join(', '),
+                        result: result
+                    });
+                }
+                
+                // Generate summary report
+                let report = `=== Chat Security Analysis Report ===\n\n`;
+                report += `Total Chats Analyzed: ${totalChats}\n`;
+                report += `Suspicious Chats Found: ${totalSuspicious}\n`;
+                report += `Security Score: ${Math.max(0, 100 - (totalSuspicious / totalChats * 100)).toFixed(1)}%\n\n`;
+                
+                if (totalSuspicious > 0) {
+                    report += `=== SUSPICIOUS CHATS DETECTED ===\n`;
+                    analysisResults
+                        .filter(item => item.result.isSuspicious)
+                        .forEach(item => {
+                            report += `\n[${item.source.toUpperCase()}] ${item.participants}\n`;
+                            report += `Risk: ${item.result.riskLevel?.toUpperCase() || 'UNKNOWN'}\n`;
+                            if (item.result.redFlags?.length > 0) {
+                                report += `Flags: ${item.result.redFlags.join(', ')}\n`;
+                            }
+                            report += `Summary: ${item.result.summary || 'No details'}\n`;
+                        });
+                } else {
+                    report += `✅ No suspicious chats detected. All chats appear secure.`;
+                }
+                
+                alert(report);
+                
+            } catch (error) {
+                console.error('Error analyzing all chats:', error);
+                alert('Error analyzing chats. Please try again.');
+            } finally {
+                analyzeAllChatsBtn.disabled = false;
+                analyzeAllChatsBtn.innerHTML = '<i class="fas fa-search"></i> Analyze All Chats for Suspicious Content';
+            }
+        }
+
+        async function analyzeChatContent(content, source) {
+            try {
+                const context = `
+                    You are a cybersecurity expert analyzing ${source} chat conversations for suspicious or potentially fraudulent activity.
+                    
+                    Analyze the following chat content and identify any suspicious elements:
+                    
+                    ${content.substring(0, 2000)}
+                    
+                    Look for these red flags:
+                    - Requests for money, gift cards, or financial information
+                    - Personal data collection (SSN, bank details, passwords)
+                    - Urgent or threatening language pressuring the user
+                    - Unsolicited offers, prizes, or investment schemes
+                    - Links to unfamiliar or suspicious websites
+                    - Impersonation or claims of needing secrecy
+                    - Requests to download attachments or run programs
+                    - Pressure to abandon official channels
+                    - Phishing attempts or social engineering
+                    
+                    Provide your analysis in this JSON format:
+                    {
+                        "isSuspicious": boolean,
+                        "riskLevel": "low|medium|high",
+                        "redFlags": ["flag1", "flag2"],
+                        "summary": "Brief summary of findings"
+                    }
+                `;
+                
+                const aiResponse = await puter.ai.chat([
+                    { role: "system", content: context },
+                    { role: "user", content: "Analyze this chat for suspicious activity." }
+                ]);
+                
+                const responseText = aiResponse.content ? aiResponse.content : aiResponse;
+                const analysis = extractJSONFromResponse(responseText);
+                
+                return analysis && typeof analysis === 'object' ? analysis : {
+                    isSuspicious: false,
+                    riskLevel: 'low',
+                    redFlags: [],
+                    summary: 'No suspicious content detected'
+                };
+                
+            } catch (error) {
+                console.error('Error analyzing chat content:', error);
+                return {
+                    isSuspicious: false,
+                    riskLevel: 'low',
+                    redFlags: [],
+                    summary: 'Analysis failed'
+                };
+            }
+        }
+
+        async function analyzeSingleChat(index) {
+            const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+            
+            if (!chatHistory[index]) {
+                alert('Chat not found!');
+                return;
+            }
+            
+            const chat = chatHistory[index];
+            const result = await analyzeChatContent(chat.content, chat.source);
+            
+            let message = `=== Chat Analysis Result ===\n\n`;
+            message += `Source: ${chat.source.toUpperCase()}\n`;
+            message += `Participants: ${chat.participants.map(p => p.name).join(', ')}\n`;
+            message += `Words: ${chat.content.split(' ').length}\n\n`;
+            message += `Suspicious: ${result.isSuspicious ? '🔴 YES' : '🟢 NO'}\n`;
+            message += `Risk Level: ${result.riskLevel?.toUpperCase() || 'LOW'}\n\n`;
+            
+            if (result.redFlags && result.redFlags.length > 0) {
+                message += "Red Flags:\n" + result.redFlags.map(flag => "• " + flag).join("\n") + "\n\n";
+            }
+            
+            message += `Summary: ${result.summary || 'No specific concerns'}`;
+            
+            alert(message);
+        }
+
+        function deleteChat(index) {
+            if (confirm('Are you sure you want to delete this chat?')) {
+                let chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+                chatHistory.splice(index, 1);
+                localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+                loadSavedChats();
+            }
+        }
+
+        function exportChatReport() {
+            const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+            
+            if (chatHistory.length === 0) {
+                alert('No chats to export!');
+                return;
+            }
+            
+            let report = `Pazator Chat Analysis Report\n`;
+            report += `Generated: ${new Date().toLocaleString()}\n`;
+            report += `Total Chats: ${chatHistory.length}\n\n`;
+            
+            chatHistory.forEach((chat, index) => {
+                const date = new Date(chat.timestamp).toLocaleDateString();
+                const participants = chat.participants.map(p => p.name).join(', ');
+                const wordCount = chat.content.split(' ').length;
+                
+                report += `=== Chat ${index + 1} ===\n`;
+                report += `Source: ${chat.source.toUpperCase()}\n`;
+                report += `Date: ${date}\n`;
+                report += `Participants: ${participants}\n`;
+                report += `Word Count: ${wordCount}\n`;
+                report += `Context: ${chat.context || 'None'}\n`;
+                report += `Content Preview: ${chat.content.substring(0, 200)}${chat.content.length > 200 ? '...' : ''}\n\n`;
+            });
+            
+            // Create and download file
+            const blob = new Blob([report], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `pazator-chat-report-${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function clearChatHistory() {
+            if (confirm('Are you sure you want to clear ALL chat history? This cannot be undone.')) {
+                localStorage.removeItem('chatHistory');
+                loadSavedChats();
+                alert('Chat history cleared successfully!');
+            }
         }
 
         document.getElementById('closeConnectionsModal').addEventListener('click', () => {
@@ -4256,10 +6015,15 @@
                     try {
 
                         const existingTags = tags.join(', ') || 'None';
+                        const adminContext = getAdminContext();
 
                         const context = `
                             You are an AI evaluator analyzing a person's data to assign them a credit score, social class, and relevant tags.
                             The credit score should be between 0 and 100, where:
+                            
+                            ${adminContext ? `ADMIN CONTEXT TO CONSIDER:
+                            ${adminContext}
+                            ` : ''}
                             - 100 is a perfect score (ideal person)
                             - 50 is average
                             - 0 is the worst possible score
@@ -4492,6 +6256,19 @@
                                 reasons: terrorist.reasons
                             });
                         });
+
+                        // Generate and store detailed terrorist logs
+                        const terroristLogs = terrorists.map((terrorist, index) => ({
+                            type: 'Terrorist Threat Alert',
+                            severity: terrorist.threatLevel || 'medium',
+                            person: terrorist.person,
+                            evidence: terrorist.evidence,
+                            reasons: terrorist.reasons || [],
+                            detectionMethod: 'AI Security Analysis',
+                            confidence: terrorist.threatLevel === 'high' ? 'High' : terrorist.threatLevel === 'medium' ? 'Medium' : 'Low'
+                        }));
+                        
+                        storeTerroristLogs(terroristLogs);
                     } else {
 
                         connectionsLoading.style.display = 'none';
@@ -4616,6 +6393,9 @@
             document.querySelector('#hiddenConnectionsModal h2').textContent = 'Potential Fraud/Drug Sellers Analysis';
 
             findFraudBtn.disabled = true;
+
+            // Generate real fraud logs
+            const fraudLogs = [];
             findFraudBtn.textContent = 'Analyzing...';
 
             try {
@@ -4632,9 +6412,11 @@
                     tags: human.tags || []
                 }));
 
+                const adminContext = getAdminContext();
                 const context = "You are an AI investigator analyzing people to identify potential fraudsters or drug sellers. " +
                     "Your task is to identify as many individuals as possible who might be involved in fraudulent activities or drug selling based on their data. " +
                     "Be comprehensive and identify multiple potential cases, even borderline ones.\n\n" +
+                    (adminContext ? `ADMIN CONTEXT TO CONSIDER:\n${adminContext}\n\n` : '') +
                     "Here's the data about the people:\n" +
                     JSON.stringify(humansData, null, 2) + "\n\n" +
                     "Based on the information provided, identify potential fraudsters or drug sellers. " +
@@ -4707,6 +6489,19 @@
                                 reasons: fraudster.reasons
                             });
                         });
+
+                        // Generate and store detailed fraud logs
+                        const fraudLogs = fraudsters.map((fraudster, index) => ({
+                            type: 'Fraud Detection Alert',
+                            severity: fraudster.riskLevel || 'medium',
+                            person: fraudster.person,
+                            evidence: fraudster.evidence,
+                            reasons: fraudster.reasons || [],
+                            detectionMethod: 'AI Pattern Analysis',
+                            confidence: fraudster.riskLevel === 'high' ? 'High' : fraudster.riskLevel === 'medium' ? 'Medium' : 'Low'
+                        }));
+                        
+                        storeFraudLogs(fraudLogs);
                     } else {
 
                         connectionsLoading.style.display = 'none';
@@ -4907,28 +6702,106 @@
             localStorage.setItem(storageKey, JSON.stringify(currentFindings));
         }
 
+        // Function to store detailed fraud logs
+        function storeFraudLogs(logs) {
+            const currentLogs = JSON.parse(localStorage.getItem('fraudLogs') || '[]');
+            const newLogs = logs.map(log => ({
+                ...log,
+                id: `fraud_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                timestamp: new Date().toISOString(),
+                status: 'new'
+            }));
+            
+            currentLogs.push(...newLogs);
+            
+            // Keep only the last 50 fraud logs
+            if (currentLogs.length > 50) {
+                currentLogs.splice(0, currentLogs.length - 50);
+            }
+            
+            localStorage.setItem('fraudLogs', JSON.stringify(currentLogs));
+            
+            // Update context fraud logs display
+            if (document.getElementById('contextFraudLogs')) {
+                loadContextFraudLogs();
+            }
+        }
+
+        // Function to store detailed terrorist logs
+        function storeTerroristLogs(logs) {
+            const currentLogs = JSON.parse(localStorage.getItem('terroristLogs') || '[]');
+            const newLogs = logs.map(log => ({
+                ...log,
+                id: `terrorist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                timestamp: new Date().toISOString(),
+                status: 'new'
+            }));
+            
+            currentLogs.push(...newLogs);
+            
+            // Keep only the last 50 terrorist logs
+            if (currentLogs.length > 50) {
+                currentLogs.splice(0, currentLogs.length - 50);
+            }
+            
+            localStorage.setItem('terroristLogs', JSON.stringify(currentLogs));
+        }
+
         // Check if user is signed in and show/hide sign in button
         function checkAuthStatus() {
             const signInBtn = document.getElementById('signInBtn');
-            if (signInBtn) {
-                if (!puter.auth.isSignedIn()) {
-                    signInBtn.style.display = 'block';
-                } else {
+            if (signInBtn && typeof puter !== 'undefined' && puter.auth) {
+                if (puter.auth.isSignedIn()) {
                     signInBtn.style.display = 'none';
+                } else {
+                    signInBtn.style.display = 'block';
                 }
             }
         }
 
         // Add event listener for sign in button
-        document.getElementById('signInBtn')?.addEventListener('click', () => {
-            puter.auth.signIn();
+        document.getElementById('signInBtn')?.addEventListener('click', async () => {
+            try {
+                await puter.auth.signIn();
+                // Check auth status after sign in
+                setTimeout(checkAuthStatus, 1000);
+            } catch (error) {
+                console.error('Sign in failed:', error);
+            }
         });
 
-        // Check auth status on page load
-        checkAuthStatus();
+        // Check auth status on page load and when auth state changes
+        if (typeof puter !== 'undefined' && puter.auth) {
+            checkAuthStatus();
+            
+            // Listen for auth state changes
+            puter.auth.on('signed-in', () => {
+                checkAuthStatus();
+            });
+            
+            puter.auth.on('signed-out', () => {
+                checkAuthStatus();
+            });
+        } else {
+            // If puter is not loaded yet, check periodically
+            const authCheckInterval = setInterval(() => {
+                if (typeof puter !== 'undefined' && puter.auth) {
+                    checkAuthStatus();
+                    clearInterval(authCheckInterval);
+                }
+            }, 500);
+            
+            // Stop checking after 10 seconds
+            setTimeout(() => {
+                clearInterval(authCheckInterval);
+            }, 10000);
+        }
 
         loadData();
         renderTags();
+        
+        // Initialize tab system
+        initTabs();
     </script>
 </body>
 
