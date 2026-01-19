@@ -154,7 +154,7 @@
 
         .tab-bar {
             display: flex;
-            background: var(--card-bg);
+            background: linear-gradient(180deg, var(--card-bg) 0%, #161616 100%);
             border: 1px solid var(--border-color);
             padding: 10px 15px;
             margin: 10px 12px;
@@ -166,7 +166,10 @@
             width: calc(100vw - 24px);
             justify-content: flex-start;
             align-items: center;
-            border-radius: 7px;
+            border-radius: 10px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
         }
 
         .tab {
@@ -182,33 +185,52 @@
             font-weight: 500;
             cursor: pointer;
             position: relative;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            border-radius: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 7px;
             min-width: 120px;
             max-width: 200px;
             text-align: center;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            background-position-y: var(--card-bg);
-            border-radius: 7px;
+            background: var(--card-bg);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
 
         .tab:hover {
             color: var(--text-primary);
+            background: linear-gradient(145deg, #2a2a2a, #222222);
+            border-color: #444;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .tab.active {
+            background: linear-gradient(145deg, #3a3a3a, #2a2a2a);
+            border-color: #555;
+            color: var(--text-primary);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            transform: translateY(-1px);
         }
 
         .tab-close {
             margin-left: 8px;
             opacity: 0.6;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
             font-size: 1.1rem;
             width: 18px;
             height: 18px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            border-radius: 2px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .tab-close:hover {
+            opacity: 1;
+            background: rgba(255, 100, 100, 0.3);
+            transform: scale(1.1);
         }
 
         .tab-action {
@@ -2837,6 +2859,12 @@
                 return;
             }
             
+            // Validate tab bar exists
+            if (!tabBar) {
+                console.error('Tab bar not found');
+                return;
+            }
+            
             // Create new tab button
             const newTab = document.createElement('button');
             newTab.className = 'tab';
@@ -2845,15 +2873,30 @@
             // Set tab label based on tabId
             let tabLabel = tabId.charAt(0).toUpperCase() + tabId.slice(1);
             if (tabId === 'threats') tabLabel = 'Threats & Fraud';
+            if (tabId === 'chat-control') tabLabel = 'Chat Security';
             
             newTab.innerHTML = `
                 ${tabLabel}
-                <span class="tab-close">&times;</span>
+                <span class="tab-close" title="Close tab">&times;</span>
             `;
             
             // Insert before the flex spacer
             const flexSpacer = tabBar.querySelector('div[style*="flex: 1"]');
-            tabBar.insertBefore(newTab, flexSpacer);
+            if (flexSpacer) {
+                tabBar.insertBefore(newTab, flexSpacer);
+            } else {
+                // Fallback: append to end of tab bar
+                tabBar.appendChild(newTab);
+            }
+            
+            // Add smooth entrance animation
+            newTab.style.opacity = '0';
+            newTab.style.transform = 'translateY(10px)';
+            setTimeout(() => {
+                newTab.style.transition = 'all 0.3s ease';
+                newTab.style.opacity = '1';
+                newTab.style.transform = 'translateY(0)';
+            }, 10);
             
             // Add event listeners
             newTab.addEventListener('click', (e) => {
@@ -2862,10 +2905,14 @@
                 }
             });
             
-            newTab.querySelector('.tab-close').addEventListener('click', (e) => {
-                e.stopPropagation();
-                closeTab(tabId);
-            });
+            // Add close button listener with error handling
+            const closeButton = newTab.querySelector('.tab-close');
+            if (closeButton) {
+                closeButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    closeTab(tabId);
+                });
+            }
             
             // Switch to new tab
             switchTab(tabId);
@@ -2899,24 +2946,32 @@
         function closeTab(tabId) {
             const tab = document.querySelector(`.tab[data-tab="${tabId}"]`);
             const content = document.getElementById(`${tabId}-tab`);
-            
+                    
             if (tab && content) {
                 // Don't close the last tab
                 const tabs = document.querySelectorAll('.tab[data-tab]');
                 if (tabs.length <= 1) return;
-                
+                        
                 const isActive = tab.classList.contains('active');
-                
-                tab.remove();
-                content.remove();
-                
-                // Switch to another tab if we closed the active one
-                if (isActive) {
-                    const remainingTabs = document.querySelectorAll('.tab[data-tab]');
-                    if (remainingTabs.length > 0) {
-                        switchTab(remainingTabs[0].dataset.tab);
+                        
+                // Add exit animation
+                tab.style.transition = 'all 0.3s ease';
+                tab.style.opacity = '0';
+                tab.style.transform = 'translateY(10px)';
+                        
+                // Remove elements after animation
+                setTimeout(() => {
+                    tab.remove();
+                    content.remove();
+                            
+                    // Switch to another tab if we closed the active one
+                    if (isActive) {
+                        const remainingTabs = document.querySelectorAll('.tab[data-tab]');
+                        if (remainingTabs.length > 0) {
+                            switchTab(remainingTabs[0].dataset.tab);
+                        }
                     }
-                }
+                }, 300);
             }
         }
 
@@ -5706,7 +5761,7 @@
 
         // Chat Control Event Listeners
         chatControlBtn?.addEventListener('click', () => {
-            switchTab('chat-control');
+            openOrCreateTab('chat-control');
         });
 
         analyzeAllChatsBtn?.addEventListener('click', async () => {
