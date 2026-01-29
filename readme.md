@@ -17,7 +17,9 @@ This is not a demonstration project or a polished product. It is an active, evol
 
 Purpose
 
-The primary goal of Pazator is to understand how modern monitoring and intelligence platforms function under the hood—technically, architecturally, and ethically. The project focuses on:
+It holds data, analysis's data, and stops things before they happen.
+
+The project focuses on:
 
 Data ingestion and structured storage
 
