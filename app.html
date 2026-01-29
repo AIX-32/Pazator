@@ -3154,46 +3154,70 @@
 
         // Function to toggle menu sections
         function toggleMenuSection(sectionId) {
-            const content = document.getElementById(sectionId);
-            const header = content.previousElementSibling;
-            const toggle = header.querySelector('.menu-toggle');
-
-            if (content.style.display === 'block') {
-                content.style.display = 'none';
-                toggle.textContent = '+';
-                openMenuSections = openMenuSections.filter(id => id !== sectionId);
-            } else {
-                content.style.display = 'block';
-                toggle.textContent = '−';
-                if (!openMenuSections.includes(sectionId)) {
-                    openMenuSections.push(sectionId);
+            try {
+                const content = document.getElementById(sectionId);
+                const header = content ? content.previousElementSibling : null;
+                const toggle = header ? header.querySelector('.menu-toggle') : null;
+                
+                if (!content || !header || !toggle) {
+                    console.warn('Menu section elements not found for:', sectionId);
+                    return;
                 }
+
+                if (content.style.display === 'block') {
+                    content.style.display = 'none';
+                    toggle.textContent = '+';
+                    openMenuSections = openMenuSections.filter(id => id !== sectionId);
+                } else {
+                    content.style.display = 'block';
+                    toggle.textContent = '−';
+                    if (!openMenuSections.includes(sectionId)) {
+                        openMenuSections.push(sectionId);
+                    }
+                }
+            } catch (error) {
+                console.error('Error in toggleMenuSection:', error);
             }
         }
 
         // Function for quick actions
         function quickAction(action) {
-            switch (action) {
-                case 'show_all_humans':
-                    aiInput.value = 'Show me all humans';
-                    aiInput.focus();
-                    break;
-                case 'add_new_human':
-                    aiInput.value = 'Add a new human with the name John';
-                    aiInput.focus();
-                    break;
-                case 'find_connections':
-                    aiInput.value = 'Find hidden connections in my data';
-                    aiInput.focus();
-                    break;
-                case 'refresh_credits':
-                    aiInput.value = 'Refresh person credits';
-                    aiInput.focus();
-                    break;
-            }
-            // Close the menu after selecting an action
-            if (chatMenu) {
-                chatMenu.style.display = 'none';
+            try {
+                switch (action) {
+                    case 'show_all_humans':
+                        if (aiInput) {
+                            aiInput.value = 'Show me all humans';
+                            aiInput.focus();
+                        }
+                        break;
+                    case 'add_new_human':
+                        if (aiInput) {
+                            aiInput.value = 'Add a new human with the name John';
+                            aiInput.focus();
+                        }
+                        break;
+                    case 'find_connections':
+                        if (aiInput) {
+                            aiInput.value = 'Find hidden connections in my data';
+                            aiInput.focus();
+                        }
+                        break;
+                    case 'refresh_credits':
+                        if (aiInput) {
+                            aiInput.value = 'Refresh person credits';
+                            aiInput.focus();
+                        }
+                        break;
+                    default:
+                        console.warn('Unknown quick action:', action);
+                        return;
+                }
+                // Close the menu after selecting an action
+                if (chatMenu) {
+                    chatMenu.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error in quickAction:', error);
             }
         }
 
@@ -3236,9 +3260,17 @@
             
             // Close dropdown when clicking outside
             document.addEventListener('click', (e) => {
-                if (!document.querySelector('.tab-bar').contains(e.target) && 
-                    !document.querySelector('.dropdown-menu').contains(e.target)) {
-                    hideDropdown();
+                try {
+                    const tabBarElement = document.querySelector('.tab-bar');
+                    const dropdownMenuElement = document.querySelector('.dropdown-menu');
+                    
+                    if (tabBarElement && dropdownMenuElement &&
+                        !tabBarElement.contains(e.target) && 
+                        !dropdownMenuElement.contains(e.target)) {
+                        hideDropdown();
+                    }
+                } catch (error) {
+                    console.error('Error in document click handler:', error);
                 }
             });
             
@@ -5759,11 +5791,20 @@
         // Global error handler to prevent crashes
         window.addEventListener('error', (event) => {
             console.error('Global error caught:', event.error);
+            
+            // Only show AI error message for actual AI-related errors
+            const errorMessage = event.error?.message || event.message || '';
+            const isAIError = errorMessage.includes('AI') || 
+                             errorMessage.includes('puter.ai') || 
+                             errorMessage.includes('processAICommand') ||
+                             errorMessage.includes('handleAIAction') ||
+                             errorMessage.includes('extractJSONFromResponse');
+            
             // Prevent the error from crashing the site
             event.preventDefault();
 
-            // If we're in the AI chat, show an error message
-            if (aiChatModal && aiChatModal.style.display === 'flex') {
+            // Only show error message if we're in the AI chat AND it's actually an AI-related error
+            if (aiChatModal && aiChatModal.style.display === 'flex' && isAIError) {
                 try {
                     addMessageToAIChat("Sorry, I encountered an unexpected error. Please try rephrasing your request.", 'ai');
                     if (aiSendBtn) {
@@ -5777,6 +5818,7 @@
                     console.error('Error handling global error:', e);
                 }
             }
+            // For non-AI errors, just log them silently
         });
 
         document.getElementById('humanTypeBtn').addEventListener('click', () => {
