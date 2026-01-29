@@ -8,6 +8,15 @@
     <title>Pazator. - Mass data container</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* Font Definition */
+        @font-face {
+            font-family: 'MavenPro';
+            src: url('MavenPro-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
         :root {
             /* Color Variables */
             --primary-bg: #0d0d0d;
@@ -47,7 +56,7 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-family: 'MavenPro', 'Segoe UI', system-ui, -apple-system, sans-serif;
             color: var(--text-primary);
             overflow: hidden;
             letter-spacing: 0.2px;
@@ -285,6 +294,55 @@
             height: 24px;
             object-fit: contain;
             filter: invert(1) brightness(2) saturate(0);
+            transition: filter 0.3s ease;
+        }
+        
+        .logo-card img.classified {
+            filter: invert(0) brightness(1) saturate(1) hue-rotate(0deg);
+        }
+        
+        .logo-dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 0;
+            min-width: 150px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1001;
+        }
+        
+        .logo-card:hover .logo-dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        
+        .logo-dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            cursor: pointer;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+        
+        .logo-dropdown-item:hover {
+            background: var(--highlight);
+            color: #fff;
+        }
+        
+        .logo-dropdown-item i {
+            width: 16px;
+            text-align: center;
         }
 
         .tab-action[title] {
@@ -769,8 +827,8 @@
             border: 1px solid #2c2b2b;
             border-radius: 25px;
             padding: 30px;
-            width: 90%;
-            max-width: 600px;
+            width: 95%;
+            max-width: 900px;
             max-height: 90vh;
             overflow-y: auto;
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
@@ -809,6 +867,89 @@
             padding: 10px 0;
         }
 
+        .modal-form-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .form-section {
+            background: rgba(30, 30, 30, 0.6);
+            border: 1px solid #333;
+            border-radius: 15px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .form-section:hover {
+            background: rgba(40, 40, 40, 0.7);
+            border-color: #444;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .form-section h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #ffffff;
+            font-size: 1.3rem;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #444;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-section h3 i {
+            color: #ffffff;
+        }
+
+        .form-section .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-section .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-actions-horizontal {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #2c2b2b;
+        }
+
+        .btn-enhanced {
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-enhanced:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-enhanced i {
+            font-size: 1.2rem;
+        }
+
         .close {
             background: linear-gradient(145deg, #262525, #212020);
             border: 1px solid #444343;
@@ -834,6 +975,10 @@
 
         .form-group {
             margin-bottom: 20px;
+        }
+
+        .form-group.compact {
+            margin-bottom: 15px;
         }
 
         .form-group label {
@@ -880,6 +1025,14 @@
             margin-top: 30px;
             padding-top: 20px;
             border-top: 1px solid #2c2b2b;
+        }
+
+        .form-actions.stacked {
+            flex-direction: column;
+        }
+
+        .form-actions.stacked .btn {
+            width: 100%;
         }
 
         .btn {
@@ -963,8 +1116,8 @@
             border: 1px solid #2c2b2b;
             border-radius: 25px;
             padding: 30px;
-            width: 90%;
-            max-width: 800px;
+            width: 95%;
+            max-width: 1000px;
             max-height: 90vh;
             overflow-y: auto;
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
@@ -995,7 +1148,7 @@
 
         .detail-body {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 300px 1fr 1fr;
             gap: 25px;
             flex: 1;
             overflow-y: auto;
@@ -1004,11 +1157,119 @@
 
         .detail-section {
             margin-bottom: 25px;
+            background: rgba(30, 30, 30, 0.6);
+            border: 1px solid #333;
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .profile-section {
+            grid-row: 1 / 4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(30, 30, 30, 0.8);
+            border: 1px solid #444;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .profile-picture {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #444;
+            margin-bottom: 20px;
+            background: linear-gradient(145deg, #2a2a2a, #1f1f1f);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            color: #777;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .profile-placeholder {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #2a2a2a, #1f1f1f);
+            border: 3px dashed #555;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #777;
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .profile-placeholder i {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        .profile-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            text-align: center;
+            color: #ffffff;
+        }
+
+        .profile-type {
+            font-size: 1rem;
+            color: #aaa;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .profile-stats {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            background: rgba(40, 40, 40, 0.7);
+            border: 1px solid #444;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #ffffff;
         }
 
         .detail-section h3 {
             font-size: 1.2rem;
             margin-bottom: 15px;
+            color: #ffffff;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #444;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .detail-section h3 i {
             color: #ffffff;
         }
 
@@ -1036,8 +1297,15 @@
             padding: 10px;
         }
 
+        .no-image-text {
+            color: #777;
+            font-style: italic;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
         .family-graph-container {
-            grid-column: span 2;
+            grid-column: 2 / 4;
             margin-top: 20px;
             padding: 20px;
             background: rgba(30, 30, 30, 0.5);
@@ -1084,6 +1352,69 @@
             margin-top: 20px;
             padding-top: 20px;
             border-top: 1px solid #2c2b2b;
+        }
+
+        .btn-action {
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-action:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-action i {
+            font-size: 1.1rem;
+        }
+
+        .data-persistence-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(30, 30, 30, 0.9);
+            border: 1px solid #444;
+            border-radius: 20px;
+            padding: 10px 15px;
+            font-size: 0.8rem;
+            color: #aaa;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .persistence-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4CAF50;
+        }
+
+        .persistence-status.offline {
+            background: #f44336;
+        }
+
+        .persistence-status.syncing {
+            background: #ff9800;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
         }
 
         .ai-chat-modal {
@@ -1916,7 +2247,17 @@
             <i class="fas fa-comments"></i>
         </button>
         <div class="logo-card" title="Pazator Logo">
-            <img src="favicon.png" alt="Pazator Logo">
+            <img src="favicon.png" alt="Pazator Logo" id="logoImage">
+            <div class="logo-dropdown-menu" id="logoDropdownMenu">
+                <div class="logo-dropdown-item" id="refreshNodesOption" style="display: none;">
+                    <i class="fas fa-sync"></i>
+                    <span>Refresh Nodes</span>
+                </div>
+                <div class="logo-dropdown-item" id="classifyOption">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Classify</span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -2364,74 +2705,102 @@
             <div class="modal-body">
                 <form id="humanForm">
                     <input type="hidden" id="humanId">
-                    <div class="form-group">
-                        <label for="humanName">Name</label>
-                        <input type="text" id="humanName" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="humanGender">Gender</label>
-                        <select id="humanGender" class="form-control">
-                            <option value="">Select Gender</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Non-binary">Non-binary</option>
-                            <option value="Other">Other</option>
-                            <option value="Prefer not to say">Prefer not to say</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="humanTags">Tags</label>
-                        <select id="humanTags" class="form-control" multiple size="4">
-                            <!-- Tags will be populated dynamically -->
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="birthDate">Birth Date</label>
-                        <input type="date" id="birthDate" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="friends">Friends</label>
-                        <select id="friends" class="form-control" multiple size="4">
-                            <!-- Options will be populated dynamically -->
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="family">Family</label>
-                        <select id="family" class="form-control" multiple size="4">
-                            <!-- Options will be populated dynamically -->
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="workplace">Workplace</label>
-                        <input type="text" id="workplace" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label for="credit">Credit Score</label>
-                        <input type="number" id="credit" class="form-control" min="0" max="100">
-                    </div>
-                    <div class="form-group">
-                        <label for="socialClass">Social Class</label>
-                        <select id="socialClass" class="form-control">
-                            <option value="">Select Class</option>
-                            <option value="low class">Low Class</option>
-                            <option value="medium class">Medium Class</option>
-                            <option value="high class">High Class</option>
-                            <option value="1%">1%</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="extraNotes">Extra Notes</label>
-                        <textarea id="extraNotes" class="form-control"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="humanImage">Image</label>
-                        <input type="file" id="humanImage" class="form-control" accept="image/*">
+                    
+                    <div class="modal-form-layout">
+                        <!-- Left Column -->
+                        <div class="form-section">
+                            <h3><i class="fas fa-user"></i> Personal Info</h3>
+                            <div class="form-group compact">
+                                <label for="humanName">Full Name *</label>
+                                <input type="text" id="humanName" class="form-control" required placeholder="Enter full name">
+                            </div>
+                            <div class="form-group compact">
+                                <label for="humanGender">Gender</label>
+                                <select id="humanGender" class="form-control">
+                                    <option value="">Select Gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Non-binary">Non-binary</option>
+                                    <option value="Other">Other</option>
+                                    <option value="Prefer not to say">Prefer not to say</option>
+                                </select>
+                            </div>
+                            <div class="form-group compact">
+                                <label for="birthDate">Birth Date *</label>
+                                <input type="date" id="birthDate" class="form-control" required>
+                            </div>
+                            <div class="form-group compact">
+                                <label for="workplace">Workplace</label>
+                                <input type="text" id="workplace" class="form-control" placeholder="Current workplace">
+                            </div>
+                        </div>
+                        
+                        <!-- Right Column -->
+                        <div class="form-section">
+                            <h3><i class="fas fa-chart-line"></i> Social Profile</h3>
+                            <div class="form-group compact">
+                                <label for="credit">Credit Score (0-100)</label>
+                                <input type="number" id="credit" class="form-control" min="0" max="100" placeholder="Enter credit score">
+                            </div>
+                            <div class="form-group compact">
+                                <label for="socialClass">Social Class</label>
+                                <select id="socialClass" class="form-control">
+                                    <option value="">Select Class</option>
+                                    <option value="low class">Low Class</option>
+                                    <option value="medium class">Medium Class</option>
+                                    <option value="high class">High Class</option>
+                                    <option value="1%">1%</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="humanTags">Tags</label>
+                                <select id="humanTags" class="form-control" multiple size="4">
+                                    <!-- Tags will be populated dynamically -->
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Full Width Section -->
+                        <div class="form-section full-width">
+                            <h3><i class="fas fa-network-wired"></i> Relationships</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div class="form-group">
+                                    <label for="friends">Friends</label>
+                                    <select id="friends" class="form-control" multiple size="4">
+                                        <!-- Options will be populated dynamically -->
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="family">Family</label>
+                                    <select id="family" class="form-control" multiple size="4">
+                                        <!-- Options will be populated dynamically -->
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Full Width Section -->
+                        <div class="form-section full-width">
+                            <h3><i class="fas fa-sticky-note"></i> Additional Information</h3>
+                            <div class="form-group">
+                                <label for="extraNotes">Extra Notes</label>
+                                <textarea id="extraNotes" class="form-control" rows="4" placeholder="Any additional information about this person..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="humanImage">Profile Image</label>
+                                <input type="file" id="humanImage" class="form-control" accept="image/*">
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
-            <div class="form-actions">
-                <button type="button" class="btn btn-secondary" id="cancelHumanBtn">Cancel</button>
-                <button type="submit" class="btn btn-primary" form="humanForm">Save</button>
+            <div class="form-actions-horizontal">
+                <button type="button" class="btn-enhanced btn-secondary" id="cancelHumanBtn">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button type="submit" class="btn-enhanced btn-primary" form="humanForm">
+                    <i class="fas fa-save"></i> Save Entry
+                </button>
             </div>
         </div>
     </div>
@@ -2584,64 +2953,102 @@
                 <h2 id="detailTitle">Entry Details</h2>
             </div>
             <div class="detail-body">
+                <!-- Profile Section (Left Column) -->
+                <div class="profile-section">
+                    <div id="profilePictureContainer">
+                        <div class="profile-placeholder" id="profilePlaceholder">
+                            <i class="fas fa-user"></i>
+                            <div>No Image</div>
+                        </div>
+                    </div>
+                    <div class="profile-name" id="profileName">Loading...</div>
+                    <div class="profile-type" id="profileType">Loading...</div>
+                    
+                    <div class="profile-stats">
+                        <div class="stat-item">
+                            <div class="stat-label">Friends</div>
+                            <div class="stat-value" id="statFriends">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Family</div>
+                            <div class="stat-value" id="statFamily">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Tags</div>
+                            <div class="stat-value" id="statTags">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Credit</div>
+                            <div class="stat-value" id="statCredit">N/A</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Basic Information (Middle Column) -->
                 <div class="detail-section">
-                    <h3>Basic Information</h3>
+                    <h3><i class="fas fa-id-card"></i> Basic Information</h3>
                     <div class="detail-item">
                         <div class="detail-label">Name</div>
-                        <div id="detailName" class="detail-value"></div>
+                        <div id="detailName" class="detail-value">Loading...</div>
                     </div>
                     <div class="detail-item">
                         <div class="detail-label">Type</div>
-                        <div id="detailType" class="detail-value"></div>
+                        <div id="detailType" class="detail-value">Loading...</div>
                     </div>
                     <div class="detail-item" id="detailGenderContainer">
                         <div class="detail-label">Gender</div>
-                        <div id="detailGender" class="detail-value"></div>
+                        <div id="detailGender" class="detail-value">Loading...</div>
                     </div>
                     <div class="detail-item" id="detailBirthDateContainer">
                         <div class="detail-label">Birth Date</div>
-                        <div id="detailBirthDate" class="detail-value"></div>
+                        <div id="detailBirthDate" class="detail-value">Loading...</div>
                     </div>
                     <div class="detail-item" id="detailCreditContainer" style="display: none;">
                         <div class="detail-label">Credit Score</div>
-                        <div id="detailCredit" class="detail-value"></div>
+                        <div id="detailCredit" class="detail-value">Loading...</div>
                     </div>
                     <div class="detail-item" id="detailClassContainer" style="display: none;">
                         <div class="detail-label">Social Class</div>
-                        <div id="detailClass" class="detail-value"></div>
+                        <div id="detailClass" class="detail-value">Loading...</div>
                     </div>
                 </div>
+                
+                <!-- Additional Information (Right Column) -->
                 <div class="detail-section">
-                    <h3>Additional Information</h3>
+                    <h3><i class="fas fa-info-circle"></i> Additional Information</h3>
                     <div class="detail-item" id="detailNotesContainer">
                         <div class="detail-label">Notes</div>
-                        <div id="detailNotes" class="detail-value"></div>
+                        <div id="detailNotes" class="detail-value">Loading...</div>
                     </div>
                     <div class="detail-item" id="detailTagsContainer">
                         <div class="detail-label">Tags</div>
-                        <div id="detailTags" class="detail-value"></div>
+                        <div id="detailTags" class="detail-value">Loading...</div>
                     </div>
                     <div class="detail-item" id="detailFriendsContainer">
                         <div class="detail-label">Friends</div>
-                        <div id="detailFriends" class="detail-value"></div>
+                        <div id="detailFriends" class="detail-value">Loading...</div>
                     </div>
                     <div class="detail-item" id="detailFamilyContainer">
                         <div class="detail-label">Family</div>
-                        <div id="detailFamily" class="detail-value"></div>
+                        <div id="detailFamily" class="detail-value">Loading...</div>
                     </div>
                 </div>
-                <div class="detail-section" id="detailImageContainer">
-                    <h3>Image</h3>
-                    <div id="detailImagePlaceholder" class="detail-image">No image uploaded</div>
-                </div>
+                
+                <!-- Family Graph (Full Width Below) -->
                 <div class="family-graph-container" id="familyGraphContainer">
-                    <h3>Family Relationships</h3>
-                    <div class="family-graph" id="familyGraph"></div>
+                    <h3><i class="fas fa-sitemap"></i> Family Relationships</h3>
+                    <div class="family-graph" id="familyGraph">
+                        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#666;">Loading family data...</div>
+                    </div>
                 </div>
             </div>
             <div class="detail-actions">
-                <button id="deleteEntryBtn" class="btn btn-danger">Delete</button>
-                <button id="editEntryBtn" class="btn btn-primary">Edit</button>
+                <button id="deleteEntryBtn" class="btn-action btn-danger">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+                <button id="editEntryBtn" class="btn-action btn-primary">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
             </div>
         </div>
     </div>
@@ -2678,6 +3085,8 @@
         </div>
     </div>
 
+
+
     <script src="https://js.puter.com/v2/"></script>
     <script>
 
@@ -2689,6 +3098,13 @@
         let tags = [];
 
         let aiChatHistory = [];
+
+        // Auto-save variables
+        let autoSaveInterval;
+        let pendingChanges = false;
+        let lastChangeTime = 0;
+        const AUTO_SAVE_DELAY = 2000; // 2 seconds after last change
+        const PERIODIC_SAVE_INTERVAL = 30000; // 30 seconds regular save
 
         // Track which menu sections are open
         let openMenuSections = [];
@@ -2975,22 +3391,219 @@
             }
         }
 
-        function saveData() {
-            const dataToSave = {
-                pazatorData: pazatorData,
-                tags: tags
-            };
-            localStorage.setItem('pazatorData', JSON.stringify(dataToSave));
+        function updatePersistenceIndicator(status, message) {
+            const statusElement = document.getElementById('persistenceStatus');
+            const textElement = document.getElementById('persistenceText');
+            
+            if (statusElement && textElement) {
+                statusElement.className = `persistence-status ${status}`;
+                textElement.textContent = message;
+            }
+        }
+
+        function saveData(immediate = false) {
+            try {
+                updatePersistenceIndicator('syncing', 'Saving data...');
+                
+                const dataToSave = {
+                    pazatorData: pazatorData,
+                    tags: tags,
+                    lastSaved: new Date().toISOString(),
+                    version: '2.0'
+                };
+                
+                // Create backup before saving
+                const existingData = localStorage.getItem('pazatorData');
+                if (existingData) {
+                    localStorage.setItem('pazatorData_backup', existingData);
+                }
+                
+                localStorage.setItem('pazatorData', JSON.stringify(dataToSave));
+                
+                if (immediate) {
+                    console.log('✅ Data saved successfully at', new Date().toLocaleTimeString());
+                }
+                
+                pendingChanges = false;
+                lastChangeTime = Date.now();
+                
+                const totalItems = pazatorData.humans.length + pazatorData.others.length;
+                updatePersistenceIndicator('online', `Saved (${totalItems} items)`);
+                console.log(`💾 Data persistence confirmed: ${totalItems} items stored`);
+            } catch (error) {
+                console.error('❌ Error saving data:', error);
+                updatePersistenceIndicator('offline', 'Save Failed');
+                
+                // Try to restore from backup
+                try {
+                    const backup = localStorage.getItem('pazatorData_backup');
+                    if (backup) {
+                        localStorage.setItem('pazatorData', backup);
+                        console.log('🔄 Restored data from backup');
+                    }
+                } catch (restoreError) {
+                    console.error('❌ Could not restore from backup:', restoreError);
+                }
+            }
+        }
+
+        // Auto-save system
+        function markDataChanged() {
+            pendingChanges = true;
+            lastChangeTime = Date.now();
+            updatePersistenceIndicator('syncing', 'Pending save...');
+            
+            // Clear existing timeout
+            if (window.autoSaveTimeout) {
+                clearTimeout(window.autoSaveTimeout);
+            }
+            
+            // Set new timeout for auto-save
+            window.autoSaveTimeout = setTimeout(() => {
+                if (pendingChanges) {
+                    saveData();
+                }
+            }, AUTO_SAVE_DELAY);
+        }
+
+        // Manual refresh function
+        function manualRefresh() {
+            console.log('🔄 Manual refresh triggered');
+            updatePersistenceIndicator('syncing', 'Refreshing...');
+            
+            try {
+                loadData();
+                renderTags();
+                updatePersistenceIndicator('online', `Refreshed (${pazatorData.humans.length + pazatorData.others.length} items)`);
+                console.log('✅ Manual refresh completed');
+            } catch (error) {
+                console.error('❌ Manual refresh failed:', error);
+                updatePersistenceIndicator('offline', 'Refresh Failed');
+            }
+        }
+
+        // Auto-refresh function that runs multiple times
+        function autoRefreshSequence() {
+            console.log('🚀 Starting auto-refresh sequence...');
+            
+            let refreshCount = 0;
+            const maxRefreshes = 10;
+            const interval = 1000; // 1 second between each refresh
+            
+            const refreshInterval = setInterval(() => {
+                refreshCount++;
+                console.log(`🔁 Auto-refresh ${refreshCount}/${maxRefreshes}`);
+                
+                try {
+                    loadData();
+                    renderTags();
+                    const totalItems = pazatorData.humans.length + pazatorData.others.length;
+                    updatePersistenceIndicator('syncing', `Auto-loading... (${refreshCount}/${maxRefreshes})`);
+                    console.log(`✅ Auto-refresh ${refreshCount} completed - ${totalItems} items`);
+                } catch (error) {
+                    console.error(`❌ Auto-refresh ${refreshCount} failed:`, error);
+                }
+                
+                // Stop after 10 refreshes or if we have data
+                if (refreshCount >= maxRefreshes || 
+                    (pazatorData.humans.length > 0 || pazatorData.others.length > 0)) {
+                    clearInterval(refreshInterval);
+                    const finalCount = pazatorData.humans.length + pazatorData.others.length;
+                    updatePersistenceIndicator('online', `Auto-loaded (${finalCount} items)`);
+                    console.log(`🏁 Auto-refresh sequence completed - Final count: ${finalCount} items`);
+                }
+            }, interval);
+        }
+
+        function startAutoSave() {
+            // Periodic save every 30 seconds regardless of changes
+            autoSaveInterval = setInterval(() => {
+                saveData();
+            }, PERIODIC_SAVE_INTERVAL);
+            
+            console.log('Auto-save system started');
+        }
+
+        function stopAutoSave() {
+            if (autoSaveInterval) {
+                clearInterval(autoSaveInterval);
+                autoSaveInterval = null;
+            }
+            if (window.autoSaveTimeout) {
+                clearTimeout(window.autoSaveTimeout);
+                window.autoSaveTimeout = null;
+            }
+            console.log('Auto-save system stopped');
         }
 
         function loadData() {
-            const storedData = localStorage.getItem('pazatorData');
-            if (storedData) {
-                const parsedData = JSON.parse(storedData);
-                pazatorData = parsedData.pazatorData || { humans: [], others: [] };
-                tags = parsedData.tags || [];
+            try {
+                console.log('🔄 Starting data load process...');
+                
+                const storedData = localStorage.getItem('pazatorData');
+                console.log('📦 Stored data found:', !!storedData);
+                
+                if (storedData) {
+                    const parsedData = JSON.parse(storedData);
+                    console.log('📋 Parsed data structure:', parsedData);
+                    
+                    // Validate data structure
+                    if (parsedData && typeof parsedData === 'object') {
+                        pazatorData = {
+                            humans: Array.isArray(parsedData.pazatorData?.humans) ? parsedData.pazatorData.humans : [],
+                            others: Array.isArray(parsedData.pazatorData?.others) ? parsedData.pazatorData.others : []
+                        };
+                        tags = Array.isArray(parsedData.tags) ? parsedData.tags : [];
+                        
+                        console.log(`✅ Successfully loaded ${pazatorData.humans.length} humans and ${pazatorData.others.length} others`);
+                        console.log('👥 Loaded humans:', pazatorData.humans);
+                        console.log('📎 Loaded others:', pazatorData.others);
+                    } else {
+                        console.warn('⚠️ Invalid data structure in localStorage');
+                        throw new Error('Invalid data structure');
+                    }
+                } else {
+                    console.log('📭 No stored data found, initializing with defaults');
+                    // Initialize with default structure
+                    pazatorData = { humans: [], others: [] };
+                    tags = [];
+                    saveData(true);
+                }
+            } catch (error) {
+                console.error('❌ Error loading data:', error);
+                console.error('📋 Error details:', error.message);
+                
+                // Try to load from backup
+                try {
+                    console.log('🔄 Attempting to load from backup...');
+                    const backupData = localStorage.getItem('pazatorData_backup');
+                    if (backupData) {
+                        const parsedBackup = JSON.parse(backupData);
+                        pazatorData = parsedBackup.pazatorData || { humans: [], others: [] };
+                        tags = parsedBackup.tags || [];
+                        console.log('✅ Loaded data from backup');
+                        console.log(`📥 Loaded from backup: ${pazatorData.humans.length} humans, ${pazatorData.others.length} others`);
+                    } else {
+                        console.log('📭 No backup data found, using defaults');
+                        // Fallback to defaults
+                        pazatorData = { humans: [], others: [] };
+                        tags = [];
+                    }
+                } catch (backupError) {
+                    console.error('❌ Could not load from backup:', backupError);
+                    pazatorData = { humans: [], others: [] };
+                    tags = [];
+                }
             }
+            
+            // Always render the nodes after loading
+            console.log('🎨 Rendering web nodes with loaded data...');
+            console.log('📊 Data to render:', { humans: pazatorData.humans.length, others: pazatorData.others.length });
             renderWebNodes();
+            
+            // Update persistence indicator
+            const totalItems = pazatorData.humans.length + pazatorData.others.length;
+            updatePersistenceIndicator('online', `Loaded (${totalItems} items)`);
         }
 
         let currentScale = 1;
@@ -3053,6 +3666,13 @@
         }
 
         function renderWebNodes() {
+            console.log('🎨 Starting renderWebNodes function...');
+            console.log('📊 Current data state:', {
+                humans: pazatorData.humans.length,
+                others: pazatorData.others.length,
+                total: pazatorData.humans.length + pazatorData.others.length
+            });
+            
             webContent.innerHTML = '';
 
             const searchTerm = searchInput.value.toLowerCase();
@@ -3062,6 +3682,8 @@
                 ...pazatorData.humans.map(h => ({ ...h, type: 'human' })),
                 ...pazatorData.others.map(o => ({ ...o, type: 'other' }))
             ];
+            
+            console.log('📝 Raw data to render:', allData);
 
             if (searchTerm) {
                 allData = allData.filter(data =>
@@ -3074,13 +3696,19 @@
             if (selectedType !== 'all') {
                 allData = allData.filter(data => data.type === selectedType);
             }
+            
+            console.log('🔍 Filtered data to display:', allData);
 
             const containerWidth = webContent.offsetWidth;
             const containerHeight = webContent.offsetHeight;
             const centerX = containerWidth / 2;
             const centerY = containerHeight / 2;
 
+            console.log(`🏗️ Creating ${allData.length} nodes...`);
+            
             allData.forEach((data, index) => {
+                console.log(`🔨 Creating node ${index + 1}:`, data);
+                
                 const node = document.createElement('div');
                 node.className = `data-node ${data.type}`;
                 node.dataset.id = data.id;
@@ -3151,13 +3779,24 @@
                 });
 
                 webContent.appendChild(node);
+                console.log(`✅ Node ${index + 1} appended to DOM`);
             });
+            
+            console.log(`🏁 Created ${allData.length} nodes successfully`);
 
-            setTimeout(drawFamilyConnections, 50);
+            setTimeout(() => {
+                console.log('🔗 Drawing family connections...');
+                drawFamilyConnections();
+            }, 50);
 
             if (currentScale === 1 && currentTranslateX === 0 && currentTranslateY === 0) {
-                setTimeout(fitAllNodesInView, 100);
+                setTimeout(() => {
+                    console.log('🎯 Fitting all nodes in view...');
+                    fitAllNodesInView();
+                }, 100);
             }
+            
+            console.log('🎨 renderWebNodes completed!');
         }
 
         function drawFamilyConnections() {
@@ -3249,7 +3888,48 @@
 
             document.currentDetailData = { ...data, type };
 
+            // Update header
             document.getElementById('detailTitle').textContent = `${data.name} - Details`;
+            
+            // Update profile section
+            document.getElementById('profileName').textContent = data.name;
+            document.getElementById('profileType').textContent = type.charAt(0).toUpperCase() + type.slice(1);
+            
+            // Update profile stats
+            if (type === 'human') {
+                const friendsCount = data.friends ? data.friends.length : 0;
+                const familyCount = data.family ? data.family.length : 0;
+                const tagsCount = data.tags ? data.tags.length : 0;
+                const creditValue = data.credit !== undefined ? Math.round(data.credit) : 'N/A';
+                
+                document.getElementById('statFriends').textContent = friendsCount;
+                document.getElementById('statFamily').textContent = familyCount;
+                document.getElementById('statTags').textContent = tagsCount;
+                document.getElementById('statCredit').textContent = creditValue;
+            } else {
+                document.getElementById('statFriends').textContent = 'N/A';
+                document.getElementById('statFamily').textContent = 'N/A';
+                document.getElementById('statTags').textContent = 'N/A';
+                document.getElementById('statCredit').textContent = 'N/A';
+            }
+            
+            // Update profile picture
+            const profilePictureContainer = document.getElementById('profilePictureContainer');
+            if (data.imagePreview) {
+                profilePictureContainer.innerHTML = `
+                    <img class="profile-picture" src="${data.imagePreview}" alt="${data.name}" 
+                         onerror="this.parentElement.innerHTML='<div class=\"profile-placeholder\"><i class=\"fas fa-user\"></i><div>Image Error</div></div>'">
+                `;
+            } else {
+                profilePictureContainer.innerHTML = `
+                    <div class="profile-placeholder">
+                        <i class="fas fa-user"></i>
+                        <div>No Image</div>
+                    </div>
+                `;
+            }
+
+            // Update detail sections
             document.getElementById('detailName').textContent = data.name;
             document.getElementById('detailType').textContent = type.charAt(0).toUpperCase() + type.slice(1);
 
@@ -3318,19 +3998,6 @@
 
                 document.getElementById('detailNotesContainer').style.display = 'block';
                 document.getElementById('detailNotes').textContent = data.note || 'None';
-            }
-
-            const imageContainer = document.getElementById('detailImageContainer');
-            const imagePlaceholder = document.getElementById('detailImagePlaceholder');
-            if (data.imagePreview) {
-                imageContainer.style.display = 'block';
-                imagePlaceholder.outerHTML = `<img id="detailImage" class="detail-image" src="${data.imagePreview}" alt="${data.name}">`;
-            } else {
-                imageContainer.style.display = 'block';
-                imagePlaceholder.textContent = 'No image uploaded';
-                imagePlaceholder.style.display = 'flex';
-                imagePlaceholder.style.alignItems = 'center';
-                imagePlaceholder.style.justifyContent = 'center';
             }
 
             detailViewModal.style.display = 'flex';
@@ -3931,7 +4598,7 @@
 
                 // Save and render after all add_human actions
                 if (addHumanActions.length > 0) {
-                    saveData();
+                    markDataChanged();
                     renderWebNodes();
                 }
 
@@ -3960,7 +4627,7 @@
 
                 // Final save and render if needed
                 if (completedActions > 0 && addHumanActions.length === 0) {
-                    saveData();
+                    markDataChanged();
                     renderWebNodes();
                 }
 
@@ -4038,7 +4705,7 @@
                             ...action.data
                         };
                         pazatorData.humans.push(newHuman);
-                        saveData();
+                        markDataChanged();
                         renderWebNodes();
                         response = `Added human: ${newHuman.name}`;
                     } catch (e) {
@@ -4054,6 +4721,8 @@
                             ...action.data
                         };
                         pazatorData.others.push(newOther);
+                        markDataChanged();
+                        renderWebNodes();
                         response = `Added other: ${newOther.name}`;
                     } catch (e) {
                         response = `Failed to add other: ${e.message}`;
@@ -4066,7 +4735,7 @@
                     if (humanIndex !== -1) {
                         const deletedName = pazatorData.humans[humanIndex].name;
                         pazatorData.humans.splice(humanIndex, 1);
-                        saveData();
+                        markDataChanged();
                         renderWebNodes();
                         response = `Deleted human: ${deletedName}`;
                     } else {
@@ -4080,7 +4749,7 @@
                     if (otherIndex !== -1) {
                         const deletedName = pazatorData.others[otherIndex].name;
                         pazatorData.others.splice(otherIndex, 1);
-                        saveData();
+                        markDataChanged();
                         renderWebNodes();
                         response = `Deleted other: ${deletedName}`;
                     } else {
@@ -4107,7 +4776,7 @@
                             ...pazatorData.humans[modHumanIndex],
                             ...action.data
                         };
-                        saveData();
+                        markDataChanged();
                         renderWebNodes();
                         response = `Modified human: ${pazatorData.humans[modHumanIndex].name}`;
                     } else {
@@ -4130,7 +4799,7 @@
                                     ...pazatorData.humans[personIndex],
                                     ...action.data
                                 };
-                                saveData();
+                                markDataChanged();
                                 renderWebNodes();
                                 response = `Modified human: ${pazatorData.humans[personIndex].name}`;
                             } else {
@@ -4151,7 +4820,7 @@
                             ...pazatorData.others[modOtherIndex],
                             ...action.data
                         };
-                        saveData();
+                        markDataChanged();
                         renderWebNodes();
                         response = `Modified other: ${pazatorData.others[modOtherIndex].name}`;
                     } else {
@@ -4179,7 +4848,7 @@
                 case "add_tag":
                     if (action.tag && !tags.includes(action.tag)) {
                         tags.push(action.tag);
-                        saveData();
+                        markDataChanged();
                         renderTags();
                         response = `I've added the tag '${action.tag}' to the tag list.`;
                     } else if (tags.includes(action.tag)) {
@@ -4198,7 +4867,7 @@
                         }
                         if (!pazatorData.humans[humanToTag].tags.includes(action.tag)) {
                             pazatorData.humans[humanToTag].tags.push(action.tag);
-                            saveData();
+                            markDataChanged();
                             renderWebNodes();
                             response = `I've assigned the tag '${action.tag}' to ${pazatorData.humans[humanToTag].name}.`;
                         } else {
@@ -4215,7 +4884,7 @@
                     if (humanToRemoveTag !== -1) {
                         if (pazatorData.humans[humanToRemoveTag].tags && pazatorData.humans[humanToRemoveTag].tags.includes(action.tag)) {
                             pazatorData.humans[humanToRemoveTag].tags = pazatorData.humans[humanToRemoveTag].tags.filter(t => t !== action.tag);
-                            saveData();
+                            markDataChanged();
                             renderWebNodes();
                             response = `I've removed the tag '${action.tag}' from ${pazatorData.humans[humanToRemoveTag].name}.`;
                         } else {
@@ -5471,7 +6140,7 @@
                         pazatorData.humans[lastIndex].imagePreview = e.target.result;
                     }
 
-                    saveData();
+                    markDataChanged();
                     renderWebNodes();
                     humanModal.style.display = 'none';
                     humanModal.style.zIndex = '-1';
@@ -5479,7 +6148,7 @@
                 };
                 reader.readAsDataURL(imageFile);
             } else {
-                saveData();
+                markDataChanged();
                 renderWebNodes();
                 humanModal.style.display = 'none';
                 humanModal.style.zIndex = '-1';
@@ -5536,7 +6205,7 @@
                         pazatorData.others[lastIndex].imagePreview = e.target.result;
                     }
 
-                    saveData();
+                    markDataChanged();
                     renderWebNodes();
                     otherModal.style.display = 'none';
                     otherModal.style.zIndex = '-1';
@@ -5544,7 +6213,7 @@
                 };
                 reader.readAsDataURL(imageFile);
             } else {
-                saveData();
+                markDataChanged();
                 renderWebNodes();
                 otherModal.style.display = 'none';
                 otherModal.style.zIndex = '-1';
@@ -6173,6 +6842,11 @@
             const hiddenConnectionsModal = document.getElementById('hiddenConnectionsModal');
             hiddenConnectionsModal.style.display = 'none';
             hiddenConnectionsModal.style.zIndex = '-1';
+        });
+
+        // Manual refresh button event listener
+        document.getElementById('manualRefreshBtn')?.addEventListener('click', () => {
+            manualRefresh();
         });
 
         async function findHiddenConnections() {
@@ -7113,10 +7787,16 @@
         function checkAuthStatus() {
             const signInBtn = document.getElementById('signInBtn');
             if (signInBtn && typeof puter !== 'undefined' && puter.auth) {
-                if (puter.auth.isSignedIn()) {
-                    signInBtn.style.display = 'none';
+                // Check if puter.auth.on method exists before using it
+                if (typeof puter.auth.isSignedIn === 'function') {
+                    if (puter.auth.isSignedIn()) {
+                        signInBtn.style.display = 'none';
+                    } else {
+                        signInBtn.style.display = 'block';
+                    }
                 } else {
-                    signInBtn.style.display = 'block';
+                    // Fallback if auth methods aren't available
+                    signInBtn.style.display = 'none';
                 }
             }
         }
@@ -7136,14 +7816,16 @@
         if (typeof puter !== 'undefined' && puter.auth) {
             checkAuthStatus();
             
-            // Listen for auth state changes
-            puter.auth.on('signed-in', () => {
-                checkAuthStatus();
-            });
-            
-            puter.auth.on('signed-out', () => {
-                checkAuthStatus();
-            });
+            // Only add event listeners if the methods exist
+            if (typeof puter.auth.on === 'function') {
+                puter.auth.on('signed-in', () => {
+                    checkAuthStatus();
+                });
+                
+                puter.auth.on('signed-out', () => {
+                    checkAuthStatus();
+                });
+            }
         } else {
             // If puter is not loaded yet, check periodically
             const authCheckInterval = setInterval(() => {
@@ -7159,11 +7841,185 @@
             }, 10000);
         }
 
-        loadData();
-        renderTags();
+        // Logo dropdown event listeners
+        console.log('🔧 Setting up logo dropdown event listeners...');
         
-        // Initialize tab system
-        initTabs();
+        // Debug: Check if elements exist
+        console.log('🔍 Logo image exists:', !!logoImage);
+        console.log('🔍 Refresh option exists:', !!refreshNodesOption);
+        console.log('🔍 Classify option exists:', !!classifyOption);
+        
+        if (refreshNodesOption) {
+            console.log('✅ Adding event listener to Refresh Nodes');
+            refreshNodesOption.addEventListener('click', (e) => {
+                e.stopPropagation();
+                console.log('🔄 Logo dropdown: Refresh Nodes clicked');
+                
+                // Do exactly the same as the manual refresh button
+                manualRefresh();
+            });
+        } else {
+            console.error('❌ RefreshNodesOption not found!');
+        }
+        
+        if (classifyOption) {
+            console.log('✅ Adding event listener to Classify');
+            classifyOption.addEventListener('click', (e) => {
+                e.stopPropagation();
+                console.log('🛡️ Logo dropdown: Classify clicked');
+                
+                if (logoImage) {
+                    // Check if already classified
+                    if (logoImage.classList.contains('classified')) {
+                        // Toggle back to normal
+                        logoImage.classList.remove('classified');
+                        window.screenshotsDisabled = false;
+                        classifyOption.innerHTML = '<i class="fas fa-shield-alt"></i><span>Classify</span>';
+                        classifyOption.style.color = '';
+                        console.log('⚪ Logo declassified - returned to normal');
+                    } else {
+                        // Turn logo red by removing the filter
+                        logoImage.classList.add('classified');
+                        console.log('🔴 Logo image classified - turned red');
+                        
+                        // Disable screenshots functionality
+                        window.screenshotsDisabled = true;
+                        console.log('📸 Screenshots disabled');
+                        
+                        // Update the menu item to show it's active
+                        classifyOption.innerHTML = '<i class="fas fa-shield-alt"></i><span>Classified</span>';
+                        classifyOption.style.color = '#ff6b6b';
+                    }
+                }
+            });
+        } else {
+            console.error('❌ ClassifyOption not found!');
+        }
+        
+        // Enhanced initialization with better error handling
+        console.log('🚀 Initializing Pazator app...');
+        
+        // Wait for DOM to be fully loaded before setting up event listeners
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupLogoDropdownListeners);
+        } else {
+            setupLogoDropdownListeners();
+        }
+        
+        function setupLogoDropdownListeners() {
+            console.log('🔧 Setting up logo dropdown event listeners...');
+            
+            // Get fresh references to elements
+            const logoImage = document.getElementById('logoImage');
+            const refreshNodesOption = document.getElementById('refreshNodesOption');
+            const classifyOption = document.getElementById('classifyOption');
+            
+            // Debug: Check if elements exist
+            console.log('🔍 Logo image exists:', !!logoImage);
+            console.log('🔍 Refresh option exists:', !!refreshNodesOption);
+            console.log('🔍 Classify option exists:', !!classifyOption);
+            
+            if (refreshNodesOption && logoImage) {
+                console.log('✅ Adding event listener to Refresh Nodes');
+                refreshNodesOption.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    console.log('🔄 Logo dropdown: Refresh Nodes clicked');
+                    
+                    // Do exactly the same as the manual refresh button
+                    manualRefresh();
+                });
+            } else {
+                console.error('❌ RefreshNodesOption or logoImage not found!');
+            }
+            
+            if (classifyOption && logoImage) {
+                console.log('✅ Adding event listener to Classify');
+                classifyOption.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    console.log('🛡️ Logo dropdown: Classify clicked');
+                    
+                    // Check if already classified
+                    if (logoImage.classList.contains('classified')) {
+                        // Toggle back to normal
+                        logoImage.classList.remove('classified');
+                        window.screenshotsDisabled = false;
+                        classifyOption.innerHTML = '<i class="fas fa-shield-alt"></i><span>Classify</span>';
+                        classifyOption.style.color = '';
+                        console.log('⚪ Logo declassified - returned to normal');
+                    } else {
+                        // Turn logo red by removing the filter
+                        logoImage.classList.add('classified');
+                        console.log('🔴 Logo image classified - turned red');
+                        
+                        // Disable screenshots functionality
+                        window.screenshotsDisabled = true;
+                        console.log('📸 Screenshots disabled');
+                        
+                        // Update the menu item to show it's active
+                        classifyOption.innerHTML = '<i class="fas fa-shield-alt"></i><span>Classified</span>';
+                        classifyOption.style.color = '#ff6b6b';
+                    }
+                });
+            } else {
+                console.error('❌ ClassifyOption or logoImage not found!');
+            }
+        }
+        
+        // Test data persistence on load
+        console.log('🔍 Checking localStorage availability...');
+        if (typeof(Storage) !== "undefined") {
+            console.log('✅ localStorage is available');
+        } else {
+            console.error('❌ localStorage is not available');
+        }
+        
+        try {
+            // Load data first
+            loadData();
+            console.log('✅ Data loading completed');
+            
+            // Render tags
+            renderTags();
+            console.log('✅ Tags rendered');
+            
+            // Initialize tab system
+            initTabs();
+            console.log('✅ Tabs initialized');
+            
+            // Start auto-save system
+            startAutoSave();
+            console.log('✅ Auto-save system started');
+            
+            // Save initial data if it's empty
+            if (pazatorData.humans.length === 0 && pazatorData.others.length === 0) {
+                saveData(true);
+                console.log('💾 Initial data saved');
+            }
+            
+            console.log('🎉 Pazator app fully initialized with enhanced data persistence');
+            console.log(`📊 Current data: ${pazatorData.humans.length} humans, ${pazatorData.others.length} others`);
+            
+            // Start auto-refresh sequence 2 seconds after initialization
+            setTimeout(() => {
+                console.log('⏰ Triggering auto-refresh sequence...');
+                autoRefreshSequence();
+            }, 2000);
+            
+        } catch (initError) {
+            console.error('❌ Fatal initialization error:', initError);
+            // Fallback initialization
+            pazatorData = { humans: [], others: [] };
+            tags = [];
+            renderWebNodes();
+            renderTags();
+            console.log('⚠️ Using fallback initialization');
+            
+            // Even on error, try auto-refresh
+            setTimeout(() => {
+                console.log('⏰ Triggering auto-refresh sequence after error...');
+                autoRefreshSequence();
+            }, 2000);
+        }
     </script>
 </body>
 
