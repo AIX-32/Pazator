@@ -8,7 +8,14 @@
     <title>Pazator. - Mass data container</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Font Definition */
+        @font-face {
+            font-family: 'AllianceNo2';
+            src: url('Alliance No.2 Regular.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
         @font-face {
             font-family: 'MavenPro';
             src: url('MavenPro-Regular.ttf') format('truetype');
@@ -18,7 +25,6 @@
         }
 
         :root {
-            /* Color Variables */
             --primary-bg: #0d0d0d;
             --secondary-bg: #121212;
             --tertiary-bg: #0a0a0a;
@@ -136,6 +142,7 @@
             margin-bottom: 17px;
             color: #ffffff;
             font-size: 1.2rem;
+            font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
         .tags-container {
@@ -298,7 +305,11 @@
         }
         
         .logo-card img.classified {
-            filter: invert(0) brightness(1) saturate(1) hue-rotate(0deg);
+            filter: invert(0) brightness(1) saturate(1) hue-rotate(0deg) drop-shadow(0 0 5px #ff0000);
+            background: radial-gradient(circle, #ff0000 0%, #cc0000 100%);
+            border-radius: 50%;
+            padding: 2px;
+            box-shadow: 0 0 10px #ff0000;
         }
         
         .logo-dropdown-menu {
@@ -384,15 +395,12 @@
             animation: fadeInTooltip 0.2s ease forwards;
         }
 
-        /* Smart positioning for edge cases */
         .tab-bar .tab-action[title]:hover::after {
-            /* Check if tooltip would go off right edge */
             right: auto;
             left: 50%;
         }
 
         .tab-bar .tab-action:last-child[title]:hover::after {
-            /* For rightmost button, align tooltip to right edge */
             left: auto;
             right: 0;
             transform: translateX(0);
@@ -462,6 +470,7 @@
             margin: 0 0 5px 0;
             font-size: 1rem;
             color: #ffffff;
+            font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
         .dropdown-item p {
@@ -597,6 +606,7 @@
             -webkit-text-fill-color: transparent;
             font-weight: 600;
             letter-spacing: 0.5px;
+            font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
         .web-container {
@@ -653,10 +663,11 @@
 
         .data-node.human {
             background: #ffffff;
+            color: #000000;
         }
 
         .data-node.other {
-            background: linear-gradient(145deg, #ffffff, #dddddd);
+            background: linear-gradient(145deg, #ffffff, #ffc6c6);
         }
 
         .node-label {
@@ -809,7 +820,6 @@
             z-index: 1005 !important;
         }
         
-        /* Ensure context modal overlays AI chat */
         .ai-chat-modal ~ .modal.context-modal {
             z-index: 1005 !important;
         }
@@ -859,6 +869,7 @@
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
+            font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
         .modal-body {
@@ -899,6 +910,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
         .form-section h3 i {
@@ -1144,6 +1156,7 @@
         .detail-header h2 {
             margin: 0;
             font-size: 1.8rem;
+            font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
         .detail-body {
@@ -1267,6 +1280,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
         .detail-section h3 i {
@@ -1475,6 +1489,7 @@
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
+            font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
         .ai-chat-messages {
@@ -1513,7 +1528,6 @@
             }
         }
 
-        /* Modal Animations */
         @keyframes modalFadeIn {
             from {
                 opacity: 0;
@@ -1735,7 +1749,6 @@
             pointer-events: none;
         }
 
-        /* Enhanced AI Chat Header */
         .ai-chat-header {
             display: flex;
             justify-content: space-between;
@@ -1794,7 +1807,6 @@
             transform: translateY(-2px);
         }
 
-        /* Chat Menu Styles */
         .chat-menu {
             background: rgba(30, 30, 30, 0.7);
             border-bottom: 1px solid #2c2b2b;
@@ -1820,6 +1832,7 @@
             margin: 0;
             font-size: 1rem;
             color: #ffffff;
+            font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
         .menu-toggle {
@@ -1867,7 +1880,6 @@
             transform: translateX(5px);
         }
 
-        /* Input Actions */
         .input-actions {
             display: flex;
             gap: 8px;
@@ -1894,7 +1906,6 @@
             transform: translateY(-2px);
         }
 
-        /* New button styles for improved icons */
         .ai-action-btn {
             background: linear-gradient(145deg, #262525, #212020);
             border: 1px solid #444343;
@@ -1921,8 +1932,6 @@
         .ai-action-btn i {
             font-size: 1.1rem;
             color: #ffffff;
-            /* Make icon clearly visible */
-            /* Ensure icon color is visible */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1932,7 +1941,6 @@
 
         .ai-send-btn {
             padding: 0;
-            /* Reset padding for square button */
             border-radius: 12px;
             width: 48px;
             height: 48px;
@@ -1995,7 +2003,6 @@
             text-align: center;
         }
 
-        /* Threats and Fraud Panel Styles */
         .threats-content {
             overflow-y: auto;
             height: calc(100% - 100px);
@@ -2114,7 +2121,6 @@
 </head>
 
 <body>
-    <!-- AI Chat Modal -->
     <div id="aiChatModal" class="ai-chat-modal">
         <button class="close" id="closeAIChat"
             style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
@@ -2131,7 +2137,6 @@
                     <button class="chat-menu-btn" id="chatMenuBtn">
                         <i class="fas fa-bars"></i>
                     </button>
-                    <!-- Dropdown menu for chat options -->
                     <div class="chat-options-menu" id="chatOptionsMenu">
                         <div class="chat-option" id="clearChatOption">
                             <i class="fas fa-trash-alt"></i> Clear Chat
@@ -2143,7 +2148,6 @@
                 </div>
             </div>
 
-            <!-- Collapsible Menu Section -->
             <div class="chat-menu" id="chatMenu">
                 <div class="menu-section">
                     <div class="menu-header" onclick="toggleMenuSection('quickActions')">
@@ -2226,14 +2230,12 @@
             </div>
         </div>
     </div>
-    <!-- Tab Bar -->
     <div class="tab-bar" id="tabBar">
         <button class="tab active" data-tab="dashboard">
             Dashboard
             <span class="tab-close">&times;</span>
         </button>
         <div style="flex: 1;"></div>
-        <!-- Action Buttons -->
         <button class="tab-action" id="dashboardBtn" title="Main workspace with data visualization">
             <i class="fas fa-home"></i>
         </button>
@@ -2245,6 +2247,12 @@
         </button>
         <button class="tab-action" id="chatControlBtn" title="Chat management and analysis">
             <i class="fas fa-comments"></i>
+        </button>
+        <button class="tab-action" id="searchBtn" title="Powerful search across all data">
+            <i class="fas fa-search"></i>
+        </button>
+        <button class="tab-action" id="agentsBtn" title="Autonomous AI agents">
+            <i class="fas fa-robot"></i>
         </button>
         <div class="logo-card" title="Pazator Logo">
             <img src="favicon.png" alt="Pazator Logo" id="logoImage">
@@ -2262,7 +2270,6 @@
     </div>
 
     <div class="container">
-        <!-- Dashboard Tab -->
         <div class="tab-content active" id="dashboard-tab">
             <div class="workspace">
                 <div class="main-panel">
@@ -2320,7 +2327,6 @@
                             <button id="addTagBtn" class="btn btn-secondary" style="width: 100%;">Add Tag</button>
                         </div>
                         <div id="tagsContainer" class="tags-container">
-                            <!-- Tags will be dynamically added here -->
                         </div>
                     </div>
                 </div>
@@ -2328,7 +2334,6 @@
             </div>
         </div>
 
-        <!-- Analysis Tab -->
         <div class="tab-content" id="analysis-tab">
             <div class="workspace">
                 <div class="main-panel">
@@ -2337,7 +2342,6 @@
                     </div>
                     <div class="analysis-content" style="flex: 1; overflow: auto; padding: 20px;">
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; height: calc(100% - 80px);">
-                            <!-- Connection Analysis Panel -->
                             <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 15px; padding: 25px; box-shadow: 0 8px 32px var(--shadow-color); display: flex; flex-direction: column;">
                                 <div style="display: flex; align-items: center; margin-bottom: 20px;">
                                     <div style="width: 8px; height: 30px; background: linear-gradient(to bottom, #ffffff, #aaaaaa); border-radius: 4px; margin-right: 15px;"></div>
@@ -2357,7 +2361,6 @@
                                 </div>
                             </div>
                             
-                            <!-- Credit Scoring Panel -->
                             <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 15px; padding: 25px; box-shadow: 0 8px 32px var(--shadow-color); display: flex; flex-direction: column;">
                                 <div style="display: flex; align-items: center; margin-bottom: 20px;">
                                     <div style="width: 8px; height: 30px; background: linear-gradient(to bottom, #ffffff, #aaaaaa); border-radius: 4px; margin-right: 15px;"></div>
@@ -2421,7 +2424,6 @@
             </div>
         </div>
 
-        <!-- Chat Control Tab -->
         <div class="tab-content" id="chat-control-tab">
             <div class="workspace">
                 <div class="main-panel">
@@ -2429,7 +2431,6 @@
                         <h1 style="background: linear-gradient(45deg, #ffffff, #dddddd); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Communication Security Center</h1>
                     </div>
                     <div class="chat-control-content" style="flex: 1; overflow: auto; padding: 20px;">
-                        <!-- Security Analysis Header -->
                         <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 15px; padding: 25px; margin-bottom: 25px; box-shadow: 0 8px 32px var(--shadow-color);">
                             <div style="display: flex; align-items: center; margin-bottom: 20px;">
                                 <div style="width: 8px; height: 30px; background: linear-gradient(to bottom, #ffffff, #aaaaaa); border-radius: 4px; margin-right: 15px;"></div>
@@ -2460,7 +2461,6 @@
                             </div>
                         </div>
                         
-                        <!-- Chat List Section -->
                         <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 15px; padding: 25px; box-shadow: 0 8px 32px var(--shadow-color);">
                             <div style="display: flex; align-items: center; margin-bottom: 20px;">
                                 <div style="width: 8px; height: 30px; background: linear-gradient(to bottom, #ffffff, #aaaaaa); border-radius: 4px; margin-right: 15px;"></div>
@@ -2498,7 +2498,6 @@
                             </button>
                         </div>
                         
-                        <!-- Quick Stats Panel -->
                         <div style="margin-top: 30px; padding: 20px; background: rgba(30, 30, 30, 0.5); border-radius: 12px;">
                             <h4 style="margin: 0 0 15px 0; color: #ffffff; display: flex; align-items: center;">
                                 <i class="fas fa-chart-line" style="margin-right: 10px; color: #888;"></i>
@@ -2524,7 +2523,6 @@
             </div>
         </div>
 
-        <!-- Threats & Fraud Tab -->
         <div class="tab-content" id="threats-tab">
             <div class="workspace">
                 <div class="main-panel">
@@ -2532,7 +2530,6 @@
                         <h1 style="background: linear-gradient(45deg, #ffffff, #dddddd); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Security Intelligence Command</h1>
                     </div>
                     <div class="threats-content" style="flex: 1; overflow: auto; padding: 20px;">
-                        <!-- Threat Dashboard Header -->
                         <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 15px; padding: 25px; margin-bottom: 25px; box-shadow: 0 8px 32px var(--shadow-color);">
                             <div style="display: flex; align-items: center; margin-bottom: 20px;">
                                 <div style="width: 8px; height: 30px; background: linear-gradient(to bottom, #ffffff, #aaaaaa); border-radius: 4px; margin-right: 15px;"></div>
@@ -2568,9 +2565,7 @@
                             </div>
                         </div>
                         
-                        <!-- Dual Analysis Panels -->
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
-                            <!-- Threat Intelligence Panel -->
                             <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 15px; padding: 25px; box-shadow: 0 8px 32px var(--shadow-color);">
                                 <div style="display: flex; align-items: center; margin-bottom: 20px;">
                                     <div style="width: 8px; height: 30px; background: linear-gradient(to bottom, #ff6b6b, #cc5252); border-radius: 4px; margin-right: 15px;"></div>
@@ -2591,7 +2586,6 @@
                                 </div>
                             </div>
                             
-                            <!-- Fraud Detection Panel -->
                             <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 15px; padding: 25px; box-shadow: 0 8px 32px var(--shadow-color);">
                                 <div style="display: flex; align-items: center; margin-bottom: 20px;">
                                     <div style="width: 8px; height: 30px; background: linear-gradient(to bottom, #ffd93d, #e6c235); border-radius: 4px; margin-right: 15px;"></div>
@@ -2618,7 +2612,6 @@
                     <div class="sidebar-section">
                         <h3 style="color: #ffffff; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #333;">Intelligence Operations</h3>
                         
-                        <!-- Quick Action Cards -->
                         <div style="margin-bottom: 25px;">
                             <div style="background: rgba(40, 40, 40, 0.7); border: 1px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 15px; transition: all 0.3s ease;">
                                 <div style="display: flex; align-items: center; margin-bottom: 15px;">
@@ -2639,7 +2632,6 @@
                             </div>
                         </div>
                         
-                        <!-- Security Status Panel -->
                         <div style="padding: 20px; background: rgba(30, 30, 30, 0.5); border-radius: 12px;">
                             <h4 style="margin: 0 0 15px 0; color: #ffffff; display: flex; align-items: center;">
                                 <i class="fas fa-server" style="margin-right: 10px; color: #888;"></i>
@@ -2670,7 +2662,96 @@
         </div>
     </div>
 
-    <!-- Type Selection Modal -->
+    <div class="tab-content" id="agents-tab">
+        <div style="display: flex; flex-direction: column; height: 100%; padding: 30px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="margin: 0; font-size: 2.5rem; background: linear-gradient(45deg, #ffffff, #dddddd); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;">Autonomous Agents</h1>
+                <p style="margin: 15px 0 0 0; color: #aaa; font-size: 1.1rem;">Beta.</p>
+            </div>
+            
+            <div style="display: flex; gap: 25px; flex: 1;">
+                <div style="flex: 1; background: rgba(30, 30, 30, 0.7); border: 1px solid #333; border-radius: 15px; padding: 25px; display: flex; flex-direction: column;">
+                    <h2 style="margin: 0 0 20px 0; color: #ffffff; font-size: 1.5rem; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-plus-circle" style="color: #6bcf7f;"></i>
+                        Create New Agent
+                    </h2>
+                    
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 20px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 8px; color: #ddd; font-weight: 500;">Agent Name</label>
+                            <input type="text" id="agentName" class="form-control" placeholder="e.g., Data Investigator" style="width: 100%; padding: 12px; font-size: 1rem;">
+                        </div>
+                        
+                        <div>
+                            <label style="display: block; margin-bottom: 8px; color: #ddd; font-weight: 500;">Goal/Objective</label>
+                            <textarea id="agentGoal" class="form-control" placeholder="What should this agent try to accomplish?" style="width: 100%; padding: 12px; font-size: 1rem; height: 120px; resize: vertical;"></textarea>
+                        </div>
+                        
+                        <button id="createAgentBtn" class="btn btn-primary" style="padding: 15px; font-size: 1.1rem; background: linear-gradient(145deg, #2a2a2a, #222222); border: 1px solid #444;">
+                            <i class="fas fa-robot" style="margin-right: 10px;"></i>Create Agent
+                        </button>
+                        
+                        <div style="background: rgba(255, 255, 255, 0.05); border-radius: 10px; padding: 15px; border-left: 3px solid #666;">
+                            <h4 style="margin: 0 0 10px 0; color: #ddd; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-info-circle" style="color: #6bcf7f;"></i>
+                                Agent Capabilities
+                            </h4>
+                            <ul style="margin: 0; padding-left: 20px; color: #aaa; font-size: 0.9rem; line-height: 1.6;">
+                                <li>Access to all person names in database</li>
+                                <li>Can request detailed information about any person</li>
+                                <li>Can leave investigation logs</li>
+                                <li>Can declare mission complete</li>
+                                <li>Limited to 3 concurrent agents</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="flex: 2; background: rgba(30, 30, 30, 0.7); border: 1px solid #333; border-radius: 15px; padding: 25px; display: flex; flex-direction: column;">
+                    <h2 style="margin: 0 0 20px 0; color: #ffffff; font-size: 1.5rem; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-tasks" style="color: #ffd93d;"></i>
+                        Active Agents
+                        <span id="agentCount" style="background: #444; color: #ddd; padding: 3px 10px; border-radius: 12px; font-size: 0.9rem; margin-left: auto;">0/3</span>
+                    </h2>
+                    
+                    <div id="agentsList" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;">
+                        <div style="text-align: center; padding: 40px; color: #777;">
+                            <i class="fas fa-robot" style="font-size: 3rem; margin-bottom: 20px; color: #444;"></i>
+                            <p style="margin: 0; font-size: 1.2rem;">No active agents</p>
+                            <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666;">Create an agent to get started</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-content" id="search-tab">
+        <div style="display: flex; flex-direction: column; height: 100%; padding: 40px;">
+            <div style="text-align: center; margin-bottom: 40px;">
+                <h1 style="margin: 0; font-size: 2.5rem; background: linear-gradient(45deg, #ffffff, #dddddd); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;">Search Database</h1>
+                <p style="margin: 15px 0 0 0; color: #aaa; font-size: 1.1rem;">Search across all people, jobs, dates, notes, and relationships</p>
+            </div>
+            
+            <div style="max-width: 700px; width: 100%; margin: 0 auto; flex: 1; display: flex; flex-direction: column;">
+                <div style="position: relative; margin-bottom: 30px;">
+                    <input type="text" id="universalSearchInput" class="form-control" placeholder="Search people, jobs, dates, notes, tags, relationships..." style="font-size: 1.2rem; padding: 18px 20px; border-radius: 12px; border: 2px solid #333; background: rgba(30, 30, 30, 0.8); width: 100%; text-align: center;">
+                    <i class="fas fa-search" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); color: #777; font-size: 1.2rem;"></i>
+                </div>
+                
+                <div id="searchResultsCount" style="text-align: center; color: #888; margin-bottom: 20px; font-size: 1rem; min-height: 24px;"></div>
+                
+                <div id="searchResultsContainer" style="flex: 1; overflow-y: auto; background: rgba(20, 20, 20, 0.3); border-radius: 12px; padding: 25px; min-height: 300px; display: flex; align-items: center; justify-content: center; color: #777; transition: all 0.3s ease; border: 1px solid #2a2a2a; max-height: 60vh;">
+                    <div style="text-align: center; padding: 40px;">
+                        <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 20px; color: #444;"></i>
+                        <p style="margin: 0; font-size: 1.2rem; color: #aaa;">Start typing to search the database</p>
+                        <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666;">Results will appear here</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="typeModal" class="modal">
         <button class="close" style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
         <div class="modal-content">
@@ -2695,7 +2776,6 @@
         </div>
     </div>
 
-    <!-- Human Form Modal -->
     <div id="humanModal" class="modal">
         <button class="close" style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
         <div class="modal-content">
@@ -2707,7 +2787,6 @@
                     <input type="hidden" id="humanId">
                     
                     <div class="modal-form-layout">
-                        <!-- Left Column -->
                         <div class="form-section">
                             <h3><i class="fas fa-user"></i> Personal Info</h3>
                             <div class="form-group compact">
@@ -2735,7 +2814,6 @@
                             </div>
                         </div>
                         
-                        <!-- Right Column -->
                         <div class="form-section">
                             <h3><i class="fas fa-chart-line"></i> Social Profile</h3>
                             <div class="form-group compact">
@@ -2755,31 +2833,26 @@
                             <div class="form-group">
                                 <label for="humanTags">Tags</label>
                                 <select id="humanTags" class="form-control" multiple size="4">
-                                    <!-- Tags will be populated dynamically -->
                                 </select>
                             </div>
                         </div>
                         
-                        <!-- Full Width Section -->
                         <div class="form-section full-width">
                             <h3><i class="fas fa-network-wired"></i> Relationships</h3>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                                 <div class="form-group">
                                     <label for="friends">Friends</label>
                                     <select id="friends" class="form-control" multiple size="4">
-                                        <!-- Options will be populated dynamically -->
                                     </select>
                                 </div>
                                 <div class="form-group">
                                     <label for="family">Family</label>
                                     <select id="family" class="form-control" multiple size="4">
-                                        <!-- Options will be populated dynamically -->
                                     </select>
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- Full Width Section -->
                         <div class="form-section full-width">
                             <h3><i class="fas fa-sticky-note"></i> Additional Information</h3>
                             <div class="form-group">
@@ -2805,7 +2878,6 @@
         </div>
     </div>
 
-    <!-- Other Form Modal -->
     <div id="otherModal" class="modal">
         <button class="close" style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
         <div class="modal-content">
@@ -2844,7 +2916,6 @@
         </div>
     </div>
 
-    <!-- Chat Upload Modal -->
     <div id="chatUploadModal" class="modal">
         <button class="close" style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
         <div class="modal-content" style="max-width: 700px;">
@@ -2898,7 +2969,6 @@
         </div>
     </div>
 
-    <!-- Context Selection Modal -->
     <div id="contextModal" class="modal context-modal">
         <button class="close" style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
         <div class="modal-content" style="max-width: 800px;">
@@ -2907,7 +2977,6 @@
             </div>
             <div class="modal-body">
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
-                    <!-- People Section -->
                     <div>
                         <h3 style="margin-bottom: 15px; color: #ffffff; border-bottom: 1px solid #444; padding-bottom: 10px;">People</h3>
                         <div id="contextPeople" style="max-height: 300px; overflow-y: auto; border: 1px solid #444; border-radius: 7px; padding: 10px; background: rgba(30, 30, 30, 0.5);">
@@ -2915,7 +2984,6 @@
                         </div>
                     </div>
                     
-                    <!-- Chats Section -->
                     <div>
                         <h3 style="margin-bottom: 15px; color: #ffffff; border-bottom: 1px solid #444; padding-bottom: 10px;">Chats</h3>
                         <div id="contextChats" style="max-height: 300px; overflow-y: auto; border: 1px solid #444; border-radius: 7px; padding: 10px; background: rgba(30, 30, 30, 0.5);">
@@ -2923,7 +2991,6 @@
                         </div>
                     </div>
                     
-                    <!-- Fraud Logs Section -->
                     <div>
                         <h3 style="margin-bottom: 15px; color: #ffffff; border-bottom: 1px solid #444; padding-bottom: 10px;">Fraud Logs</h3>
                         <div id="contextFraudLogs" style="max-height: 300px; overflow-y: auto; border: 1px solid #444; border-radius: 7px; padding: 10px; background: rgba(30, 30, 30, 0.5);">
@@ -2944,7 +3011,6 @@
         </div>
     </div>
 
-    <!-- Detail View Modal -->
     <div id="detailViewModal" class="detail-view">
         <button class="close" id="closeDetail"
             style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
@@ -2953,7 +3019,6 @@
                 <h2 id="detailTitle">Entry Details</h2>
             </div>
             <div class="detail-body">
-                <!-- Profile Section (Left Column) -->
                 <div class="profile-section">
                     <div id="profilePictureContainer">
                         <div class="profile-placeholder" id="profilePlaceholder">
@@ -2984,7 +3049,6 @@
                     </div>
                 </div>
                 
-                <!-- Basic Information (Middle Column) -->
                 <div class="detail-section">
                     <h3><i class="fas fa-id-card"></i> Basic Information</h3>
                     <div class="detail-item">
@@ -3013,7 +3077,6 @@
                     </div>
                 </div>
                 
-                <!-- Additional Information (Right Column) -->
                 <div class="detail-section">
                     <h3><i class="fas fa-info-circle"></i> Additional Information</h3>
                     <div class="detail-item" id="detailNotesContainer">
@@ -3034,7 +3097,6 @@
                     </div>
                 </div>
                 
-                <!-- Family Graph (Full Width Below) -->
                 <div class="family-graph-container" id="familyGraphContainer">
                     <h3><i class="fas fa-sitemap"></i> Family Relationships</h3>
                     <div class="family-graph" id="familyGraph">
@@ -3055,7 +3117,6 @@
 
 
 
-    <!-- Hidden Connections Modal -->
     <div id="hiddenConnectionsModal" class="ai-chat-modal">
         <button class="close" id="closeConnectionsModal"
             style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
@@ -3099,14 +3160,12 @@
 
         let aiChatHistory = [];
 
-        // Auto-save variables
         let autoSaveInterval;
         let pendingChanges = false;
         let lastChangeTime = 0;
-        const AUTO_SAVE_DELAY = 2000; // 2 seconds after last change
-        const PERIODIC_SAVE_INTERVAL = 30000; // 30 seconds regular save
+        const AUTO_SAVE_DELAY = 2000;
+        const PERIODIC_SAVE_INTERVAL = 30000;
 
-        // Track which menu sections are open
         let openMenuSections = [];
 
         const newDataBtn = document.getElementById('newDataBtn');
@@ -3137,7 +3196,6 @@
         const refreshCreditsBtn = document.getElementById('refreshCreditsBtn');
         const sortByCreditBtn = document.getElementById('sortByCreditBtn');
         
-        // Chat Control elements
         const chatControlBtn = document.getElementById('chatControlBtn');
         const analyzeAllChatsBtn = document.getElementById('analyzeAllChatsBtn');
         const refreshChatListBtn = document.getElementById('refreshChatListBtn');
@@ -3145,14 +3203,11 @@
         const clearChatHistoryBtn = document.getElementById('clearChatHistoryBtn');
         const savedChatsList = document.getElementById('savedChatsList');
 
-        // Tab system elements
         const tabBar = document.getElementById('tabBar');
         const addTabBtn = document.getElementById('addTabBtn');
         
-        // Chat menu elements
         const chatMenu = document.getElementById('chatMenu');
 
-        // Function to toggle menu sections
         function toggleMenuSection(sectionId) {
             try {
                 const content = document.getElementById(sectionId);
@@ -3180,7 +3235,6 @@
             }
         }
 
-        // Function for quick actions
         function quickAction(action) {
             try {
                 switch (action) {
@@ -3212,7 +3266,6 @@
                         console.warn('Unknown quick action:', action);
                         return;
                 }
-                // Close the menu after selecting an action
                 if (chatMenu) {
                     chatMenu.style.display = 'none';
                 }
@@ -3221,9 +3274,7 @@
             }
         }
 
-        // Tab System Functions
         function initTabs() {
-            // Add click handlers for existing tabs
             document.querySelectorAll('.tab[data-tab]').forEach(tab => {
                 tab.addEventListener('click', (e) => {
                     if (!e.target.classList.contains('tab-close')) {
@@ -3231,7 +3282,6 @@
                     }
                 });
                 
-                // Add close handler
                 const closeBtn = tab.querySelector('.tab-close');
                 if (closeBtn) {
                     closeBtn.addEventListener('click', (e) => {
@@ -3241,7 +3291,6 @@
                 }
             });
             
-            // Add dropdown menu button handler
             if (addTabBtn) {
                 addTabBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -3249,7 +3298,6 @@
                 });
             }
             
-            // Add dropdown item handlers
             document.querySelectorAll('.dropdown-item').forEach(item => {
                 item.addEventListener('click', () => {
                     const tabId = item.dataset.tab;
@@ -3258,7 +3306,6 @@
                 });
             });
             
-            // Close dropdown when clicking outside
             document.addEventListener('click', (e) => {
                 try {
                     const tabBarElement = document.querySelector('.tab-bar');
@@ -3274,7 +3321,6 @@
                 }
             });
             
-            // Show dashboard by default
             switchTab('dashboard');
         }
 
@@ -3289,7 +3335,6 @@
         }
 
         function openOrCreateTab(tabId) {
-            // Check if tab already exists
             const existingTab = document.querySelector(`.tab[data-tab="${tabId}"]`);
             if (existingTab) {
                 switchTab(tabId);
@@ -3299,26 +3344,21 @@
         }
 
         function createTab(tabId) {
-            // Check if tab already exists
             const existingTab = document.querySelector(`.tab[data-tab="${tabId}"]`);
             if (existingTab) {
-                // If tab exists, just switch to it
                 switchTab(tabId);
                 return;
             }
             
-            // Validate tab bar exists
             if (!tabBar) {
                 console.error('Tab bar not found');
                 return;
             }
             
-            // Create new tab button
             const newTab = document.createElement('button');
             newTab.className = 'tab';
             newTab.dataset.tab = tabId;
             
-            // Set tab label based on tabId
             let tabLabel = tabId.charAt(0).toUpperCase() + tabId.slice(1);
             if (tabId === 'threats') tabLabel = 'Threats & Fraud';
             if (tabId === 'chat-control') tabLabel = 'Chat Security';
@@ -3328,16 +3368,13 @@
                 <span class="tab-close" title="Close tab">&times;</span>
             `;
             
-            // Insert before the flex spacer
             const flexSpacer = tabBar.querySelector('div[style*="flex: 1"]');
             if (flexSpacer) {
                 tabBar.insertBefore(newTab, flexSpacer);
             } else {
-                // Fallback: append to end of tab bar
                 tabBar.appendChild(newTab);
             }
             
-            // Add smooth entrance animation
             newTab.style.opacity = '0';
             newTab.style.transform = 'translateY(10px)';
             setTimeout(() => {
@@ -3346,14 +3383,12 @@
                 newTab.style.transform = 'translateY(0)';
             }, 10);
             
-            // Add event listeners
             newTab.addEventListener('click', (e) => {
                 if (!e.target.classList.contains('tab-close')) {
                     switchTab(tabId);
                 }
             });
             
-            // Add close button listener with error handling
             const closeButton = newTab.querySelector('.tab-close');
             if (closeButton) {
                 closeButton.addEventListener('click', (e) => {
@@ -3362,12 +3397,10 @@
                 });
             }
             
-            // Switch to new tab
             switchTab(tabId);
         }
 
         function switchTab(tabId) {
-            // Update tab buttons
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.classList.remove('active');
             });
@@ -3376,7 +3409,6 @@
                 activeTab.classList.add('active');
             }
             
-            // Update tab content
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.classList.remove('active');
             });
@@ -3384,7 +3416,6 @@
             if (activeContent) {
                 activeContent.classList.add('active');
                 
-                // Initialize specific tabs
                 if (tabId === 'chat-control') {
                     loadSavedChats();
                 }
@@ -3396,23 +3427,19 @@
             const content = document.getElementById(`${tabId}-tab`);
                     
             if (tab && content) {
-                // Don't close the last tab
                 const tabs = document.querySelectorAll('.tab[data-tab]');
                 if (tabs.length <= 1) return;
                         
                 const isActive = tab.classList.contains('active');
                         
-                // Add exit animation
                 tab.style.transition = 'all 0.3s ease';
                 tab.style.opacity = '0';
                 tab.style.transform = 'translateY(10px)';
                         
-                // Remove elements after animation
                 setTimeout(() => {
                     tab.remove();
                     content.remove();
                             
-                    // Switch to another tab if we closed the active one
                     if (isActive) {
                         const remainingTabs = document.querySelectorAll('.tab[data-tab]');
                         if (remainingTabs.length > 0) {
@@ -3444,7 +3471,6 @@
                     version: '2.0'
                 };
                 
-                // Create backup before saving
                 const existingData = localStorage.getItem('pazatorData');
                 if (existingData) {
                     localStorage.setItem('pazatorData_backup', existingData);
@@ -3466,7 +3492,6 @@
                 console.error('❌ Error saving data:', error);
                 updatePersistenceIndicator('offline', 'Save Failed');
                 
-                // Try to restore from backup
                 try {
                     const backup = localStorage.getItem('pazatorData_backup');
                     if (backup) {
@@ -3479,18 +3504,15 @@
             }
         }
 
-        // Auto-save system
         function markDataChanged() {
             pendingChanges = true;
             lastChangeTime = Date.now();
             updatePersistenceIndicator('syncing', 'Pending save...');
             
-            // Clear existing timeout
             if (window.autoSaveTimeout) {
                 clearTimeout(window.autoSaveTimeout);
             }
             
-            // Set new timeout for auto-save
             window.autoSaveTimeout = setTimeout(() => {
                 if (pendingChanges) {
                     saveData();
@@ -3498,7 +3520,6 @@
             }, AUTO_SAVE_DELAY);
         }
 
-        // Manual refresh function
         function manualRefresh() {
             console.log('🔄 Manual refresh triggered');
             updatePersistenceIndicator('syncing', 'Refreshing...');
@@ -3514,13 +3535,12 @@
             }
         }
 
-        // Auto-refresh function that runs multiple times
         function autoRefreshSequence() {
             console.log('🚀 Starting auto-refresh sequence...');
             
             let refreshCount = 0;
             const maxRefreshes = 10;
-            const interval = 1000; // 1 second between each refresh
+            const interval = 1000;
             
             const refreshInterval = setInterval(() => {
                 refreshCount++;
@@ -3536,7 +3556,6 @@
                     console.error(`❌ Auto-refresh ${refreshCount} failed:`, error);
                 }
                 
-                // Stop after 10 refreshes or if we have data
                 if (refreshCount >= maxRefreshes || 
                     (pazatorData.humans.length > 0 || pazatorData.others.length > 0)) {
                     clearInterval(refreshInterval);
@@ -3548,7 +3567,6 @@
         }
 
         function startAutoSave() {
-            // Periodic save every 30 seconds regardless of changes
             autoSaveInterval = setInterval(() => {
                 saveData();
             }, PERIODIC_SAVE_INTERVAL);
@@ -3579,7 +3597,6 @@
                     const parsedData = JSON.parse(storedData);
                     console.log('📋 Parsed data structure:', parsedData);
                     
-                    // Validate data structure
                     if (parsedData && typeof parsedData === 'object') {
                         pazatorData = {
                             humans: Array.isArray(parsedData.pazatorData?.humans) ? parsedData.pazatorData.humans : [],
@@ -3596,7 +3613,6 @@
                     }
                 } else {
                     console.log('📭 No stored data found, initializing with defaults');
-                    // Initialize with default structure
                     pazatorData = { humans: [], others: [] };
                     tags = [];
                     saveData(true);
@@ -3605,7 +3621,6 @@
                 console.error('❌ Error loading data:', error);
                 console.error('📋 Error details:', error.message);
                 
-                // Try to load from backup
                 try {
                     console.log('🔄 Attempting to load from backup...');
                     const backupData = localStorage.getItem('pazatorData_backup');
@@ -3617,7 +3632,6 @@
                         console.log(`📥 Loaded from backup: ${pazatorData.humans.length} humans, ${pazatorData.others.length} others`);
                     } else {
                         console.log('📭 No backup data found, using defaults');
-                        // Fallback to defaults
                         pazatorData = { humans: [], others: [] };
                         tags = [];
                     }
@@ -3628,12 +3642,10 @@
                 }
             }
             
-            // Always render the nodes after loading
             console.log('🎨 Rendering web nodes with loaded data...');
             console.log('📊 Data to render:', { humans: pazatorData.humans.length, others: pazatorData.others.length });
             renderWebNodes();
             
-            // Update persistence indicator
             const totalItems = pazatorData.humans.length + pazatorData.others.length;
             updatePersistenceIndicator('online', `Loaded (${totalItems} items)`);
         }
@@ -3920,14 +3932,11 @@
 
             document.currentDetailData = { ...data, type };
 
-            // Update header
             document.getElementById('detailTitle').textContent = `${data.name} - Details`;
             
-            // Update profile section
             document.getElementById('profileName').textContent = data.name;
             document.getElementById('profileType').textContent = type.charAt(0).toUpperCase() + type.slice(1);
             
-            // Update profile stats
             if (type === 'human') {
                 const friendsCount = data.friends ? data.friends.length : 0;
                 const familyCount = data.family ? data.family.length : 0;
@@ -3945,7 +3954,6 @@
                 document.getElementById('statCredit').textContent = 'N/A';
             }
             
-            // Update profile picture
             const profilePictureContainer = document.getElementById('profilePictureContainer');
             if (data.imagePreview) {
                 profilePictureContainer.innerHTML = `
@@ -3961,7 +3969,6 @@
                 `;
             }
 
-            // Update detail sections
             document.getElementById('detailName').textContent = data.name;
             document.getElementById('detailType').textContent = type.charAt(0).toUpperCase() + type.slice(1);
 
@@ -4212,17 +4219,14 @@
             messageDiv.className = `ai-message ${sender}`;
             messageDiv.textContent = message;
 
-            // Use requestAnimationFrame to reduce jank
             requestAnimationFrame(() => {
                 aiChatMessages.appendChild(messageDiv);
 
-                // Smooth scroll to bottom
                 aiChatMessages.scrollTo({
                     top: aiChatMessages.scrollHeight,
                     behavior: 'smooth'
                 });
 
-                // Force reflow to ensure smooth animation
                 messageDiv.offsetHeight;
             });
 
@@ -4491,13 +4495,10 @@
                 console.error('Critical Error in processAICommand:', error);
                 addMessageToAIChat("Sorry, I encountered a critical error. Please try again.", 'ai');
             } finally {
-                // Use requestAnimationFrame to ensure UI updates smoothly
                 requestAnimationFrame(() => {
                     aiSendBtn.disabled = false;
-                    // Don't reset button text - keep it as is
                     aiInput.value = '';
 
-                    // Focus input for better UX
                     aiInput.focus();
                 });
             }
@@ -4611,7 +4612,6 @@
                 const addHumanActions = actions.filter(action => action.action === "add_human");
                 const otherActions = actions.filter(action => action.action !== "add_human");
 
-                // Process add_human actions
                 for (const action of addHumanActions) {
                     try {
                         const result = handleAIAction(action, true);
@@ -4628,13 +4628,11 @@
                     }
                 }
 
-                // Save and render after all add_human actions
                 if (addHumanActions.length > 0) {
                     markDataChanged();
                     renderWebNodes();
                 }
 
-                // Process other actions
                 for (const action of otherActions) {
                     try {
                         const result = handleAIAction(action, true);
@@ -4651,13 +4649,11 @@
                     }
                 }
 
-                // Create family connections if needed
                 if (addHumanActions.length >= 10) {
                     createFamilyConnections();
                     batchResponse += "- Created family connections between people\n";
                 }
 
-                // Final save and render if needed
                 if (completedActions > 0 && addHumanActions.length === 0) {
                     markDataChanged();
                     renderWebNodes();
@@ -4969,7 +4965,6 @@
             typeModal.style.zIndex = '1000';
         });
 
-        // Chat Upload functionality
         const chatUploadBtn = document.getElementById('chatUploadBtn');
         const chatUploadModal = document.getElementById('chatUploadModal');
         const chatSource = document.getElementById('chatSource');
@@ -4983,7 +4978,6 @@
         const uploadChatBtn = document.getElementById('uploadChatBtn');
 
         chatUploadBtn.addEventListener('click', () => {
-            // Hide all other modals
             [humanModal, otherModal, detailViewModal, aiChatModal, typeModal].forEach(modal => {
                 if (modal) {
                     modal.style.display = 'none';
@@ -4991,16 +4985,13 @@
                 }
             });
 
-            // Reset form
             document.getElementById('chatUploadForm').reset();
             fileNameDisplay.style.display = 'none';
             chatParticipants.innerHTML = '<p style="color: #777; text-align: center; margin: 20px 0;">Loading participants...</p>';
             
-            // Show modal
             chatUploadModal.style.display = 'flex';
             chatUploadModal.style.zIndex = '1000';
             
-            // Load participants
             setTimeout(loadChatParticipants, 500);
         });
 
@@ -5098,7 +5089,6 @@
                 fileNameDisplay.textContent = `Selected: ${file.name}`;
                 fileNameDisplay.style.display = 'block';
                 
-                // Read file content
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     chatContent.value = event.target.result;
@@ -5156,7 +5146,6 @@
             const content = chatContent.value.trim();
             const context = chatContext.value.trim();
             
-            // Get selected participants
             const selectedParticipants = [];
             document.querySelectorAll('#chatParticipants input[type="checkbox"]:checked').forEach(checkbox => {
                 const human = pazatorData.humans.find(h => h.id === checkbox.value);
@@ -5179,12 +5168,10 @@
                 return;
             }
             
-            // Disable button during processing
             uploadChatBtn.disabled = true;
             uploadChatBtn.textContent = 'Processing...';
             
             try {
-                // Process the chat data
                 const chatData = {
                     source: source,
                     content: content,
@@ -5193,36 +5180,29 @@
                     timestamp: new Date().toISOString()
                 };
                 
-                // Store chat data
                 let chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
                 chatHistory.push(chatData);
                 localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
                 
-                // Add chat as context for AI
                 addChatContextToAI(chatData);
                 
-                // Success message
                 alert(`Successfully processed chat with ${selectedParticipants.length} participants! This chat data is now available for AI analysis.`);
                 
-                // Close modal
                 chatUploadModal.style.display = 'none';
                 chatUploadModal.style.zIndex = '-1';
                 
-                // Ensure data persistence
                 postChatProcessingCleanup();
                 
             } catch (error) {
                 console.error('Error processing chat:', error);
                 alert('Error processing chat. Please try again.');
             } finally {
-                // Re-enable button
                 uploadChatBtn.disabled = false;
                 uploadChatBtn.textContent = 'Process Chat';
             }
         });
 
         function addChatContextToAI(chatData) {
-            // Add chat context to AI system
             const chatSummary = {
                 type: 'chat_context',
                 source: chatData.source,
@@ -5232,20 +5212,16 @@
                 timestamp: chatData.timestamp
             };
             
-            // Store in a way that AI can access it
             let aiContext = JSON.parse(localStorage.getItem('aiChatContext') || '[]');
             aiContext.push(chatSummary);
             localStorage.setItem('aiChatContext', JSON.stringify(aiContext));
         }
 
-        // Fix data loading to prevent people from disappearing
         function ensureDataPersistence() {
-            // Make sure we don't accidentally overwrite existing data
             const storedData = localStorage.getItem('pazatorData');
             if (storedData) {
                 const parsedData = JSON.parse(storedData);
                 if (parsedData.pazatorData) {
-                    // Merge rather than replace to prevent data loss
                     pazatorData.humans = [...(pazatorData.humans || []), ...(parsedData.pazatorData.humans || []).filter(h => 
                         !pazatorData.humans.some(existing => existing.id === h.id)
                     )];
@@ -5259,34 +5235,28 @@
             renderWebNodes();
         }
 
-        // Call this after chat processing to ensure data persistence
         function postChatProcessingCleanup() {
             setTimeout(() => {
                 ensureDataPersistence();
-                // Re-render to make sure everything is displayed correctly
                 renderWebNodes();
             }, 100);
         }
 
-        // Context Selection Modal functionality
         const contextModal = document.getElementById('contextModal');
         const cancelContextBtn = document.getElementById('cancelContextBtn');
         const applyContextBtn = document.getElementById('applyContextBtn');
         const contextNotes = document.getElementById('contextNotes');
 
         document.getElementById('addContextOption')?.addEventListener('click', () => {
-            // Hide chat options menu
             chatOptionsMenu.classList.remove('active');
             
-            // Show context modal OVER the AI chat modal
             loadContextData();
             contextModal.style.display = 'flex';
-            contextModal.style.zIndex = '1005'; // Highest z-index to ensure it overlays AI chat
+            contextModal.style.zIndex = '1005';
             contextModal.style.visibility = 'visible';
             contextModal.style.opacity = '1';
             contextModal.style.pointerEvents = 'auto';
             
-            // Ensure AI chat modal doesn't block pointer events
             aiChatModal.style.pointerEvents = 'none';
         });
 
@@ -5390,11 +5360,9 @@
         function loadContextFraudLogs() {
             const container = document.getElementById('contextFraudLogs');
             
-            // Load real fraud logs from storage
             const fraudLogs = JSON.parse(localStorage.getItem('fraudLogs') || '[]');
             const terroristLogs = JSON.parse(localStorage.getItem('terroristLogs') || '[]');
             
-            // Combine and sort all security logs
             const allLogs = [
                 ...fraudLogs.map(log => ({ ...log, category: 'fraud' })),
                 ...terroristLogs.map(log => ({ ...log, category: 'terrorist' }))
@@ -5448,12 +5416,10 @@
         cancelContextBtn.addEventListener('click', () => {
             contextModal.style.display = 'none';
             contextModal.style.zIndex = '-1';
-            // Restore AI chat modal pointer events
             aiChatModal.style.pointerEvents = 'auto';
         });
 
         applyContextBtn.addEventListener('click', () => {
-            // Get selected items
             const selectedContext = {
                 people: [],
                 chats: [],
@@ -5462,7 +5428,6 @@
                 timestamp: new Date().toISOString()
             };
             
-            // Collect selected people
             document.querySelectorAll('#contextPeople input[type="checkbox"]:checked').forEach(checkbox => {
                 const human = pazatorData.humans.find(h => h.id === checkbox.value);
                 if (human) {
@@ -5475,7 +5440,6 @@
                 }
             });
             
-            // Collect selected chats
             const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
             document.querySelectorAll('#contextChats input[type="checkbox"]:checked').forEach(checkbox => {
                 const chatIndex = parseInt(checkbox.value);
@@ -5484,7 +5448,6 @@
                 }
             });
             
-            // Collect selected security logs
             document.querySelectorAll('#contextFraudLogs input[type="checkbox"]:checked').forEach(checkbox => {
                 const logId = checkbox.value;
                 const allLogs = [
@@ -5498,19 +5461,14 @@
                 }
             });
             
-            // Store context for AI
             storeAIContext(selectedContext);
             
-            // Update context display
             updateContextDisplay(selectedContext);
             
-            // Close modal
             contextModal.style.display = 'none';
             contextModal.style.zIndex = '-1';
-            // Restore AI chat modal pointer events
             aiChatModal.style.pointerEvents = 'auto';
             
-            // Show confirmation
             alert(`Context applied! Selected: ${selectedContext.people.length} people, ${selectedContext.chats.length} chats, ${selectedContext.fraudLogs.length} fraud logs.`);
         });
 
@@ -5519,10 +5477,8 @@
             
             if (!contextDisplay) return;
             
-            // Clear current display
             contextDisplay.innerHTML = '';
             
-            // Check if any context is selected
             const hasContext = context.people.length > 0 || context.chats.length > 0 || context.fraudLogs.length > 0;
             
             if (!hasContext) {
@@ -5530,7 +5486,6 @@
                 return;
             }
             
-            // Add people cards
             context.people.forEach(person => {
                 const card = document.createElement('div');
                 card.className = 'context-card people';
@@ -5544,7 +5499,6 @@
                 contextDisplay.appendChild(card);
             });
             
-            // Add chat cards
             context.chats.forEach((chat, index) => {
                 const card = document.createElement('div');
                 card.className = 'context-card chats';
@@ -5560,7 +5514,6 @@
                 contextDisplay.appendChild(card);
             });
             
-            // Add fraud log cards
             context.fraudLogs.forEach(log => {
                 const card = document.createElement('div');
                 card.className = 'context-card fraud';
@@ -5574,7 +5527,6 @@
                 contextDisplay.appendChild(card);
             });
             
-            // Add clear context button if there's context
             if (hasContext) {
                 const clearBtn = document.createElement('div');
                 clearBtn.className = 'context-card';
@@ -5593,13 +5545,11 @@
         }
 
         function storeAIContext(context) {
-            // Format context for AI
             let contextSummary = 'Context provided by admin:\n\n';
             
-            // Add automatic clearing after use (optional)
             setTimeout(() => {
                 localStorage.removeItem('adminProvidedContext');
-            }, 300000); // Clear after 5 minutes
+            }, 300000);
             
             if (context.people.length > 0) {
                 contextSummary += 'PEOPLE:\n';
@@ -5632,7 +5582,6 @@
                 contextSummary += `ADDITIONAL NOTES: ${context.notes}\n`;
             }
             
-            // Store in localStorage for AI access
             localStorage.setItem('adminProvidedContext', JSON.stringify({
                 summary: contextSummary,
                 data: context,
@@ -5640,7 +5589,6 @@
             }));
         }
 
-        // Modify AI context provider to include admin context
         function getAdminContext() {
             const storedContext = localStorage.getItem('adminProvidedContext');
             if (storedContext) {
@@ -5658,7 +5606,6 @@
         askAIBtn.addEventListener('click', () => {
             console.log('Ask AI button clicked - attempting to show modal');
 
-            // Hide all other modals first
             const allModals = [typeModal, humanModal, otherModal, detailViewModal, document.getElementById('hiddenConnectionsModal')];
             allModals.forEach(modal => {
                 if (modal) {
@@ -5667,11 +5614,9 @@
                 }
             });
 
-            // Show the AI chat modal
             aiChatModal.style.display = 'flex';
-            aiChatModal.style.zIndex = '1001'; // Lower z-index to allow context modal to overlay
+            aiChatModal.style.zIndex = '1001';
 
-            // Also set these properties to be sure
             aiChatModal.style.visibility = 'visible';
             aiChatModal.style.opacity = '1';
             aiChatModal.style.pointerEvents = 'auto';
@@ -5679,7 +5624,6 @@
             console.log('Modal display style:', aiChatModal.style.display);
             console.log('Modal z-index:', aiChatModal.style.zIndex);
 
-            // Focus on the input
             setTimeout(() => {
                 if (aiInput) {
                     aiInput.focus();
@@ -5693,20 +5637,16 @@
             const threatsPanel = document.getElementById('threatsPanel');
 
             if (threatsPanel.style.display === 'none' || threatsPanel.style.display === '') {
-                // Show threats panel - split the main canvas
                 threatsPanel.style.display = 'block';
                 container.classList.add('threats-split');
 
-                // Load previous findings
                 loadPreviousFindings();
             } else {
-                // Hide threats panel - restore original layout
                 threatsPanel.style.display = 'none';
                 container.classList.remove('threats-split');
             }
         });
 
-        // Tab action button event listeners - create new tabs
         document.getElementById('dashboardBtn').addEventListener('click', () => {
             createTab('dashboard');
         });
@@ -5733,14 +5673,12 @@
                     }, 300);
                 } else {
 
-                    // Add hiding class to all modals first
                     [typeModal, humanModal, otherModal, detailViewModal, aiChatModal, document.getElementById('hiddenConnectionsModal')].forEach(modal => {
                         if (modal && modal.style.display !== 'none') {
                             modal.classList.add('hiding');
                         }
                     });
 
-                    // Then hide them after animation
                     setTimeout(() => {
                         typeModal.style.display = 'none';
                         humanModal.style.display = 'none';
@@ -5759,7 +5697,6 @@
         });
 
         window.addEventListener('click', (event) => {
-            // Handle clicking outside modals to close them with animation
             const modals = [
                 { element: typeModal, condition: event.target === typeModal },
                 { element: humanModal, condition: event.target === humanModal },
@@ -5788,11 +5725,9 @@
             });
         });
 
-        // Global error handler to prevent crashes
         window.addEventListener('error', (event) => {
             console.error('Global error caught:', event.error);
             
-            // Only show AI error message for actual AI-related errors
             const errorMessage = event.error?.message || event.message || '';
             const isAIError = errorMessage.includes('AI') || 
                              errorMessage.includes('puter.ai') || 
@@ -5800,16 +5735,13 @@
                              errorMessage.includes('handleAIAction') ||
                              errorMessage.includes('extractJSONFromResponse');
             
-            // Prevent the error from crashing the site
             event.preventDefault();
 
-            // Only show error message if we're in the AI chat AND it's actually an AI-related error
             if (aiChatModal && aiChatModal.style.display === 'flex' && isAIError) {
                 try {
                     addMessageToAIChat("Sorry, I encountered an unexpected error. Please try rephrasing your request.", 'ai');
                     if (aiSendBtn) {
                         aiSendBtn.disabled = false;
-                        // Don't reset button text - keep it as is
                     }
                     if (aiInput) {
                         aiInput.value = '';
@@ -5818,7 +5750,6 @@
                     console.error('Error handling global error:', e);
                 }
             }
-            // For non-AI errors, just log them silently
         });
 
         document.getElementById('humanTypeBtn').addEventListener('click', () => {
@@ -5913,29 +5844,24 @@
             deleteCurrentEntry();
         });
 
-        // Helper function to update send button text while preserving icon
         function updateSendButtonText(text) {
             const span = aiSendBtn.querySelector('.btn-icon-text');
             if (span) {
                 span.textContent = text;
             } else {
-                // Fallback if span doesn't exist
                 aiSendBtn.innerHTML = `<i class="fas fa-paper-plane"></i><span class="btn-icon-text">${text}</span>`;
             }
         }
 
-        // Helper function to update improve button text while preserving icon
         function updateImproveButtonText(text) {
             const span = aiImproveBtn.querySelector('.btn-icon-text');
             if (span) {
                 span.textContent = text;
             } else {
-                // Fallback if span doesn't exist
                 aiImproveBtn.innerHTML = `<i class="fas fa-wand"></i><span class="btn-icon-text">${text}</span>`;
             }
         }
 
-        // Function to show notification
         function showNotification(message) {
             const notification = document.getElementById('aiNotification');
             const notificationText = document.getElementById('notificationText');
@@ -5944,14 +5870,12 @@
                 notificationText.textContent = message;
                 notification.style.display = 'block';
 
-                // Hide notification after animation completes
                 setTimeout(() => {
                     notification.style.display = 'none';
                 }, 3000);
             }
         }
 
-        // Function to clear notifications
         function clearNotifications() {
             const notification = document.getElementById('aiNotification');
             if (notification) {
@@ -5959,7 +5883,6 @@
             }
         }
 
-        // Function to improve the prompt using AI
         async function improvePrompt() {
             const originalPrompt = aiInput.value.trim();
             if (!originalPrompt) {
@@ -5968,7 +5891,6 @@
             }
 
             try {
-                // Disable both buttons to prevent multiple clicks
                 aiImproveBtn.disabled = true;
                 aiSendBtn.disabled = true;
 
@@ -6000,7 +5922,6 @@
 
                 const improvedPrompt = aiResponse.content ? aiResponse.content : aiResponse;
 
-                // Update the input field with the improved prompt
                 aiInput.value = improvedPrompt;
 
                 addMessageToAIChat("Prompt improved! You can now send the improved version or improve it again.", 'ai');
@@ -6008,42 +5929,33 @@
                 console.error('Error improving prompt:', error);
                 addMessageToAIChat("Sorry, I encountered an error improving your prompt. Please try again.", 'ai');
             } finally {
-                // Re-enable buttons
                 aiImproveBtn.disabled = false;
                 updateImproveButtonText('');
 
-                // Re-enable send button if it wasn't already disabled
                 if (!aiSendBtn.disabled) {
                     aiSendBtn.disabled = false;
-                    // Don't reset button text - keep it as is
                 }
 
-                // Focus on input for better UX
                 aiInput.focus();
             }
         }
 
-        // Event listener for the improve button
         document.getElementById('aiImproveBtn').addEventListener('click', () => {
             improvePrompt();
         });
 
-        // Optimize send button click handler
         aiSendBtn.addEventListener('click', () => {
             const command = aiInput.value.trim();
             if (command) {
-                // Disable button immediately to prevent double clicks
                 aiSendBtn.disabled = true;
                 showNotification('Sending command...');
 
-                // Use requestAnimationFrame for better responsiveness
                 requestAnimationFrame(() => {
                     processAICommand(command);
                 });
             }
         });
 
-        // Debounce function to prevent excessive processing
         function debounce(func, wait) {
             let timeout;
             return function executedFunction(...args) {
@@ -6056,7 +5968,6 @@
             };
         }
 
-        // Handle Enter key with debouncing
         aiInput.addEventListener('keydown', debounce((e) => {
             if (e.key === 'Enter' && !aiSendBtn.disabled) {
                 e.preventDefault();
@@ -6067,13 +5978,10 @@
             }
         }, 100));
 
-        // Optimize input performance
         aiInput.addEventListener('input', debounce(() => {
-            // Reset send button if there's text
             aiSendBtn.disabled = aiInput.value.trim() === '';
         }, 50));
 
-        // Event listeners for new action buttons
         document.getElementById('historyBtn')?.addEventListener('click', () => {
             alert('Chat history feature would open here. This is a placeholder for future implementation.');
         });
@@ -6082,29 +5990,24 @@
             alert('Favorite commands would appear here. This is a placeholder for future implementation.');
         });
 
-        // Chat options menu functionality
         const chatOptionsMenu = document.getElementById('chatOptionsMenu');
 
-        // Toggle the chat options menu
         chatMenuBtn?.addEventListener('click', (e) => {
             e.stopPropagation();
             chatOptionsMenu.classList.toggle('active');
         });
 
-        // Close menu when clicking elsewhere
         document.addEventListener('click', (e) => {
             if (!chatMenuBtn.contains(e.target) && !chatOptionsMenu.contains(e.target)) {
                 chatOptionsMenu.classList.remove('active');
             }
         });
 
-        // Placeholder functionality for chat options
         document.getElementById('clearChatOption')?.addEventListener('click', () => {
             alert('Clear chat functionality would go here. This is a placeholder for future implementation.');
             chatOptionsMenu.classList.remove('active');
         });
 
-        // Removed the placeholder alert - the actual context modal implementation is above
 
         document.getElementById('humanForm').addEventListener('submit', (e) => {
             e.preventDefault();
@@ -6453,13 +6356,11 @@
         });
 
         document.getElementById('findBothBtn').addEventListener('click', async () => {
-            // Run both analyses
             await Promise.all([
                 findPotentialFraud(),
                 findPotentialTerrorists()
             ]);
 
-            // Reload the findings display
             loadPreviousFindings();
         });
 
@@ -6470,9 +6371,16 @@
             sortByCredit();
         });
 
-        // Chat Control Event Listeners
         chatControlBtn?.addEventListener('click', () => {
             openOrCreateTab('chat-control');
+        });
+
+        document.getElementById('searchBtn')?.addEventListener('click', () => {
+            openOrCreateTab('search');
+        });
+
+        document.getElementById('agentsBtn')?.addEventListener('click', () => {
+            openOrCreateTab('agents');
         });
 
         analyzeAllChatsBtn?.addEventListener('click', async () => {
@@ -6491,7 +6399,6 @@
             clearChatHistory();
         });
 
-        // Threat Report Event Listeners
         document.getElementById('generateThreatReportBtn')?.addEventListener('click', () => {
             generateThreatReport();
         });
@@ -6513,7 +6420,6 @@
             alert(`Sorted ${pazatorData.humans.length} people by credit score!`);
         }
 
-        // Threat Report Functions
         function generateThreatReport() {
             const humanCount = pazatorData.humans.length;
             const otherCount = pazatorData.others.length;
@@ -6618,7 +6524,6 @@
             alert(report);
         }
 
-        // Chat Control Functions
         function loadSavedChats() {
             const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
             
@@ -6710,7 +6615,6 @@
                     });
                 }
                 
-                // Generate summary report
                 let report = `=== Chat Security Analysis Report ===\n\n`;
                 report += `Total Chats Analyzed: ${totalChats}\n`;
                 report += `Suspicious Chats Found: ${totalSuspicious}\n`;
@@ -6860,7 +6764,6 @@
                 report += `Content Preview: ${chat.content.substring(0, 200)}${chat.content.length > 200 ? '...' : ''}\n\n`;
             });
             
-            // Create and download file
             const blob = new Blob([report], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -6886,7 +6789,6 @@
             hiddenConnectionsModal.style.zIndex = '-1';
         });
 
-        // Manual refresh button event listener
         document.getElementById('manualRefreshBtn')?.addEventListener('click', () => {
             manualRefresh();
         });
@@ -7325,7 +7227,6 @@
 
                         renderTerroristsList(terrorists, connectionsList);
 
-                        // Store findings for later display in the threats panel
                         terrorists.forEach(terrorist => {
                             storeFinding('threat', {
                                 name: terrorist.person,
@@ -7335,7 +7236,6 @@
                             });
                         });
 
-                        // Generate and store detailed terrorist logs
                         const terroristLogs = terrorists.map((terrorist, index) => ({
                             type: 'Terrorist Threat Alert',
                             severity: terrorist.threatLevel || 'medium',
@@ -7472,7 +7372,6 @@
 
             findFraudBtn.disabled = true;
 
-            // Generate real fraud logs
             const fraudLogs = [];
             findFraudBtn.textContent = 'Analyzing...';
 
@@ -7558,7 +7457,6 @@
 
                         renderFraudstersList(fraudsters, connectionsList);
 
-                        // Store findings for later display in the fraud panel
                         fraudsters.forEach(fraudster => {
                             storeFinding('fraud', {
                                 name: fraudster.person,
@@ -7568,7 +7466,6 @@
                             });
                         });
 
-                        // Generate and store detailed fraud logs
                         const fraudLogs = fraudsters.map((fraudster, index) => ({
                             type: 'Fraud Detection Alert',
                             severity: fraudster.riskLevel || 'medium',
@@ -7687,29 +7584,22 @@
             });
         }
 
-        // Function to load and display previous threat and fraud findings
         function loadPreviousFindings() {
             const threatsList = document.getElementById('threatsList');
             const fraudList = document.getElementById('fraudList');
 
-            // Clear existing content
             threatsList.innerHTML = '';
             fraudList.innerHTML = '';
 
-            // Get stored findings from localStorage if available
             const storedThreats = JSON.parse(localStorage.getItem('previousThreats') || '[]');
             const storedFraud = JSON.parse(localStorage.getItem('previousFraud') || '[]');
 
-            // If no stored findings, create sample data based on current data
             if (storedThreats.length === 0 && storedFraud.length === 0) {
-                // Generate sample findings based on existing humans data
                 const sampleThreats = [];
                 const sampleFraud = [];
 
-                // Take first few humans as examples
                 pazatorData.humans.slice(0, Math.min(3, pazatorData.humans.length)).forEach((human, index) => {
                     if (index % 2 === 0) {
-                        // Add as threat example
                         sampleThreats.push({
                             name: human.name,
                             riskLevel: index === 0 ? 'high' : 'medium',
@@ -7720,7 +7610,6 @@
                             ]
                         });
                     } else {
-                        // Add as fraud example
                         sampleFraud.push({
                             name: human.name,
                             riskLevel: index === 1 ? 'high' : 'medium',
@@ -7733,20 +7622,17 @@
                     }
                 });
 
-                // Store the generated samples
                 localStorage.setItem('previousThreats', JSON.stringify(sampleThreats));
                 localStorage.setItem('previousFraud', JSON.stringify(sampleFraud));
 
                 renderFindings(sampleThreats, threatsList);
                 renderFindings(sampleFraud, fraudList);
             } else {
-                // Render stored findings
                 renderFindings(storedThreats, threatsList);
                 renderFindings(storedFraud, fraudList);
             }
         }
 
-        // Helper function to render findings
         function renderFindings(findings, container) {
             findings.forEach(item => {
                 const findingItem = document.createElement('div');
@@ -7768,19 +7654,16 @@
             });
         }
 
-        // Function to store findings after analysis
         function storeFinding(type, finding) {
             const storageKey = type === 'threat' ? 'previousThreats' : 'previousFraud';
             const currentFindings = JSON.parse(localStorage.getItem(storageKey) || '[]');
             currentFindings.push(finding);
-            // Keep only the last 10 findings
             if (currentFindings.length > 10) {
                 currentFindings.shift();
             }
             localStorage.setItem(storageKey, JSON.stringify(currentFindings));
         }
 
-        // Function to store detailed fraud logs
         function storeFraudLogs(logs) {
             const currentLogs = JSON.parse(localStorage.getItem('fraudLogs') || '[]');
             const newLogs = logs.map(log => ({
@@ -7792,20 +7675,17 @@
             
             currentLogs.push(...newLogs);
             
-            // Keep only the last 50 fraud logs
             if (currentLogs.length > 50) {
                 currentLogs.splice(0, currentLogs.length - 50);
             }
             
             localStorage.setItem('fraudLogs', JSON.stringify(currentLogs));
             
-            // Update context fraud logs display
             if (document.getElementById('contextFraudLogs')) {
                 loadContextFraudLogs();
             }
         }
 
-        // Function to store detailed terrorist logs
         function storeTerroristLogs(logs) {
             const currentLogs = JSON.parse(localStorage.getItem('terroristLogs') || '[]');
             const newLogs = logs.map(log => ({
@@ -7817,7 +7697,6 @@
             
             currentLogs.push(...newLogs);
             
-            // Keep only the last 50 terrorist logs
             if (currentLogs.length > 50) {
                 currentLogs.splice(0, currentLogs.length - 50);
             }
@@ -7825,11 +7704,9 @@
             localStorage.setItem('terroristLogs', JSON.stringify(currentLogs));
         }
 
-        // Check if user is signed in and show/hide sign in button
         function checkAuthStatus() {
             const signInBtn = document.getElementById('signInBtn');
             if (signInBtn && typeof puter !== 'undefined' && puter.auth) {
-                // Check if puter.auth.on method exists before using it
                 if (typeof puter.auth.isSignedIn === 'function') {
                     if (puter.auth.isSignedIn()) {
                         signInBtn.style.display = 'none';
@@ -7837,28 +7714,23 @@
                         signInBtn.style.display = 'block';
                     }
                 } else {
-                    // Fallback if auth methods aren't available
                     signInBtn.style.display = 'none';
                 }
             }
         }
 
-        // Add event listener for sign in button
         document.getElementById('signInBtn')?.addEventListener('click', async () => {
             try {
                 await puter.auth.signIn();
-                // Check auth status after sign in
                 setTimeout(checkAuthStatus, 1000);
             } catch (error) {
                 console.error('Sign in failed:', error);
             }
         });
 
-        // Check auth status on page load and when auth state changes
         if (typeof puter !== 'undefined' && puter.auth) {
             checkAuthStatus();
             
-            // Only add event listeners if the methods exist
             if (typeof puter.auth.on === 'function') {
                 puter.auth.on('signed-in', () => {
                     checkAuthStatus();
@@ -7869,7 +7741,6 @@
                 });
             }
         } else {
-            // If puter is not loaded yet, check periodically
             const authCheckInterval = setInterval(() => {
                 if (typeof puter !== 'undefined' && puter.auth) {
                     checkAuthStatus();
@@ -7877,16 +7748,13 @@
                 }
             }, 500);
             
-            // Stop checking after 10 seconds
             setTimeout(() => {
                 clearInterval(authCheckInterval);
             }, 10000);
         }
 
-        // Logo dropdown event listeners
         console.log('🔧 Setting up logo dropdown event listeners...');
         
-        // Debug: Check if elements exist
         console.log('🔍 Logo image exists:', !!logoImage);
         console.log('🔍 Refresh option exists:', !!refreshNodesOption);
         console.log('🔍 Classify option exists:', !!classifyOption);
@@ -7897,7 +7765,6 @@
                 e.stopPropagation();
                 console.log('🔄 Logo dropdown: Refresh Nodes clicked');
                 
-                // Do exactly the same as the manual refresh button
                 manualRefresh();
             });
         } else {
@@ -7911,24 +7778,19 @@
                 console.log('🛡️ Logo dropdown: Classify clicked');
                 
                 if (logoImage) {
-                    // Check if already classified
                     if (logoImage.classList.contains('classified')) {
-                        // Toggle back to normal
                         logoImage.classList.remove('classified');
                         window.screenshotsDisabled = false;
                         classifyOption.innerHTML = '<i class="fas fa-shield-alt"></i><span>Classify</span>';
                         classifyOption.style.color = '';
                         console.log('⚪ Logo declassified - returned to normal');
                     } else {
-                        // Turn logo red by removing the filter
                         logoImage.classList.add('classified');
                         console.log('🔴 Logo image classified - turned red');
                         
-                        // Disable screenshots functionality
                         window.screenshotsDisabled = true;
                         console.log('📸 Screenshots disabled');
                         
-                        // Update the menu item to show it's active
                         classifyOption.innerHTML = '<i class="fas fa-shield-alt"></i><span>Classified</span>';
                         classifyOption.style.color = '#ff6b6b';
                     }
@@ -7938,10 +7800,8 @@
             console.error('❌ ClassifyOption not found!');
         }
         
-        // Enhanced initialization with better error handling
         console.log('🚀 Initializing Pazator app...');
         
-        // Wait for DOM to be fully loaded before setting up event listeners
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', setupLogoDropdownListeners);
         } else {
@@ -7951,12 +7811,10 @@
         function setupLogoDropdownListeners() {
             console.log('🔧 Setting up logo dropdown event listeners...');
             
-            // Get fresh references to elements
             const logoImage = document.getElementById('logoImage');
             const refreshNodesOption = document.getElementById('refreshNodesOption');
             const classifyOption = document.getElementById('classifyOption');
             
-            // Debug: Check if elements exist
             console.log('🔍 Logo image exists:', !!logoImage);
             console.log('🔍 Refresh option exists:', !!refreshNodesOption);
             console.log('🔍 Classify option exists:', !!classifyOption);
@@ -7967,7 +7825,6 @@
                     e.stopPropagation();
                     console.log('🔄 Logo dropdown: Refresh Nodes clicked');
                     
-                    // Do exactly the same as the manual refresh button
                     manualRefresh();
                 });
             } else {
@@ -7980,24 +7837,23 @@
                     e.stopPropagation();
                     console.log('🛡️ Logo dropdown: Classify clicked');
                     
-                    // Check if already classified
                     if (logoImage.classList.contains('classified')) {
-                        // Toggle back to normal
                         logoImage.classList.remove('classified');
+                        logoImage.style.boxShadow = '';
+                        logoImage.style.background = '';
                         window.screenshotsDisabled = false;
                         classifyOption.innerHTML = '<i class="fas fa-shield-alt"></i><span>Classify</span>';
                         classifyOption.style.color = '';
                         console.log('⚪ Logo declassified - returned to normal');
                     } else {
-                        // Turn logo red by removing the filter
                         logoImage.classList.add('classified');
+                        logoImage.style.boxShadow = '0 0 15px #ff0000';
+                        logoImage.style.background = 'radial-gradient(circle, #ff0000 0%, #cc0000 100%)';
                         console.log('🔴 Logo image classified - turned red');
                         
-                        // Disable screenshots functionality
                         window.screenshotsDisabled = true;
                         console.log('📸 Screenshots disabled');
                         
-                        // Update the menu item to show it's active
                         classifyOption.innerHTML = '<i class="fas fa-shield-alt"></i><span>Classified</span>';
                         classifyOption.style.color = '#ff6b6b';
                     }
@@ -8007,7 +7863,6 @@
             }
         }
         
-        // Test data persistence on load
         console.log('🔍 Checking localStorage availability...');
         if (typeof(Storage) !== "undefined") {
             console.log('✅ localStorage is available');
@@ -8016,23 +7871,18 @@
         }
         
         try {
-            // Load data first
             loadData();
             console.log('✅ Data loading completed');
             
-            // Render tags
             renderTags();
             console.log('✅ Tags rendered');
             
-            // Initialize tab system
             initTabs();
             console.log('✅ Tabs initialized');
             
-            // Start auto-save system
             startAutoSave();
             console.log('✅ Auto-save system started');
             
-            // Save initial data if it's empty
             if (pazatorData.humans.length === 0 && pazatorData.others.length === 0) {
                 saveData(true);
                 console.log('💾 Initial data saved');
@@ -8041,7 +7891,6 @@
             console.log('🎉 Pazator app fully initialized with enhanced data persistence');
             console.log(`📊 Current data: ${pazatorData.humans.length} humans, ${pazatorData.others.length} others`);
             
-            // Start auto-refresh sequence 2 seconds after initialization
             setTimeout(() => {
                 console.log('⏰ Triggering auto-refresh sequence...');
                 autoRefreshSequence();
@@ -8049,19 +7898,637 @@
             
         } catch (initError) {
             console.error('❌ Fatal initialization error:', initError);
-            // Fallback initialization
             pazatorData = { humans: [], others: [] };
             tags = [];
             renderWebNodes();
             renderTags();
             console.log('⚠️ Using fallback initialization');
             
-            // Even on error, try auto-refresh
             setTimeout(() => {
                 console.log('⏰ Triggering auto-refresh sequence after error...');
                 autoRefreshSequence();
             }, 2000);
         }
+        
+        function initializeSearch() {
+            const searchInput = document.getElementById('universalSearchInput');
+            const resultsContainer = document.getElementById('searchResultsContainer');
+            const resultsCount = document.getElementById('searchResultsCount');
+            
+            if (!searchInput || !resultsContainer) return;
+            
+            let searchTimeout;
+            searchInput.addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    performSearch(searchInput.value.trim());
+                }, 300);
+            });
+            
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    performSearch(searchInput.value.trim());
+                }
+            });
+        }
+        
+        function performSearch(query) {
+            const resultsContainer = document.getElementById('searchResultsContainer');
+            const resultsCount = document.getElementById('searchResultsCount');
+            
+            if (!query) {
+                resultsContainer.innerHTML = `
+                    <div style="text-align: center; padding: 40px;">
+                        <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 20px; color: #444;"></i>
+                        <p style="margin: 0; font-size: 1.2rem;">Enter search terms above to find data</p>
+                        <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666;">Search across all people, their jobs, dates, notes, and relationships</p>
+                    </div>
+                `;
+                resultsCount.textContent = '0 results found';
+                return;
+            }
+            
+            const searchNames = document.getElementById('searchNames')?.checked ?? true;
+            const searchJobs = document.getElementById('searchJobs')?.checked ?? true;
+            const searchDates = document.getElementById('searchDates')?.checked ?? true;
+            const searchNotes = document.getElementById('searchNotes')?.checked ?? true;
+            const searchTags = document.getElementById('searchTags')?.checked ?? true;
+            const searchRelationships = document.getElementById('searchRelationships')?.checked ?? true;
+            
+            const results = [];
+            const queryLower = query.toLowerCase();
+            
+            pazatorData.humans.forEach(person => {
+                const matches = [];
+                
+                if (searchNames && person.name && person.name.toLowerCase().includes(queryLower)) {
+                    matches.push({field: 'Name', value: person.name});
+                }
+                
+                if (searchJobs && person.workplace && person.workplace.toLowerCase().includes(queryLower)) {
+                    matches.push({field: 'Workplace', value: person.workplace});
+                }
+                
+                if (searchDates) {
+                    if (person.birthDate && person.birthDate.toLowerCase().includes(queryLower)) {
+                        matches.push({field: 'Birth Date', value: person.birthDate});
+                    }
+                }
+                
+                if (searchNotes && person.extraNotes && person.extraNotes.toLowerCase().includes(queryLower)) {
+                    matches.push({field: 'Notes', value: person.extraNotes.substring(0, 100) + (person.extraNotes.length > 100 ? '...' : '')});
+                }
+                
+                if (searchTags && person.tags && person.tags.some(tag => tag.toLowerCase().includes(queryLower))) {
+                    const matchingTags = person.tags.filter(tag => tag.toLowerCase().includes(queryLower));
+                    matches.push({field: 'Tags', value: matchingTags.join(', ')});
+                }
+                
+                if (searchRelationships) {
+                    if (person.friends && person.friends.some(friendId => {
+                        const friend = pazatorData.humans.find(h => h.id === friendId);
+                        return friend && friend.name.toLowerCase().includes(queryLower);
+                    })) {
+                        const matchingFriends = person.friends
+                            .map(id => pazatorData.humans.find(h => h.id === id)?.name)
+                            .filter(name => name && name.toLowerCase().includes(queryLower));
+                        if (matchingFriends.length > 0) {
+                            matches.push({field: 'Friends', value: matchingFriends.join(', ')});
+                        }
+                    }
+                    
+                    if (person.family && person.family.some(familyId => {
+                        const familyMember = pazatorData.humans.find(h => h.id === familyId);
+                        return familyMember && familyMember.name.toLowerCase().includes(queryLower);
+                    })) {
+                        const matchingFamily = person.family
+                            .map(id => pazatorData.humans.find(h => h.id === id)?.name)
+                            .filter(name => name && name.toLowerCase().includes(queryLower));
+                        if (matchingFamily.length > 0) {
+                            matches.push({field: 'Family', value: matchingFamily.join(', ')});
+                        }
+                    }
+                }
+                
+                if (matches.length > 0) {
+                    results.push({
+                        type: 'human',
+                        data: person,
+                        matches: matches
+                    });
+                }
+            });
+            
+            pazatorData.others.forEach(item => {
+                const matches = [];
+                
+                if (searchNames && item.name && item.name.toLowerCase().includes(queryLower)) {
+                    matches.push({field: 'Name', value: item.name});
+                }
+                
+                if (searchNotes && item.extraNotes && item.extraNotes.toLowerCase().includes(queryLower)) {
+                    matches.push({field: 'Notes', value: item.extraNotes.substring(0, 100) + (item.extraNotes.length > 100 ? '...' : '')});
+                }
+                
+                if (searchTags && item.tags && item.tags.some(tag => tag.toLowerCase().includes(queryLower))) {
+                    const matchingTags = item.tags.filter(tag => tag.toLowerCase().includes(queryLower));
+                    matches.push({field: 'Tags', value: matchingTags.join(', ')});
+                }
+                
+                if (matches.length > 0) {
+                    results.push({
+                        type: 'other',
+                        data: item,
+                        matches: matches
+                    });
+                }
+            });
+            
+            displaySearchResults(results, query);
+            resultsCount.textContent = `${results.length} result${results.length !== 1 ? 's' : ''} found`;
+        }
+        
+        function displaySearchResults(results, query) {
+            const resultsContainer = document.getElementById('searchResultsContainer');
+            
+            if (results.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #777;">
+                        <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 20px; color: #444;"></i>
+                        <p style="margin: 0; font-size: 1.2rem;">No results found for "${query}"</p>
+                        <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666;">Try different keywords</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; width: 100%;">';
+            
+            results.forEach((result, index) => {
+                const item = result.data;
+                const isHuman = result.type === 'human';
+                
+                html += `
+                    <div style="background: rgba(35, 35, 35, 0.8); border: 1px solid #444; border-radius: 12px; padding: 22px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25); height: fit-content;" 
+                         onclick="openDetailView('${item.id}', '${result.type}')"
+                         onmouseover="this.style.background='rgba(45, 45, 45, 0.95)'; this.style.borderColor='#555'; this.style.transform='translateY(-4px)'; this.style.boxShadow='0 10px 25px rgba(0, 0, 0, 0.35)';"
+                         onmouseout="this.style.background='rgba(35, 35, 35, 0.8)'; this.style.borderColor='#444'; this.style.transform='translateY(0)'; this.style.boxShadow='0 6px 16px rgba(0, 0, 0, 0.25)';">
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px;">
+                            <h3 style="margin: 0; color: #ffffff; font-size: 1.4rem; font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif; flex: 1; padding-right: 15px;">${item.name}</h3>
+                            <span style="background: ${isHuman ? 'linear-gradient(145deg, #2a2a2a, #1f1f1f)' : 'linear-gradient(145deg, #2a2525, #1f1a1a)'}; 
+                                  color: #ddd; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 500; border: 1px solid #555; white-space: nowrap;">
+                                ${isHuman ? '👤 PERSON' : '📎 OTHER'}
+                            </span>
+                        </div>
+                        
+                        ${isHuman && item.workplace ? `
+                            <div style="display: flex; align-items: center; margin-bottom: 14px; color: #aaa; font-size: 1rem;">
+                                <i class="fas fa-building" style="margin-right: 12px; color: #666; width: 20px; text-align: center;"></i>
+                                <span style="flex: 1;">${item.workplace}</span>
+                            </div>
+                        ` : ''}
+                        
+                        ${isHuman && item.birthDate ? `
+                            <div style="display: flex; align-items: center; margin-bottom: 14px; color: #aaa; font-size: 1rem;">
+                                <i class="fas fa-calendar" style="margin-right: 12px; color: #666; width: 20px; text-align: center;"></i>
+                                <span style="flex: 1;">${item.birthDate}</span>
+                            </div>
+                        ` : ''}
+                        
+                        <div style="margin: 18px 0; padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; border-left: 4px solid #666;">
+                            <div style="font-size: 0.9rem; color: #888; margin-bottom: 12px; display: flex; align-items: center; font-weight: 500;">
+                                <i class="fas fa-search" style="margin-right: 10px; color: #666;"></i>
+                                MATCHES FOUND
+                            </div>
+                            ${result.matches.map(match => `
+                                <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <div style="font-weight: 600; color: #ddd; font-size: 1rem; margin-bottom: 6px;">${match.field}</div>
+                                    <div style="color: #bbb; font-size: 0.9rem; padding-left: 16px; border-left: 2px solid #555;">${match.value}</div>
+                                </div>
+                            `).join('').slice(0, -12)} <!-- Remove last border -->
+                        </div>
+                        
+                        ${item.tags && item.tags.length > 0 ? `
+                            <div style="margin-top: 20px; padding-top: 18px; border-top: 1px solid #333;">
+                                <div style="font-size: 0.9rem; color: #888; margin-bottom: 12px; display: flex; align-items: center; font-weight: 500;">
+                                    <i class="fas fa-tags" style="margin-right: 10px; color: #666;"></i>
+                                    TAGS
+                                </div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                    ${item.tags.map(tag => `
+                                        <span style="background: linear-gradient(145deg, #2a2a2a, #1f1f1f); color: #ddd; padding: 6px 14px; border-radius: 16px; font-size: 0.85rem; border: 1px solid #444; transition: all 0.2s ease;">${tag}</span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            resultsContainer.innerHTML = html;
+        }
+        
+
+        function initSearchTab() {
+            initializeSearch();
+            renderRecentSearches();
+        }
+        
+        const originalSwitchTab = switchTab;
+        switchTab = function(tabId) {
+            originalSwitchTab(tabId);
+            if (tabId === 'search') {
+                setTimeout(initSearchTab, 100);
+            }
+            if (tabId === 'agents') {
+                setTimeout(initAgentsTab, 100);
+            }
+        };
+        
+        let activeAgents = [];
+        
+        function initAgentsTab() {
+            const createBtn = document.getElementById('createAgentBtn');
+            const nameInput = document.getElementById('agentName');
+            const goalInput = document.getElementById('agentGoal');
+            
+            if (createBtn) {
+                createBtn.addEventListener('click', createNewAgent);
+            }
+            
+            renderAgentsList();
+        }
+        
+        function createNewAgent() {
+            const name = document.getElementById('agentName').value.trim();
+            const goal = document.getElementById('agentGoal').value.trim();
+            
+            if (!name || !goal) {
+                alert('Please enter both agent name and goal');
+                return;
+            }
+            
+            if (activeAgents.length >= 3) {
+                alert('Maximum 3 agents allowed. Please stop an existing agent first.');
+                return;
+            }
+            
+            const agent = {
+                id: Date.now(),
+                name: name,
+                goal: goal,
+                startTime: new Date(),
+                logs: [],
+                status: 'running',
+                thoughts: [],
+                commandsUsed: []
+            };
+            
+            activeAgents.push(agent);
+            document.getElementById('agentName').value = '';
+            document.getElementById('agentGoal').value = '';
+            
+            renderAgentsList();
+            startAgent(agent.id);
+        }
+        
+        async function startAgent(agentId) {
+            const agent = activeAgents.find(a => a.id === agentId);
+            if (!agent) return;
+            
+            const personNames = pazatorData.humans.map(h => h.name);
+            
+            const systemPrompt = `
+                You are an autonomous AI investigator named "${agent.name}". 
+                Your goal is: ${agent.goal}
+                
+                Available commands:
+                1. GET_PERSON_INFO: {"command": "GET_PERSON_INFO", "person": "Name"} - Get detailed info about a person
+                2. LOG_FINDING: {"command": "LOG_FINDING", "message": "your log message"} - Record findings
+                3. MISSION_COMPLETE: {"command": "MISSION_COMPLETE", "reason": "why you're done"} - End mission
+                
+                Available data: ${personNames.join(', ')}
+                
+                Think step by step. First analyze what information you need, then use commands to gather it.
+                Always explain your reasoning before taking action.
+                Work towards your goal systematically.
+            `;
+            
+            agent.thoughts.push({
+                timestamp: new Date(),
+                message: `Agent ${agent.name} activated with goal: ${agent.goal}`
+            });
+            
+            renderAgentDetail(agent.id);
+            await runAgentCycle(agent.id, systemPrompt);
+        }
+        
+        async function runAgentCycle(agentId, systemPrompt) {
+            const agent = activeAgents.find(a => a.id === agentId);
+            if (!agent || agent.status !== 'running') return;
+            
+            try {
+                const recentThoughts = agent.thoughts.slice(-3).map(t => 
+                    `[${t.timestamp.toLocaleTimeString()}] ${t.message}`
+                ).join('\n');
+                
+                const userPrompt = `
+                    Recent activity:\n${recentThoughts}\n\n
+                    What is your next step? Respond with your thinking process, then execute ONE command.
+                    Format: THINKING: [your analysis]\nACTION: {"command": "COMMAND_NAME", "parameters"}
+                `;
+                
+                const aiResponse = await puter.ai.chat([
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userPrompt }
+                ]);
+                
+                const responseText = aiResponse.content || aiResponse;
+                agent.thoughts.push({
+                    timestamp: new Date(),
+                    message: responseText
+                });
+                
+                const command = parseAgentCommand(responseText);
+                if (command) {
+                    await executeAgentCommand(agentId, command);
+                }
+                
+                renderAgentDetail(agentId);
+                
+                if (agent.status === 'running') {
+                    setTimeout(() => runAgentCycle(agentId, systemPrompt), 3000);
+                }
+                
+            } catch (error) {
+                console.error('Agent error:', error);
+                agent.thoughts.push({
+                    timestamp: new Date(),
+                    message: `Error occurred: ${error.message}`
+                });
+                renderAgentDetail(agentId);
+            }
+        }
+        
+        function parseAgentCommand(response) {
+            const actionMatch = response.match(/ACTION:\s*(\{[^}]+\})/i);
+            if (actionMatch) {
+                try {
+                    return JSON.parse(actionMatch[1]);
+                } catch (e) {
+                    console.error('Failed to parse command:', actionMatch[1]);
+                }
+            }
+            return null;
+        }
+        
+        async function executeAgentCommand(agentId, command) {
+            const agent = activeAgents.find(a => a.id === agentId);
+            if (!agent) return;
+            
+            agent.commandsUsed.push({
+                timestamp: new Date(),
+                command: command.command,
+                parameters: command
+            });
+            
+            switch (command.command) {
+                case 'GET_PERSON_INFO':
+                    const person = pazatorData.humans.find(h => 
+                        h.name.toLowerCase() === command.person.toLowerCase()
+                    );
+                    if (person) {
+                        const info = {
+                            name: person.name,
+                            workplace: person.workplace,
+                            birthDate: person.birthDate,
+                            tags: person.tags,
+                            friends: person.friends?.map(id => 
+                                pazatorData.humans.find(h => h.id === id)?.name
+                            ).filter(Boolean),
+                            family: person.family?.map(id => 
+                                pazatorData.humans.find(h => h.id === id)?.name
+                            ).filter(Boolean),
+                            notes: person.extraNotes
+                        };
+                        agent.thoughts.push({
+                            timestamp: new Date(),
+                            message: `Retrieved info for ${person.name}: ${JSON.stringify(info, null, 2)}`
+                        });
+                    } else {
+                        agent.thoughts.push({
+                            timestamp: new Date(),
+                            message: `Person not found: ${command.person}`
+                        });
+                    }
+                    break;
+                    
+                case 'LOG_FINDING':
+                    agent.logs.push({
+                        timestamp: new Date(),
+                        message: command.message
+                    });
+                    agent.thoughts.push({
+                        timestamp: new Date(),
+                        message: `Logged finding: ${command.message}`
+                    });
+                    break;
+                    
+                case 'MISSION_COMPLETE':
+                    agent.status = 'completed';
+                    agent.thoughts.push({
+                        timestamp: new Date(),
+                        message: `Mission completed: ${command.reason}`
+                    });
+                    alert(`Agent ${agent.name} has completed its mission!\nReason: ${command.reason}`);
+                    break;
+            }
+        }
+        
+        function stopAgent(agentId) {
+            const agent = activeAgents.find(a => a.id === agentId);
+            if (agent) {
+                agent.status = 'stopped';
+                agent.thoughts.push({
+                    timestamp: new Date(),
+                    message: 'Agent manually stopped by user'
+                });
+                renderAgentsList();
+            }
+        }
+        
+        function deleteAgent(agentId) {
+            if (confirm('Are you sure you want to delete this agent?')) {
+                activeAgents = activeAgents.filter(a => a.id !== agentId);
+                renderAgentsList();
+            }
+        }
+        
+        function renderAgentsList() {
+            const container = document.getElementById('agentsList');
+            const countElement = document.getElementById('agentCount');
+            
+            countElement.textContent = `${activeAgents.length}/3`;
+            
+            if (activeAgents.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #777;">
+                        <i class="fas fa-robot" style="font-size: 3rem; margin-bottom: 20px; color: #444;"></i>
+                        <p style="margin: 0; font-size: 1.2rem;">No active agents</p>
+                        <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666;">Create an agent to get started</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = activeAgents.map(agent => {
+                const duration = Math.floor((new Date() - agent.startTime) / 1000);
+                const minutes = Math.floor(duration / 60);
+                const seconds = duration % 60;
+                
+                return `
+                    <div style="background: rgba(40, 40, 40, 0.8); border: 1px solid #444; border-radius: 12px; padding: 20px; transition: all 0.2s ease;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                            <div>
+                                <h3 style="margin: 0 0 8px 0; color: #ffffff; font-size: 1.3rem;">${agent.name}</h3>
+                                <p style="margin: 0; color: #aaa; font-size: 0.95rem;">${agent.goal}</p>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="background: ${agent.status === 'running' ? '#6bcf7f' : agent.status === 'completed' ? '#4d9de0' : '#ff6b6b'}; 
+                                      color: white; padding: 4px 12px; border-radius: 15px; font-size: 0.8rem; font-weight: 500;">
+                                    ${agent.status.toUpperCase()}
+                                </span>
+                                <div style="margin-top: 8px; color: #888; font-size: 0.85rem;">
+                                    ${minutes}m ${seconds}s
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button onclick="renderAgentDetail(${agent.id})" class="btn btn-secondary" style="flex: 1; padding: 10px; font-size: 0.9rem;">
+                                <i class="fas fa-eye" style="margin-right: 6px;"></i>View Details
+                            </button>
+                            ${agent.status === 'running' ? `
+                                <button onclick="stopAgent(${agent.id})" class="btn btn-danger" style="padding: 10px 15px; font-size: 0.9rem;">
+                                    <i class="fas fa-stop"></i>
+                                </button>
+                            ` : ''}
+                            <button onclick="deleteAgent(${agent.id})" class="btn btn-danger" style="padding: 10px 15px; font-size: 0.9rem;">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function renderAgentDetail(agentId) {
+            const agent = activeAgents.find(a => a.id === agentId);
+            if (!agent) return;
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.style.zIndex = '1000';
+            
+            const duration = Math.floor((new Date() - agent.startTime) / 1000);
+            const minutes = Math.floor(duration / 60);
+            const seconds = duration % 60;
+            
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 900px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
+                    <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <h2 style="margin: 0; font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;">${agent.name}</h2>
+                        <button class="close" onclick="this.closest('.modal').remove()" style="background: none; border: none; color: #ddd; font-size: 1.8rem; cursor: pointer;">&times;</button>
+                    </div>
+                    
+                    <div style="display: flex; gap: 20px; flex: 1; overflow: hidden; padding: 20px 0;">
+                        <!-- Left Panel - Agent Thoughts -->
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 15px;">
+                            <h3 style="margin: 0; color: #ffffff; display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-brain" style="color: #6bcf7f;"></i>
+                                Agent Activity
+                                <span style="margin-left: auto; background: #444; color: #ddd; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem;">${minutes}m ${seconds}s</span>
+                            </h3>
+                            
+                            <div style="flex: 1; overflow-y: auto; background: rgba(20, 20, 20, 0.5); border-radius: 10px; padding: 15px;">
+                                ${agent.thoughts.map(thought => `
+                                    <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #333;">
+                                        <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">${thought.timestamp.toLocaleTimeString()}</div>
+                                        <div style="color: #ddd; line-height: 1.5; white-space: pre-wrap;">${thought.message}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        
+                        <!-- Right Panel - Logs and Commands -->
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 15px;">
+                            <h3 style="margin: 0; color: #ffffff; display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-clipboard-list" style="color: #ffd93d;"></i>
+                                Investigation Logs
+                            </h3>
+                            
+                            <div style="flex: 1; overflow-y: auto; background: rgba(20, 20, 20, 0.5); border-radius: 10px; padding: 15px; margin-bottom: 15px;">
+                                ${agent.logs.length > 0 ? agent.logs.map(log => `
+                                    <div style="margin-bottom: 12px; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; border-left: 3px solid #ffd93d;">
+                                        <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">${log.timestamp.toLocaleTimeString()}</div>
+                                        <div style="color: #ddd;">${log.message}</div>
+                                    </div>
+                                `).join('') : `
+                                    <div style="text-align: center; padding: 30px; color: #777;">
+                                        <i class="fas fa-clipboard" style="font-size: 2rem; margin-bottom: 15px; color: #444;"></i>
+                                        <p style="margin: 0;">No logs recorded yet</p>
+                                    </div>
+                                `}
+                            </div>
+                            
+                            <h3 style="margin: 0; color: #ffffff; display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-terminal" style="color: #ff6b6b;"></i>
+                                Commands Used
+                            </h3>
+                            
+                            <div style="flex: 1; overflow-y: auto; background: rgba(20, 20, 20, 0.5); border-radius: 10px; padding: 15px;">
+                                ${agent.commandsUsed.length > 0 ? agent.commandsUsed.map(cmd => `
+                                    <div style="margin-bottom: 12px; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; border-left: 3px solid #ff6b6b;">
+                                        <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">${cmd.timestamp.toLocaleTimeString()}</div>
+                                        <div style="color: #ddd; font-weight: 500; margin-bottom: 5px;">${cmd.command}</div>
+                                        <div style="color: #aaa; font-size: 0.9rem;">${JSON.stringify(cmd.parameters, null, 2)}</div>
+                                    </div>
+                                `).join('') : `
+                                    <div style="text-align: center; padding: 30px; color: #777;">
+                                        <i class="fas fa-terminal" style="font-size: 2rem; margin-bottom: 15px; color: #444;"></i>
+                                        <p style="margin: 0;">No commands executed yet</p>
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; padding-top: 20px; border-top: 1px solid #333;">
+                        <button onclick="this.closest('.modal').remove()" class="btn btn-secondary" style="flex: 1; padding: 12px;">
+                            Close
+                        </button>
+                        ${agent.status === 'running' ? `
+                            <button onclick="stopAgent(${agent.id}); this.closest('.modal').remove()" class="btn btn-danger" style="padding: 12px 20px;">
+                                Stop Agent
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            const thoughtsContainer = modal.querySelector('div[style*="overflow-y: auto"]:first-child');
+            if (thoughtsContainer) {
+                setTimeout(() => {
+                    thoughtsContainer.scrollTop = thoughtsContainer.scrollHeight;
+                }, 100);
+            }
+        }
+        
     </script>
 </body>
 
