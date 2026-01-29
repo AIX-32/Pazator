@@ -1,21 +1,65 @@
-Palantir but not evil
+# Pazator.
 
-A simple monitoring tool I'm building for fun. It's still very much a work in progress.
+A monitoring and analytical platform
+"Palantir, but not evil."
 
-What is this?
 
-Just a personal project to mess around with data and ai. Don't expect anything fancy 
+---
 
-Current Status
+Overview
 
-🚧 Still building the basics. Lots of broken stuff and half-finished features.
+Pazator is a monitoring, data analysis, and intelligence system currently under development. The project explores how large scale data aggregation, automated analysis, and AI driven decision support systems can be designed and operated in a controlled, transparent manner.
 
-What it does (or will do)
+This is not a demonstration project or a polished product. It is an active, evolving system intended for experimentation, learning, and exploration.
 
-· Store larg amounts of data ins clean formst
-· Find relations between things
-· Sort, edit data with AI
 
-Why?
+---
 
-Mostly to understand how this stuff works under the hood. And because it's interesting.
+Purpose
+
+It holds data, analysis's data, and stops things before they happen.
+
+The project focuses on:
+
+Data ingestion and structured storage
+
+Automated analysis pipelines
+
+AI-assisted pattern detection and forecasting
+
+Search and correlation across large datasets
+
+Visual representations of data and relationships
+
+
+
+---
+
+Core Capabilities
+
+Pazator is being designed to support the following capabilities:
+
+Data storage and management for heterogeneous data sources
+
+Automated data analysis and correlation
+
+Predictive and preventative AI systems intended to identify issues before they escalate
+
+Autonomous AI agents that operate toward defined objectives
+
+Threat detection and early warning mechanisms
+
+High-performance search functionality across indexed data
+
+Visual data dashboards and analytical views
+
+Graph-based relationship and connection visualization
+
+---
+
+The scope of the project is intentionally broad and continues to expand as development progresses.
+
+
+This project should not be considered production-ready.
+
+
