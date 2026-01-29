@@ -39,8 +39,6 @@ Core Capabilities
 
 Pazator is being designed to support the following capabilities:
 
-Data storage and management for heterogeneous data sources
-
 Automated data analysis and correlation
 
 Predictive and preventative AI systems intended to identify issues before they escalate
