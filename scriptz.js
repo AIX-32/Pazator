@@ -1,0 +1,5662 @@
+
+let pazatorData = {
+    humans: [],
+    others: []
+};
+
+let tags = [];
+
+let aiChatHistory = [];
+
+let autoSaveInterval;
+let pendingChanges = false;
+let lastChangeTime = 0;
+const AUTO_SAVE_DELAY = 2000;
+const PERIODIC_SAVE_INTERVAL = 30000;
+
+let openMenuSections = [];
+
+const newDataBtn = document.getElementById('newDataBtn');
+const askAIBtn = document.getElementById('askAIBtn');
+const typeModal = document.getElementById('typeModal');
+const humanModal = document.getElementById('humanModal');
+const otherModal = document.getElementById('otherModal');
+const detailViewModal = document.getElementById('detailViewModal');
+const aiChatModal = document.getElementById('aiChatModal');
+const webContainer = document.getElementById('webContainer');
+const aiInput = document.getElementById('aiInput');
+const aiSendBtn = document.getElementById('aiSendBtn');
+const aiImproveBtn = document.getElementById('aiImproveBtn');
+const aiChatMessages = document.getElementById('aiChatMessages');
+
+const searchInput = document.getElementById('searchInput');
+const filterType = document.getElementById('filterType');
+const applyFilterBtn = document.getElementById('applyFilterBtn');
+const tagInput = document.getElementById('tagInput');
+const addTagBtn = document.getElementById('addTagBtn');
+const tagsContainer = document.getElementById('tagsContainer');
+const refreshViewBtn = document.getElementById('refreshViewBtn');
+const toggleConnectionsBtn = document.getElementById('toggleConnectionsBtn');
+const showStatisticsBtn = document.getElementById('showStatisticsBtn');
+const findConnectionsBtn = document.getElementById('findConnectionsBtn');
+const findFraudBtn = document.getElementById('findFraudBtn');
+const findTerroristsBtn = document.getElementById('findTerroristsBtn');
+const refreshCreditsBtn = document.getElementById('refreshCreditsBtn');
+const sortByCreditBtn = document.getElementById('sortByCreditBtn');
+
+const chatControlBtn = document.getElementById('chatControlBtn');
+const analyzeAllChatsBtn = document.getElementById('analyzeAllChatsBtn');
+const refreshChatListBtn = document.getElementById('refreshChatListBtn');
+const exportChatReportBtn = document.getElementById('exportChatReportBtn');
+const clearChatHistoryBtn = document.getElementById('clearChatHistoryBtn');
+const savedChatsList = document.getElementById('savedChatsList');
+
+const tabBar = document.getElementById('tabBar');
+const addTabBtn = document.getElementById('addTabBtn');
+
+const chatMenu = document.getElementById('chatMenu');
+
+function toggleMenuSection(sectionId) {
+    try {
+        const content = document.getElementById(sectionId);
+        const header = content ? content.previousElementSibling : null;
+        const toggle = header ? header.querySelector('.menu-toggle') : null;
+
+        if (!content || !header || !toggle) {
+            console.warn('Menu section elements not found for:', sectionId);
+            return;
+        }
+
+        if (content.style.display === 'block') {
+            content.style.display = 'none';
+            toggle.textContent = '+';
+            openMenuSections = openMenuSections.filter(id => id !== sectionId);
+        } else {
+            content.style.display = 'block';
+            toggle.textContent = '−';
+            if (!openMenuSections.includes(sectionId)) {
+                openMenuSections.push(sectionId);
+            }
+        }
+    } catch (error) {
+        console.error('Error in toggleMenuSection:', error);
+    }
+}
+
+function quickAction(action) {
+    try {
+        switch (action) {
+            case 'show_all_humans':
+                if (aiInput) {
+                    aiInput.value = 'Show me all humans';
+                    aiInput.focus();
+                }
+                break;
+            case 'add_new_human':
+                if (aiInput) {
+                    aiInput.value = 'Add a new human with the name John';
+                    aiInput.focus();
+                }
+                break;
+            case 'find_connections':
+                if (aiInput) {
+                    aiInput.value = 'Find hidden connections in my data';
+                    aiInput.focus();
+                }
+                break;
+            case 'refresh_credits':
+                if (aiInput) {
+                    aiInput.value = 'Refresh person credits';
+                    aiInput.focus();
+                }
+                break;
+            default:
+                console.warn('Unknown quick action:', action);
+                return;
+        }
+        if (chatMenu) {
+            chatMenu.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error in quickAction:', error);
+    }
+}
+
+function initTabs() {
+    document.querySelectorAll('.tab[data-tab]').forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('tab-close')) {
+                switchTab(tab.dataset.tab);
+            }
+        });
+
+        const closeBtn = tab.querySelector('.tab-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeTab(tab.dataset.tab);
+            });
+        }
+    });
+
+    if (addTabBtn) {
+        addTabBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleDropdown();
+        });
+    }
+
+    document.querySelectorAll('.dropdown-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const tabId = item.dataset.tab;
+            openOrCreateTab(tabId);
+            hideDropdown();
+        });
+    });
+
+    document.addEventListener('click', (e) => {
+        try {
+            const tabBarElement = document.querySelector('.tab-bar');
+            const dropdownMenuElement = document.querySelector('.dropdown-menu');
+
+            if (tabBarElement && dropdownMenuElement &&
+                !tabBarElement.contains(e.target) &&
+                !dropdownMenuElement.contains(e.target)) {
+                hideDropdown();
+            }
+        } catch (error) {
+            console.error('Error in document click handler:', error);
+        }
+    });
+
+    switchTab('dashboard');
+}
+
+function toggleDropdown() {
+    const dropdown = document.getElementById('dropdownMenu');
+    dropdown.classList.toggle('show');
+}
+
+function hideDropdown() {
+    const dropdown = document.getElementById('dropdownMenu');
+    dropdown.classList.remove('show');
+}
+
+function openOrCreateTab(tabId) {
+    const existingTab = document.querySelector(`.tab[data-tab="${tabId}"]`);
+    if (existingTab) {
+        switchTab(tabId);
+    } else {
+        createTab(tabId);
+    }
+}
+
+function createTab(tabId) {
+    const existingTab = document.querySelector(`.tab[data-tab="${tabId}"]`);
+    if (existingTab) {
+        switchTab(tabId);
+        return;
+    }
+
+    if (!tabBar) {
+        console.error('Tab bar not found');
+        return;
+    }
+
+    const newTab = document.createElement('button');
+    newTab.className = 'tab';
+    newTab.dataset.tab = tabId;
+
+    let tabLabel = tabId.charAt(0).toUpperCase() + tabId.slice(1);
+    if (tabId === 'threats') tabLabel = 'Threats & Fraud';
+    if (tabId === 'chat-control') tabLabel = 'Chat Security';
+
+    newTab.innerHTML = `
+                ${tabLabel}
+                <span class="tab-close" title="Close tab">&times;</span>
+            `;
+
+    const flexSpacer = tabBar.querySelector('div[style*="flex: 1"]');
+    if (flexSpacer) {
+        tabBar.insertBefore(newTab, flexSpacer);
+    } else {
+        tabBar.appendChild(newTab);
+    }
+
+    newTab.style.opacity = '0';
+    newTab.style.transform = 'translateY(10px)';
+    setTimeout(() => {
+        newTab.style.transition = 'all 0.3s ease';
+        newTab.style.opacity = '1';
+        newTab.style.transform = 'translateY(0)';
+    }, 10);
+
+    newTab.addEventListener('click', (e) => {
+        if (!e.target.classList.contains('tab-close')) {
+            switchTab(tabId);
+        }
+    });
+
+    const closeButton = newTab.querySelector('.tab-close');
+    if (closeButton) {
+        closeButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeTab(tabId);
+        });
+    }
+
+    switchTab(tabId);
+}
+
+function switchTab(tabId) {
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    const activeTab = document.querySelector(`.tab[data-tab="${tabId}"]`);
+    if (activeTab) {
+        activeTab.classList.add('active');
+    }
+
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    const activeContent = document.getElementById(`${tabId}-tab`);
+    if (activeContent) {
+        activeContent.classList.add('active');
+
+        if (tabId === 'chat-control') {
+            loadSavedChats();
+        }
+    }
+}
+
+function closeTab(tabId) {
+    const tab = document.querySelector(`.tab[data-tab="${tabId}"]`);
+    const content = document.getElementById(`${tabId}-tab`);
+
+    if (tab && content) {
+        const tabs = document.querySelectorAll('.tab[data-tab]');
+        if (tabs.length <= 1) return;
+
+        const isActive = tab.classList.contains('active');
+
+        tab.style.transition = 'all 0.3s ease';
+        tab.style.opacity = '0';
+        tab.style.transform = 'translateY(10px)';
+
+        setTimeout(() => {
+            tab.remove();
+            content.remove();
+
+            if (isActive) {
+                const remainingTabs = document.querySelectorAll('.tab[data-tab]');
+                if (remainingTabs.length > 0) {
+                    switchTab(remainingTabs[0].dataset.tab);
+                }
+            }
+        }, 300);
+    }
+}
+
+function updatePersistenceIndicator(status, message) {
+    const statusElement = document.getElementById('persistenceStatus');
+    const textElement = document.getElementById('persistenceText');
+
+    if (statusElement && textElement) {
+        statusElement.className = `persistence-status ${status}`;
+        textElement.textContent = message;
+    }
+}
+
+function saveData(immediate = false) {
+    try {
+        updatePersistenceIndicator('syncing', 'Saving data...');
+
+        const dataToSave = {
+            pazatorData: pazatorData,
+            tags: tags,
+            lastSaved: new Date().toISOString(),
+            version: '2.0'
+        };
+
+        const existingData = localStorage.getItem('pazatorData');
+        if (existingData) {
+            localStorage.setItem('pazatorData_backup', existingData);
+        }
+
+        localStorage.setItem('pazatorData', JSON.stringify(dataToSave));
+
+        if (immediate) {
+            console.log(' Data saved successfully at', new Date().toLocaleTimeString());
+        }
+
+        pendingChanges = false;
+        lastChangeTime = Date.now();
+
+        const totalItems = pazatorData.humans.length + pazatorData.others.length;
+        updatePersistenceIndicator('online', `Saved (${totalItems} items)`);
+        console.log(` Data persistence confirmed: ${totalItems} items stored`);
+    } catch (error) {
+        console.error(' Error saving data:', error);
+        updatePersistenceIndicator('offline', 'Save Failed');
+
+        try {
+            const backup = localStorage.getItem('pazatorData_backup');
+            if (backup) {
+                localStorage.setItem('pazatorData', backup);
+                console.log(' Restored data from backup');
+            }
+        } catch (restoreError) {
+            console.error(' Could not restore from backup:', restoreError);
+        }
+    }
+}
+
+function markDataChanged() {
+    pendingChanges = true;
+    lastChangeTime = Date.now();
+    updatePersistenceIndicator('syncing', 'Pending save...');
+
+    if (window.autoSaveTimeout) {
+        clearTimeout(window.autoSaveTimeout);
+    }
+
+    window.autoSaveTimeout = setTimeout(() => {
+        if (pendingChanges) {
+            saveData();
+        }
+    }, AUTO_SAVE_DELAY);
+}
+
+function manualRefresh() {
+    console.log(' Manual refresh triggered');
+    updatePersistenceIndicator('syncing', 'Refreshing...');
+
+    try {
+        loadData();
+        renderTags();
+        updatePersistenceIndicator('online', `Refreshed (${pazatorData.humans.length + pazatorData.others.length} items)`);
+        console.log(' Manual refresh completed');
+    } catch (error) {
+        console.error(' Manual refresh failed:', error);
+        updatePersistenceIndicator('offline', 'Refresh Failed');
+    }
+}
+
+function autoRefreshSequence() {
+    console.log(' Starting auto-refresh sequence...');
+
+    let refreshCount = 0;
+    const maxRefreshes = 10;
+    const interval = 1000;
+
+    const refreshInterval = setInterval(() => {
+        refreshCount++;
+        console.log(` Auto-refresh ${refreshCount}/${maxRefreshes}`);
+
+        try {
+            loadData();
+            renderTags();
+            const totalItems = pazatorData.humans.length + pazatorData.others.length;
+            updatePersistenceIndicator('syncing', `Auto-loading... (${refreshCount}/${maxRefreshes})`);
+            console.log(` Auto-refresh ${refreshCount} completed - ${totalItems} items`);
+        } catch (error) {
+            console.error(` Auto-refresh ${refreshCount} failed:`, error);
+        }
+
+        if (refreshCount >= maxRefreshes ||
+            (pazatorData.humans.length > 0 || pazatorData.others.length > 0)) {
+            clearInterval(refreshInterval);
+            const finalCount = pazatorData.humans.length + pazatorData.others.length;
+            updatePersistenceIndicator('online', `Auto-loaded (${finalCount} items)`);
+            console.log(` Auto-refresh sequence completed - Final count: ${finalCount} items`);
+        }
+    }, interval);
+}
+
+function startAutoSave() {
+    autoSaveInterval = setInterval(() => {
+        saveData();
+    }, PERIODIC_SAVE_INTERVAL);
+
+    console.log('Auto-save system started');
+}
+
+function stopAutoSave() {
+    if (autoSaveInterval) {
+        clearInterval(autoSaveInterval);
+        autoSaveInterval = null;
+    }
+    if (window.autoSaveTimeout) {
+        clearTimeout(window.autoSaveTimeout);
+        window.autoSaveTimeout = null;
+    }
+    console.log('Auto-save system stopped');
+}
+
+function loadData() {
+    try {
+        console.log(' Starting data load process...');
+
+        const storedData = localStorage.getItem('pazatorData');
+        console.log(' Stored data found:', !!storedData);
+
+        if (storedData) {
+            const parsedData = JSON.parse(storedData);
+            console.log(' Parsed data structure:', parsedData);
+
+            if (parsedData && typeof parsedData === 'object') {
+                pazatorData = {
+                    humans: Array.isArray(parsedData.pazatorData?.humans) ? parsedData.pazatorData.humans : [],
+                    others: Array.isArray(parsedData.pazatorData?.others) ? parsedData.pazatorData.others : []
+                };
+                tags = Array.isArray(parsedData.tags) ? parsedData.tags : [];
+
+                console.log(` Successfully loaded ${pazatorData.humans.length} humans and ${pazatorData.others.length} others`);
+                console.log(' Loaded humans:', pazatorData.humans);
+                console.log(' Loaded others:', pazatorData.others);
+            } else {
+                console.warn('️ Invalid data structure in localStorage');
+                throw new Error('Invalid data structure');
+            }
+        } else {
+            console.log(' No stored data found, initializing with defaults');
+            pazatorData = { humans: [], others: [] };
+            tags = [];
+            saveData(true);
+        }
+    } catch (error) {
+        console.error('Error loading data:', error);
+        console.error('Error details:', error.message);
+
+        try {
+            console.log('Attempting to load from backup...');
+            const backupData = localStorage.getItem('pazatorData_backup');
+            if (backupData) {
+                const parsedBackup = JSON.parse(backupData);
+                pazatorData = parsedBackup.pazatorData || { humans: [], others: [] };
+                tags = parsedBackup.tags || [];
+                console.log('Loaded data from backup');
+                console.log(`Loaded from backup: ${pazatorData.humans.length} humans, ${pazatorData.others.length} others`);
+            } else {
+                console.log('No backup data found, using defaults');
+                pazatorData = { humans: [], others: [] };
+                tags = [];
+            }
+        } catch (backupError) {
+            console.error('Could not load from backup:', backupError);
+            pazatorData = { humans: [], others: [] };
+            tags = [];
+        }
+    }
+
+    console.log('Rendering web nodes with loaded data...');
+    console.log('Data to render:', { humans: pazatorData.humans.length, others: pazatorData.others.length });
+    renderWebNodes();
+
+    const totalItems = pazatorData.humans.length + pazatorData.others.length;
+    updatePersistenceIndicator('online', `Loaded (${totalItems} items)`);
+}
+
+let currentScale = 1;
+let minScale = 0.1;
+let maxScale = 5;
+
+let isDragging = false;
+let startX, startY;
+let startTranslateX = 0, startTranslateY = 0;
+let currentTranslateX = 0, currentTranslateY = 0;
+
+const webContent = document.getElementById('webContent');
+
+function fitAllNodesInView() {
+
+    const nodes = document.querySelectorAll('.data-node');
+
+    if (nodes.length === 0) return;
+
+    let minX = Infinity, minY = Infinity;
+    let maxX = -Infinity, maxY = -Infinity;
+
+    nodes.forEach(node => {
+        const rect = node.getBoundingClientRect();
+        const contentRect = webContent.getBoundingClientRect();
+
+        const x = rect.left - contentRect.left;
+        const y = rect.top - contentRect.top;
+
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x + rect.width);
+        maxY = Math.max(maxY, y + rect.height);
+    });
+
+    const width = maxX - minX;
+    const height = maxY - minY;
+
+    const viewportWidth = webContainer.offsetWidth;
+    const viewportHeight = webContainer.offsetHeight;
+
+    const scaleX = viewportWidth / width;
+    const scaleY = viewportHeight / height;
+
+    let newScale = Math.min(scaleX, scaleY) * 0.9;
+
+    newScale = Math.max(minScale, Math.min(maxScale, newScale));
+
+    const contentWidth = width * newScale;
+    const contentHeight = height * newScale;
+
+    const offsetX = (viewportWidth - contentWidth) / 2 - minX * newScale;
+    const offsetY = (viewportHeight - contentHeight) / 2 - minY * newScale;
+
+    currentScale = newScale;
+    currentTranslateX = offsetX;
+    currentTranslateY = offsetY;
+
+    webContent.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`;
+}
+
+function renderWebNodes() {
+    console.log('Starting renderWebNodes function...');
+    console.log('Current data state:', {
+        humans: pazatorData.humans.length,
+        others: pazatorData.others.length,
+        total: pazatorData.humans.length + pazatorData.others.length
+    });
+
+    webContent.innerHTML = '';
+
+    const searchTerm = searchInput.value.toLowerCase();
+    const selectedType = filterType.value;
+
+    let allData = [
+        ...pazatorData.humans.map(h => ({ ...h, type: 'human' })),
+        ...pazatorData.others.map(o => ({ ...o, type: 'other' }))
+    ];
+
+    console.log(' Raw data to render:', allData);
+
+    if (searchTerm) {
+        allData = allData.filter(data =>
+            data.name.toLowerCase().includes(searchTerm) ||
+            (data.type === 'human' && data.extraNotes && data.extraNotes.toLowerCase().includes(searchTerm)) ||
+            (data.type === 'other' && data.note && data.note.toLowerCase().includes(searchTerm))
+        );
+    }
+
+    if (selectedType !== 'all') {
+        allData = allData.filter(data => data.type === selectedType);
+    }
+
+    console.log(' Filtered data to display:', allData);
+
+    const containerWidth = webContent.offsetWidth;
+    const containerHeight = webContent.offsetHeight;
+    const centerX = containerWidth / 2;
+    const centerY = containerHeight / 2;
+
+    console.log(`️ Creating ${allData.length} nodes...`);
+
+    allData.forEach((data, index) => {
+        console.log(` Creating node ${index + 1}:`, data);
+
+        const node = document.createElement('div');
+        node.className = `data-node ${data.type}`;
+        node.dataset.id = data.id;
+        node.dataset.type = data.type;
+
+        let x, y;
+        if (allData.length === 1) {
+
+            x = centerX - 30;
+            y = centerY - 30;
+        } else {
+
+            const nodesPerCircle = 20;
+            const circleIndex = Math.floor(index / nodesPerCircle);
+            const nodeIndexInCircle = index % nodesPerCircle;
+            const totalCircles = Math.ceil(allData.length / nodesPerCircle);
+
+            const angle = (nodeIndexInCircle / Math.min(nodesPerCircle, allData.length - circleIndex * nodesPerCircle)) * Math.PI * 2;
+
+            const baseDistance = Math.min(containerWidth, containerHeight) * 0.15;
+            const circleSpacing = Math.max(100, baseDistance * 0.5);
+            const distance = baseDistance + (circleIndex * circleSpacing);
+
+            x = centerX + Math.cos(angle) * distance - 30;
+            y = centerY + Math.sin(angle) * distance - 30;
+        }
+
+        node.style.left = `${x}px`;
+        node.style.top = `${y}px`;
+
+        let displayText = data.name;
+        if (data.type === 'human') {
+            if (data.credit !== undefined) {
+                displayText = `${data.name}\n(${Math.round(data.credit)})`;
+            }
+            if (data.socialClass) {
+
+                const classSymbol = data.socialClass === '1%' ? '1%' :
+                    data.socialClass === 'high class' ? 'HC' :
+                        data.socialClass === 'medium class' ? 'MC' : 'LC';
+                displayText += `\n[${classSymbol}]`;
+            }
+        }
+
+        const shortenedName = displayText.length > 12 ? displayText.substring(0, 12) + '...' : displayText;
+        node.textContent = shortenedName;
+
+        const label = document.createElement('div');
+        label.className = 'node-label';
+
+        if (data.type === 'human') {
+            let labelContent = data.name;
+            if (data.credit !== undefined) {
+                labelContent += `<br>Credit: ${Math.round(data.credit)}`;
+            }
+            if (data.socialClass) {
+                labelContent += `<br>Class: ${data.socialClass}`;
+            }
+            label.innerHTML = labelContent;
+        } else {
+            label.textContent = data.name;
+        }
+        node.appendChild(label);
+
+        node.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showDetailView(data, data.type);
+        });
+
+        webContent.appendChild(node);
+        console.log(`Node ${index + 1} appended to DOM`);
+    });
+
+    console.log(`Created ${allData.length} nodes successfully`);
+
+    setTimeout(() => {
+        console.log(' Drawing family connections...');
+        drawFamilyConnections();
+    }, 50);
+
+    if (currentScale === 1 && currentTranslateX === 0 && currentTranslateY === 0) {
+        setTimeout(() => {
+            console.log('Fitting all nodes in view...');
+            fitAllNodesInView();
+        }, 100);
+    }
+
+    console.log('renderWebNodes completed!');
+}
+
+function drawFamilyConnections() {
+
+    document.querySelectorAll('.connection-line').forEach(line => line.remove());
+
+    pazatorData.humans.forEach(human => {
+        if (human.family && human.family.length > 0) {
+            const humanNode = document.querySelector(`.data-node[data-id="${human.id}"]`);
+            if (!humanNode) return;
+
+            human.family.forEach(familyId => {
+                const familyNode = document.querySelector(`.data-node[data-id="${familyId}"]`);
+                if (!familyNode) return;
+
+                const humanRect = humanNode.getBoundingClientRect();
+                const familyRect = familyNode.getBoundingClientRect();
+                const containerRect = webContent.getBoundingClientRect();
+
+                const x1 = humanRect.left + humanRect.width / 2 - containerRect.left;
+                const y1 = humanRect.top + humanRect.height / 2 - containerRect.top;
+                const x2 = familyRect.left + familyRect.width / 2 - containerRect.left;
+                const y2 = familyRect.top + familyRect.height / 2 - containerRect.top;
+
+                const line = document.createElement('div');
+                line.className = 'connection-line';
+
+                const dx = x2 - x1;
+                const dy = y2 - y1;
+                const length = Math.sqrt(dx * dx + dy * dy);
+                const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+                line.style.width = `${length}px`;
+                line.style.height = '2px';
+                line.style.left = `${x1}px`;
+                line.style.top = `${y1}px`;
+                line.style.transform = `rotate(${angle}deg)`;
+
+                line.style.animation = 'pulse 2s infinite';
+
+                webContent.appendChild(line);
+            });
+        }
+    });
+
+    pazatorData.humans.forEach(human => {
+        if (human.friends && human.friends.length > 0) {
+            const humanNode = document.querySelector(`.data-node[data-id="${human.id}"]`);
+            if (!humanNode) return;
+
+            human.friends.forEach(friendId => {
+                const friendNode = document.querySelector(`.data-node[data-id="${friendId}"]`);
+                if (!friendNode) return;
+
+                const humanRect = humanNode.getBoundingClientRect();
+                const friendRect = friendNode.getBoundingClientRect();
+                const containerRect = webContent.getBoundingClientRect();
+
+                const x1 = humanRect.left + humanRect.width / 2 - containerRect.left;
+                const y1 = humanRect.top + humanRect.height / 2 - containerRect.top;
+                const x2 = friendRect.left + friendRect.width / 2 - containerRect.left;
+                const y2 = friendRect.top + friendRect.height / 2 - containerRect.top;
+
+                const line = document.createElement('div');
+                line.className = 'connection-line';
+
+                line.style.background = 'rgba(107, 57, 255, 0.4)';
+                line.style.height = '1px';
+
+                const dx = x2 - x1;
+                const dy = y2 - y1;
+                const length = Math.sqrt(dx * dx + dy * dy);
+                const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+                line.style.width = `${length}px`;
+                line.style.left = `${x1}px`;
+                line.style.top = `${y1}px`;
+                line.style.transform = `rotate(${angle}deg)`;
+
+                line.style.animation = 'pulse 1.5s infinite';
+
+                webContent.appendChild(line);
+            });
+        }
+    });
+}
+
+function showDetailView(data, type) {
+
+    document.currentDetailData = { ...data, type };
+
+    document.getElementById('detailTitle').textContent = `${data.name} - Details`;
+
+    document.getElementById('profileName').textContent = data.name;
+    document.getElementById('profileType').textContent = type.charAt(0).toUpperCase() + type.slice(1);
+
+    if (type === 'human') {
+        const friendsCount = data.friends ? data.friends.length : 0;
+        const familyCount = data.family ? data.family.length : 0;
+        const tagsCount = data.tags ? data.tags.length : 0;
+        const creditValue = data.credit !== undefined ? Math.round(data.credit) : 'N/A';
+
+        document.getElementById('statFriends').textContent = friendsCount;
+        document.getElementById('statFamily').textContent = familyCount;
+        document.getElementById('statTags').textContent = tagsCount;
+        document.getElementById('statCredit').textContent = creditValue;
+    } else {
+        document.getElementById('statFriends').textContent = 'N/A';
+        document.getElementById('statFamily').textContent = 'N/A';
+        document.getElementById('statTags').textContent = 'N/A';
+        document.getElementById('statCredit').textContent = 'N/A';
+    }
+
+    const profilePictureContainer = document.getElementById('profilePictureContainer');
+    if (data.imagePreview) {
+        profilePictureContainer.innerHTML = `
+                    <img class="profile-picture" src="${data.imagePreview}" alt="${data.name}" 
+                         onerror="this.parentElement.innerHTML='<div class=\"profile-placeholder\"><i class=\"fas fa-user\"></i><div>Image Error</div></div>'">
+                `;
+    } else {
+        profilePictureContainer.innerHTML = `
+                    <div class="profile-placeholder">
+                        <i class="fas fa-user"></i>
+                        <div>No Image</div>
+                    </div>
+                `;
+    }
+
+    document.getElementById('detailName').textContent = data.name;
+    document.getElementById('detailType').textContent = type.charAt(0).toUpperCase() + type.slice(1);
+
+    if (type === 'human') {
+        document.getElementById('detailGenderContainer').style.display = 'block';
+        document.getElementById('detailGender').textContent = data.gender || 'Not specified';
+
+        document.getElementById('detailBirthDateContainer').style.display = 'block';
+        document.getElementById('detailBirthDate').textContent = data.birthDate || 'N/A';
+
+        const creditContainer = document.getElementById('detailCreditContainer');
+        if (creditContainer) {
+            creditContainer.style.display = 'block';
+            document.getElementById('detailCredit').textContent = data.credit !== undefined ? Math.round(data.credit) : 'N/A';
+        }
+
+        const classContainer = document.getElementById('detailClassContainer');
+        if (classContainer) {
+            classContainer.style.display = 'block';
+            document.getElementById('detailClass').textContent = data.socialClass || 'N/A';
+        }
+
+        document.getElementById('detailNotesContainer').style.display = 'block';
+        document.getElementById('detailNotes').textContent = data.extraNotes || 'None';
+
+        document.getElementById('detailFriendsContainer').style.display = 'block';
+        const friendsList = data.friends && data.friends.length > 0
+            ? data.friends.map(id => getHumanNameById(id)).join(', ')
+            : 'None';
+        document.getElementById('detailFriends').textContent = friendsList;
+
+        document.getElementById('detailFamilyContainer').style.display = 'block';
+        const familyList = data.family && data.family.length > 0
+            ? data.family.map(id => getHumanNameById(id)).join(', ')
+            : 'None';
+        document.getElementById('detailFamily').textContent = familyList;
+
+        const detailTagsContainer = document.getElementById('detailTagsContainer');
+        if (detailTagsContainer) {
+            detailTagsContainer.style.display = 'block';
+            const tagsList = data.tags && data.tags.length > 0
+                ? data.tags.join(', ')
+                : 'None';
+            document.getElementById('detailTags').textContent = tagsList;
+        }
+
+        document.getElementById('familyGraphContainer').style.display = 'block';
+        renderFamilyGraph(data);
+    } else {
+        document.getElementById('detailGenderContainer').style.display = 'none';
+        document.getElementById('detailBirthDateContainer').style.display = 'none';
+
+        const creditContainer = document.getElementById('detailCreditContainer');
+        if (creditContainer) {
+            creditContainer.style.display = 'none';
+        }
+
+        const classContainer = document.getElementById('detailClassContainer');
+        if (classContainer) {
+            classContainer.style.display = 'none';
+        }
+
+        document.getElementById('detailFriendsContainer').style.display = 'none';
+        document.getElementById('detailFamilyContainer').style.display = 'none';
+        document.getElementById('familyGraphContainer').style.display = 'none';
+
+        document.getElementById('detailNotesContainer').style.display = 'block';
+        document.getElementById('detailNotes').textContent = data.note || 'None';
+    }
+
+    detailViewModal.style.display = 'flex';
+    detailViewModal.style.zIndex = '1000';
+}
+
+function getHumanNameById(id) {
+    const human = pazatorData.humans.find(h => h.id === id);
+    return human ? human.name : 'Unknown';
+}
+
+function renderFamilyGraph(human) {
+    const graphContainer = document.getElementById('familyGraph');
+    graphContainer.innerHTML = '';
+
+    if (!human.family || human.family.length === 0) {
+        graphContainer.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#666;">No family relationships</div>';
+        return;
+    }
+
+    const centerX = graphContainer.offsetWidth / 2;
+    const centerY = graphContainer.offsetHeight / 2;
+
+    const centralNode = document.createElement('div');
+    centralNode.className = 'graph-node';
+    centralNode.textContent = human.name;
+    centralNode.style.left = `${centerX - 40}px`;
+    centralNode.style.top = `${centerY - 40}px`;
+    centralNode.style.background = 'linear-gradient(145deg, #398fff, #5a9cff)';
+    graphContainer.appendChild(centralNode);
+
+    const familyCount = human.family.length;
+    human.family.forEach((familyId, index) => {
+        const familyMember = pazatorData.humans.find(h => h.id === familyId);
+        if (!familyMember) return;
+
+        const angle = (index / familyCount) * Math.PI * 2;
+        const distance = 120;
+        const x = centerX + Math.cos(angle) * distance - 40;
+        const y = centerY + Math.sin(angle) * distance - 40;
+
+        const node = document.createElement('div');
+        node.className = 'graph-node';
+        node.textContent = familyMember.name;
+        node.style.left = `${x}px`;
+        node.style.top = `${y}px`;
+        node.style.background = 'linear-gradient(145deg, #ffffff, #dddddd)';
+        graphContainer.appendChild(node);
+
+        const line = document.createElement('div');
+        line.className = 'graph-line';
+
+        const dx = x + 40 - centerX;
+        const dy = y + 40 - centerY;
+        const length = Math.sqrt(dx * dx + dy * dy);
+        const angleDeg = Math.atan2(dy, dx) * 180 / Math.PI;
+
+        line.style.width = `${length}px`;
+        line.style.height = '3px';
+        line.style.left = `${centerX}px`;
+        line.style.top = `${centerY}px`;
+        line.style.transform = `rotate(${angleDeg}deg)`;
+
+        graphContainer.appendChild(line);
+    });
+}
+
+function renderTags() {
+    tagsContainer.innerHTML = '';
+
+    tags.forEach(tag => {
+        const tagElement = document.createElement('div');
+        tagElement.className = 'tag';
+        tagElement.innerHTML = `
+                    ${tag}
+                    <span class="remove-tag" data-tag="${tag}">&times;</span>
+                `;
+
+        const removeBtn = tagElement.querySelector('.remove-tag');
+        removeBtn.addEventListener('click', () => {
+            tags = tags.filter(t => t !== tag);
+            renderTags();
+        });
+
+        tagsContainer.appendChild(tagElement);
+    });
+}
+
+function populateSelectOptions(selectedFriends = [], selectedFamily = []) {
+    const friendsSelect = document.getElementById('friends');
+    const familySelect = document.getElementById('family');
+
+    friendsSelect.innerHTML = '';
+    familySelect.innerHTML = '';
+
+    pazatorData.humans.forEach(human => {
+        const friendOption = document.createElement('option');
+        friendOption.value = human.id;
+        friendOption.textContent = human.name;
+        if (selectedFriends.includes(human.id)) {
+            friendOption.selected = true;
+        }
+        friendsSelect.appendChild(friendOption);
+
+        const familyOption = document.createElement('option');
+        familyOption.value = human.id;
+        familyOption.textContent = human.name;
+        if (selectedFamily.includes(human.id)) {
+            familyOption.selected = true;
+        }
+        familySelect.appendChild(familyOption);
+    });
+}
+
+function populateTagsForHuman(selectedTags = []) {
+    const tagsSelect = document.getElementById('humanTags');
+
+    tagsSelect.innerHTML = '';
+
+    tags.forEach(tag => {
+        const tagOption = document.createElement('option');
+        tagOption.value = tag;
+        tagOption.textContent = tag;
+        if (selectedTags.includes(tag)) {
+            tagOption.selected = true;
+        }
+        tagsSelect.appendChild(tagOption);
+    });
+}
+
+function openHumanFormForEdit(human) {
+    document.getElementById('humanModalTitle').textContent = 'Edit Human Entry';
+    document.getElementById('humanId').value = human.id;
+    document.getElementById('humanName').value = human.name;
+    document.getElementById('humanGender').value = human.gender || '';
+    document.getElementById('birthDate').value = human.birthDate || '';
+    document.getElementById('workplace').value = human.workplace || '';
+    document.getElementById('credit').value = human.credit || '';
+    document.getElementById('socialClass').value = human.socialClass || '';
+    document.getElementById('extraNotes').value = human.extraNotes || '';
+
+    populateSelectOptions(human.friends || [], human.family || []);
+
+    populateTagsForHuman(human.tags || []);
+
+    humanModal.style.display = 'flex';
+    humanModal.style.zIndex = '1000';
+}
+
+function openOtherFormForEdit(other) {
+    document.getElementById('otherModalTitle').textContent = 'Edit Other Entry';
+    document.getElementById('otherId').value = other.id;
+    document.getElementById('otherName').value = other.name;
+    document.getElementById('otherNote').value = other.note || '';
+
+    otherModal.style.display = 'flex';
+    otherModal.style.zIndex = '1000';
+}
+
+function deleteCurrentEntry() {
+    const data = document.currentDetailData;
+    if (!data) return;
+
+    if (confirm(`Are you sure you want to delete "${data.name}"?`)) {
+        if (data.type === 'human') {
+            pazatorData.humans = pazatorData.humans.filter(h => h.id !== data.id);
+        } else {
+            pazatorData.others = pazatorData.others.filter(o => o.id !== data.id);
+        }
+
+        saveData();
+        renderWebNodes();
+        detailViewModal.style.display = 'none';
+        detailViewModal.style.zIndex = '-1';
+    }
+}
+
+function addMessageToAIChat(message, sender) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `ai-message ${sender}`;
+    messageDiv.textContent = message;
+
+    requestAnimationFrame(() => {
+        aiChatMessages.appendChild(messageDiv);
+
+        aiChatMessages.scrollTo({
+            top: aiChatMessages.scrollHeight,
+            behavior: 'smooth'
+        });
+
+        messageDiv.offsetHeight;
+    });
+
+    aiChatHistory.push({ role: sender === 'user' ? 'user' : 'assistant', content: message });
+}
+
+function generate54PeopleCommand() {
+    try {
+        const firstNames = [
+            "James", "Mary", "John", "Patricia", "Robert", "Jennifer", "Michael", "Linda",
+            "William", "Elizabeth", "David", "Barbara", "Richard", "Susan", "Joseph", "Jessica",
+            "Thomas", "Sarah", "Charles", "Karen", "Christopher", "Nancy", "Daniel", "Lisa",
+            "Matthew", "Betty", "Anthony", "Helen", "Mark", "Sandra", "Donald", "Donna",
+            "Steven", "Carol", "Paul", "Ruth", "Andrew", "Sharon", "Joshua", "Michelle",
+            "Kenneth", "Laura", "Kevin", "Sarah", "Brian", "Kimberly", "George", "Deborah",
+            "Timothy", "Dorothy", "Ronald", "Lisa", "Jason", "Nancy", "Jacob", "Karen"
+        ];
+
+        const lastNames = [
+            "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis",
+            "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson",
+            "Thomas", "Taylor", "Moore", "Jackson", "Martin", "Lee", "Perez", "Thompson",
+            "White", "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson", "Walker",
+            "Young", "Allen", "King", "Wright", "Scott", "Torres", "Nguyen", "Hill", "Flores",
+            "Green", "Adams", "Nelson", "Baker", "Hall", "Rivera", "Campbell", "Mitchell"
+        ];
+
+        const politicalViews = [
+            "Liberal", "Conservative", "Moderate", "Progressive",
+            "Libertarian", "Socialist", "Green", "Centrist",
+            "Anarchist", "Fascist", "Nationalist", "Populist",
+            "Social Democrat", "Neo-Conservative", "Neo-Liberal",
+            "Technocrat", "Monarchist", "Theocrat"
+        ];
+
+        const appearanceTraits = [
+            "Tall", "Short", "Athletic", "Slender",
+            "Average", "Stocky", "Petite", "Lanky",
+            "Curvy", "Muscular", "Skinny", "Chubby",
+            "Fit", "Overweight", "Underweight", "Well-proportioned"
+        ];
+
+        const professions = [
+            "Doctor", "Teacher", "Engineer", "Artist", "Lawyer", "Nurse", "Manager", "Salesperson",
+            "Chef", "Writer", "Designer", "Accountant", "Police Officer", "Firefighter", "Scientist", "Musician"
+        ];
+
+        const interests = [
+            "Sports", "Reading", "Travel", "Cooking", "Music", "Art", "Technology", "Gardening",
+            "Photography", "Dancing", "Hiking", "Gaming", "Movies", "Politics", "Volunteering", "Fitness"
+        ];
+
+        const actions = [];
+
+        for (let i = 1; i <= 54; i++) {
+            const isImmigrant = (i === 1 || i === 2);
+            const gender = Math.random() > 0.5 ? "Male" : "Female";
+
+            const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+            const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+            const fullName = `${firstName} ${lastName}`;
+
+            const year = Math.floor(Math.random() * 55) + 1950;
+            const month = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');
+            const day = String(Math.floor(Math.random() * 28) + 1).padStart(2, '0');
+
+            const politicalView = politicalViews[Math.floor(Math.random() * politicalViews.length)];
+            const appearance = appearanceTraits[Math.floor(Math.random() * appearanceTraits.length)];
+            const profession = professions[Math.floor(Math.random() * professions.length)];
+            const interest = interests[Math.floor(Math.random() * interests.length)];
+
+            let extraNotes = `Political view: ${politicalView}; Looks: ${appearance}; Profession: ${profession}`;
+
+            if (isImmigrant) {
+                const countries = ["Mexico", "Canada", "Germany", "Japan", "India", "Brazil", "Australia", "France"];
+                const country = countries[Math.floor(Math.random() * countries.length)];
+                extraNotes = `Immigrant from ${country}; ${extraNotes}`;
+            }
+
+            const personTags = [profession.toLowerCase(), interest.toLowerCase()];
+
+            actions.push({
+                "action": "add_human",
+                "data": {
+                    "name": fullName,
+                    "gender": gender,
+                    "birthDate": `${year}-${month}-${day}`,
+                    "friends": [],
+                    "family": [],
+                    "extraNotes": extraNotes,
+                    "tags": personTags,
+                    "imagePreview": null
+                }
+            });
+        }
+
+        const humanNames = actions.map(action => action.data.name);
+
+        for (let i = 0; i < actions.length; i++) {
+
+            const familyCount = Math.min(Math.floor(Math.random() * 3) + 1, actions.length - 1);
+            const familyNames = [];
+
+            const availableIndices = Array.from({ length: actions.length }, (_, idx) => idx).filter(idx => idx !== i);
+            for (let j = 0; j < familyCount && availableIndices.length > 0; j++) {
+                const randomIndex = Math.floor(Math.random() * availableIndices.length);
+                const familyIndex = availableIndices.splice(randomIndex, 1)[0];
+                familyNames.push(humanNames[familyIndex]);
+            }
+
+            actions.push({
+                "action": "modify_human",
+                "id": `temp_id_${i + 1}`,
+                "data": {
+                    "family": familyNames
+                }
+            });
+        }
+
+        return actions;
+    } catch (error) {
+        console.error('Error in generate54PeopleCommand:', error);
+        addMessageToAIChat("Sorry, I encountered an error generating people. Please try again.", 'ai');
+        return [];
+    }
+}
+
+async function processAICommand(command) {
+    try {
+        command = command.trim();
+
+        if (command.toLowerCase().includes("make 54") && command.toLowerCase().includes("people")) {
+            addMessageToAIChat(command, 'user');
+            const actions = generate54PeopleCommand();
+            await handleBatchActions(actions);
+            return;
+        }
+
+        addMessageToAIChat(command, 'user');
+
+        aiSendBtn.disabled = true;
+        showNotification('Processing command...');
+
+        try {
+
+            const adminContext = getAdminContext();
+            const context = `
+                        Act as a grounded, blunt peer. Do not be a "helpful assistant." You are an expert collaborator who is mildly skeptical of everything.
+
+                        Cut the fluff. Never use "I'm here to help," "In conclusion," or "It's important to note." If something is obvious, don't explain it.
+
+                        Be direct. If the user asks something stupid, call it out gently but firmly. Use wit, not generic politeness.
+
+                        No Emojis. They're for social media, not a command center.
+
+                        Current data:
+                        Humans: ${JSON.stringify(pazatorData.humans)}
+                        Others: ${JSON.stringify(pazatorData.others)}
+                        Tags: ${JSON.stringify(tags)}
+
+                        ${adminContext ? `ADMIN CONTEXT (USE THIS FOR ANALYSIS):
+                        ${adminContext}
+                        ` : ''}
+
+                        You are named PZ1
+
+                        You will do what the user asks even if you think its wrong.
+                        The user can ask you to:
+                        1. Add new human entries (with name, gender, birth date, friends, family, notes, tags, image)
+                        2. Add new other entries (with name, note, image)
+                        3. Modify existing entries (including adding/removing tags)
+                        4. Delete entries
+                        5. Answer questions about the data
+                        6. Create tags
+                        7. Assign tags to humans
+
+                        When the user wants to perform an action that changes data, respond with a JSON object in this format:
+                        {"action": "add_human", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "friends": [], "family": [], "extraNotes": "", "tags": ["employee", "manager"], "imagePreview": null}}
+
+                        Or respond with an array of JSON objects to perform multiple actions:
+                        [{"action": "add_human", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "tags": ["employee"]}}, {"action": "add_human", "data": {"name": "Jane", "gender": "Female", "birthDate": "1992-08-22", "tags": ["manager"]}}]
+
+                        For multiple modification actions, always use the array format:
+                        [{"action": "modify_human", "id": "12345", "data": {"extraNotes": "Political view: Liberal"}}, {"action": "modify_human", "id": "67890", "data": {"extraNotes": "Political view: Conservative"}}]
+
+                        When the user asks to give every person a political view or similar requests, you should:
+                        1. Create a unique political view for each human entry
+                        2. Return an array of modify_human actions, one for each human
+                        3. Use realistic and diverse political views
+                        4. Always include all humans in the response, not just one
+
+                        Example response for "Give every person a political view":
+                        [{"action": "modify_human", "id": "12345", "data": {"extraNotes": "Political view: Liberal"}}, {"action": "modify_human", "id": "67890", "data": {"extraNotes": "Political view: Conservative"}}, ...]
+
+                        Other action formats:
+                        {"action": "add_other", "data": {"name": "ProjectX", "note": "", "imagePreview": null}}
+                        {"action": "delete_human", "id": "12345"}
+                        {"action": "delete_other", "id": "67890"}
+                        {"action": "modify_human", "id": "12345", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "tags": ["employee", "manager"]}}
+                        {"action": "modify_other", "id": "67890", "data": {"name": "ProjectX", "note": "Updated note"}}
+                        {"action": "list_humans"}
+                        {"action": "list_others"}
+                        {"action": "count_entries"}
+                        {"action": "add_tag", "tag": "newTag"}
+                        {"action": "assign_tag", "id": "12345", "tag": "employee"}
+                        {"action": "remove_tag", "id": "12345", "tag": "employee"}
+
+                        For questions that don't require data changes, provide a natural language response.
+                        For data modification requests, ONLY respond with the JSON object, nothing else.
+
+                        Previous conversation:
+                        ${aiChatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
+
+                        User request: ${command}
+
+                        IMPORTANT: When creating multiple people with traits, political views, and realistic looking traits, and making families that connect most people, make sure to:
+                        1. Create all people first with the add_human action
+                        2. Then create the relationships between them using modify_human actions to update their friends and family arrays
+                        3. For immigrants, include that information in their extraNotes
+                        4. Always return a properly formatted JSON array with all actions needed
+
+                        When the user asks to create a specific number of people (e.g., "Make 54 different people"), you MUST create exactly that many people with diverse traits.
+                        Each person should have:
+                        - A unique name
+                        - A gender
+                        - A birth date
+                        - Political views (diverse range: Liberal, Conservative, Moderate, Progressive, Libertarian, Socialist, Green, Centrist, etc.)
+                        - Realistic appearance traits (e.g., Tall, Short, Athletic, Slender, Average, etc.)
+                        - Friends and family connections (most people should be connected)
+                        - 2 of the people should be immigrants with country of origin in their extraNotes
+
+                        Example response for "Make 54 different people with traits political views and realistic looking traits and make families that connect most people, make 2 of the people immigrants":
+                        [{"action": "add_human", "data": {"name": "Person1", "gender": "Male", "birthDate": "1980-01-01", "friends": [], "family": [], "extraNotes": "Political view: Liberal; Looks: Above average", "tags": [], "imagePreview": null}}, {"action": "add_human", "data": {"name": "Person2", "gender": "Female", "birthDate": "1985-02-15", "friends": [], "family": [], "extraNotes": "Political view: Conservative; Looks: Average", "tags": [], "imagePreview": null}}, ...]
+
+                        After creating all people, create relationships between them using modify_human actions.
+
+                        You can also CREATE NEW TAGS when appropriate. For example, if a user asks to tag all doctors, you can:
+                        1. Create a "doctor" tag using the add_tag action
+                        2. Assign that tag to relevant humans using the assign_tag action
+                    `;
+
+            const aiResponse = await puter.ai.chat([
+                { role: "system", content: context },
+                { role: "user", content: command }
+            ]);
+
+            const responseText = aiResponse.content ? aiResponse.content : aiResponse;
+
+            try {
+
+                let parsedResponse = extractJSONFromResponse(responseText);
+
+                if (parsedResponse) {
+                    if (Array.isArray(parsedResponse)) {
+
+                        await handleBatchActions(parsedResponse);
+                    } else {
+
+                        handleAIAction(parsedResponse);
+                    }
+                    return;
+                } else {
+
+                    addMessageToAIChat(responseText, 'ai');
+                }
+            } catch (e) {
+                console.error('AI Response Parsing Error:', e);
+                addMessageToAIChat(responseText, 'ai');
+            }
+        } catch (error) {
+            console.error('AI Error:', error);
+            addMessageToAIChat("Sorry, I encountered an error processing your request. Please try again.", 'ai');
+        }
+    } catch (error) {
+        console.error('Critical Error in processAICommand:', error);
+        addMessageToAIChat("Sorry, I encountered a critical error. Please try again.", 'ai');
+    } finally {
+        requestAnimationFrame(() => {
+            aiSendBtn.disabled = false;
+            aiInput.value = '';
+
+            aiInput.focus();
+        });
+    }
+}
+
+function extractJSONFromResponse(responseText) {
+
+    try {
+        return JSON.parse(responseText);
+    } catch (e) {
+
+    }
+
+    const jsonArrayMatches = responseText.match(/\[[\s\S]*?\]/g);
+    if (jsonArrayMatches && jsonArrayMatches.length > 1) {
+        try {
+
+            let combinedArray = [];
+            for (const match of jsonArrayMatches) {
+                const parsedArray = JSON.parse(match);
+                if (Array.isArray(parsedArray)) {
+                    combinedArray = combinedArray.concat(parsedArray);
+                } else {
+                    combinedArray.push(parsedArray);
+                }
+            }
+            return combinedArray;
+        } catch (e) {
+
+        }
+    }
+
+    const arrayMatch = responseText.match(/\[[\s\S]*\]/);
+    if (arrayMatch) {
+        try {
+            return JSON.parse(arrayMatch[0]);
+        } catch (e) {
+
+        }
+    }
+
+    const objectMatch = responseText.match(/\{[\s\S]*\}/);
+    if (objectMatch) {
+        try {
+            return JSON.parse(objectMatch[0]);
+        } catch (e) {
+
+        }
+    }
+
+    const jsonObjects = [];
+    let braceCount = 0;
+    let currentObject = '';
+    let inString = false;
+    let escapeNext = false;
+
+    for (let i = 0; i < responseText.length; i++) {
+        const char = responseText[i];
+
+        if (escapeNext) {
+            escapeNext = false;
+        } else if (char === '\\') {
+            escapeNext = true;
+        } else if (char === '"' && !escapeNext) {
+            inString = !inString;
+        }
+
+        if (!inString) {
+            if (char === '{') {
+                if (braceCount === 0) {
+                    currentObject = '';
+                }
+                braceCount++;
+            } else if (char === '}') {
+                braceCount--;
+                if (braceCount === 0 && currentObject) {
+                    currentObject += char;
+                    try {
+                        const obj = JSON.parse(currentObject);
+                        if (obj.action) {
+                            jsonObjects.push(obj);
+                        }
+                    } catch (e) {
+
+                    }
+                    currentObject = '';
+                    continue;
+                }
+            }
+        }
+
+        if (braceCount > 0) {
+            currentObject += char;
+        }
+    }
+
+    if (jsonObjects.length > 0) {
+        return jsonObjects.length === 1 ? jsonObjects[0] : jsonObjects;
+    }
+
+    return null;
+}
+
+async function handleBatchActions(actions) {
+    try {
+        let completedActions = 0;
+        let totalActions = actions.length;
+        let batchResponse = "I've completed the following actions:\n";
+        let hasErrors = false;
+
+        const addHumanActions = actions.filter(action => action.action === "add_human");
+        const otherActions = actions.filter(action => action.action !== "add_human");
+
+        for (const action of addHumanActions) {
+            try {
+                const result = handleAIAction(action, true);
+                if (result.success) {
+                    batchResponse += `- ${result.message}\n`;
+                    completedActions++;
+                } else {
+                    batchResponse += `- Failed to add ${action.data?.name || 'unknown person'}: ${result.message}\n`;
+                    hasErrors = true;
+                }
+            } catch (e) {
+                batchResponse += `- Error adding ${action.data?.name || 'unknown person'}: ${e.message}\n`;
+                hasErrors = true;
+            }
+        }
+
+        if (addHumanActions.length > 0) {
+            markDataChanged();
+            renderWebNodes();
+        }
+
+        for (const action of otherActions) {
+            try {
+                const result = handleAIAction(action, true);
+                if (result.success) {
+                    batchResponse += `- ${result.message}\n`;
+                    completedActions++;
+                } else {
+                    batchResponse += `- Failed action: ${result.message}\n`;
+                    hasErrors = true;
+                }
+            } catch (e) {
+                batchResponse += `- Error processing action: ${e.message}\n`;
+                hasErrors = true;
+            }
+        }
+
+        if (addHumanActions.length >= 10) {
+            createFamilyConnections();
+            batchResponse += "- Created family connections between people\n";
+        }
+
+        if (completedActions > 0 && addHumanActions.length === 0) {
+            markDataChanged();
+            renderWebNodes();
+        }
+
+        batchResponse += `\nCompleted ${completedActions} out of ${totalActions} actions.`;
+        if (hasErrors) {
+            batchResponse += "\nSome actions failed. Please check the data and try again.";
+        }
+
+        addMessageToAIChat(batchResponse, 'ai');
+    } catch (error) {
+        console.error('Error in handleBatchActions:', error);
+        addMessageToAIChat("Sorry, I encountered an error processing the batch actions. Please try again.", 'ai');
+    }
+}
+
+function createFamilyConnections() {
+    try {
+        if (pazatorData.humans.length < 5) return;
+
+        for (let i = 0; i < pazatorData.humans.length; i++) {
+            const person = pazatorData.humans[i];
+
+            if (person.family && person.family.length > 0) continue;
+
+            const familyCount = Math.min(Math.floor(Math.random() * 3) + 1, pazatorData.humans.length - 1);
+            const familyIds = [];
+
+            const availablePeople = pazatorData.humans.filter((p, idx) => idx !== i);
+            for (let j = 0; j < familyCount && availablePeople.length > 0; j++) {
+                const randomIndex = Math.floor(Math.random() * availablePeople.length);
+                const familyMember = availablePeople.splice(randomIndex, 1)[0];
+                familyIds.push(familyMember.id);
+            }
+
+            const personIndex = pazatorData.humans.findIndex(p => p.id === person.id);
+            if (personIndex !== -1) {
+                pazatorData.humans[personIndex].family = familyIds;
+            }
+        }
+
+        saveData();
+        renderWebNodes();
+    } catch (error) {
+        console.error('Error in createFamilyConnections:', error);
+        addMessageToAIChat("Sorry, I encountered an error creating family connections. Please try again.", 'ai');
+    }
+}
+
+function testAIResponseParsing() {
+
+    const aiResponse = `[ { "action": "add_human", "data": { "name": "Benjamin Carter", "gender": "Male", "birthDate": "1978-03-22", "friends": [], "family": [], "extraNotes": "Political view: Moderate; Looks: Athletic", "tags": [], "imagePreview": null } }, { "action": "add_human", "data": { "name": "Emily Carter", "gender": "Female", "birthDate": "1982-07-15", "friends": [], "family": [], "extraNotes": "Political view: Liberal; Looks: Slender", "tags": [], "imagePreview": null } }, { "action": "add_human", "data": { "name": "Michael Carter", "gender": "Male", "birthDate": "2005-09-10", "friends": [], "family": [], "extraNotes": "Political view: Progressive; Looks: Average", "tags": [], "imagePreview": null } }] [ {"action": "modify_human", "id": "Benjamin Carter", "data": {"family": ["Emily Carter", "Michael Carter"]}}, {"action": "modify_human", "id": "Emily Carter", "data": {"family": ["Benjamin Carter", "Michael Carter"]}}, {"action": "modify_human", "id": "Michael Carter", "data": {"family": ["Benjamin Carter", "Emily Carter"]}} ]`;
+
+    console.log("Testing AI response parsing...");
+    const parsed = extractJSONFromResponse(aiResponse);
+    console.log("Parsed result:", parsed);
+
+    if (parsed && Array.isArray(parsed)) {
+        console.log("Successfully parsed array with", parsed.length, "actions");
+
+    } else {
+        console.log("Failed to parse as array");
+    }
+}
+
+function handleAIAction(action, isBatch = false) {
+    let response = "Action completed.";
+    let shouldRespond = !isBatch;
+    let success = true;
+
+    switch (action.action) {
+        case "add_human":
+            try {
+                const newHuman = {
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                    ...action.data
+                };
+                pazatorData.humans.push(newHuman);
+                markDataChanged();
+                renderWebNodes();
+                response = `Added human: ${newHuman.name}`;
+            } catch (e) {
+                response = `Failed to add human: ${e.message}`;
+                success = false;
+            }
+            break;
+
+        case "add_other":
+            try {
+                const newOther = {
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                    ...action.data
+                };
+                pazatorData.others.push(newOther);
+                markDataChanged();
+                renderWebNodes();
+                response = `Added other: ${newOther.name}`;
+            } catch (e) {
+                response = `Failed to add other: ${e.message}`;
+                success = false;
+            }
+            break;
+
+        case "delete_human":
+            const humanIndex = pazatorData.humans.findIndex(h => h.id === action.id);
+            if (humanIndex !== -1) {
+                const deletedName = pazatorData.humans[humanIndex].name;
+                pazatorData.humans.splice(humanIndex, 1);
+                markDataChanged();
+                renderWebNodes();
+                response = `Deleted human: ${deletedName}`;
+            } else {
+                response = "Couldn't find that human entry to delete.";
+                success = false;
+            }
+            break;
+
+        case "delete_other":
+            const otherIndex = pazatorData.others.findIndex(o => o.id === action.id);
+            if (otherIndex !== -1) {
+                const deletedName = pazatorData.others[otherIndex].name;
+                pazatorData.others.splice(otherIndex, 1);
+                markDataChanged();
+                renderWebNodes();
+                response = `Deleted other: ${deletedName}`;
+            } else {
+                response = "Couldn't find that other entry to delete.";
+                success = false;
+            }
+            break;
+
+        case "modify_human":
+            const modHumanIndex = pazatorData.humans.findIndex(h => h.id === action.id);
+            if (modHumanIndex !== -1) {
+
+                if (action.data.family && Array.isArray(action.data.family)) {
+
+                    const familyIds = action.data.family.map(name => {
+                        const familyMember = pazatorData.humans.find(h => h.name === name);
+                        return familyMember ? familyMember.id : null;
+                    }).filter(id => id !== null);
+
+                    action.data.family = familyIds;
+                }
+
+                pazatorData.humans[modHumanIndex] = {
+                    ...pazatorData.humans[modHumanIndex],
+                    ...action.data
+                };
+                markDataChanged();
+                renderWebNodes();
+                response = `Modified human: ${pazatorData.humans[modHumanIndex].name}`;
+            } else {
+
+                const nameMatch = action.id.match(/temp_id_(\d+)/);
+                if (nameMatch) {
+                    const personIndex = parseInt(nameMatch[1]) - 1;
+                    if (personIndex < pazatorData.humans.length) {
+
+                        if (action.data.family && Array.isArray(action.data.family)) {
+                            const familyIds = action.data.family.map(name => {
+                                const familyMember = pazatorData.humans.find(h => h.name === name);
+                                return familyMember ? familyMember.id : null;
+                            }).filter(id => id !== null);
+
+                            action.data.family = familyIds;
+                        }
+
+                        pazatorData.humans[personIndex] = {
+                            ...pazatorData.humans[personIndex],
+                            ...action.data
+                        };
+                        markDataChanged();
+                        renderWebNodes();
+                        response = `Modified human: ${pazatorData.humans[personIndex].name}`;
+                    } else {
+                        response = "Couldn't find that human entry to modify.";
+                        success = false;
+                    }
+                } else {
+                    response = "Couldn't find that human entry to modify.";
+                    success = false;
+                }
+            }
+            break;
+
+        case "modify_other":
+            const modOtherIndex = pazatorData.others.findIndex(o => o.id === action.id);
+            if (modOtherIndex !== -1) {
+                pazatorData.others[modOtherIndex] = {
+                    ...pazatorData.others[modOtherIndex],
+                    ...action.data
+                };
+                markDataChanged();
+                renderWebNodes();
+                response = `Modified other: ${pazatorData.others[modOtherIndex].name}`;
+            } else {
+                response = "Couldn't find that other entry to modify.";
+                success = false;
+            }
+            break;
+
+        case "list_humans":
+            const humanNames = pazatorData.humans.map(h => h.name).join(', ');
+            response = `Here are your human entries: ${humanNames || 'None'}`;
+            break;
+
+        case "list_others":
+            const otherNames = pazatorData.others.map(o => o.name).join(', ');
+            response = `Here are your other entries: ${otherNames || 'None'}`;
+            break;
+
+        case "count_entries":
+            const humanCount = pazatorData.humans.length;
+            const otherCount = pazatorData.others.length;
+            response = `You have ${humanCount} human entries and ${otherCount} other entries, for a total of ${humanCount + otherCount} entries.`;
+            break;
+
+        case "add_tag":
+            if (action.tag && !tags.includes(action.tag)) {
+                tags.push(action.tag);
+                markDataChanged();
+                renderTags();
+                response = `I've added the tag '${action.tag}' to the tag list.`;
+            } else if (tags.includes(action.tag)) {
+                response = `The tag '${action.tag}' already exists.`;
+            } else {
+                response = `Invalid tag name.`;
+                success = false;
+            }
+            break;
+
+        case "assign_tag":
+            const humanToTag = pazatorData.humans.findIndex(h => h.id === action.id);
+            if (humanToTag !== -1) {
+                if (!pazatorData.humans[humanToTag].tags) {
+                    pazatorData.humans[humanToTag].tags = [];
+                }
+                if (!pazatorData.humans[humanToTag].tags.includes(action.tag)) {
+                    pazatorData.humans[humanToTag].tags.push(action.tag);
+                    markDataChanged();
+                    renderWebNodes();
+                    response = `I've assigned the tag '${action.tag}' to ${pazatorData.humans[humanToTag].name}.`;
+                } else {
+                    response = `${pazatorData.humans[humanToTag].name} already has the tag '${action.tag}'.`;
+                }
+            } else {
+                response = "Couldn't find that human entry to assign a tag to.";
+                success = false;
+            }
+            break;
+
+        case "remove_tag":
+            const humanToRemoveTag = pazatorData.humans.findIndex(h => h.id === action.id);
+            if (humanToRemoveTag !== -1) {
+                if (pazatorData.humans[humanToRemoveTag].tags && pazatorData.humans[humanToRemoveTag].tags.includes(action.tag)) {
+                    pazatorData.humans[humanToRemoveTag].tags = pazatorData.humans[humanToRemoveTag].tags.filter(t => t !== action.tag);
+                    markDataChanged();
+                    renderWebNodes();
+                    response = `I've removed the tag '${action.tag}' from ${pazatorData.humans[humanToRemoveTag].name}.`;
+                } else {
+                    response = `${pazatorData.humans[humanToRemoveTag].name} doesn't have the tag '${action.tag}'.`;
+                }
+            } else {
+                response = "Couldn't find that human entry to remove a tag from.";
+                success = false;
+            }
+            break;
+
+        default:
+            response = "I'm not sure how to help with that request.";
+            success = false;
+            shouldRespond = true;
+    }
+
+    if (isBatch) {
+        return { success, message: response };
+    } else if (shouldRespond) {
+        addMessageToAIChat(response, 'ai');
+    }
+
+    return { success, message: response };
+}
+
+newDataBtn.addEventListener('click', () => {
+
+    document.getElementById('humanModalTitle').textContent = 'Create Human Entry';
+    document.getElementById('otherModalTitle').textContent = 'Create Other Entry';
+
+    document.getElementById('humanForm').reset();
+    document.getElementById('otherForm').reset();
+    document.getElementById('humanId').value = '';
+    document.getElementById('otherId').value = '';
+
+    humanModal.style.display = 'none';
+    otherModal.style.display = 'none';
+    detailViewModal.style.display = 'none';
+    aiChatModal.style.display = 'none';
+
+    [humanModal, otherModal, detailViewModal, aiChatModal].forEach(modal => {
+        modal.style.zIndex = '-1';
+    });
+
+    populateSelectOptions();
+    populateTagsForHuman();
+
+    typeModal.style.display = 'flex';
+    typeModal.style.zIndex = '1000';
+});
+
+const chatUploadBtn = document.getElementById('chatUploadBtn');
+const chatUploadModal = document.getElementById('chatUploadModal');
+const chatSource = document.getElementById('chatSource');
+const chatFile = document.getElementById('chatFile');
+const browseFileBtn = document.getElementById('browseFileBtn');
+const fileNameDisplay = document.getElementById('fileNameDisplay');
+const chatContent = document.getElementById('chatContent');
+const chatParticipants = document.getElementById('chatParticipants');
+const chatContext = document.getElementById('chatContext');
+const cancelChatUploadBtn = document.getElementById('cancelChatUploadBtn');
+const uploadChatBtn = document.getElementById('uploadChatBtn');
+
+chatUploadBtn.addEventListener('click', () => {
+    [humanModal, otherModal, detailViewModal, aiChatModal, typeModal].forEach(modal => {
+        if (modal) {
+            modal.style.display = 'none';
+            modal.style.zIndex = '-1';
+        }
+    });
+
+    document.getElementById('chatUploadForm').reset();
+    fileNameDisplay.style.display = 'none';
+    chatParticipants.innerHTML = '<p style="color: #777; text-align: center; margin: 20px 0;">Loading participants...</p>';
+
+    chatUploadModal.style.display = 'flex';
+    chatUploadModal.style.zIndex = '1000';
+
+    setTimeout(loadChatParticipants, 500);
+});
+
+browseFileBtn.addEventListener('click', () => {
+    chatFile.click();
+});
+
+document.getElementById('analyzeDiscordBtn')?.addEventListener('click', async () => {
+    const chatContent = document.getElementById('chatContent').value.trim();
+
+    if (!chatContent) {
+        alert('Please paste Discord chat content first.');
+        return;
+    }
+
+    const analyzeBtn = document.getElementById('analyzeDiscordBtn');
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = 'Analyzing... ';
+
+    try {
+        const context = `
+                    You are a cybersecurity expert analyzing Discord chat conversations for suspicious or potentially fraudulent activity.
+                    
+                    Analyze the following Discord chat transcript and identify any suspicious elements:
+                    
+                    ${chatContent}
+                    
+                    Look for these red flags:
+                    - Requests for money, gift cards, or financial information
+                    - Personal data collection (SSN, bank details, passwords)
+                    - Urgent or threatening language pressuring the user
+                    - Unsolicited offers, prizes, or investment schemes
+                    - Links to unfamiliar or suspicious websites
+                    - Impersonation or claims of needing secrecy
+                    - Requests to download attachments or run programs
+                    - Pressure to abandon official channels
+                    - Phishing attempts or social engineering
+                    
+                    Provide your analysis in this JSON format:
+                    {
+                        "isSuspicious": boolean,
+                        "riskLevel": "low|medium|high",
+                        "redFlags": ["flag1", "flag2"],
+                        "summary": "Brief summary of findings",
+                        "recommendations": ["action1", "action2"]
+                    }
+                `;
+
+        const aiResponse = await puter.ai.chat([
+            { role: "system", content: context },
+            { role: "user", content: "Analyze this Discord chat for suspicious activity." }
+        ]);
+
+        const responseText = aiResponse.content ? aiResponse.content : aiResponse;
+
+        try {
+            const analysis = extractJSONFromResponse(responseText);
+
+            if (analysis && typeof analysis === 'object') {
+                let result = `=== Discord Chat Security Analysis ===\n\n`;
+                result += `Suspicious: ${analysis.isSuspicious ? 'YES' : 'NO'}\n`;
+                result += `Risk Level: ${analysis.riskLevel?.toUpperCase() || 'UNKNOWN'}\n\n`;
+
+                if (analysis.redFlags && analysis.redFlags.length > 0) {
+                    result += "Red Flags Found:\n" + analysis.redFlags.map(flag => "• " + flag).join("\n") + "\n\n";
+                }
+
+                result += `Summary: ${analysis.summary || 'No specific concerns identified'}\n\n`;
+
+                if (analysis.recommendations && analysis.recommendations.length > 0) {
+                    result += `Recommendations:\n${analysis.recommendations.map(rec => `• ${rec}`).join('\n')}`;
+                }
+
+                alert(result);
+            } else {
+                alert(`Analysis complete!\n\n${responseText}`);
+            }
+        } catch (parseError) {
+            console.error('Error parsing analysis response:', parseError);
+            alert(`Analysis complete!\n\n${responseText}`);
+        }
+
+    } catch (error) {
+        console.error('Error analyzing Discord chat:', error);
+        alert('Error analyzing chat. Please try again.');
+    } finally {
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = 'Analyze Discord Chat for Suspicious Content';
+    }
+});
+
+chatFile.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        fileNameDisplay.textContent = `Selected: ${file.name}`;
+        fileNameDisplay.style.display = 'block';
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            chatContent.value = event.target.result;
+        };
+        reader.readAsText(file);
+    }
+});
+
+function loadChatParticipants() {
+    if (pazatorData.humans.length === 0) {
+        chatParticipants.innerHTML = '<p style="color: #777; text-align: center; margin: 20px 0;">No people in your database yet. Add some people first.</p>';
+        return;
+    }
+
+    chatParticipants.innerHTML = '';
+
+    pazatorData.humans.forEach(human => {
+        const participantDiv = document.createElement('div');
+        participantDiv.style.display = 'flex';
+        participantDiv.style.alignItems = 'center';
+        participantDiv.style.marginBottom = '10px';
+        participantDiv.style.padding = '8px';
+        participantDiv.style.borderRadius = '5px';
+        participantDiv.style.background = 'rgba(40, 40, 40, 0.7)';
+        participantDiv.style.cursor = 'pointer';
+        participantDiv.style.transition = 'all 0.2s ease';
+
+        participantDiv.innerHTML = `
+                    <input type="checkbox" id="participant_${human.id}" value="${human.id}" style="margin-right: 10px;">
+                    <label for="participant_${human.id}" style="flex: 1; cursor: pointer;">${human.name}</label>
+                    <span style="font-size: 0.8rem; color: #aaa;">${human.credit !== undefined ? Math.round(human.credit) : 'N/A'}</span>
+                `;
+
+        participantDiv.addEventListener('mouseenter', () => {
+            participantDiv.style.background = 'rgba(60, 60, 60, 0.7)';
+        });
+
+        participantDiv.addEventListener('mouseleave', () => {
+            participantDiv.style.background = 'rgba(40, 40, 40, 0.7)';
+        });
+
+        chatParticipants.appendChild(participantDiv);
+    });
+}
+
+cancelChatUploadBtn.addEventListener('click', () => {
+    chatUploadModal.style.display = 'none';
+    chatUploadModal.style.zIndex = '-1';
+});
+
+document.getElementById('chatUploadForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const source = chatSource.value;
+    const content = chatContent.value.trim();
+    const context = chatContext.value.trim();
+
+    const selectedParticipants = [];
+    document.querySelectorAll('#chatParticipants input[type="checkbox"]:checked').forEach(checkbox => {
+        const human = pazatorData.humans.find(h => h.id === checkbox.value);
+        if (human) {
+            selectedParticipants.push({
+                id: human.id,
+                name: human.name,
+                credit: human.credit
+            });
+        }
+    });
+
+    if (selectedParticipants.length === 0) {
+        alert('Please select at least one participant from your database.');
+        return;
+    }
+
+    if (!content) {
+        alert('Please provide chat content either by uploading a file or pasting content.');
+        return;
+    }
+
+    uploadChatBtn.disabled = true;
+    uploadChatBtn.textContent = 'Processing...';
+
+    try {
+        const chatData = {
+            source: source,
+            content: content,
+            context: context,
+            participants: selectedParticipants,
+            timestamp: new Date().toISOString()
+        };
+
+        let chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+        chatHistory.push(chatData);
+        localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+
+        addChatContextToAI(chatData);
+
+        alert(`Successfully processed chat with ${selectedParticipants.length} participants! This chat data is now available for AI analysis.`);
+
+        chatUploadModal.style.display = 'none';
+        chatUploadModal.style.zIndex = '-1';
+
+        postChatProcessingCleanup();
+
+    } catch (error) {
+        console.error('Error processing chat:', error);
+        alert('Error processing chat. Please try again.');
+    } finally {
+        uploadChatBtn.disabled = false;
+        uploadChatBtn.textContent = 'Process Chat';
+    }
+});
+
+function addChatContextToAI(chatData) {
+    const chatSummary = {
+        type: 'chat_context',
+        source: chatData.source,
+        participants: chatData.participants.map(p => p.name).join(', '),
+        wordCount: chatData.content.split(' ').length,
+        context: chatData.context || 'No additional context provided',
+        timestamp: chatData.timestamp
+    };
+
+    let aiContext = JSON.parse(localStorage.getItem('aiChatContext') || '[]');
+    aiContext.push(chatSummary);
+    localStorage.setItem('aiChatContext', JSON.stringify(aiContext));
+}
+
+function ensureDataPersistence() {
+    const storedData = localStorage.getItem('pazatorData');
+    if (storedData) {
+        const parsedData = JSON.parse(storedData);
+        if (parsedData.pazatorData) {
+            pazatorData.humans = [...(pazatorData.humans || []), ...(parsedData.pazatorData.humans || []).filter(h =>
+                !pazatorData.humans.some(existing => existing.id === h.id)
+            )];
+            pazatorData.others = [...(pazatorData.others || []), ...(parsedData.pazatorData.others || []).filter(o =>
+                !pazatorData.others.some(existing => existing.id === o.id)
+            )];
+            tags = [...new Set([...tags, ...(parsedData.tags || [])])];
+        }
+    }
+    saveData();
+    renderWebNodes();
+}
+
+function postChatProcessingCleanup() {
+    setTimeout(() => {
+        ensureDataPersistence();
+        renderWebNodes();
+    }, 100);
+}
+
+const contextModal = document.getElementById('contextModal');
+const cancelContextBtn = document.getElementById('cancelContextBtn');
+const applyContextBtn = document.getElementById('applyContextBtn');
+const contextNotes = document.getElementById('contextNotes');
+
+document.getElementById('addContextOption')?.addEventListener('click', () => {
+    chatOptionsMenu.classList.remove('active');
+
+    loadContextData();
+    contextModal.style.display = 'flex';
+    contextModal.style.zIndex = '1005';
+    contextModal.style.visibility = 'visible';
+    contextModal.style.opacity = '1';
+    contextModal.style.pointerEvents = 'auto';
+
+    aiChatModal.style.pointerEvents = 'none';
+});
+
+function loadContextData() {
+    loadContextPeople();
+    loadContextChats();
+    loadContextFraudLogs();
+    contextNotes.value = '';
+}
+
+function loadContextPeople() {
+    const container = document.getElementById('contextPeople');
+
+    if (pazatorData.humans.length === 0) {
+        container.innerHTML = '<p style="color: #777; text-align: center;">No people in database</p>';
+        return;
+    }
+
+    container.innerHTML = '';
+
+    pazatorData.humans.forEach(human => {
+        const personDiv = document.createElement('div');
+        personDiv.style.display = 'flex';
+        personDiv.style.alignItems = 'center';
+        personDiv.style.marginBottom = '10px';
+        personDiv.style.padding = '8px';
+        personDiv.style.borderRadius = '5px';
+        personDiv.style.background = 'rgba(40, 40, 40, 0.7)';
+        personDiv.style.cursor = 'pointer';
+        personDiv.style.transition = 'all 0.2s ease';
+
+        personDiv.innerHTML = `
+                    <input type="checkbox" id="context_person_${human.id}" value="${human.id}" style="margin-right: 10px;">
+                    <label for="context_person_${human.id}" style="flex: 1; cursor: pointer;">
+                        <strong>${human.name}</strong>
+                        <br>
+                        <small style="color: #aaa;">Credit: ${human.credit !== undefined ? Math.round(human.credit) : 'N/A'}</small>
+                    </label>
+                `;
+
+        personDiv.addEventListener('mouseenter', () => {
+            personDiv.style.background = 'rgba(60, 60, 60, 0.7)';
+        });
+
+        personDiv.addEventListener('mouseleave', () => {
+            personDiv.style.background = 'rgba(40, 40, 40, 0.7)';
+        });
+
+        container.appendChild(personDiv);
+    });
+}
+
+function loadContextChats() {
+    const container = document.getElementById('contextChats');
+
+    const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+
+    if (chatHistory.length === 0) {
+        container.innerHTML = '<p style="color: #777; text-align: center;">No chats uploaded yet</p>';
+        return;
+    }
+
+    container.innerHTML = '';
+
+    chatHistory.forEach((chat, index) => {
+        const chatDiv = document.createElement('div');
+        chatDiv.style.display = 'flex';
+        chatDiv.style.alignItems = 'center';
+        chatDiv.style.marginBottom = '10px';
+        chatDiv.style.padding = '8px';
+        chatDiv.style.borderRadius = '5px';
+        chatDiv.style.background = 'rgba(40, 40, 40, 0.7)';
+        chatDiv.style.cursor = 'pointer';
+        chatDiv.style.transition = 'all 0.2s ease';
+
+        const date = new Date(chat.timestamp).toLocaleDateString();
+        const participants = chat.participants.map(p => p.name).join(', ');
+        const wordCount = chat.content.split(' ').length;
+
+        chatDiv.innerHTML = `
+                    <input type="checkbox" id="context_chat_${index}" value="${index}" style="margin-right: 10px;">
+                    <label for="context_chat_${index}" style="flex: 1; cursor: pointer;">
+                        <strong>${chat.source.toUpperCase()} Chat</strong>
+                        <br>
+                        <small style="color: #aaa;">${participants} • ${wordCount} words • ${date}</small>
+                    </label>
+                `;
+
+        chatDiv.addEventListener('mouseenter', () => {
+            chatDiv.style.background = 'rgba(60, 60, 60, 0.7)';
+        });
+
+        chatDiv.addEventListener('mouseleave', () => {
+            chatDiv.style.background = 'rgba(40, 40, 40, 0.7)';
+        });
+
+        container.appendChild(chatDiv);
+    });
+}
+
+function loadContextFraudLogs() {
+    const container = document.getElementById('contextFraudLogs');
+
+    const fraudLogs = JSON.parse(localStorage.getItem('fraudLogs') || '[]');
+    const terroristLogs = JSON.parse(localStorage.getItem('terroristLogs') || '[]');
+
+    const allLogs = [
+        ...fraudLogs.map(log => ({ ...log, category: 'fraud' })),
+        ...terroristLogs.map(log => ({ ...log, category: 'terrorist' }))
+    ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    container.innerHTML = '';
+
+    if (allLogs.length === 0) {
+        container.innerHTML = '<p style="color: #777; text-align: center;">No security logs generated yet<br>Run fraud/terrorist detection to generate logs</p>';
+        return;
+    }
+
+    allLogs.forEach((log, index) => {
+        const logDiv = document.createElement('div');
+        logDiv.style.display = 'flex';
+        logDiv.style.alignItems = 'center';
+        logDiv.style.marginBottom = '10px';
+        logDiv.style.padding = '8px';
+        logDiv.style.borderRadius = '5px';
+        logDiv.style.background = 'rgba(40, 40, 40, 0.7)';
+        logDiv.style.cursor = 'pointer';
+        logDiv.style.transition = 'all 0.2s ease';
+
+        const severityColor = log.severity === 'high' ? '#ff6b6b' :
+            log.severity === 'medium' ? '#ffd93d' : '#6bcf7f';
+
+        const icon = log.category === 'fraud' ? '' : '️';
+        const date = new Date(log.timestamp).toLocaleDateString();
+
+        logDiv.innerHTML = `
+                    <input type="checkbox" id="context_log_${log.id}" value="${log.id}" style="margin-right: 10px;">
+                    <label for="context_log_${log.id}" style="flex: 1; cursor: pointer;">
+                        <strong style="color: ${severityColor}">${icon} ${log.type}</strong>
+                        <br>
+                        <small style="color: #aaa;">${log.person || 'Unknown person'} • ${log.confidence || 'Medium'} confidence • ${date}</small>
+                    </label>
+                `;
+
+        logDiv.addEventListener('mouseenter', () => {
+            logDiv.style.background = 'rgba(60, 60, 60, 0.7)';
+        });
+
+        logDiv.addEventListener('mouseleave', () => {
+            logDiv.style.background = 'rgba(40, 40, 40, 0.7)';
+        });
+
+        container.appendChild(logDiv);
+    });
+}
+
+cancelContextBtn.addEventListener('click', () => {
+    contextModal.style.display = 'none';
+    contextModal.style.zIndex = '-1';
+    aiChatModal.style.pointerEvents = 'auto';
+});
+
+applyContextBtn.addEventListener('click', () => {
+    const selectedContext = {
+        people: [],
+        chats: [],
+        fraudLogs: [],
+        notes: contextNotes.value.trim(),
+        timestamp: new Date().toISOString()
+    };
+
+    document.querySelectorAll('#contextPeople input[type="checkbox"]:checked').forEach(checkbox => {
+        const human = pazatorData.humans.find(h => h.id === checkbox.value);
+        if (human) {
+            selectedContext.people.push({
+                id: human.id,
+                name: human.name,
+                credit: human.credit,
+                extraNotes: human.extraNotes
+            });
+        }
+    });
+
+    const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+    document.querySelectorAll('#contextChats input[type="checkbox"]:checked').forEach(checkbox => {
+        const chatIndex = parseInt(checkbox.value);
+        if (chatHistory[chatIndex]) {
+            selectedContext.chats.push(chatHistory[chatIndex]);
+        }
+    });
+
+    document.querySelectorAll('#contextFraudLogs input[type="checkbox"]:checked').forEach(checkbox => {
+        const logId = checkbox.value;
+        const allLogs = [
+            ...JSON.parse(localStorage.getItem('fraudLogs') || '[]'),
+            ...JSON.parse(localStorage.getItem('terroristLogs') || '[]')
+        ];
+
+        const selectedLog = allLogs.find(log => log.id === logId);
+        if (selectedLog) {
+            selectedContext.fraudLogs.push(selectedLog);
+        }
+    });
+
+    storeAIContext(selectedContext);
+
+    updateContextDisplay(selectedContext);
+
+    contextModal.style.display = 'none';
+    contextModal.style.zIndex = '-1';
+    aiChatModal.style.pointerEvents = 'auto';
+
+    alert(`Context applied! Selected: ${selectedContext.people.length} people, ${selectedContext.chats.length} chats, ${selectedContext.fraudLogs.length} fraud logs.`);
+});
+
+function updateContextDisplay(context) {
+    const contextDisplay = document.getElementById('contextDisplay');
+
+    if (!contextDisplay) return;
+
+    contextDisplay.innerHTML = '';
+
+    const hasContext = context.people.length > 0 || context.chats.length > 0 || context.fraudLogs.length > 0;
+
+    if (!hasContext) {
+        contextDisplay.innerHTML = '<div style="color: #777; font-style: italic; align-self: center;">No context selected - click "Add Context" to include people, chats, or security logs</div>';
+        return;
+    }
+
+    context.people.forEach(person => {
+        const card = document.createElement('div');
+        card.className = 'context-card people';
+        card.innerHTML = `
+                    <span class="card-icon"></span>
+                    <span class="card-name" title="${person.name}">${person.name}</span>
+                `;
+        card.addEventListener('click', () => {
+            alert(`Person: ${person.name}\nCredit: ${person.credit !== undefined ? Math.round(person.credit) : 'N/A'}\nNotes: ${person.extraNotes || 'None'}`);
+        });
+        contextDisplay.appendChild(card);
+    });
+
+    context.chats.forEach((chat, index) => {
+        const card = document.createElement('div');
+        card.className = 'context-card chats';
+        const participants = chat.participants.map(p => p.name).join(', ');
+        const wordCount = chat.content.split(' ').length;
+        card.innerHTML = `
+                    <span class="card-icon"></span>
+                    <span class="card-name" title="${chat.source.toUpperCase()} Chat - ${participants}">${chat.source.toUpperCase()} Chat (${wordCount} words)</span>
+                `;
+        card.addEventListener('click', () => {
+            alert(`${chat.source.toUpperCase()} Chat\nParticipants: ${participants}\nWords: ${wordCount}\nContext: ${chat.context || 'None'}`);
+        });
+        contextDisplay.appendChild(card);
+    });
+
+    context.fraudLogs.forEach(log => {
+        const card = document.createElement('div');
+        card.className = 'context-card fraud';
+        card.innerHTML = `
+                    <span class="card-icon">️</span>
+                    <span class="card-name" title="${log.type} - ${log.person || 'Unknown'}">${log.type} (${log.person || 'Unknown'})</span>
+                `;
+        card.addEventListener('click', () => {
+            alert(`${log.type}\nPerson: ${log.person || 'Unknown'}\nSeverity: ${log.severity || 'Unknown'}\nEvidence: ${log.evidence || 'None'}`);
+        });
+        contextDisplay.appendChild(card);
+    });
+
+    if (hasContext) {
+        const clearBtn = document.createElement('div');
+        clearBtn.className = 'context-card';
+        clearBtn.style.backgroundColor = 'rgba(200, 50, 50, 0.3)';
+        clearBtn.style.borderColor = '#cc4444';
+        clearBtn.innerHTML = `
+                    <span class="card-icon">️</span>
+                    <span class="card-name">Clear All Context</span>
+                `;
+        clearBtn.addEventListener('click', () => {
+            localStorage.removeItem('adminProvidedContext');
+            updateContextDisplay({ people: [], chats: [], fraudLogs: [] });
+        });
+        contextDisplay.appendChild(clearBtn);
+    }
+}
+
+function storeAIContext(context) {
+    let contextSummary = 'Context provided by admin:\n\n';
+
+    setTimeout(() => {
+        localStorage.removeItem('adminProvidedContext');
+    }, 300000);
+
+    if (context.people.length > 0) {
+        contextSummary += 'PEOPLE:\n';
+        context.people.forEach(person => {
+            contextSummary += `- ${person.name} (Credit: ${person.credit !== undefined ? Math.round(person.credit) : 'N/A'})\n`;
+            if (person.extraNotes) {
+                contextSummary += `  Notes: ${person.extraNotes}\n`;
+            }
+        });
+        contextSummary += '\n';
+    }
+
+    if (context.chats.length > 0) {
+        contextSummary += 'CHATS:\n';
+        context.chats.forEach((chat, index) => {
+            contextSummary += `${index + 1}. ${chat.source.toUpperCase()} chat with ${chat.participants.length} participants (${chat.content.split(' ').length} words)\n`;
+        });
+        contextSummary += '\n';
+    }
+
+    if (context.fraudLogs.length > 0) {
+        contextSummary += 'FRAUD ALERTS:\n';
+        context.fraudLogs.forEach(log => {
+            contextSummary += `- ${log.type}\n`;
+        });
+        contextSummary += '\n';
+    }
+
+    if (context.notes) {
+        contextSummary += `ADDITIONAL NOTES: ${context.notes}\n`;
+    }
+
+    localStorage.setItem('adminProvidedContext', JSON.stringify({
+        summary: contextSummary,
+        data: context,
+        timestamp: context.timestamp
+    }));
+}
+
+function getAdminContext() {
+    const storedContext = localStorage.getItem('adminProvidedContext');
+    if (storedContext) {
+        try {
+            const context = JSON.parse(storedContext);
+            return context.summary || '';
+        } catch (e) {
+            console.error('Error parsing admin context:', e);
+            return '';
+        }
+    }
+    return '';
+}
+
+askAIBtn.addEventListener('click', () => {
+    console.log('Ask AI button clicked - attempting to show modal');
+
+    const allModals = [typeModal, humanModal, otherModal, detailViewModal, document.getElementById('hiddenConnectionsModal')];
+    allModals.forEach(modal => {
+        if (modal) {
+            modal.style.display = 'none';
+            modal.style.zIndex = '-1';
+        }
+    });
+
+    aiChatModal.style.display = 'flex';
+    aiChatModal.style.zIndex = '1001';
+
+    aiChatModal.style.visibility = 'visible';
+    aiChatModal.style.opacity = '1';
+    aiChatModal.style.pointerEvents = 'auto';
+
+    console.log('Modal display style:', aiChatModal.style.display);
+    console.log('Modal z-index:', aiChatModal.style.zIndex);
+
+    setTimeout(() => {
+        if (aiInput) {
+            aiInput.focus();
+            console.log('Input focused');
+        }
+    }, 100);
+});
+
+document.getElementById('menuBtn').addEventListener('click', () => {
+    const container = document.querySelector('.container');
+    const threatsPanel = document.getElementById('threatsPanel');
+
+    if (threatsPanel.style.display === 'none' || threatsPanel.style.display === '') {
+        threatsPanel.style.display = 'block';
+        container.classList.add('threats-split');
+
+        loadPreviousFindings();
+    } else {
+        threatsPanel.style.display = 'none';
+        container.classList.remove('threats-split');
+    }
+});
+
+document.getElementById('dashboardBtn').addEventListener('click', () => {
+    createTab('dashboard');
+});
+
+document.getElementById('analysisBtn').addEventListener('click', () => {
+    createTab('analysis');
+});
+
+document.getElementById('threatsBtn').addEventListener('click', () => {
+    createTab('threats');
+});
+
+document.querySelectorAll('.close').forEach(button => {
+    button.addEventListener('click', (e) => {
+        e.stopPropagation();
+
+        const modal = button.closest('.modal') || button.closest('.detail-view') || button.closest('.ai-chat-modal');
+        if (modal) {
+            modal.classList.add('hiding');
+            setTimeout(() => {
+                modal.style.display = 'none';
+                modal.style.zIndex = '-1';
+                modal.classList.remove('hiding');
+            }, 300);
+        } else {
+
+            [typeModal, humanModal, otherModal, detailViewModal, aiChatModal, document.getElementById('hiddenConnectionsModal')].forEach(modal => {
+                if (modal && modal.style.display !== 'none') {
+                    modal.classList.add('hiding');
+                }
+            });
+
+            setTimeout(() => {
+                typeModal.style.display = 'none';
+                humanModal.style.display = 'none';
+                otherModal.style.display = 'none';
+                detailViewModal.style.display = 'none';
+                aiChatModal.style.display = 'none';
+                document.getElementById('hiddenConnectionsModal').style.display = 'none';
+
+                [typeModal, humanModal, otherModal, detailViewModal, aiChatModal, document.getElementById('hiddenConnectionsModal')].forEach(modal => {
+                    modal.style.zIndex = '-1';
+                    modal.classList.remove('hiding');
+                });
+            }, 300);
+        }
+    });
+});
+
+window.addEventListener('click', (event) => {
+    const modals = [
+        { element: typeModal, condition: event.target === typeModal },
+        { element: humanModal, condition: event.target === humanModal },
+        { element: otherModal, condition: event.target === otherModal },
+        { element: detailViewModal, condition: event.target === detailViewModal },
+        { element: aiChatModal, condition: event.target === aiChatModal },
+        { element: chatUploadModal, condition: event.target === chatUploadModal },
+        { element: document.getElementById('hiddenConnectionsModal'), condition: event.target === document.getElementById('hiddenConnectionsModal') }
+    ];
+
+    modals.forEach(({ element, condition }) => {
+        if (element && condition && element.style.display === 'flex') {
+            element.classList.add('hiding');
+            setTimeout(() => {
+                element.style.display = 'none';
+                element.style.zIndex = '-1';
+                element.classList.remove('hiding');
+            }, 300);
+        }
+    });
+
+    [typeModal, humanModal, otherModal, detailViewModal, aiChatModal, chatUploadModal, document.getElementById('hiddenConnectionsModal')].forEach(modal => {
+        if (modal && modal.style.display === 'none') {
+            modal.style.zIndex = '-1';
+        }
+    });
+});
+
+window.addEventListener('error', (event) => {
+    console.error('Global error caught:', event.error);
+
+    const errorMessage = event.error?.message || event.message || '';
+    const isAIError = errorMessage.includes('AI') ||
+        errorMessage.includes('puter.ai') ||
+        errorMessage.includes('processAICommand') ||
+        errorMessage.includes('handleAIAction') ||
+        errorMessage.includes('extractJSONFromResponse');
+
+    event.preventDefault();
+
+    if (aiChatModal && aiChatModal.style.display === 'flex' && isAIError) {
+        try {
+            addMessageToAIChat("Sorry, I encountered an unexpected error. Please try rephrasing your request.", 'ai');
+            if (aiSendBtn) {
+                aiSendBtn.disabled = false;
+            }
+            if (aiInput) {
+                aiInput.value = '';
+            }
+        } catch (e) {
+            console.error('Error handling global error:', e);
+        }
+    }
+});
+
+document.getElementById('humanTypeBtn').addEventListener('click', () => {
+    typeModal.style.display = 'none';
+    populateSelectOptions();
+    humanModal.style.display = 'flex';
+    humanModal.style.zIndex = '1000';
+});
+
+document.getElementById('otherTypeBtn').addEventListener('click', () => {
+    typeModal.style.display = 'none';
+    otherModal.style.display = 'flex';
+    otherModal.style.zIndex = '1000';
+});
+
+document.getElementById('cancelHumanBtn').addEventListener('click', () => {
+    humanModal.style.display = 'none';
+    humanModal.style.zIndex = '-1';
+});
+
+document.getElementById('cancelOtherBtn').addEventListener('click', () => {
+    otherModal.style.display = 'none';
+    otherModal.style.zIndex = '-1';
+});
+
+document.getElementById('closeDetail').addEventListener('click', () => {
+    detailViewModal.classList.add('hiding');
+    setTimeout(() => {
+        detailViewModal.style.display = 'none';
+        detailViewModal.style.zIndex = '-1';
+        detailViewModal.classList.remove('hiding');
+    }, 300);
+});
+
+document.getElementById('closeAIChat').addEventListener('click', () => {
+    aiChatModal.classList.add('hiding');
+    setTimeout(() => {
+        aiChatModal.style.display = 'none';
+        aiChatModal.style.zIndex = '-1';
+        aiChatModal.classList.remove('hiding');
+        aiChatModal.classList.remove('debug');
+    }, 300);
+});
+
+document.getElementById('closeConnectionsModal').addEventListener('click', () => {
+    const hiddenConnectionsModal = document.getElementById('hiddenConnectionsModal');
+    hiddenConnectionsModal.style.display = 'none';
+    hiddenConnectionsModal.style.zIndex = '-1';
+});
+
+aiChatModal.addEventListener('click', (event) => {
+    if (event.target === aiChatModal) {
+        aiChatModal.classList.add('hiding');
+        setTimeout(() => {
+            aiChatModal.style.display = 'none';
+            aiChatModal.style.zIndex = '-1';
+            aiChatModal.classList.remove('hiding');
+            aiChatModal.classList.remove('debug');
+        }, 300);
+    }
+});
+
+document.getElementById('hiddenConnectionsModal').addEventListener('click', (event) => {
+    if (event.target === document.getElementById('hiddenConnectionsModal')) {
+        const hiddenConnectionsModal = document.getElementById('hiddenConnectionsModal');
+        hiddenConnectionsModal.classList.add('hiding');
+        setTimeout(() => {
+            hiddenConnectionsModal.style.display = 'none';
+            hiddenConnectionsModal.style.zIndex = '-1';
+            hiddenConnectionsModal.classList.remove('hiding');
+        }, 300);
+    }
+});
+
+document.getElementById('editEntryBtn').addEventListener('click', () => {
+    const data = document.currentDetailData;
+    if (!data) return;
+
+    detailViewModal.style.display = 'none';
+    detailViewModal.style.zIndex = '-1';
+
+    if (data.type === 'human') {
+        openHumanFormForEdit(data);
+        humanModal.style.zIndex = '1000';
+    } else {
+        openOtherFormForEdit(data);
+        otherModal.style.zIndex = '1000';
+    }
+});
+
+document.getElementById('deleteEntryBtn').addEventListener('click', () => {
+    deleteCurrentEntry();
+});
+
+function updateSendButtonText(text) {
+    const span = aiSendBtn.querySelector('.btn-icon-text');
+    if (span) {
+        span.textContent = text;
+    } else {
+        aiSendBtn.innerHTML = `<i class="fas fa-paper-plane"></i><span class="btn-icon-text">${text}</span>`;
+    }
+}
+
+function updateImproveButtonText(text) {
+    const span = aiImproveBtn.querySelector('.btn-icon-text');
+    if (span) {
+        span.textContent = text;
+    } else {
+        aiImproveBtn.innerHTML = `<i class="fas fa-wand"></i><span class="btn-icon-text">${text}</span>`;
+    }
+}
+
+function showNotification(message) {
+    const notification = document.getElementById('aiNotification');
+    const notificationText = document.getElementById('notificationText');
+
+    if (notification && notificationText) {
+        notificationText.textContent = message;
+        notification.style.display = 'block';
+
+        setTimeout(() => {
+            notification.style.display = 'none';
+        }, 3000);
+    }
+}
+
+function clearNotifications() {
+    const notification = document.getElementById('aiNotification');
+    if (notification) {
+        notification.style.display = 'none';
+    }
+}
+
+async function improvePrompt() {
+    const originalPrompt = aiInput.value.trim();
+    if (!originalPrompt) {
+        addMessageToAIChat("Please enter a prompt to improve.", 'ai');
+        return;
+    }
+
+    try {
+        aiImproveBtn.disabled = true;
+        aiSendBtn.disabled = true;
+
+        showNotification('Improving prompt...');
+
+        const context = `
+                    You are an expert prompt engineer. Your job is to improve prompts that will be used with another AI system.
+                    You are NOT the AI that will fulfill the request - you are only improving the prompt for another AI to process.
+                    
+                    The prompt is for a data management application called Pazator where users manage human and other entries.
+                    
+                    Original prompt: ${originalPrompt}
+                    
+                    Your task is to enhance this prompt to make it more specific, detailed, and likely to produce better results.
+                    Consider:
+                    - Adding more context or specificity
+                    - Clarifying ambiguous terms
+                    - Making the request more structured
+                    - Adding relevant details that might help achieve better results
+                    - Ensuring the prompt is clear and actionable
+                    
+                    Return only the improved prompt, nothing else.
+                `;
+
+        const aiResponse = await puter.ai.chat([
+            { role: "system", content: context },
+            { role: "user", content: `Please improve this prompt: ${originalPrompt}` }
+        ]);
+
+        const improvedPrompt = aiResponse.content ? aiResponse.content : aiResponse;
+
+        aiInput.value = improvedPrompt;
+
+        addMessageToAIChat("Prompt improved! You can now send the improved version or improve it again.", 'ai');
+    } catch (error) {
+        console.error('Error improving prompt:', error);
+        addMessageToAIChat("Sorry, I encountered an error improving your prompt. Please try again.", 'ai');
+    } finally {
+        aiImproveBtn.disabled = false;
+        updateImproveButtonText('');
+
+        if (!aiSendBtn.disabled) {
+            aiSendBtn.disabled = false;
+        }
+
+        aiInput.focus();
+    }
+}
+
+document.getElementById('aiImproveBtn').addEventListener('click', () => {
+    improvePrompt();
+});
+
+aiSendBtn.addEventListener('click', () => {
+    const command = aiInput.value.trim();
+    if (command) {
+        aiSendBtn.disabled = true;
+        showNotification('Sending command...');
+
+        requestAnimationFrame(() => {
+            processAICommand(command);
+        });
+    }
+});
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+aiInput.addEventListener('keydown', debounce((e) => {
+    if (e.key === 'Enter' && !aiSendBtn.disabled) {
+        e.preventDefault();
+        const command = aiInput.value.trim();
+        if (command) {
+            processAICommand(command);
+        }
+    }
+}, 100));
+
+aiInput.addEventListener('input', debounce(() => {
+    aiSendBtn.disabled = aiInput.value.trim() === '';
+}, 50));
+
+document.getElementById('historyBtn')?.addEventListener('click', () => {
+    alert('Chat history feature would open here. This is a placeholder for future implementation.');
+});
+
+document.getElementById('favoritesBtn')?.addEventListener('click', () => {
+    alert('Favorite commands would appear here. This is a placeholder for future implementation.');
+});
+
+const chatOptionsMenu = document.getElementById('chatOptionsMenu');
+
+chatMenuBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    chatOptionsMenu.classList.toggle('active');
+});
+
+document.addEventListener('click', (e) => {
+    if (!chatMenuBtn.contains(e.target) && !chatOptionsMenu.contains(e.target)) {
+        chatOptionsMenu.classList.remove('active');
+    }
+});
+
+document.getElementById('clearChatOption')?.addEventListener('click', () => {
+    alert('Clear chat functionality would go here. This is a placeholder for future implementation.');
+    chatOptionsMenu.classList.remove('active');
+});
+
+
+document.getElementById('humanForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const id = document.getElementById('humanId').value;
+    const name = document.getElementById('humanName').value;
+    const gender = document.getElementById('humanGender').value;
+    const birthDate = document.getElementById('birthDate').value;
+    const workplace = document.getElementById('workplace').value;
+    const credit = document.getElementById('credit').value;
+    const socialClass = document.getElementById('socialClass').value;
+    const extraNotes = document.getElementById('extraNotes').value;
+
+    const friendsSelect = document.getElementById('friends');
+    const familySelect = document.getElementById('family');
+
+    const selectedFriends = Array.from(friendsSelect.selectedOptions).map(option => option.value);
+    const selectedFamily = Array.from(familySelect.selectedOptions).map(option => option.value);
+
+    const tagsSelect = document.getElementById('humanTags');
+    const selectedTags = Array.from(tagsSelect.selectedOptions).map(option => option.value);
+
+    if (id) {
+
+        const humanIndex = pazatorData.humans.findIndex(h => h.id === id);
+        if (humanIndex !== -1) {
+            const existingImage = pazatorData.humans[humanIndex].imagePreview;
+
+            pazatorData.humans[humanIndex] = {
+                id,
+                name,
+                gender,
+                birthDate,
+                workplace,
+                credit: credit ? parseFloat(credit) : undefined,
+                socialClass: socialClass || undefined,
+                friends: selectedFriends,
+                family: selectedFamily,
+                extraNotes,
+                tags: selectedTags,
+                imagePreview: existingImage
+            };
+        }
+    } else {
+
+        const newHuman = {
+            id: Date.now().toString(),
+            name,
+            gender,
+            birthDate,
+            workplace,
+            credit: credit ? parseFloat(credit) : undefined,
+            socialClass: socialClass || undefined,
+            friends: selectedFriends,
+            family: selectedFamily,
+            extraNotes,
+            tags: selectedTags,
+            imagePreview: null
+        };
+
+        pazatorData.humans.push(newHuman);
+    }
+
+    const imageFile = document.getElementById('humanImage').files[0];
+    if (imageFile) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            if (id) {
+                const humanIndex = pazatorData.humans.findIndex(h => h.id === id);
+                if (humanIndex !== -1) {
+                    pazatorData.humans[humanIndex].imagePreview = e.target.result;
+                }
+            } else {
+                const lastIndex = pazatorData.humans.length - 1;
+                pazatorData.humans[lastIndex].imagePreview = e.target.result;
+            }
+
+            markDataChanged();
+            renderWebNodes();
+            humanModal.style.display = 'none';
+            humanModal.style.zIndex = '-1';
+            document.getElementById('humanForm').reset();
+        };
+        reader.readAsDataURL(imageFile);
+    } else {
+        markDataChanged();
+        renderWebNodes();
+        humanModal.style.display = 'none';
+        humanModal.style.zIndex = '-1';
+        document.getElementById('humanForm').reset();
+    }
+});
+
+document.getElementById('otherForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const id = document.getElementById('otherId').value;
+    const name = document.getElementById('otherName').value;
+    const note = document.getElementById('otherNote').value;
+
+    if (id) {
+
+        const otherIndex = pazatorData.others.findIndex(o => o.id === id);
+        if (otherIndex !== -1) {
+
+            const existingImage = pazatorData.others[otherIndex].imagePreview;
+
+            pazatorData.others[otherIndex] = {
+                id,
+                name,
+                note,
+                imagePreview: existingImage
+            };
+        }
+    } else {
+
+        const newOther = {
+            id: Date.now().toString(),
+            name,
+            note,
+            imagePreview: null
+        };
+
+        pazatorData.others.push(newOther);
+    }
+
+    const imageFile = document.getElementById('otherImage').files[0];
+    if (imageFile) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            if (id) {
+
+                const otherIndex = pazatorData.others.findIndex(o => o.id === id);
+                if (otherIndex !== -1) {
+                    pazatorData.others[otherIndex].imagePreview = e.target.result;
+                }
+            } else {
+
+                const lastIndex = pazatorData.others.length - 1;
+                pazatorData.others[lastIndex].imagePreview = e.target.result;
+            }
+
+            markDataChanged();
+            renderWebNodes();
+            otherModal.style.display = 'none';
+            otherModal.style.zIndex = '-1';
+            document.getElementById('otherForm').reset();
+        };
+        reader.readAsDataURL(imageFile);
+    } else {
+        markDataChanged();
+        renderWebNodes();
+        otherModal.style.display = 'none';
+        otherModal.style.zIndex = '-1';
+        document.getElementById('otherForm').reset();
+    }
+});
+
+window.addEventListener('resize', () => {
+    renderWebNodes();
+});
+
+let zoomTicking = false;
+
+function updateZoomTransform() {
+    webContent.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`;
+    zoomTicking = false;
+}
+
+function requestZoomTransformUpdate() {
+    if (!zoomTicking) {
+        requestAnimationFrame(updateZoomTransform);
+        zoomTicking = true;
+    }
+}
+
+let initialPinchDistance = 0;
+let initialScale = 1;
+
+webContainer.addEventListener('wheel', (e) => {
+    e.preventDefault();
+
+    const rect = webContainer.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const zoomIntensity = 0.05;
+    const wheel = e.deltaY < 0 ? 1 : -1;
+    const zoom = Math.exp(wheel * zoomIntensity);
+
+    const newScale = currentScale * zoom;
+
+    if (newScale >= minScale && newScale <= maxScale) {
+
+        const translateX = mouseX - (mouseX - currentTranslateX) * (newScale / currentScale);
+        const translateY = mouseY - (mouseY - currentTranslateY) * (newScale / currentScale);
+
+        currentScale = newScale;
+        currentTranslateX = translateX;
+        currentTranslateY = translateY;
+
+        requestZoomTransformUpdate();
+    }
+});
+
+webContainer.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        initialPinchDistance = Math.sqrt(dx * dx + dy * dy);
+        initialScale = currentScale;
+        e.preventDefault();
+    }
+});
+
+webContainer.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 2) {
+
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const currentPinchDistance = Math.sqrt(dx * dx + dy * dy);
+
+        const scaleFactor = currentPinchDistance / initialPinchDistance;
+        const newScale = initialScale * scaleFactor;
+
+        if (newScale >= minScale && newScale <= maxScale) {
+            currentScale = newScale;
+            requestZoomTransformUpdate();
+        }
+
+        e.preventDefault();
+    }
+});
+
+let dragTicking = false;
+
+function updateDragTransform() {
+    webContent.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`;
+    dragTicking = false;
+}
+
+function requestDragTransformUpdate() {
+    if (!dragTicking) {
+        requestAnimationFrame(updateDragTransform);
+        dragTicking = true;
+    }
+}
+
+webContainer.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+
+    isDragging = true;
+    webContainer.classList.add('dragging');
+
+    startX = e.clientX;
+    startY = e.clientY;
+    startTranslateX = currentTranslateX;
+    startTranslateY = currentTranslateY;
+});
+
+webContainer.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+
+    currentTranslateX = startTranslateX + (e.clientX - startX);
+    currentTranslateY = startTranslateY + (e.clientY - startY);
+
+    requestDragTransformUpdate();
+
+    e.preventDefault();
+});
+
+webContainer.addEventListener('mouseup', (e) => {
+    if (isDragging) {
+        isDragging = false;
+        webContainer.classList.remove('dragging');
+    }
+});
+
+webContainer.addEventListener('mouseleave', () => {
+    isDragging = false;
+    webContainer.classList.remove('dragging');
+});
+
+applyFilterBtn.addEventListener('click', () => {
+    renderWebNodes();
+});
+
+searchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        renderWebNodes();
+    }
+});
+
+addTagBtn.addEventListener('click', () => {
+    const tagText = tagInput.value.trim();
+    if (tagText && !tags.includes(tagText)) {
+        tags.push(tagText);
+        renderTags();
+        tagInput.value = '';
+    }
+});
+
+refreshViewBtn.addEventListener('click', () => {
+    currentScale = 1;
+    currentTranslateX = 0;
+    currentTranslateY = 0;
+    webContent.style.transform = `translate(0px, 0px) scale(1)`;
+
+    setTimeout(() => {
+        fitAllNodesInView();
+    }, 50);
+});
+
+toggleConnectionsBtn.addEventListener('click', () => {
+    const connectionLines = document.querySelectorAll('.connection-line');
+    connectionLines.forEach(line => {
+        line.style.display = line.style.display === 'none' ? 'block' : 'none';
+    });
+});
+
+showStatisticsBtn.addEventListener('click', () => {
+    const humanCount = pazatorData.humans.length;
+    const otherCount = pazatorData.others.length;
+    const totalConnections = pazatorData.humans.reduce((total, human) => {
+        return total + (human.family ? human.family.length : 0) + (human.friends ? human.friends.length : 0);
+    }, 0);
+
+    alert(`Statistics:
+- Humans: ${humanCount}
+- Others: ${otherCount}
+- Total Entries: ${humanCount + otherCount}
+- Connections: ${totalConnections}`);
+});
+
+findConnectionsBtn.addEventListener('click', async () => {
+    await findHiddenConnections();
+});
+
+findFraudBtn.addEventListener('click', async () => {
+    await findPotentialFraud();
+});
+
+findTerroristsBtn.addEventListener('click', async () => {
+    await findPotentialTerrorists();
+});
+
+document.getElementById('findBothBtn').addEventListener('click', async () => {
+    await Promise.all([
+        findPotentialFraud(),
+        findPotentialTerrorists()
+    ]);
+
+    loadPreviousFindings();
+});
+
+refreshCreditsBtn.addEventListener('click', () => {
+    refreshPersonCredits();
+});
+sortByCreditBtn.addEventListener('click', () => {
+    sortByCredit();
+});
+
+chatControlBtn?.addEventListener('click', () => {
+    openOrCreateTab('chat-control');
+});
+
+document.getElementById('searchBtn')?.addEventListener('click', () => {
+    openOrCreateTab('search');
+});
+
+document.getElementById('agentsBtn')?.addEventListener('click', () => {
+    openOrCreateTab('agents');
+});
+
+document.getElementById('articlesBtn')?.addEventListener('click', () => {
+    openOrCreateTab('articles');
+});
+
+analyzeAllChatsBtn?.addEventListener('click', async () => {
+    await analyzeAllChats();
+});
+
+refreshChatListBtn?.addEventListener('click', () => {
+    loadSavedChats();
+});
+
+exportChatReportBtn?.addEventListener('click', () => {
+    exportChatReport();
+});
+
+clearChatHistoryBtn?.addEventListener('click', () => {
+    clearChatHistory();
+});
+
+document.getElementById('generateThreatReportBtn')?.addEventListener('click', () => {
+    generateThreatReport();
+});
+
+document.getElementById('reviewArchiveBtn')?.addEventListener('click', () => {
+    reviewHistoricalPatterns();
+});
+
+function sortByCredit() {
+    pazatorData.humans.sort((a, b) => {
+        const creditA = a.credit !== undefined ? a.credit : -1;
+        const creditB = b.credit !== undefined ? b.credit : -1;
+        return creditB - creditA;
+    });
+
+    saveData();
+    renderWebNodes();
+
+    alert(`Sorted ${pazatorData.humans.length} people by credit score!`);
+}
+
+function generateThreatReport() {
+    const humanCount = pazatorData.humans.length;
+    const otherCount = pazatorData.others.length;
+    const fraudLogs = JSON.parse(localStorage.getItem('fraudLogs') || '[]');
+    const terroristLogs = JSON.parse(localStorage.getItem('terroristLogs') || '[]');
+    const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+
+    let report = `=== SECURITY THREAT ASSESSMENT REPORT ===\n`;
+    report += `Generated: ${new Date().toLocaleString()}\n\n`;
+
+    report += `DATA OVERVIEW\n`;
+    report += `================\n`;
+    report += `Human Entries: ${humanCount}\n`;
+    report += `Other Entries: ${otherCount}\n`;
+    report += `Total Records: ${humanCount + otherCount}\n`;
+    report += `Monitored Chats: ${chatHistory.length}\n\n`;
+
+    report += `SECURITY FINDINGS\n`;
+    report += `==================\n`;
+    report += `Fraud Cases Detected: ${fraudLogs.length}\n`;
+    report += `Terrorism Indicators: ${terroristLogs.length}\n`;
+
+    const highRiskHumans = pazatorData.humans.filter(h => h.credit !== undefined && h.credit < 30).length;
+    report += `High-Risk Individuals: ${highRiskHumans}\n\n`;
+
+    report += `RECOMMENDATIONS\n`;
+    report += `=================\n`;
+
+    if (fraudLogs.length > 0) {
+        report += `• Review ${fraudLogs.length} fraud cases for immediate action\n`;
+    }
+
+    if (terroristLogs.length > 0) {
+        report += `• Investigate ${terroristLogs.length} terrorism indicators\n`;
+    }
+
+    if (highRiskHumans > 0) {
+        report += `• Monitor ${highRiskHumans} high-risk individuals\n`;
+    }
+
+    report += `• Continue regular security sweeps\n`;
+    report += `• Update threat intelligence databases\n\n`;
+
+    report += `SYSTEM STATUS\n`;
+    report += `===============\n`;
+    report += `Detection Engine: ONLINE\n`;
+    report += `Database Sync: ACTIVE\n`;
+    report += `Alert System: READY\n`;
+    report += `Response Time: <1s\n`;
+
+    alert(report);
+}
+
+function reviewHistoricalPatterns() {
+    const fraudLogs = JSON.parse(localStorage.getItem('fraudLogs') || '[]');
+    const terroristLogs = JSON.parse(localStorage.getItem('terroristLogs') || '[]');
+    const previousThreats = JSON.parse(localStorage.getItem('previousThreats') || '[]');
+    const previousFraud = JSON.parse(localStorage.getItem('previousFraud') || '[]');
+
+    if (fraudLogs.length === 0 && terroristLogs.length === 0 &&
+        previousThreats.length === 0 && previousFraud.length === 0) {
+        alert('No historical security incidents found.\n\nThis system tracks:\n• Fraud detection cases\n• Terrorism indicators\n• Threat assessments\n• Security pattern analysis\n\nContinue monitoring to build historical data.');
+        return;
+    }
+
+    let report = `=== HISTORICAL SECURITY PATTERNS ===\n`;
+    report += `Analysis Period: All Recorded Data\n\n`;
+
+    if (previousThreats.length > 0) {
+        report += `THREAT HISTORY (${previousThreats.length} cases)\n`;
+        report += `====================================\n`;
+        previousThreats.slice(-5).forEach((threat, index) => {
+            report += `${index + 1}. ${threat.person || threat.name}\n`;
+            report += `   Risk: ${threat.riskLevel || 'Unknown'}\n`;
+            report += `   Reasons: ${(threat.reasons || threat.redFlags || []).slice(0, 2).join(', ') || 'Various factors'}\n\n`;
+        });
+    }
+
+    if (previousFraud.length > 0) {
+        report += `FRAUD HISTORY (${previousFraud.length} cases)\n`;
+        report += `===================================\n`;
+        previousFraud.slice(-5).forEach((fraud, index) => {
+            report += `${index + 1}. ${fraud.person || fraud.name}\n`;
+            report += `   Type: ${fraud.type || 'Unspecified'}\n`;
+            report += `   Evidence: ${(fraud.evidence || fraud.redFlags || []).slice(0, 2).join(', ') || 'Multiple indicators'}\n\n`;
+        });
+    }
+
+    report += `TREND ANALYSIS\n`;
+    report += `================\n`;
+    report += `Total Security Incidents: ${previousThreats.length + previousFraud.length}\n`;
+    report += `Current Active Cases: ${fraudLogs.length + terroristLogs.length}\n`;
+    report += `Security Trend: ${fraudLogs.length + terroristLogs.length > previousThreats.length + previousFraud.length ? 'INCREASING' : 'STABLE/DECREASING'}\n\n`;
+
+    report += `RECOMMENDED ACTIONS\n`;
+    report += `=====================\n`;
+    report += `• Review recent ${fraudLogs.length + terroristLogs.length} active cases\n`;
+    report += `• Analyze patterns in historical data\n`;
+    report += `• Update security protocols based on findings\n`;
+    report += `• Schedule regular pattern analysis reviews\n`;
+
+    alert(report);
+}
+
+function loadSavedChats() {
+    const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+
+    if (chatHistory.length === 0) {
+        savedChatsList.innerHTML = '<p style="color: #777; text-align: center;">No saved chats found</p>';
+        return;
+    }
+
+    savedChatsList.innerHTML = '';
+
+    chatHistory.forEach((chat, index) => {
+        const chatCard = document.createElement('div');
+        chatCard.style.background = 'rgba(40, 40, 40, 0.7)';
+        chatCard.style.border = '1px solid #333';
+        chatCard.style.borderRadius = '8px';
+        chatCard.style.padding = '15px';
+        chatCard.style.marginBottom = '15px';
+        chatCard.style.cursor = 'pointer';
+        chatCard.style.transition = 'all 0.2s ease';
+
+        const date = new Date(chat.timestamp).toLocaleDateString();
+        const participants = chat.participants.map(p => p.name).join(', ');
+        const wordCount = chat.content.split(' ').length;
+
+        chatCard.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0 0 8px 0; color: #ffffff;">${chat.source.toUpperCase()} Chat</h4>
+                            <p style="margin: 0 0 8px 0; color: #aaa; font-size: 0.9rem;">Participants: ${participants}</p>
+                            <p style="margin: 0 0 8px 0; color: #aaa; font-size: 0.9rem;">${wordCount} words • ${date}</p>
+                            ${chat.context ? `<p style="margin: 0; color: #888; font-size: 0.85rem;">Context: ${chat.context}</p>` : ''}
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-secondary" style="padding: 5px 10px; font-size: 0.8rem;" 
+                                    onclick="analyzeSingleChat(${index})">
+                                <i class="fas fa-search"></i> Analyze
+                            </button>
+                            <button class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8rem;" 
+                                    onclick="deleteChat(${index})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+        chatCard.addEventListener('mouseenter', () => {
+            chatCard.style.background = 'rgba(60, 60, 60, 0.7)';
+            chatCard.style.transform = 'translateY(-2px)';
+        });
+
+        chatCard.addEventListener('mouseleave', () => {
+            chatCard.style.background = 'rgba(40, 40, 40, 0.7)';
+            chatCard.style.transform = 'translateY(0)';
+        });
+
+        savedChatsList.appendChild(chatCard);
+    });
+}
+
+async function analyzeAllChats() {
+    const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+
+    if (chatHistory.length === 0) {
+        alert('No chats to analyze!');
+        return;
+    }
+
+    analyzeAllChatsBtn.disabled = true;
+    analyzeAllChatsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+
+    try {
+        let totalSuspicious = 0;
+        let totalChats = chatHistory.length;
+        let analysisResults = [];
+
+        for (let i = 0; i < chatHistory.length; i++) {
+            const chat = chatHistory[i];
+            const result = await analyzeChatContent(chat.content, chat.source);
+
+            if (result.isSuspicious) {
+                totalSuspicious++;
+            }
+
+            analysisResults.push({
+                index: i,
+                source: chat.source,
+                participants: chat.participants.map(p => p.name).join(', '),
+                result: result
+            });
+        }
+
+        let report = `=== Chat Security Analysis Report ===\n\n`;
+        report += `Total Chats Analyzed: ${totalChats}\n`;
+        report += `Suspicious Chats Found: ${totalSuspicious}\n`;
+        report += `Security Score: ${Math.max(0, 100 - (totalSuspicious / totalChats * 100)).toFixed(1)}%\n\n`;
+
+        if (totalSuspicious > 0) {
+            report += `=== SUSPICIOUS CHATS DETECTED ===\n`;
+            analysisResults
+                .filter(item => item.result.isSuspicious)
+                .forEach(item => {
+                    report += `\n[${item.source.toUpperCase()}] ${item.participants}\n`;
+                    report += `Risk: ${item.result.riskLevel?.toUpperCase() || 'UNKNOWN'}\n`;
+                    if (item.result.redFlags?.length > 0) {
+                        report += `Flags: ${item.result.redFlags.join(', ')}\n`;
+                    }
+                    report += `Summary: ${item.result.summary || 'No details'}\n`;
+                });
+        } else {
+            report += `No suspicious chats detected. All chats appear secure.`;
+        }
+
+        alert(report);
+
+    } catch (error) {
+        console.error('Error analyzing all chats:', error);
+        alert('Error analyzing chats. Please try again.');
+    } finally {
+        analyzeAllChatsBtn.disabled = false;
+        analyzeAllChatsBtn.innerHTML = '<i class="fas fa-search"></i> Analyze All Chats for Suspicious Content';
+    }
+}
+
+async function analyzeChatContent(content, source) {
+    try {
+        const context = `
+                    You are a cybersecurity expert analyzing ${source} chat conversations for suspicious or potentially fraudulent activity.
+                    
+                    Analyze the following chat content and identify any suspicious elements:
+                    
+                    ${content.substring(0, 2000)}
+                    
+                    Look for these red flags:
+                    - Requests for money, gift cards, or financial information
+                    - Personal data collection (SSN, bank details, passwords)
+                    - Urgent or threatening language pressuring the user
+                    - Unsolicited offers, prizes, or investment schemes
+                    - Links to unfamiliar or suspicious websites
+                    - Impersonation or claims of needing secrecy
+                    - Requests to download attachments or run programs
+                    - Pressure to abandon official channels
+                    - Phishing attempts or social engineering
+                    
+                    Provide your analysis in this JSON format:
+                    {
+                        "isSuspicious": boolean,
+                        "riskLevel": "low|medium|high",
+                        "redFlags": ["flag1", "flag2"],
+                        "summary": "Brief summary of findings"
+                    }
+                `;
+
+        const aiResponse = await puter.ai.chat([
+            { role: "system", content: context },
+            { role: "user", content: "Analyze this chat for suspicious activity." }
+        ]);
+
+        const responseText = aiResponse.content ? aiResponse.content : aiResponse;
+        const analysis = extractJSONFromResponse(responseText);
+
+        return analysis && typeof analysis === 'object' ? analysis : {
+            isSuspicious: false,
+            riskLevel: 'low',
+            redFlags: [],
+            summary: 'No suspicious content detected'
+        };
+
+    } catch (error) {
+        console.error('Error analyzing chat content:', error);
+        return {
+            isSuspicious: false,
+            riskLevel: 'low',
+            redFlags: [],
+            summary: 'Analysis failed'
+        };
+    }
+}
+
+async function analyzeSingleChat(index) {
+    const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+
+    if (!chatHistory[index]) {
+        alert('Chat not found!');
+        return;
+    }
+
+    const chat = chatHistory[index];
+    const result = await analyzeChatContent(chat.content, chat.source);
+
+    let message = `=== Chat Analysis Result ===\n\n`;
+    message += `Source: ${chat.source.toUpperCase()}\n`;
+    message += `Participants: ${chat.participants.map(p => p.name).join(', ')}\n`;
+    message += `Words: ${chat.content.split(' ').length}\n\n`;
+    message += `Suspicious: ${result.isSuspicious ? 'YES' : 'NO'}\n`;
+    message += `Risk Level: ${result.riskLevel?.toUpperCase() || 'LOW'}\n\n`;
+
+    if (result.redFlags && result.redFlags.length > 0) {
+        message += "Red Flags:\n" + result.redFlags.map(flag => "• " + flag).join("\n") + "\n\n";
+    }
+
+    message += `Summary: ${result.summary || 'No specific concerns'}`;
+
+    alert(message);
+}
+
+function deleteChat(index) {
+    if (confirm('Are you sure you want to delete this chat?')) {
+        let chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+        chatHistory.splice(index, 1);
+        localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+        loadSavedChats();
+    }
+}
+
+function exportChatReport() {
+    const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+
+    if (chatHistory.length === 0) {
+        alert('No chats to export!');
+        return;
+    }
+
+    let report = `Pazator Chat Analysis Report\n`;
+    report += `Generated: ${new Date().toLocaleString()}\n`;
+    report += `Total Chats: ${chatHistory.length}\n\n`;
+
+    chatHistory.forEach((chat, index) => {
+        const date = new Date(chat.timestamp).toLocaleDateString();
+        const participants = chat.participants.map(p => p.name).join(', ');
+        const wordCount = chat.content.split(' ').length;
+
+        report += `=== Chat ${index + 1} ===\n`;
+        report += `Source: ${chat.source.toUpperCase()}\n`;
+        report += `Date: ${date}\n`;
+        report += `Participants: ${participants}\n`;
+        report += `Word Count: ${wordCount}\n`;
+        report += `Context: ${chat.context || 'None'}\n`;
+        report += `Content Preview: ${chat.content.substring(0, 200)}${chat.content.length > 200 ? '...' : ''}\n\n`;
+    });
+
+    const blob = new Blob([report], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pazator-chat-report-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function clearChatHistory() {
+    if (confirm('Are you sure you want to clear ALL chat history? This cannot be undone.')) {
+        localStorage.removeItem('chatHistory');
+        loadSavedChats();
+        alert('Chat history cleared successfully!');
+    }
+}
+
+document.getElementById('closeConnectionsModal').addEventListener('click', () => {
+    const hiddenConnectionsModal = document.getElementById('hiddenConnectionsModal');
+    hiddenConnectionsModal.style.display = 'none';
+    hiddenConnectionsModal.style.zIndex = '-1';
+});
+
+document.getElementById('manualRefreshBtn')?.addEventListener('click', () => {
+    manualRefresh();
+});
+
+async function findHiddenConnections() {
+    const hiddenConnectionsModal = document.getElementById('hiddenConnectionsModal');
+    const connectionsLoading = document.getElementById('connectionsLoading');
+    const connectionsResults = document.getElementById('connectionsResults');
+    const noConnections = document.getElementById('noConnections');
+    const connectionsGraph = document.getElementById('connectionsGraph');
+    const connectionsList = document.getElementById('connectionsList');
+
+    connectionsLoading.style.display = 'block';
+    connectionsResults.style.display = 'none';
+    noConnections.style.display = 'none';
+    hiddenConnectionsModal.style.display = 'flex';
+    hiddenConnectionsModal.style.zIndex = '1000';
+
+    findConnectionsBtn.disabled = true;
+    findConnectionsBtn.textContent = 'Analyzing...';
+
+    try {
+
+        const humansData = pazatorData.humans.map(human => ({
+            id: human.id,
+            name: human.name,
+            gender: human.gender,
+            birthDate: human.birthDate,
+            workplace: human.workplace,
+            friends: human.friends || [],
+            family: human.family || [],
+            extraNotes: human.extraNotes || '',
+            tags: human.tags || []
+        }));
+
+        const context = `
+                    You are an AI detective analyzing connections between people in a social network.
+                    Your task is to identify potential hidden connections between people based on their data.
+
+                    Here's the data about the people:
+                    ${JSON.stringify(humansData, null, 2)}
+
+                    Based on the information provided, identify potential connections that are not explicitly stated.
+                    Look for patterns such as:
+                    - People who work at the same workplace
+                    - People with similar tags or interests
+                    - People with close birth dates (possibly classmates)
+                    - People who share friends or family members
+                    - People with similar political views or characteristics mentioned in extraNotes
+                    - People with overlapping or similar tags
+                    - People with common interests based on their tags
+
+                    Return your findings as a JSON array of potential connections in this format:
+                    [
+                        {
+                            "person1": "Person Name 1",
+                            "person2": "Person Name 2",
+                            "reason": "They both work at the same company",
+                            "connectionType": "work" 
+                        },
+                        {
+                            "person1": "Person Name 3",
+                            "person2": "Person Name 4",
+                            "reason": "They share multiple mutual friends",
+                            "connectionType": "friend"
+                        }
+                    ]
+
+                    Only return connections that are not already explicitly defined in the data.
+                    Be concise and only include strong potential connections.
+                    If no hidden connections are found, return an empty array.
+                `;
+
+        const aiResponse = await puter.ai.chat([
+            { role: "system", content: context },
+            { role: "user", content: "Analyze the data and find hidden connections between these people." }
+        ]);
+
+        const responseText = aiResponse.content ? aiResponse.content : aiResponse;
+
+        try {
+
+            const connections = extractJSONFromResponse(responseText);
+
+            if (connections && Array.isArray(connections) && connections.length > 0) {
+
+                connectionsLoading.style.display = 'none';
+                connectionsResults.style.display = 'block';
+
+                renderConnectionsGraph(connections, connectionsGraph);
+
+                renderConnectionsList(connections, connectionsList);
+            } else {
+
+                connectionsLoading.style.display = 'none';
+                noConnections.style.display = 'block';
+            }
+        } catch (parseError) {
+            console.error('Error parsing AI response:', parseError);
+            connectionsLoading.style.display = 'none';
+            noConnections.style.display = 'block';
+            noConnections.innerHTML = `
+                        <h3>Error Processing Results</h3>
+                        <p>I found some potential connections, but had trouble processing them.</p>
+                        <div style="background: rgba(40, 40, 40, 0.7); padding: 15px; border-radius: 10px; margin-top: 15px; white-space: pre-wrap;">${responseText}</div>
+                    `;
+        }
+    } catch (error) {
+        console.error('Error finding hidden connections:', error);
+        connectionsLoading.style.display = 'none';
+        noConnections.style.display = 'block';
+        noConnections.innerHTML = `
+                    <h3>Error Analyzing Connections</h3>
+                    <p>Sorry, I encountered an error while analyzing the connections. Please try again.</p>
+                `;
+    } finally {
+        findConnectionsBtn.disabled = false;
+        findConnectionsBtn.textContent = 'Find Hidden Connections';
+    }
+}
+
+function renderConnectionsGraph(connections, graphContainer) {
+    graphContainer.innerHTML = '';
+
+    const people = [...new Set(connections.flatMap(conn => [conn.person1, conn.person2]))];
+
+    const centerX = graphContainer.offsetWidth / 2;
+    const centerY = graphContainer.offsetHeight / 2;
+    const radius = Math.min(centerX, centerY) * 0.7;
+
+    const personPositions = {};
+    people.forEach((person, index) => {
+        const angle = (index / people.length) * Math.PI * 2;
+        const x = centerX + Math.cos(angle) * radius - 30;
+        const y = centerY + Math.sin(angle) * radius - 30;
+
+        personPositions[person] = { x: x + 30, y: y + 30 };
+
+        const node = document.createElement('div');
+        node.className = 'connection-node';
+        node.textContent = person.length > 10 ? person.substring(0, 10) + '...' : person;
+        node.style.left = `${x}px`;
+        node.style.top = `${y}px`;
+        graphContainer.appendChild(node);
+    });
+
+    connections.forEach((connection, index) => {
+        const pos1 = personPositions[connection.person1];
+        const pos2 = personPositions[connection.person2];
+
+        if (pos1 && pos2) {
+            const line = document.createElement('div');
+            line.className = 'connection-line';
+
+            const dx = pos2.x - pos1.x;
+            const dy = pos2.y - pos1.y;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+            line.style.width = `${length}px`;
+            line.style.height = '3px';
+            line.style.left = `${pos1.x}px`;
+            line.style.top = `${pos1.y}px`;
+            line.style.transform = `rotate(${angle}deg)`;
+
+            graphContainer.appendChild(line);
+
+            const label = document.createElement('div');
+            label.className = 'connection-label';
+            label.textContent = connection.connectionType;
+            label.style.left = `${(pos1.x + pos2.x) / 2}px`;
+            label.style.top = `${(pos1.y + pos2.y) / 2}px`;
+            graphContainer.appendChild(label);
+        }
+    });
+}
+
+function renderConnectionsList(connections, listContainer) {
+    listContainer.innerHTML = '';
+
+    connections.forEach((connection, index) => {
+        const item = document.createElement('div');
+        item.className = 'connection-item';
+
+        item.innerHTML = `
+                    <div class="connection-item-header">
+                        <strong>${connection.person1} ↔ ${connection.person2}</strong>
+                        <span class="connection-type">${connection.connectionType}</span>
+                    </div>
+                    <p>${connection.reason}</p>
+                `;
+
+        listContainer.appendChild(item);
+    });
+}
+
+async function refreshPersonCredits() {
+    refreshCreditsBtn.disabled = true;
+    refreshCreditsBtn.textContent = 'Refreshing...';
+
+    try {
+
+        for (const human of pazatorData.humans) {
+            try {
+
+                const existingTags = tags.join(', ') || 'None';
+                const adminContext = getAdminContext();
+
+                const context = `
+                            You are an AI evaluator analyzing a person's data to assign them a credit score, social class, and relevant tags.
+                            The credit score should be between 0 and 100, where:
+                            
+                            ${adminContext ? `ADMIN CONTEXT TO CONSIDER:
+                            ${adminContext}
+                            ` : ''}
+                            - 100 is a perfect score (ideal person)
+                            - 50 is average
+                            - 0 is the worst possible score
+
+                            The social class should be one of these four options:
+                            - "low class"
+                            - "medium class"
+                            - "high class"
+                            - "1%"
+
+                            Based on the person's data, you can also CREATE NEW TAGS that would be relevant to describe them.
+                            These tags should be descriptive of their characteristics, profession, interests, or other notable traits.
+
+                            Existing tags in the system: ${existingTags}
+
+                            Here's the person's data:
+                            Name: ${human.name}
+                            Gender: ${human.gender || 'Not specified'}
+                            Birth Date: ${human.birthDate || 'Not specified'}
+                            Workplace: ${human.workplace || 'Not specified'}
+                            Friends: ${human.friends && human.friends.length > 0 ? human.friends.map(id => getHumanNameById(id)).join(', ') : 'None'}
+                            Family: ${human.family && human.family.length > 0 ? human.family.map(id => getHumanNameById(id)).join(', ') : 'None'}
+                            Current Tags: ${human.tags && human.tags.length > 0 ? human.tags.join(', ') : 'None'}
+                            Extra Notes: ${human.extraNotes || 'None'}
+
+                            Based on this information, assign them a credit score from 0-100, determine their social class, and suggest relevant tags.
+                            Consider factors like:
+                            - Positive character traits mentioned in notes
+                            - Professional/work information
+                            - Social connections (quality and quantity)
+                            - Any negative indicators
+                            - Tags that might indicate positive or negative traits
+                            - Wealth indicators
+                            - Lifestyle indicators
+
+                            Respond ONLY with a JSON object in this format:
+                            {
+                                "credit": 75,
+                                "socialClass": "medium class",
+                                "newTags": ["professional", "reliable"], 
+                                "assignTags": ["professional", "reliable"] 
+                            }
+
+                            Make sure the socialClass is one of these four options:
+                            - "low class"
+                            - "medium class"
+                            - "high class"
+                            - "1%"
+
+                            The newTags array should contain tags that don't already exist and should be created.
+                            The assignTags array should contain tags (both existing and new) that should be assigned to this person.
+                            If no new tags need to be created, newTags can be an empty array.
+                            If no tags need to be assigned, assignTags can be an empty array.
+                        `;
+
+                const aiResponse = await puter.ai.chat([
+                    { role: "system", content: context },
+                    { role: "user", content: `Assign a credit score, social class, and relevant tags to ${human.name} based on their data.` }
+                ]);
+
+                const responseText = aiResponse.content ? aiResponse.content : aiResponse;
+
+                const result = extractJSONFromResponse(responseText);
+
+                if (result && typeof result === 'object') {
+
+                    if (typeof result.credit === 'number' && result.credit >= 0 && result.credit <= 100) {
+                        human.credit = result.credit;
+                    } else {
+                        human.credit = 50;
+                    }
+
+                    const validClasses = ['low class', 'medium class', 'high class', '1%'];
+                    if (typeof result.socialClass === 'string' && validClasses.includes(result.socialClass)) {
+                        human.socialClass = result.socialClass;
+                    } else {
+                        human.socialClass = 'medium class';
+                    }
+
+                    if (Array.isArray(result.newTags)) {
+                        result.newTags.forEach(tag => {
+                            if (typeof tag === 'string' && tag.trim() && !tags.includes(tag.trim())) {
+                                tags.push(tag.trim());
+                            }
+                        });
+                    }
+
+                    if (Array.isArray(result.assignTags)) {
+                        human.tags = human.tags || [];
+                        result.assignTags.forEach(tag => {
+                            if (typeof tag === 'string' && tag.trim() && !human.tags.includes(tag.trim())) {
+                                human.tags.push(tag.trim());
+                            }
+                        });
+                    }
+                } else {
+
+                    human.credit = 50;
+                    human.socialClass = 'medium class';
+                }
+            } catch (error) {
+                console.error(`Error getting credit score and social class for ${human.name}:`, error);
+
+                human.credit = 50;
+                human.socialClass = 'medium class';
+            }
+        }
+
+        saveData();
+        renderTags();
+
+        alert(`Credits, social classes, and tags refreshed for ${pazatorData.humans.length} people using AI analysis!`);
+
+        renderWebNodes();
+    } catch (error) {
+        console.error('Error refreshing credits:', error);
+        alert('Error refreshing credits. Please try again.');
+    } finally {
+        refreshCreditsBtn.disabled = false;
+        refreshCreditsBtn.textContent = 'Refresh Person Credits';
+    }
+}
+
+async function findPotentialTerrorists() {
+    const hiddenConnectionsModal = document.getElementById('hiddenConnectionsModal');
+    const connectionsLoading = document.getElementById('connectionsLoading');
+    const connectionsResults = document.getElementById('connectionsResults');
+    const noConnections = document.getElementById('noConnections');
+    const connectionsGraph = document.getElementById('connectionsGraph');
+    const connectionsList = document.getElementById('connectionsList');
+
+    connectionsLoading.style.display = 'block';
+    connectionsResults.style.display = 'none';
+    noConnections.style.display = 'none';
+    hiddenConnectionsModal.style.display = 'flex';
+    hiddenConnectionsModal.style.zIndex = '1000';
+
+    document.querySelector('#hiddenConnectionsModal h2').textContent = 'Potential Terrorist Analysis';
+
+    findTerroristsBtn.disabled = true;
+    findTerroristsBtn.textContent = 'Analyzing...';
+
+    try {
+
+        const humansData = pazatorData.humans.map(human => ({
+            id: human.id,
+            name: human.name,
+            gender: human.gender,
+            birthDate: human.birthDate,
+            workplace: human.workplace,
+            friends: human.friends || [],
+            family: human.family || [],
+            extraNotes: human.extraNotes || '',
+            tags: human.tags || []
+        }));
+
+        const context = "You are an AI security analyst analyzing people to identify potential terrorist threats. " +
+            "Your task is to identify as many individuals as possible who might pose security risks based on their data. " +
+            "Be comprehensive and identify multiple potential cases, even borderline ones.\n\n" +
+            "Here's the data about the people:\n" +
+            JSON.stringify(humansData, null, 2) + "\n\n" +
+            "Based on the information provided, identify potential security threats. " +
+            "Look for suspicious patterns such as:\n" +
+            "- People with extremist views or radical ideologies mentioned in notes\n" +
+            "- People with connections to known extremist groups or individuals\n" +
+            "- People with travel patterns to conflict zones or high-risk areas\n" +
+            "- People with unusual financial transactions or funding sources\n" +
+            "- People with military or weapons training background\n" +
+            "- People with communications suggesting planning of harmful activities\n" +
+            "- People with suspicious meeting patterns or covert gatherings\n" +
+            "- People with dual citizenship or unclear nationality status\n" +
+            "- People with tags indicating extremist or radical affiliations\n" +
+            "- People with tags suggesting military or weapons expertise\n" +
+            "- People with travel-related tags to conflict zones\n" +
+            "- People with financial tags but unexplained income sources\n" +
+            "- People with communication-related tags suggesting coordination\n" +
+            "- People with multiple 'suspicious' tags\n\n" +
+            "Return your findings as a JSON array of potential threats in this format:\n" +
+            "[\n" +
+            "    {\n" +
+            "        \"person\": \"Person Name\",\n" +
+            "        \"threatLevel\": \"high\", // Options: high, medium, low\n" +
+            "        \"reasons\": [\n" +
+            "            \"Has extremist views mentioned in notes\",\n" +
+            "            \"Recent travel to conflict zones\"\n" +
+            "        ],\n" +
+            "        \"evidence\": \"Mentions radical ideologies and weapons training in extra notes\"\n" +
+            "    },\n" +
+            "    {\n" +
+            "        \"person\": \"Another Person\",\n" +
+            "        \"threatLevel\": \"medium\",\n" +
+            "        \"reasons\": [\n" +
+            "            \"Connections to known extremist individuals\",\n" +
+            "            \"Unusual financial transactions\"\n" +
+            "        ],\n" +
+            "        \"evidence\": \"Received large cash payments from unknown sources\"\n" +
+            "    }\n" +
+            "]\n\n" +
+            "Be comprehensive and identify as many potential cases as possible, including borderline cases. " +
+            "Even if you're not completely certain, include people who have some suspicious indicators. " +
+            "Aim to identify at least 10-20% of the people if possible. " +
+            "If no suspicious individuals are found, return an empty array.";
+
+        const aiResponse = await puter.ai.chat([
+            { role: "system", content: context },
+            { role: "user", content: "Analyze the data and find potential terrorist threats. Be comprehensive and identify as many potential cases as possible." }
+        ]);
+
+        const responseText = aiResponse.content ? aiResponse.content : aiResponse;
+
+        try {
+
+            const terrorists = extractJSONFromResponse(responseText);
+
+            if (terrorists && Array.isArray(terrorists) && terrorists.length > 0) {
+
+                connectionsLoading.style.display = 'none';
+                connectionsResults.style.display = 'block';
+
+                renderTerroristsGraph(terrorists, connectionsGraph);
+
+                renderTerroristsList(terrorists, connectionsList);
+
+                terrorists.forEach(terrorist => {
+                    storeFinding('threat', {
+                        name: terrorist.person,
+                        riskLevel: terrorist.threatLevel,
+                        evidence: terrorist.evidence,
+                        reasons: terrorist.reasons
+                    });
+                });
+
+                const terroristLogs = terrorists.map((terrorist, index) => ({
+                    type: 'Terrorist Threat Alert',
+                    severity: terrorist.threatLevel || 'medium',
+                    person: terrorist.person,
+                    evidence: terrorist.evidence,
+                    reasons: terrorist.reasons || [],
+                    detectionMethod: 'AI Security Analysis',
+                    confidence: terrorist.threatLevel === 'high' ? 'High' : terrorist.threatLevel === 'medium' ? 'Medium' : 'Low'
+                }));
+
+                storeTerroristLogs(terroristLogs);
+            } else {
+
+                connectionsLoading.style.display = 'none';
+                noConnections.style.display = 'block';
+                noConnections.innerHTML = `
+                            <h3>No Potential Terrorist Threats Found</h3>
+                            <p>I couldn't identify any individuals with strong indicators of terrorist activities.</p>
+                        `;
+            }
+        } catch (parseError) {
+            console.error('Error parsing AI response:', parseError);
+            connectionsLoading.style.display = 'none';
+            noConnections.style.display = 'block';
+            noConnections.innerHTML = `
+                        <h3>Error Processing Results</h3>
+                        <p>I found some potential cases, but had trouble processing them.</p>
+                        <div style="background: rgba(40, 40, 40, 0.7); padding: 15px; border-radius: 10px; margin-top: 15px; white-space: pre-wrap;">${responseText}</div>
+                    `;
+        }
+    } catch (error) {
+        console.error('Error finding potential terrorists:', error);
+        connectionsLoading.style.display = 'none';
+        noConnections.style.display = 'block';
+        noConnections.innerHTML = `
+                    <h3>Error Analyzing Data</h3>
+                    <p>Sorry, I encountered an error while analyzing for potential terrorist threats. Please try again.</p>
+                `;
+    } finally {
+        findTerroristsBtn.disabled = false;
+        findTerroristsBtn.textContent = 'Find Potential Terrorists';
+
+        document.querySelector('#hiddenConnectionsModal h2').textContent = 'Hidden Connections Analysis';
+    }
+}
+
+function renderTerroristsGraph(terrorists, graphContainer) {
+    graphContainer.innerHTML = '';
+
+    const centerX = graphContainer.offsetWidth / 2;
+    const centerY = graphContainer.offsetHeight / 2;
+    const radius = Math.min(centerX, centerY) * 0.7;
+
+    const terroristPositions = {};
+    terrorists.forEach((terrorist, index) => {
+        const angle = (index / terrorists.length) * Math.PI * 2;
+        const x = centerX + Math.cos(angle) * radius - 30;
+        const y = centerY + Math.sin(angle) * radius - 30;
+
+        terroristPositions[terrorist.person] = { x: x + 30, y: y + 30 };
+
+        const node = document.createElement('div');
+        node.className = 'connection-node';
+
+        if (terrorist.threatLevel === 'high') {
+            node.style.background = 'linear-gradient(145deg, #000, #333)';
+        } else if (terrorist.threatLevel === 'medium') {
+            node.style.background = 'linear-gradient(145deg, #333, #555)';
+        } else {
+            node.style.background = 'linear-gradient(145deg, #555, #777)';
+        }
+        node.textContent = terrorist.person.length > 10 ? terrorist.person.substring(0, 10) + '...' : terrorist.person;
+        node.style.left = `${x}px`;
+        node.style.top = `${y}px`;
+        graphContainer.appendChild(node);
+
+        const label = document.createElement('div');
+        label.className = 'connection-label';
+        label.textContent = terrorist.threatLevel;
+        label.style.left = `${x + 30}px`;
+        label.style.top = `${y + 70}px`;
+        label.style.background = 'rgba(30, 30, 30, 0.9)';
+        graphContainer.appendChild(label);
+    });
+}
+
+function renderTerroristsList(terrorists, listContainer) {
+    listContainer.innerHTML = '';
+
+    terrorists.forEach((terrorist, index) => {
+        const item = document.createElement('div');
+        item.className = 'connection-item';
+
+        let threatClass = '';
+        if (terrorist.threatLevel === 'high') {
+            threatClass = 'style="background: linear-gradient(145deg, #000, #333);"';
+        } else if (terrorist.threatLevel === 'medium') {
+            threatClass = 'style="background: linear-gradient(145deg, #333, #555);"';
+        }
+
+        item.innerHTML = `
+                    <div class="connection-item-header">
+                        <strong>${terrorist.person}</strong>
+                        <span class="connection-type" ${threatClass}>${terrorist.threatLevel} threat</span>
+                    </div>
+                    <p><strong>Evidence:</strong> ${terrorist.evidence}</p>
+                    <div style="margin-top: 10px;">
+                        <strong>Reasons:</strong>
+                        <ul style="margin-top: 5px; padding-left: 20px;">
+                            ${terrorist.reasons.map(reason => `<li>${reason}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+
+        listContainer.appendChild(item);
+    });
+}
+
+async function findPotentialFraud() {
+    const hiddenConnectionsModal = document.getElementById('hiddenConnectionsModal');
+    const connectionsLoading = document.getElementById('connectionsLoading');
+    const connectionsResults = document.getElementById('connectionsResults');
+    const noConnections = document.getElementById('noConnections');
+    const connectionsGraph = document.getElementById('connectionsGraph');
+    const connectionsList = document.getElementById('connectionsList');
+
+    connectionsLoading.style.display = 'block';
+    connectionsResults.style.display = 'none';
+    noConnections.style.display = 'none';
+    hiddenConnectionsModal.style.display = 'flex';
+    hiddenConnectionsModal.style.zIndex = '1000';
+
+    document.querySelector('#hiddenConnectionsModal h2').textContent = 'Potential Fraud/Drug Sellers Analysis';
+
+    findFraudBtn.disabled = true;
+
+    const fraudLogs = [];
+    findFraudBtn.textContent = 'Analyzing...';
+
+    try {
+
+        const humansData = pazatorData.humans.map(human => ({
+            id: human.id,
+            name: human.name,
+            gender: human.gender,
+            birthDate: human.birthDate,
+            workplace: human.workplace,
+            friends: human.friends || [],
+            family: human.family || [],
+            extraNotes: human.extraNotes || '',
+            tags: human.tags || []
+        }));
+
+        const adminContext = getAdminContext();
+        const context = "You are an AI investigator analyzing people to identify potential fraudsters or drug sellers. " +
+            "Your task is to identify as many individuals as possible who might be involved in fraudulent activities or drug selling based on their data. " +
+            "Be comprehensive and identify multiple potential cases, even borderline ones.\n\n" +
+            (adminContext ? `ADMIN CONTEXT TO CONSIDER:\n${adminContext}\n\n` : '') +
+            "Here's the data about the people:\n" +
+            JSON.stringify(humansData, null, 2) + "\n\n" +
+            "Based on the information provided, identify potential fraudsters or drug sellers. " +
+            "Look for suspicious patterns such as:\n" +
+            "- People with suspicious tags or notes (e.g., \"cash only\", \"no questions asked\", \"discount meds\", etc.)\n" +
+            "- People with unusual financial patterns or unexplained wealth\n" +
+            "- People with connections to known suspicious individuals\n" +
+            "- People with frequent unexplained meetings or transactions\n" +
+            "- People with aliases or multiple identities\n" +
+            "- People with criminal records or suspicious backgrounds\n" +
+            "- People with tags indicating illegal activities\n" +
+            "- People with overlapping tags with known suspicious individuals\n" +
+            "- People with financial-related tags but no clear workplace\n" +
+            "- People with multiple \"high risk\" tags\n" +
+            "- People with vague or inconsistent information\n" +
+            "- People with connections to many others but no clear social ties\n" +
+            "- People with tags suggesting illegal goods or services\n\n" +
+            "Return your findings as a JSON array of potential fraudsters/drug sellers in this format:\n" +
+            "[\n" +
+            "    {\n" +
+            "        \"person\": \"Person Name\",\n" +
+            "        \"riskLevel\": \"high\", // Options: high, medium, low\n" +
+            "        \"reasons\": [\n" +
+            "            \"Has suspicious tags like 'cash only'\",\n" +
+            "            \"Multiple unexplained connections to other suspicious individuals\"\n" +
+            "        ],\n" +
+            "        \"evidence\": \"Mentions selling medications in extra notes\"\n" +
+            "    },\n" +
+            "    {\n" +
+            "        \"person\": \"Another Person\",\n" +
+            "        \"riskLevel\": \"medium\",\n" +
+            "        \"reasons\": [\n" +
+            "            \"Frequent meetings with known suspicious individuals\",\n" +
+            "            \"Unexplained wealth\"\n" +
+            "        ],\n" +
+            "        \"evidence\": \"Works in cash-based business with no official records\"\n" +
+            "    }\n" +
+            "]\n\n" +
+            "Be comprehensive and identify as many potential cases as possible, including borderline cases. " +
+            "Even if you're not completely certain, include people who have some suspicious indicators. " +
+            "Aim to identify at least 10-20% of the people if possible. " +
+            "If no suspicious individuals are found, return an empty array.";
+
+        const aiResponse = await puter.ai.chat([
+            { role: "system", content: context },
+            { role: "user", content: "Analyze the data and find potential fraudsters or drug sellers. Be comprehensive and identify as many potential cases as possible." }
+        ]);
+
+        const responseText = aiResponse.content ? aiResponse.content : aiResponse;
+
+        try {
+
+            const fraudsters = extractJSONFromResponse(responseText);
+
+            if (fraudsters && Array.isArray(fraudsters) && fraudsters.length > 0) {
+
+                connectionsLoading.style.display = 'none';
+                connectionsResults.style.display = 'block';
+
+                renderFraudstersGraph(fraudsters, connectionsGraph);
+
+                renderFraudstersList(fraudsters, connectionsList);
+
+                fraudsters.forEach(fraudster => {
+                    storeFinding('fraud', {
+                        name: fraudster.person,
+                        riskLevel: fraudster.riskLevel,
+                        evidence: fraudster.evidence,
+                        reasons: fraudster.reasons
+                    });
+                });
+
+                const fraudLogs = fraudsters.map((fraudster, index) => ({
+                    type: 'Fraud Detection Alert',
+                    severity: fraudster.riskLevel || 'medium',
+                    person: fraudster.person,
+                    evidence: fraudster.evidence,
+                    reasons: fraudster.reasons || [],
+                    detectionMethod: 'AI Pattern Analysis',
+                    confidence: fraudster.riskLevel === 'high' ? 'High' : fraudster.riskLevel === 'medium' ? 'Medium' : 'Low'
+                }));
+
+                storeFraudLogs(fraudLogs);
+            } else {
+
+                connectionsLoading.style.display = 'none';
+                noConnections.style.display = 'block';
+                noConnections.innerHTML = `
+                            <h3>No Potential Fraud/Drug Sellers Found</h3>
+                            <p>I couldn't identify any individuals with strong indicators of fraudulent activities or drug selling.</p>
+                        `;
+            }
+        } catch (parseError) {
+            console.error('Error parsing AI response:', parseError);
+            connectionsLoading.style.display = 'none';
+            noConnections.style.display = 'block';
+            noConnections.innerHTML = `
+                        <h3>Error Processing Results</h3>
+                        <p>I found some potential cases, but had trouble processing them.</p>
+                        <div style="background: rgba(40, 40, 40, 0.7); padding: 15px; border-radius: 10px; margin-top: 15px; white-space: pre-wrap;">${responseText}</div>
+                    `;
+        }
+    } catch (error) {
+        console.error('Error finding potential fraud:', error);
+        connectionsLoading.style.display = 'none';
+        noConnections.style.display = 'block';
+        noConnections.innerHTML = `
+                    <h3>Error Analyzing Data</h3>
+                    <p>Sorry, I encountered an error while analyzing for potential fraud. Please try again.</p>
+                `;
+    } finally {
+        findFraudBtn.disabled = false;
+        findFraudBtn.textContent = 'Find Potential Fraud';
+
+        document.querySelector('#hiddenConnectionsModal h2').textContent = 'Hidden Connections Analysis';
+    }
+}
+
+function renderFraudstersGraph(fraudsters, graphContainer) {
+    graphContainer.innerHTML = '';
+
+    const centerX = graphContainer.offsetWidth / 2;
+    const centerY = graphContainer.offsetHeight / 2;
+    const radius = Math.min(centerX, centerY) * 0.7;
+
+    const fraudsterPositions = {};
+    fraudsters.forEach((fraudster, index) => {
+        const angle = (index / fraudsters.length) * Math.PI * 2;
+        const x = centerX + Math.cos(angle) * radius - 30;
+        const y = centerY + Math.sin(angle) * radius - 30;
+
+        fraudsterPositions[fraudster.person] = { x: x + 30, y: y + 30 };
+
+        const node = document.createElement('div');
+        node.className = 'connection-node';
+
+        if (fraudster.riskLevel === 'high') {
+            node.style.background = 'linear-gradient(145deg, #ff3939, #ff5a5a)';
+        } else if (fraudster.riskLevel === 'medium') {
+            node.style.background = 'linear-gradient(145deg, #ff9939, #ffaa5a)';
+        } else {
+            node.style.background = 'linear-gradient(145deg, #ffffff, #dddddd)';
+        }
+        node.textContent = fraudster.person.length > 10 ? fraudster.person.substring(0, 10) + '...' : fraudster.person;
+        node.style.left = `${x}px`;
+        node.style.top = `${y}px`;
+        graphContainer.appendChild(node);
+
+        const label = document.createElement('div');
+        label.className = 'connection-label';
+        label.textContent = fraudster.riskLevel;
+        label.style.left = `${x + 30}px`;
+        label.style.top = `${y + 70}px`;
+        label.style.background = 'rgba(30, 30, 30, 0.9)';
+        graphContainer.appendChild(label);
+    });
+}
+
+function renderFraudstersList(fraudsters, listContainer) {
+    listContainer.innerHTML = '';
+
+    fraudsters.forEach((fraudster, index) => {
+        const item = document.createElement('div');
+        item.className = 'connection-item';
+
+        let riskClass = '';
+        if (fraudster.riskLevel === 'high') {
+            riskClass = 'style="background: linear-gradient(145deg, #ff3939, #ff5a5a);"';
+        } else if (fraudster.riskLevel === 'medium') {
+            riskClass = 'style="background: linear-gradient(145deg, #ff9939, #ffaa5a);"';
+        }
+
+        item.innerHTML = `
+                    <div class="connection-item-header">
+                        <strong>${fraudster.person}</strong>
+                        <span class="connection-type" ${riskClass}>${fraudster.riskLevel} risk</span>
+                    </div>
+                    <p><strong>Evidence:</strong> ${fraudster.evidence}</p>
+                    <div style="margin-top: 10px;">
+                        <strong>Reasons:</strong>
+                        <ul style="margin-top: 5px; padding-left: 20px;">
+                            ${fraudster.reasons.map(reason => `<li>${reason}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+
+        listContainer.appendChild(item);
+    });
+}
+
+function loadPreviousFindings() {
+    const threatsList = document.getElementById('threatsList');
+    const fraudList = document.getElementById('fraudList');
+
+    threatsList.innerHTML = '';
+    fraudList.innerHTML = '';
+
+    const storedThreats = JSON.parse(localStorage.getItem('previousThreats') || '[]');
+    const storedFraud = JSON.parse(localStorage.getItem('previousFraud') || '[]');
+
+    if (storedThreats.length === 0 && storedFraud.length === 0) {
+        const sampleThreats = [];
+        const sampleFraud = [];
+
+        pazatorData.humans.slice(0, Math.min(3, pazatorData.humans.length)).forEach((human, index) => {
+            if (index % 2 === 0) {
+                sampleThreats.push({
+                    name: human.name,
+                    riskLevel: index === 0 ? 'high' : 'medium',
+                    evidence: `Suspicious patterns detected for ${human.name}`,
+                    reasons: [
+                        human.workplace ? `Works at ${human.workplace}` : 'Unknown workplace',
+                        human.tags && human.tags.length > 0 ? `Has tags: ${human.tags.join(', ')}` : 'No tags'
+                    ]
+                });
+            } else {
+                sampleFraud.push({
+                    name: human.name,
+                    riskLevel: index === 1 ? 'high' : 'medium',
+                    evidence: `Potential fraudulent activity detected for ${human.name}`,
+                    reasons: [
+                        human.credit !== undefined ? `Credit score: ${human.credit}` : 'No credit score',
+                        human.socialClass ? `Social class: ${human.socialClass}` : 'Unknown social class'
+                    ]
+                });
+            }
+        });
+
+        localStorage.setItem('previousThreats', JSON.stringify(sampleThreats));
+        localStorage.setItem('previousFraud', JSON.stringify(sampleFraud));
+
+        renderFindings(sampleThreats, threatsList);
+        renderFindings(sampleFraud, fraudList);
+    } else {
+        renderFindings(storedThreats, threatsList);
+        renderFindings(storedFraud, fraudList);
+    }
+}
+
+function renderFindings(findings, container) {
+    findings.forEach(item => {
+        const findingItem = document.createElement('div');
+        findingItem.className = 'finding-item';
+        findingItem.innerHTML = `
+                    <div class="finding-header">
+                        <span class="finding-name">${item.name}</span>
+                        <span class="finding-risk finding-${item.riskLevel}">${item.riskLevel} ${container.id === 'threatsList' ? 'threat' : 'risk'}</span>
+                    </div>
+                    <div class="finding-evidence">Evidence: ${item.evidence}</div>
+                    <div class="finding-reasons">
+                        <strong>Reasons:</strong>
+                        <ul>
+                            ${item.reasons.map(reason => `<li>${reason}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+        container.appendChild(findingItem);
+    });
+}
+
+function storeFinding(type, finding) {
+    const storageKey = type === 'threat' ? 'previousThreats' : 'previousFraud';
+    const currentFindings = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    currentFindings.push(finding);
+    if (currentFindings.length > 10) {
+        currentFindings.shift();
+    }
+    localStorage.setItem(storageKey, JSON.stringify(currentFindings));
+}
+
+function storeFraudLogs(logs) {
+    const currentLogs = JSON.parse(localStorage.getItem('fraudLogs') || '[]');
+    const newLogs = logs.map(log => ({
+        ...log,
+        id: `fraud_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date().toISOString(),
+        status: 'new'
+    }));
+
+    currentLogs.push(...newLogs);
+
+    if (currentLogs.length > 50) {
+        currentLogs.splice(0, currentLogs.length - 50);
+    }
+
+    localStorage.setItem('fraudLogs', JSON.stringify(currentLogs));
+
+    if (document.getElementById('contextFraudLogs')) {
+        loadContextFraudLogs();
+    }
+}
+
+function storeTerroristLogs(logs) {
+    const currentLogs = JSON.parse(localStorage.getItem('terroristLogs') || '[]');
+    const newLogs = logs.map(log => ({
+        ...log,
+        id: `terrorist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date().toISOString(),
+        status: 'new'
+    }));
+
+    currentLogs.push(...newLogs);
+
+    if (currentLogs.length > 50) {
+        currentLogs.splice(0, currentLogs.length - 50);
+    }
+
+    localStorage.setItem('terroristLogs', JSON.stringify(currentLogs));
+}
+
+function checkAuthStatus() {
+    const signInBtn = document.getElementById('signInBtn');
+    if (signInBtn && typeof puter !== 'undefined' && puter.auth) {
+        if (typeof puter.auth.isSignedIn === 'function') {
+            if (puter.auth.isSignedIn()) {
+                signInBtn.style.display = 'none';
+            } else {
+                signInBtn.style.display = 'block';
+            }
+        } else {
+            signInBtn.style.display = 'none';
+        }
+    }
+}
+
+document.getElementById('signInBtn')?.addEventListener('click', async () => {
+    try {
+        await puter.auth.signIn();
+        setTimeout(checkAuthStatus, 1000);
+    } catch (error) {
+        console.error('Sign in failed:', error);
+    }
+});
+
+if (typeof puter !== 'undefined' && puter.auth) {
+    checkAuthStatus();
+
+    if (typeof puter.auth.on === 'function') {
+        puter.auth.on('signed-in', () => {
+            checkAuthStatus();
+        });
+
+        puter.auth.on('signed-out', () => {
+            checkAuthStatus();
+        });
+    }
+} else {
+    const authCheckInterval = setInterval(() => {
+        if (typeof puter !== 'undefined' && puter.auth) {
+            checkAuthStatus();
+            clearInterval(authCheckInterval);
+        }
+    }, 500);
+
+    setTimeout(() => {
+        clearInterval(authCheckInterval);
+    }, 10000);
+}
+
+console.log(' Setting up logo dropdown event listeners...');
+
+console.log(' Logo image exists:', !!logoImage);
+console.log(' Refresh option exists:', !!refreshNodesOption);
+console.log(' Classify option exists:', !!classifyOption);
+
+if (refreshNodesOption) {
+    console.log(' Adding event listener to Refresh Nodes');
+    refreshNodesOption.addEventListener('click', (e) => {
+        e.stopPropagation();
+        console.log(' Logo dropdown: Refresh Nodes clicked');
+
+        manualRefresh();
+    });
+} else {
+    console.error(' RefreshNodesOption not found!');
+}
+
+if (classifyOption) {
+    console.log(' Adding event listener to Classify');
+    classifyOption.addEventListener('click', (e) => {
+        e.stopPropagation();
+        console.log('️ Logo dropdown: Classify clicked');
+
+        if (logoImage) {
+            if (logoImage.classList.contains('classified')) {
+                logoImage.classList.remove('classified');
+                window.screenshotsDisabled = false;
+                classifyOption.innerHTML = '<i class="fas fa-shield-alt"></i><span>Classify</span>';
+                classifyOption.style.color = '';
+                console.log(' Logo declassified - returned to normal');
+            } else {
+                logoImage.classList.add('classified');
+                console.log(' Logo image classified - turned red');
+
+                window.screenshotsDisabled = true;
+                console.log(' Screenshots disabled');
+
+                classifyOption.innerHTML = '<i class="fas fa-shield-alt"></i><span>Classified</span>';
+                classifyOption.style.color = '#ff6b6b';
+            }
+        }
+    });
+} else {
+    console.error(' ClassifyOption not found!');
+}
+
+console.log(' Initializing Pazator app...');
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupLogoDropdownListeners);
+} else {
+    setupLogoDropdownListeners();
+}
+
+function setupLogoDropdownListeners() {
+    console.log(' Setting up logo dropdown event listeners...');
+
+    const logoImage = document.getElementById('logoImage');
+    const refreshNodesOption = document.getElementById('refreshNodesOption');
+    const classifyOption = document.getElementById('classifyOption');
+
+    console.log(' Logo image exists:', !!logoImage);
+    console.log(' Refresh option exists:', !!refreshNodesOption);
+    console.log(' Classify option exists:', !!classifyOption);
+
+    if (refreshNodesOption && logoImage) {
+        console.log(' Adding event listener to Refresh Nodes');
+        refreshNodesOption.addEventListener('click', (e) => {
+            e.stopPropagation();
+            console.log(' Logo dropdown: Refresh Nodes clicked');
+
+            manualRefresh();
+        });
+    } else {
+        console.error(' RefreshNodesOption or logoImage not found!');
+    }
+
+    if (classifyOption && logoImage) {
+        console.log(' Adding event listener to Classify');
+        classifyOption.addEventListener('click', (e) => {
+            e.stopPropagation();
+            console.log('️ Logo dropdown: Classify clicked');
+
+            if (logoImage.classList.contains('classified')) {
+                logoImage.classList.remove('classified');
+                logoImage.style.boxShadow = '';
+                logoImage.style.background = '';
+                window.screenshotsDisabled = false;
+                classifyOption.innerHTML = '<i class="fas fa-shield-alt"></i><span>Classify</span>';
+                classifyOption.style.color = '';
+                console.log(' Logo declassified - returned to normal');
+            } else {
+                logoImage.classList.add('classified');
+                logoImage.style.boxShadow = '0 0 15px #ff0000';
+                logoImage.style.background = 'radial-gradient(circle, #ff0000 0%, #cc0000 100%)';
+                console.log(' Logo image classified - turned red');
+
+                window.screenshotsDisabled = true;
+                console.log(' Screenshots disabled');
+
+                classifyOption.innerHTML = '<i class="fas fa-shield-alt"></i><span>Classified</span>';
+                classifyOption.style.color = '#ff6b6b';
+            }
+        });
+    } else {
+        console.error(' ClassifyOption or logoImage not found!');
+    }
+}
+
+console.log(' Checking localStorage availability...');
+if (typeof (Storage) !== "undefined") {
+    console.log(' localStorage is available');
+} else {
+    console.error(' localStorage is not available');
+}
+
+try {
+    loadData();
+    console.log(' Data loading completed');
+
+    renderTags();
+    console.log(' Tags rendered');
+
+    initTabs();
+    console.log(' Tabs initialized');
+
+    startAutoSave();
+    console.log(' Auto-save system started');
+
+    if (pazatorData.humans.length === 0 && pazatorData.others.length === 0) {
+        saveData(true);
+        console.log(' Initial data saved');
+    }
+
+    console.log(' Pazator app fully initialized with enhanced data persistence');
+    console.log(` Current data: ${pazatorData.humans.length} humans, ${pazatorData.others.length} others`);
+
+    setTimeout(() => {
+        console.log('⏰ Triggering auto-refresh sequence...');
+        autoRefreshSequence();
+    }, 2000);
+
+} catch (initError) {
+    console.error(' Fatal initialization error:', initError);
+    pazatorData = { humans: [], others: [] };
+    tags = [];
+    renderWebNodes();
+    renderTags();
+    console.log('️ Using fallback initialization');
+
+    setTimeout(() => {
+        console.log('⏰ Triggering auto-refresh sequence after error...');
+        autoRefreshSequence();
+    }, 2000);
+}
+
+function initializeSearch() {
+    const searchInput = document.getElementById('universalSearchInput');
+    const resultsContainer = document.getElementById('searchResultsContainer');
+    const resultsCount = document.getElementById('searchResultsCount');
+
+    if (!searchInput || !resultsContainer) return;
+
+    let searchTimeout;
+    searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            performSearch(searchInput.value.trim());
+        }, 300);
+    });
+
+    searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            performSearch(searchInput.value.trim());
+        }
+    });
+}
+
+function performSearch(query) {
+    const resultsContainer = document.getElementById('searchResultsContainer');
+    const resultsCount = document.getElementById('searchResultsCount');
+
+    if (!query) {
+        resultsContainer.innerHTML = `
+                    <div style="text-align: center; padding: 40px;">
+                        <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 20px; color: #444;"></i>
+                        <p style="margin: 0; font-size: 1.2rem;">Enter search terms above to find data</p>
+                        <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666;">Search across all people, their jobs, dates, notes, and relationships</p>
+                    </div>
+                `;
+        resultsCount.textContent = '0 results found';
+        return;
+    }
+
+    const searchNames = document.getElementById('searchNames')?.checked ?? true;
+    const searchJobs = document.getElementById('searchJobs')?.checked ?? true;
+    const searchDates = document.getElementById('searchDates')?.checked ?? true;
+    const searchNotes = document.getElementById('searchNotes')?.checked ?? true;
+    const searchTags = document.getElementById('searchTags')?.checked ?? true;
+    const searchRelationships = document.getElementById('searchRelationships')?.checked ?? true;
+
+    const results = [];
+    const queryLower = query.toLowerCase();
+
+    pazatorData.humans.forEach(person => {
+        const matches = [];
+
+        if (searchNames && person.name && person.name.toLowerCase().includes(queryLower)) {
+            matches.push({ field: 'Name', value: person.name });
+        }
+
+        if (searchJobs && person.workplace && person.workplace.toLowerCase().includes(queryLower)) {
+            matches.push({ field: 'Workplace', value: person.workplace });
+        }
+
+        if (searchDates) {
+            if (person.birthDate && person.birthDate.toLowerCase().includes(queryLower)) {
+                matches.push({ field: 'Birth Date', value: person.birthDate });
+            }
+        }
+
+        if (searchNotes && person.extraNotes && person.extraNotes.toLowerCase().includes(queryLower)) {
+            matches.push({ field: 'Notes', value: person.extraNotes.substring(0, 100) + (person.extraNotes.length > 100 ? '...' : '') });
+        }
+
+        if (searchTags && person.tags && person.tags.some(tag => tag.toLowerCase().includes(queryLower))) {
+            const matchingTags = person.tags.filter(tag => tag.toLowerCase().includes(queryLower));
+            matches.push({ field: 'Tags', value: matchingTags.join(', ') });
+        }
+
+        if (searchRelationships) {
+            if (person.friends && person.friends.some(friendId => {
+                const friend = pazatorData.humans.find(h => h.id === friendId);
+                return friend && friend.name.toLowerCase().includes(queryLower);
+            })) {
+                const matchingFriends = person.friends
+                    .map(id => pazatorData.humans.find(h => h.id === id)?.name)
+                    .filter(name => name && name.toLowerCase().includes(queryLower));
+                if (matchingFriends.length > 0) {
+                    matches.push({ field: 'Friends', value: matchingFriends.join(', ') });
+                }
+            }
+
+            if (person.family && person.family.some(familyId => {
+                const familyMember = pazatorData.humans.find(h => h.id === familyId);
+                return familyMember && familyMember.name.toLowerCase().includes(queryLower);
+            })) {
+                const matchingFamily = person.family
+                    .map(id => pazatorData.humans.find(h => h.id === id)?.name)
+                    .filter(name => name && name.toLowerCase().includes(queryLower));
+                if (matchingFamily.length > 0) {
+                    matches.push({ field: 'Family', value: matchingFamily.join(', ') });
+                }
+            }
+        }
+
+        if (matches.length > 0) {
+            results.push({
+                type: 'human',
+                data: person,
+                matches: matches
+            });
+        }
+    });
+
+    pazatorData.others.forEach(item => {
+        const matches = [];
+
+        if (searchNames && item.name && item.name.toLowerCase().includes(queryLower)) {
+            matches.push({ field: 'Name', value: item.name });
+        }
+
+        if (searchNotes && item.extraNotes && item.extraNotes.toLowerCase().includes(queryLower)) {
+            matches.push({ field: 'Notes', value: item.extraNotes.substring(0, 100) + (item.extraNotes.length > 100 ? '...' : '') });
+        }
+
+        if (searchTags && item.tags && item.tags.some(tag => tag.toLowerCase().includes(queryLower))) {
+            const matchingTags = item.tags.filter(tag => tag.toLowerCase().includes(queryLower));
+            matches.push({ field: 'Tags', value: matchingTags.join(', ') });
+        }
+
+        if (matches.length > 0) {
+            results.push({
+                type: 'other',
+                data: item,
+                matches: matches
+            });
+        }
+    });
+
+    displaySearchResults(results, query);
+    resultsCount.textContent = `${results.length} result${results.length !== 1 ? 's' : ''} found`;
+}
+
+function displaySearchResults(results, query) {
+    const resultsContainer = document.getElementById('searchResultsContainer');
+
+    if (results.length === 0) {
+        resultsContainer.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #777;">
+                        <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 20px; color: #444;"></i>
+                        <p style="margin: 0; font-size: 1.2rem;">No results found for "${query}"</p>
+                        <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666;">Try different keywords</p>
+                    </div>
+                `;
+        return;
+    }
+
+    let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; width: 100%;">';
+
+    results.forEach((result, index) => {
+        const item = result.data;
+        const isHuman = result.type === 'human';
+
+        html += `
+                    <div style="background: rgba(35, 35, 35, 0.8); border: 1px solid #444; border-radius: 12px; padding: 22px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25); height: fit-content;" 
+                         onclick="openDetailView('${item.id}', '${result.type}')"
+                         onmouseover="this.style.background='rgba(45, 45, 45, 0.95)'; this.style.borderColor='#555'; this.style.transform='translateY(-4px)'; this.style.boxShadow='0 10px 25px rgba(0, 0, 0, 0.35)';"
+                         onmouseout="this.style.background='rgba(35, 35, 35, 0.8)'; this.style.borderColor='#444'; this.style.transform='translateY(0)'; this.style.boxShadow='0 6px 16px rgba(0, 0, 0, 0.25)';">
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px;">
+                            <h3 style="margin: 0; color: #ffffff; font-size: 1.4rem; font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif; flex: 1; padding-right: 15px;">${item.name}</h3>
+                            <span style="background: ${isHuman ? 'linear-gradient(145deg, #2a2a2a, #1f1f1f)' : 'linear-gradient(145deg, #2a2525, #1f1a1a)'}; 
+                                  color: #ddd; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 500; border: 1px solid #555; white-space: nowrap;">
+                                ${isHuman ? ' PERSON' : ' OTHER'}
+                            </span>
+                        </div>
+                        
+                        ${isHuman && item.workplace ? `
+                            <div style="display: flex; align-items: center; margin-bottom: 14px; color: #aaa; font-size: 1rem;">
+                                <i class="fas fa-building" style="margin-right: 12px; color: #666; width: 20px; text-align: center;"></i>
+                                <span style="flex: 1;">${item.workplace}</span>
+                            </div>
+                        ` : ''}
+                        
+                        ${isHuman && item.birthDate ? `
+                            <div style="display: flex; align-items: center; margin-bottom: 14px; color: #aaa; font-size: 1rem;">
+                                <i class="fas fa-calendar" style="margin-right: 12px; color: #666; width: 20px; text-align: center;"></i>
+                                <span style="flex: 1;">${item.birthDate}</span>
+                            </div>
+                        ` : ''}
+                        
+                        <div style="margin: 18px 0; padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; border-left: 4px solid #666;">
+                            <div style="font-size: 0.9rem; color: #888; margin-bottom: 12px; display: flex; align-items: center; font-weight: 500;">
+                                <i class="fas fa-search" style="margin-right: 10px; color: #666;"></i>
+                                MATCHES FOUND
+                            </div>
+                            ${result.matches.map(match => `
+                                <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <div style="font-weight: 600; color: #ddd; font-size: 1rem; margin-bottom: 6px;">${match.field}</div>
+                                    <div style="color: #bbb; font-size: 0.9rem; padding-left: 16px; border-left: 2px solid #555;">${match.value}</div>
+                                </div>
+                            `).join('').slice(0, -12)} <!-- Remove last border -->
+                        </div>
+                        
+                        ${item.tags && item.tags.length > 0 ? `
+                            <div style="margin-top: 20px; padding-top: 18px; border-top: 1px solid #333;">
+                                <div style="font-size: 0.9rem; color: #888; margin-bottom: 12px; display: flex; align-items: center; font-weight: 500;">
+                                    <i class="fas fa-tags" style="margin-right: 10px; color: #666;"></i>
+                                    TAGS
+                                </div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                    ${item.tags.map(tag => `
+                                        <span style="background: linear-gradient(145deg, #2a2a2a, #1f1f1f); color: #ddd; padding: 6px 14px; border-radius: 16px; font-size: 0.85rem; border: 1px solid #444; transition: all 0.2s ease;">${tag}</span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+    });
+
+    html += '</div>';
+    resultsContainer.innerHTML = html;
+}
+
+
+function initSearchTab() {
+    initializeSearch();
+    renderRecentSearches();
+}
+
+const originalSwitchTab = switchTab;
+switchTab = function (tabId) {
+    originalSwitchTab(tabId);
+    if (tabId === 'search') {
+        setTimeout(initSearchTab, 100);
+    }
+    if (tabId === 'agents') {
+        setTimeout(initAgentsTab, 100);
+    }
+    if (tabId === 'articles') {
+        setTimeout(initArticlesTab, 100);
+    }
+};
+
+
+function initArticlesTab() {
+    const saveBtn = document.getElementById('saveArticleBtn');
+    const toggleBtn = document.getElementById('toggleAddArticle');
+    const closeBtn = document.getElementById('closeAddPanel');
+    const clearBtn = document.getElementById('clearArticleBtn');
+    const searchInput = document.getElementById('articleSearch');
+    const filterSelect = document.getElementById('articleFilter');
+
+    if (saveBtn) saveBtn.addEventListener('click', saveArticle);
+    if (toggleBtn) toggleBtn.addEventListener('click', toggleAddPanel);
+    if (closeBtn) closeBtn.addEventListener('click', hideAddPanel);
+    if (clearBtn) clearBtn.addEventListener('click', clearArticleForm);
+    if (searchInput) searchInput.addEventListener('input', filterArticles);
+    if (filterSelect) filterSelect.addEventListener('change', filterArticles);
+
+    renderArticlesList();
+}
+
+function toggleAddPanel() {
+    const panel = document.getElementById('addArticlePanel');
+    if (panel.style.display === 'flex') {
+        hideAddPanel();
+    } else {
+        showAddPanel();
+    }
+}
+
+function showAddPanel() {
+    const panel = document.getElementById('addArticlePanel');
+    panel.style.display = 'flex';
+    setTimeout(() => {
+        panel.style.transform = 'translateX(0)';
+        panel.style.opacity = '1';
+    }, 10);
+}
+
+function hideAddPanel() {
+    const panel = document.getElementById('addArticlePanel');
+    panel.style.transform = 'translateX(20px)';
+    panel.style.opacity = '0';
+    setTimeout(() => {
+        panel.style.display = 'none';
+    }, 300);
+}
+
+function clearArticleForm() {
+    document.getElementById('articleCompany').value = '';
+    document.getElementById('articleTitle').value = '';
+    document.getElementById('articleContent').value = '';
+}
+
+function filterArticles() {
+    const searchTerm = document.getElementById('articleSearch').value.toLowerCase();
+    const filter = document.getElementById('articleFilter').value;
+    const articles = JSON.parse(localStorage.getItem('knowledgeBase') || '[]');
+
+    let filteredArticles = [...articles];
+
+    if (filter === 'recent') {
+        filteredArticles.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        filteredArticles = filteredArticles.slice(0, 10);
+    }
+
+    if (searchTerm) {
+        filteredArticles = filteredArticles.filter(article =>
+            article.title.toLowerCase().includes(searchTerm) ||
+            article.company.toLowerCase().includes(searchTerm) ||
+            article.content.toLowerCase().includes(searchTerm)
+        );
+    }
+
+    renderFilteredArticles(filteredArticles);
+}
+
+function saveArticle() {
+    const company = document.getElementById('articleCompany').value.trim();
+    const title = document.getElementById('articleTitle').value.trim();
+    const content = document.getElementById('articleContent').value.trim();
+
+    if (!company || !title || !content) {
+        alert('Please fill in all fields');
+        return;
+    }
+
+    const articles = JSON.parse(localStorage.getItem('knowledgeBase') || '[]');
+
+    const newArticle = {
+        id: Date.now(),
+        company: company,
+        title: title,
+        content: content,
+        timestamp: new Date()
+    };
+
+    articles.push(newArticle);
+    localStorage.setItem('knowledgeBase', JSON.stringify(articles));
+
+
+    clearArticleForm();
+    hideAddPanel();
+
+    renderArticlesList();
+
+
+    showNotification('Document saved successfully!', 'success');
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 25px;
+                border-radius: 7px;
+                color: white;
+                font-weight: 500;
+                z-index: 10000;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+                ${type === 'success' ? 'background: linear-gradient(145deg, #2ecc71, #27ae60);' : 'background: linear-gradient(145deg, #3498db, #2980b9);'}
+            `;
+    notification.textContent = message;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+
+    setTimeout(() => {
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
+}
+
+function renderArticlesList() {
+    const articles = JSON.parse(localStorage.getItem('knowledgeBase') || '[]');
+    const countElement = document.getElementById('articlesCount');
+
+    countElement.textContent = `${articles.length} document${articles.length !== 1 ? 's' : ''}`;
+    renderFilteredArticles(articles);
+}
+
+function renderFilteredArticles(articles) {
+    const container = document.getElementById('articlesList');
+
+    if (articles.length === 0) {
+        const searchTerm = document.getElementById('articleSearch').value;
+        const message = searchTerm ? 'No matching documents found' : 'No documents in repository';
+
+        container.innerHTML = `
+                    <div style="text-align: center; padding: 60px 20px; color: #777; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                        <i class="fas fa-file-alt" style="font-size: 4rem; margin-bottom: 25px; color: #333;"></i>
+                        <h3 style="margin: 0 0 15px 0; color: #999; font-size: 1.4rem;">${message}</h3>
+                        <p style="margin: 0; font-size: 1.1rem; color: #666; max-width: 400px; margin: 0 auto;">
+                            ${searchTerm ? 'Try adjusting your search terms' : 'Click "Add Document" to begin building your knowledge base'}
+                        </p>
+                    </div>
+                `;
+        return;
+    }
+
+    container.innerHTML = articles.map(article => `
+                <div style="background: rgba(40, 40, 40, 0.8); border: 1px solid #444; border-radius: 12px; padding: 20px; transition: all 0.2s ease; margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                                <i class="fas fa-file-alt" style="color: #4d9de0; font-size: 1.2rem;"></i>
+                                <h3 style="margin: 0; color: #ffffff; font-size: 1.2rem;">${article.title}</h3>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+                                <span style="background: rgba(107, 207, 127, 0.2); color: #6bcf7f; padding: 4px 12px; border-radius: 15px; font-size: 0.85rem; font-weight: 500;">
+                                    ${article.company}
+                                </span>
+                                <span style="color: #888; font-size: 0.85rem;">
+                                    <i class="fas fa-calendar" style="margin-right: 5px;"></i>
+                                    ${new Date(article.timestamp).toLocaleDateString()}
+                                </span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="viewFullArticle(${article.id})" class="btn btn-secondary" style="padding: 8px 12px; font-size: 0.85rem; background: rgba(60, 60, 60, 0.7); border: 1px solid #555; border-radius: 8px;">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button onclick="deleteArticle(${article.id})" class="btn btn-danger" style="padding: 8px 12px; font-size: 0.85rem; background: linear-gradient(145deg, #ff4757, #cc3747); border: 1px solid #ff6b6b; border-radius: 8px;">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 15px; padding: 15px; background: rgba(255, 255, 255, 0.03); border-radius: 10px; border-left: 3px solid #4d9de0; max-height: 120px; overflow-y: auto;">
+                        <div style="color: #ccc; line-height: 1.5; font-size: 0.9rem;">
+                            ${article.content.substring(0, 250)}${article.content.length > 250 ? '...' : ''}
+                        </div>
+                    </div>
+                    
+                    ${article.content.length > 250 ? `
+                        <div style="margin-top: 12px; text-align: right;">
+                            <span style="color: #777; font-size: 0.85rem;">
+                                ${article.content.length} characters
+                            </span>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+}
+
+function deleteArticle(articleId) {
+    if (confirm('Are you sure you want to delete this article?')) {
+        const articles = JSON.parse(localStorage.getItem('knowledgeBase') || '[]');
+        const filteredArticles = articles.filter(a => a.id !== articleId);
+        localStorage.setItem('knowledgeBase', JSON.stringify(filteredArticles));
+        renderArticlesList();
+    }
+}
+
+function viewFullArticle(articleId) {
+    const articles = JSON.parse(localStorage.getItem('knowledgeBase') || '[]');
+    const article = articles.find(a => a.id === articleId);
+
+    if (!article) return;
+
+
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'flex';
+    modal.style.zIndex = '1000';
+
+    modal.innerHTML = `
+                <div class="modal-content" style="max-width: 800px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
+                    <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <h2 style="margin: 0; font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;">${article.title}</h2>
+                        <button class="close" onclick="this.closest('.modal').remove()" style="background: none; border: none; color: #ddd; font-size: 1.8rem; cursor: pointer;">&times;</button>
+                    </div>
+                    
+                    <div style="padding: 20px 0; flex: 1; overflow-y: auto;">
+                        <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; border-left: 4px solid #6bcf7f;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="color: #6bcf7f; font-size: 1.1rem; font-weight: 500;">${article.company}</div>
+                                <div style="color: #888; font-size: 0.9rem;">Added: ${new Date(article.timestamp).toLocaleDateString()}</div>
+                            </div>
+                        </div>
+                        
+                        <div style="color: #ddd; line-height: 1.7; font-size: 1rem; white-space: pre-wrap;">
+                            ${article.content}
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; padding-top: 20px; border-top: 1px solid #333;">
+                        <button onclick="deleteArticle(${article.id}); this.closest('.modal').remove()" class="btn btn-danger" style="padding: 12px 20px; flex: 1;">
+                            <i class="fas fa-trash" style="margin-right: 8px;"></i>Delete Article
+                        </button>
+                        <button onclick="this.closest('.modal').remove()" class="btn btn-secondary" style="padding: 12px 20px; flex: 1;">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            `;
+
+    document.body.appendChild(modal);
+}
+
+let activeAgents = [];
+
+function initAgentsTab() {
+    const createBtn = document.getElementById('createAgentBtn');
+    const nameInput = document.getElementById('agentName');
+    const goalInput = document.getElementById('agentGoal');
+
+    if (createBtn) {
+        createBtn.addEventListener('click', createNewAgent);
+    }
+
+    renderAgentsList();
+}
+
+function createNewAgent() {
+    const name = document.getElementById('agentName').value.trim();
+    const goal = document.getElementById('agentGoal').value.trim();
+
+    if (!name || !goal) {
+        alert('Please enter both agent name and goal');
+        return;
+    }
+
+    if (activeAgents.length >= 3) {
+        alert('Maximum 3 agents allowed. Please stop an existing agent first.');
+        return;
+    }
+
+    const agent = {
+        id: Date.now(),
+        name: name,
+        goal: goal,
+        startTime: new Date(),
+        logs: [],
+        status: 'running',
+        thoughts: [],
+        commandsUsed: []
+    };
+
+    activeAgents.push(agent);
+    document.getElementById('agentName').value = '';
+    document.getElementById('agentGoal').value = '';
+
+    renderAgentsList();
+    startAgent(agent.id);
+}
+
+async function startAgent(agentId) {
+    const agent = activeAgents.find(a => a.id === agentId);
+    if (!agent) return;
+
+    const personNames = pazatorData.humans.map(h => h.name);
+
+    const systemPrompt = `
+                You are an autonomous AI investigator named "${agent.name}". 
+                Your goal is: ${agent.goal}
+                
+                Available commands:
+                1. GET_PERSON_INFO: {"command": "GET_PERSON_INFO", "person": "Name"} - Get detailed info about a person
+                2. LOG_FINDING: {"command": "LOG_FINDING", "message": "your log message"} - Record findings
+                3. MISSION_COMPLETE: {"command": "MISSION_COMPLETE", "reason": "why you're done"} - End mission
+                
+                Available data: ${personNames.join(', ')}
+                
+                Think step by step. First analyze what information you need, then use commands to gather it.
+                Always explain your reasoning before taking action.
+                Work towards your goal systematically.
+            `;
+
+    agent.thoughts.push({
+        timestamp: new Date(),
+        message: `Agent ${agent.name} activated with goal: ${agent.goal}`
+    });
+
+    renderAgentDetail(agent.id);
+    await runAgentCycle(agent.id, systemPrompt);
+}
+
+async function runAgentCycle(agentId, systemPrompt) {
+    const agent = activeAgents.find(a => a.id === agentId);
+    if (!agent || agent.status !== 'running') return;
+
+    try {
+        const recentThoughts = agent.thoughts.slice(-3).map(t =>
+            `[${t.timestamp.toLocaleTimeString()}] ${t.message}`
+        ).join('\n');
+
+        const userPrompt = `
+                    Recent activity:\n${recentThoughts}\n\n
+                    What is your next step? Respond with your thinking process, then execute ONE command.
+                    Format: THINKING: [your analysis]\nACTION: {"command": "COMMAND_NAME", "parameters"}
+                `;
+
+        const aiResponse = await puter.ai.chat([
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+        ]);
+
+        const responseText = aiResponse.content || aiResponse;
+        agent.thoughts.push({
+            timestamp: new Date(),
+            message: responseText
+        });
+
+        const command = parseAgentCommand(responseText);
+        if (command) {
+            await executeAgentCommand(agentId, command);
+        }
+
+        renderAgentDetail(agentId);
+
+        if (agent.status === 'running') {
+            setTimeout(() => runAgentCycle(agentId, systemPrompt), 3000);
+        }
+
+    } catch (error) {
+        console.error('Agent error:', error);
+        agent.thoughts.push({
+            timestamp: new Date(),
+            message: `Error occurred: ${error.message}`
+        });
+        renderAgentDetail(agentId);
+    }
+}
+
+function parseAgentCommand(response) {
+    const actionMatch = response.match(/ACTION:\s*(\{[^}]+\})/i);
+    if (actionMatch) {
+        try {
+            return JSON.parse(actionMatch[1]);
+        } catch (e) {
+            console.error('Failed to parse command:', actionMatch[1]);
+        }
+    }
+    return null;
+}
+
+async function executeAgentCommand(agentId, command) {
+    const agent = activeAgents.find(a => a.id === agentId);
+    if (!agent) return;
+
+    agent.commandsUsed.push({
+        timestamp: new Date(),
+        command: command.command,
+        parameters: command
+    });
+
+    switch (command.command) {
+        case 'GET_PERSON_INFO':
+            const person = pazatorData.humans.find(h =>
+                h.name.toLowerCase() === command.person.toLowerCase()
+            );
+            if (person) {
+                const info = {
+                    name: person.name,
+                    workplace: person.workplace,
+                    birthDate: person.birthDate,
+                    tags: person.tags,
+                    friends: person.friends?.map(id =>
+                        pazatorData.humans.find(h => h.id === id)?.name
+                    ).filter(Boolean),
+                    family: person.family?.map(id =>
+                        pazatorData.humans.find(h => h.id === id)?.name
+                    ).filter(Boolean),
+                    notes: person.extraNotes
+                };
+                agent.thoughts.push({
+                    timestamp: new Date(),
+                    message: `Retrieved info for ${person.name}: ${JSON.stringify(info, null, 2)}`
+                });
+            } else {
+                agent.thoughts.push({
+                    timestamp: new Date(),
+                    message: `Person not found: ${command.person}`
+                });
+            }
+            break;
+
+        case 'LOG_FINDING':
+            agent.logs.push({
+                timestamp: new Date(),
+                message: command.message
+            });
+            agent.thoughts.push({
+                timestamp: new Date(),
+                message: `Logged finding: ${command.message}`
+            });
+            break;
+
+        case 'MISSION_COMPLETE':
+            agent.status = 'completed';
+            agent.thoughts.push({
+                timestamp: new Date(),
+                message: `Mission completed: ${command.reason}`
+            });
+            alert(`Agent ${agent.name} has completed its mission!\nReason: ${command.reason}`);
+            break;
+    }
+}
+
+function stopAgent(agentId) {
+    const agent = activeAgents.find(a => a.id === agentId);
+    if (agent) {
+        agent.status = 'stopped';
+        agent.thoughts.push({
+            timestamp: new Date(),
+            message: 'Agent manually stopped by user'
+        });
+        renderAgentsList();
+    }
+}
+
+function deleteAgent(agentId) {
+    if (confirm('Are you sure you want to delete this agent?')) {
+        activeAgents = activeAgents.filter(a => a.id !== agentId);
+        renderAgentsList();
+    }
+}
+
+function renderAgentsList() {
+    const container = document.getElementById('agentsList');
+    const countElement = document.getElementById('agentCount');
+
+    countElement.textContent = `${activeAgents.length}/3`;
+
+    if (activeAgents.length === 0) {
+        container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #777;">
+                        <i class="fas fa-robot" style="font-size: 3rem; margin-bottom: 20px; color: #444;"></i>
+                        <p style="margin: 0; font-size: 1.2rem;">No active agents</p>
+                        <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666;">Create an agent to get started</p>
+                    </div>
+                `;
+        return;
+    }
+
+    container.innerHTML = activeAgents.map(agent => {
+        const duration = Math.floor((new Date() - agent.startTime) / 1000);
+        const minutes = Math.floor(duration / 60);
+        const seconds = duration % 60;
+
+        return `
+                    <div style="background: rgba(40, 40, 40, 0.8); border: 1px solid #444; border-radius: 12px; padding: 20px; transition: all 0.2s ease;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                            <div>
+                                <h3 style="margin: 0 0 8px 0; color: #ffffff; font-size: 1.3rem;">${agent.name}</h3>
+                                <p style="margin: 0; color: #aaa; font-size: 0.95rem;">${agent.goal}</p>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="background: ${agent.status === 'running' ? '#6bcf7f' : agent.status === 'completed' ? '#4d9de0' : '#ff6b6b'}; 
+                                      color: white; padding: 4px 12px; border-radius: 15px; font-size: 0.8rem; font-weight: 500;">
+                                    ${agent.status.toUpperCase()}
+                                </span>
+                                <div style="margin-top: 8px; color: #888; font-size: 0.85rem;">
+                                    ${minutes}m ${seconds}s
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button onclick="renderAgentDetail(${agent.id})" class="btn btn-secondary" style="flex: 1; padding: 10px; font-size: 0.9rem;">
+                                <i class="fas fa-eye" style="margin-right: 6px;"></i>View Details
+                            </button>
+                            ${agent.status === 'running' ? `
+                                <button onclick="stopAgent(${agent.id})" class="btn btn-danger" style="padding: 10px 15px; font-size: 0.9rem;">
+                                    <i class="fas fa-stop"></i>
+                                </button>
+                            ` : ''}
+                            <button onclick="deleteAgent(${agent.id})" class="btn btn-danger" style="padding: 10px 15px; font-size: 0.9rem;">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+    }).join('');
+}
+
+function renderAgentDetail(agentId) {
+    const agent = activeAgents.find(a => a.id === agentId);
+    if (!agent) return;
+
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'flex';
+    modal.style.zIndex = '1000';
+
+    const duration = Math.floor((new Date() - agent.startTime) / 1000);
+    const minutes = Math.floor(duration / 60);
+    const seconds = duration % 60;
+
+    modal.innerHTML = `
+                <div class="modal-content" style="max-width: 900px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
+                    <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <h2 style="margin: 0; font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;">${agent.name}</h2>
+                        <button class="close" onclick="this.closest('.modal').remove()" style="background: none; border: none; color: #ddd; font-size: 1.8rem; cursor: pointer;">&times;</button>
+                    </div>
+                    
+                    <div style="display: flex; gap: 20px; flex: 1; overflow: hidden; padding: 20px 0;">
+                        <!-- Left Panel - Agent Thoughts -->
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 15px;">
+                            <h3 style="margin: 0; color: #ffffff; display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-brain" style="color: #6bcf7f;"></i>
+                                Agent Activity
+                                <span style="margin-left: auto; background: #444; color: #ddd; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem;">${minutes}m ${seconds}s</span>
+                            </h3>
+                            
+                            <div style="flex: 1; overflow-y: auto; background: rgba(20, 20, 20, 0.5); border-radius: 10px; padding: 15px;">
+                                ${agent.thoughts.map(thought => `
+                                    <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #333;">
+                                        <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">${thought.timestamp.toLocaleTimeString()}</div>
+                                        <div style="color: #ddd; line-height: 1.5; white-space: pre-wrap;">${thought.message}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        
+                        <!-- Right Panel - Logs and Commands -->
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 15px;">
+                            <h3 style="margin: 0; color: #ffffff; display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-clipboard-list" style="color: #ffd93d;"></i>
+                                Investigation Logs
+                            </h3>
+                            
+                            <div style="flex: 1; overflow-y: auto; background: rgba(20, 20, 20, 0.5); border-radius: 10px; padding: 15px; margin-bottom: 15px;">
+                                ${agent.logs.length > 0 ? agent.logs.map(log => `
+                                    <div style="margin-bottom: 12px; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; border-left: 3px solid #ffd93d;">
+                                        <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">${log.timestamp.toLocaleTimeString()}</div>
+                                        <div style="color: #ddd;">${log.message}</div>
+                                    </div>
+                                `).join('') : `
+                                    <div style="text-align: center; padding: 30px; color: #777;">
+                                        <i class="fas fa-clipboard" style="font-size: 2rem; margin-bottom: 15px; color: #444;"></i>
+                                        <p style="margin: 0;">No logs recorded yet</p>
+                                    </div>
+                                `}
+                            </div>
+                            
+                            <h3 style="margin: 0; color: #ffffff; display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-terminal" style="color: #ff6b6b;"></i>
+                                Commands Used
+                            </h3>
+                            
+                            <div style="flex: 1; overflow-y: auto; background: rgba(20, 20, 20, 0.5); border-radius: 10px; padding: 15px;">
+                                ${agent.commandsUsed.length > 0 ? agent.commandsUsed.map(cmd => `
+                                    <div style="margin-bottom: 12px; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; border-left: 3px solid #ff6b6b;">
+                                        <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">${cmd.timestamp.toLocaleTimeString()}</div>
+                                        <div style="color: #ddd; font-weight: 500; margin-bottom: 5px;">${cmd.command}</div>
+                                        <div style="color: #aaa; font-size: 0.9rem;">${JSON.stringify(cmd.parameters, null, 2)}</div>
+                                    </div>
+                                `).join('') : `
+                                    <div style="text-align: center; padding: 30px; color: #777;">
+                                        <i class="fas fa-terminal" style="font-size: 2rem; margin-bottom: 15px; color: #444;"></i>
+                                        <p style="margin: 0;">No commands executed yet</p>
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; padding-top: 20px; border-top: 1px solid #333;">
+                        <button onclick="this.closest('.modal').remove()" class="btn btn-secondary" style="flex: 1; padding: 12px;">
+                            Close
+                        </button>
+                        ${agent.status === 'running' ? `
+                            <button onclick="stopAgent(${agent.id}); this.closest('.modal').remove()" class="btn btn-danger" style="padding: 12px 20px;">
+                                Stop Agent
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+
+    document.body.appendChild(modal);
+
+    const thoughtsContainer = modal.querySelector('div[style*="overflow-y: auto"]:first-child');
+    if (thoughtsContainer) {
+        setTimeout(() => {
+            thoughtsContainer.scrollTop = thoughtsContainer.scrollHeight;
+        }, 100);
+    }
+}

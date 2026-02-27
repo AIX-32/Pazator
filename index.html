@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +9,7 @@
     <meta name="description" content="MDC - Surveillance Platform.">
     <title>Pazator - Mass Data Container | Secure Intelligence Platform</title>
     <style>
-        /* Font Definitions */
+        
         @font-face {
             font-family: 'AllianceNo2';
             src: url('Alliance No.2 Regular.otf') format('opentype');
@@ -25,7 +26,7 @@
             font-display: swap;
         }
 
-        /* Base Styles */
+        
         * {
             margin: 0;
             padding: 0;
@@ -33,14 +34,16 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Hide scrollbars but keep functionality */
+        
         ::-webkit-scrollbar {
             display: none;
         }
 
         * {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
+            -ms-overflow-style: none;
+            
+            scrollbar-width: none;
+            
         }
 
         body {
@@ -53,8 +56,12 @@
             overflow-x: hidden;
         }
 
-        /* Typography */
-        h1, h2, h3, h4, h5 {
+        
+        h1,
+        h2,
+        h3,
+        h4,
+        h5 {
             font-family: 'AllianceNo2', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             font-weight: 700;
             letter-spacing: 0.5px;
@@ -75,14 +82,14 @@
             color: #dddddd;
         }
 
-        /* Container */
+        
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 20px;
         }
 
-        /* Header */
+        
         header {
             background: linear-gradient(180deg, #1b1a1a 0%, #191818 100%);
             border-bottom: 1px solid #2c2b2b;
@@ -168,7 +175,7 @@
             box-shadow: 0 6px 20px rgba(255, 255, 255, 0.2);
         }
 
-        /* Hero Section */
+        
         .hero {
             padding: 100px 0;
             background: radial-gradient(circle at top right, #1e1c1c, #141313);
@@ -225,7 +232,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-image: 
+            background-image:
                 linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
             background-size: 30px 30px;
@@ -274,15 +281,18 @@
         }
 
         @keyframes float {
-            0%, 100% {
+
+            0%,
+            100% {
                 transform: translateY(0);
             }
+
             50% {
                 transform: translateY(-20px);
             }
         }
 
-        /* Features Section */
+        
         .features {
             padding: 100px 0;
             background: linear-gradient(180deg, #141313 0%, #1a1919 100%);
@@ -354,7 +364,7 @@
             margin-bottom: 0;
         }
 
-        /* CTA Section */
+        
         .cta-section {
             padding: 100px 0;
             background: radial-gradient(circle at bottom left, #1e1c1c, #141313);
@@ -418,7 +428,7 @@
             border-color: #4a4949;
         }
 
-        /* Footer */
+        
         footer {
             background: linear-gradient(180deg, #1b1a1a 0%, #191818 100%);
             border-top: 1px solid #2c2b2b;
@@ -471,7 +481,7 @@
             font-size: 0.9rem;
         }
 
-        /* Responsive Design */
+        
         @media (max-width: 768px) {
             .hero-content {
                 grid-template-columns: 1fr;
@@ -491,7 +501,8 @@
                 align-items: center;
             }
 
-            .cta-button, .secondary-button {
+            .cta-button,
+            .secondary-button {
                 width: 100%;
                 max-width: 300px;
             }
@@ -511,12 +522,13 @@
             }
         }
 
-        /* Additional Animations */
+        
         @keyframes fadeInUp {
             from {
                 opacity: 0;
                 transform: translateY(30px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -540,6 +552,7 @@
         }
     </style>
 </head>
+
 <body>
     <!-- Header -->
     <header>
@@ -560,10 +573,13 @@
         <div class="container hero-content">
             <div class="hero-text">
                 <h1>Mass Data Intelligence Platform</h1>
-                <p>Pazator is a comprehensive data management and analysis platform designed for handling complex relationships, detecting patterns, and uncovering hidden insights in your data networks.</p>
+                <p>Pazator is a comprehensive data management and analysis platform designed for handling complex
+                    relationships, detecting patterns, and uncovering hidden insights in your data networks.</p>
                 <div class="cta-buttons">
                     <button class="cta-button" onclick="window.location.href='app.html'">Try it</button>
-                    <button class="secondary-button" onclick="document.getElementById('features').scrollIntoView({behavior: 'smooth'})">Learn More</button>
+                    <button class="secondary-button"
+                        onclick="document.getElementById('features').scrollIntoView({behavior: 'smooth'})">Learn
+                        More</button>
                 </div>
             </div>
             <div class="hero-visual">
@@ -587,32 +603,38 @@
                 <div class="feature-card fade-in delay-1">
                     <div class="feature-icon"><i class="fas fa-search"></i></div>
                     <h3>Advanced Analytics</h3>
-                    <p>Uncover hidden patterns and relationships in your data with our sophisticated AI-powered analysis tools. Detect fraud, identify threats, and discover valuable insights.</p>
+                    <p>Uncover hidden patterns and relationships in your data with our sophisticated AI-powered analysis
+                        tools. Detect fraud, identify threats, and discover valuable insights.</p>
                 </div>
                 <div class="feature-card fade-in delay-2">
                     <div class="feature-icon"><i class="fas fa-link"></i></div>
                     <h3>Network Visualization</h3>
-                    <p>Visualize complex data relationships in an interactive, zoomable interface. See connections, hierarchies, and patterns that text-based data can't reveal.</p>
+                    <p>Visualize complex data relationships in an interactive, zoomable interface. See connections,
+                        hierarchies, and patterns that text-based data can't reveal.</p>
                 </div>
                 <div class="feature-card fade-in delay-3">
                     <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
                     <h3>Threat Detection</h3>
-                    <p>Proactively identify security threats and potential risks with our intelligent monitoring system. Stay ahead of security challenges with real-time alerts.</p>
+                    <p>Proactively identify security threats and potential risks with our intelligent monitoring system.
+                        Stay ahead of security challenges with real-time alerts.</p>
                 </div>
                 <div class="feature-card fade-in delay-1">
                     <div class="feature-icon"><i class="fas fa-robot"></i></div>
                     <h3>AI Assistant</h3>
-                    <p>Get intelligent insights and automate complex tasks with our built-in AI assistant. From data entry to complex analysis, AI helps you work smarter.</p>
+                    <p>Get intelligent insights and automate complex tasks with our built-in AI assistant. From data
+                        entry to complex analysis, AI helps you work smarter.</p>
                 </div>
                 <div class="feature-card fade-in delay-2">
                     <div class="feature-icon"><i class="fas fa-tags"></i></div>
                     <h3>Smart Tagging</h3>
-                    <p>Organize and categorize your data with intelligent tagging systems. Create custom taxonomies and automatically apply tags based on content analysis.</p>
+                    <p>Organize and categorize your data with intelligent tagging systems. Create custom taxonomies and
+                        automatically apply tags based on content analysis.</p>
                 </div>
                 <div class="feature-card fade-in delay-3">
                     <div class="feature-icon"><i class="fas fa-chart-bar"></i></div>
                     <h3>Real-time Monitoring</h3>
-                    <p>Monitor your data ecosystem in real-time with comprehensive dashboards and alert systems. Track changes, updates, and anomalies as they happen.</p>
+                    <p>Monitor your data ecosystem in real-time with comprehensive dashboards and alert systems. Track
+                        changes, updates, and anomalies as they happen.</p>
                 </div>
             </div>
         </div>
@@ -623,7 +645,8 @@
         <div class="container">
             <div class="cta-content fade-in">
                 <h2>Ready to Transform Your Data Management?</h2>
-                <p>Join thousands of organizations using Pazator to gain deeper insights, enhance security, and make better data-driven decisions.</p>
+                <p>Join thousands of organizations using Pazator to gain deeper insights, enhance security, and make
+                    better data-driven decisions.</p>
                 <div class="cta-buttons">
                     <button class="cta-button" onclick="window.location.href='app.html'">Start Free Trial</button>
                     <button class="secondary-button" onclick="window.location.href='#contact'">Request Demo</button>
@@ -676,9 +699,9 @@
 
     <script>
         // Simple scroll animations
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const fadeElements = document.querySelectorAll('.fade-in');
-            
+
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
@@ -686,7 +709,7 @@
                     }
                 });
             }, { threshold: 0.1 });
-            
+
             fadeElements.forEach(element => {
                 observer.observe(element);
             });
@@ -697,7 +720,7 @@
                     e.preventDefault();
                     const targetId = this.getAttribute('href');
                     if (targetId === '#') return;
-                    
+
                     const targetElement = document.querySelector(targetId);
                     if (targetElement) {
                         targetElement.scrollIntoView({
@@ -710,4 +733,5 @@
         });
     </script>
 </body>
+
 </html>
