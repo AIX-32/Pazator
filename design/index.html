@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pazator: design language</title>
+  <style>
+    @font-face {
+      font-family: 'AllianceNo2';
+      src: url('Alliance No.2 Regular.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'MavenPro';
+      src: url('MavenPro-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root {
+      --primary-bg: #0d0d0d;
+      --secondary-bg: #121212;
+      --tertiary-bg: #0a0a0a;
+      --card-bg: #1a1a1a;
+      --border-color: #2a2a2a;
+      --text-primary: #e0e0e0;
+      --text-secondary: #a0a0a0;
+      --text-muted: #777777;
+      --accent-light: #ffffff;
+      --accent-dark: #8a8a8a;
+      --shadow-color: rgba(0, 0, 0, 0.3);
+      --highlight: rgba(255, 255, 255, 0.1);
+      --glow: rgba(255, 255, 255, 0.05);
+      --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+      --emotion-urgent: #f44336;
+      --emotion-calm: #42a5f5;
+      --emotion-creative: #ab47bc;
+      --emotion-success: #66bb6a;
+      --emotion-warning: #ffa726;
+      --emotion-neutral: #b0bec5;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      transition: all 0.3s var(--transition-smooth);
+    }
+
+    body {
+      background: var(--primary-bg);
+      font-family: 'MavenPro', 'Maven Pro', 'Segoe UI', system-ui, sans-serif;
+      color: var(--text-primary);
+      line-height: 1.6;
+      letter-spacing: 0.2px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--tertiary-bg); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+    * { scrollbar-width: thin; scrollbar-color: var(--border-color) var(--tertiary-bg); }
+
+    
+    .design-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 5rem;
+    }
+
+    
+    .design-header {
+      margin-bottom: 3rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 1.5rem;
+    }
+    .design-header h1 {
+      font-family: 'AllianceNo2', 'Maven Pro', sans-serif;
+      font-size: 2.5rem;
+      font-weight: normal;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #ffffff, #bbbbbb);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.25rem;
+    }
+    .design-header .sub {
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+
+    
+    .design-section {
+      margin-bottom: 4rem;
+      scroll-margin-top: 2rem;
+    }
+    .design-section h2 {
+      font-family: 'AllianceNo2', 'Maven Pro', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.5rem;
+      color: #ffffff;
+    }
+    .design-section h3 {
+      font-family: 'AllianceNo2', 'Maven Pro', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 500;
+      margin: 2rem 0 1rem;
+      color: #ffffff;
+    }
+
+    
+    .panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 7px;
+      padding: 24px;
+      box-shadow: 0 8px 32px var(--shadow-color), inset 0 1px 0 rgba(255,255,255,0.03);
+      position: relative;
+      overflow: hidden;
+    }
+    .panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    }
+    .panel:hover { border-color: #333; box-shadow: 0 12px 40px var(--shadow-color), inset 0 1px 0 rgba(255,255,255,0.05); }
+
+    
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    .color-swatch {
+      background: var(--card-bg);
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+    }
+    .color-sample { height: 80px; }
+    .color-info { padding: 0.75rem; }
+    .color-name { font-weight: 600; color: white; }
+    .color-hex { font-size: 0.8rem; color: var(--text-muted); font-family: monospace; }
+
+    
+    .emotion-badge {
+      display: inline-block;
+      padding: 0.2rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      background: rgba(255,255,255,0.05);
+      color: #ccc;
+      margin-left: 0.75rem;
+      letter-spacing: 0.5px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .badge-urgent { background: rgba(244,67,54,0.15); color: #f44336; border-color: #f4433633; }
+    .badge-calm { background: rgba(66,165,245,0.15); color: #42a5f5; border-color: #42a5f533; }
+    .badge-creative { background: rgba(171,71,188,0.15); color: #ab47bc; border-color: #ab47bc33; }
+    .badge-success { background: rgba(102,187,106,0.15); color: #66bb6a; border-color: #66bb6a33; }
+    .badge-warning { background: rgba(255,167,38,0.15); color: #ffa726; border-color: #ffa72633; }
+
+    
+    .component-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+    }
+
+    
+    .tab-bar {
+      display: flex;
+      background: linear-gradient(180deg, rgba(26,26,26,0.95) 0%, rgba(22,22,22,0.95) 100%);
+      border: 1px solid var(--border-color);
+      padding: 0.75rem 1rem;
+      border-radius: 14px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      backdrop-filter: blur(10px);
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .tab {
+      padding: 0 1.25rem;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: default;
+      border-radius: 7px;
+      background: rgba(30,30,30,0.6);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .tab.active {
+      background: linear-gradient(145deg, #3a3a3a, #2e2e2e);
+      border-color: #505050;
+      color: var(--text-primary);
+    }
+
+    
+    button, .btn {
+      background: linear-gradient(145deg, #2a2a2a, #252525);
+      border: 1px solid #3a3a3a;
+      border-radius: 7px;
+      padding: 0.75rem 1.5rem;
+      color: #e8e8e8;
+      cursor: default;
+      font-size: 0.95rem;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      font-family: 'MavenPro', sans-serif;
+    }
+    .btn-primary {
+      background: linear-gradient(145deg, #ffffff, #e0e0e0);
+      color: #000;
+    }
+    .btn-secondary {
+      background: linear-gradient(145deg, #2a2a2a, #252525);
+      color: #e8e8e8;
+    }
+
+    
+    .tag {
+      background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(221,221,221,0.9));
+      color: #000;
+      padding: 0.4rem 0.9rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      font-weight: 500;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .tags-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+
+    
+    .form-control {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: rgba(25,25,25,0.8);
+      border: 1px solid #333;
+      border-radius: 7px;
+      color: #e0e0e0;
+      font-size: 1rem;
+      font-family: 'MavenPro', sans-serif;
+    }
+    .form-control:focus { outline: none; border-color: rgba(255,255,255,0.4); box-shadow: 0 0 0 3px rgba(255,255,255,0.1); }
+
+    
+    .modal-example {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 2rem;
+      max-width: 450px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    .modal-header h4 { font-family: 'AllianceNo2', sans-serif; font-size: 1.4rem; }
+    .close {
+      background: #2a2a2a;
+      border: 1px solid #3a3a3a;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      cursor: default;
+      color: #aaa;
+    }
+
+    
+    .emotion-panel {
+      border-left-width: 4px;
+      border-left-style: solid;
+      margin-bottom: 1.5rem;
+    }
+    .emotion-panel.urgent { border-left-color: var(--emotion-urgent); }
+    .emotion-panel.calm { border-left-color: var(--emotion-calm); }
+    .emotion-panel.creative { border-left-color: var(--emotion-creative); }
+    .emotion-panel.success { border-left-color: var(--emotion-success); }
+    .emotion-panel.warning { border-left-color: var(--emotion-warning); }
+
+    .finding-item {
+      background: rgba(35,35,35,0.6);
+      border: 1px solid #2a2a2a;
+      border-radius: 7px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+    .finding-risk {
+      padding: 0.2rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      background: rgba(255,255,255,0.1);
+    }
+
+    
+    .profile-placeholder {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: #2a2a2a;
+      border: 2px solid #3a3a3a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      color: #555;
+    }
+
+    hr { border: none; border-top: 1px solid var(--border-color); margin: 2rem 0; }
+  </style>
+</head>
+<body>
+<div class="design-container">
+  <div class="design-header">
+    <h1>Pazator's UI</h1>
+    <div class="sub">design language, clean modern black with emotional color accents</div>
+  </div>
+
+  <section class="design-section" id="philosophy">
+    <h2>Philosophy</h2>
+    <div class="panel">
+      <p style="font-size: 1.2rem; margin-bottom: 1rem;">Deep blacks and near‑blacks form a neutral, modern canvas. Every section can receive a <strong>hit of color</strong> that reflects its emotional tone, urgency, calm, creativity, success, or warning.</p>
+      <p style="color: var(--text-secondary);">These accents are never arbitrary: they carry psychological weight and are applied sparingly (borders, badges, glows). The result is an interface that is both minimal and emotionally intuitive.</p>
+      <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 1.5rem;">
+        <span style="color: var(--emotion-urgent); font-weight: 600;">● urgent</span>
+        <span style="color: var(--emotion-calm); font-weight: 600;">● calm</span>
+        <span style="color: var(--emotion-creative); font-weight: 600;">● creative</span>
+        <span style="color: var(--emotion-success); font-weight: 600;">● success</span>
+        <span style="color: var(--emotion-warning); font-weight: 600;">● warning</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="design-section" id="colors">
+    <h2>Neutral palette & emotion hits</h2>
+    <h3>base grays</h3>
+    <div class="color-grid">
+      <div class="color-swatch"><div class="color-sample" style="background: #0d0d0d;"></div><div class="color-info"><span class="color-name">primary bg</span><div class="color-hex">#0d0d0d</div></div></div>
+      <div class="color-swatch"><div class="color-sample" style="background: #121212;"></div><div class="color-info"><span class="color-name">secondary bg</span><div class="color-hex">#121212</div></div></div>
+      <div class="color-swatch"><div class="color-sample" style="background: #1a1a1a;"></div><div class="color-info"><span class="color-name">card bg</span><div class="color-hex">#1a1a1a</div></div></div>
+      <div class="color-swatch"><div class="color-sample" style="background: #2a2a2a;"></div><div class="color-info"><span class="color-name">border</span><div class="color-hex">#2a2a2a</div></div></div>
+      <div class="color-swatch"><div class="color-sample" style="background: #e0e0e0;"></div><div class="color-info"><span class="color-name">text primary</span><div class="color-hex">#e0e0e0</div></div></div>
+    </div>
+
+    <h3>emotion accents</h3>
+    <div class="color-grid">
+      <div class="color-swatch"><div class="color-sample" style="background: #f44336;"></div><div class="color-info"><span class="color-name">urgent</span><div class="color-hex">#f44336</div></div></div>
+      <div class="color-swatch"><div class="color-sample" style="background: #42a5f5;"></div><div class="color-info"><span class="color-name">calm</span><div class="color-hex">#42a5f5</div></div></div>
+      <div class="color-swatch"><div class="color-sample" style="background: #ab47bc;"></div><div class="color-info"><span class="color-name">creative</span><div class="color-hex">#ab47bc</div></div></div>
+      <div class="color-swatch"><div class="color-sample" style="background: #66bb6a;"></div><div class="color-info"><span class="color-name">success</span><div class="color-hex">#66bb6a</div></div></div>
+      <div class="color-swatch"><div class="color-sample" style="background: #ffa726;"></div><div class="color-info"><span class="color-name">warning</span><div class="color-hex">#ffa726</div></div></div>
+    </div>
+  </section>
+
+  <section class="design-section" id="typography">
+    <h2>Typography</h2>
+    <div style="display: flex; gap: 3rem; flex-wrap: wrap; align-items: baseline;">
+      <div><span style="font-family: 'AllianceNo2', sans-serif; font-size: 2.5rem;">AllianceNo2</span><br><span style="color: #888;">headings, emphasis</span></div>
+      <div><span style="font-family: 'MavenPro', sans-serif; font-size: 2.2rem;">Maven Pro</span><br><span style="color: #888;">body, UI, labels</span></div>
+    </div>
+    <div class="panel" style="margin-top: 2rem;">
+      <h1 style="font-family: 'AllianceNo2';">Heading 1 (AllianceNo2)</h1>
+      <h2 style="font-family: 'AllianceNo2';">Heading 2 (AllianceNo2)</h2>
+      <p style="font-family: 'MavenPro';">Body text: Maven Pro regular. The quick brown fox jumps over the lazy dog. 0123456789</p>
+      <p style="font-family: 'MavenPro'; font-weight: 600;">Bold text: used for buttons and strong labels.</p>
+    </div>
+  </section>
+
+  <section class="design-section" id="components">
+    <h2>Core components</h2>
+
+    <h3>Tabs</h3>
+    <div class="tab-bar" style="margin-bottom: 2rem;">
+      <div class="tab active">dashboard</div>
+      <div class="tab">threats</div>
+      <div class="tab">people</div>
+      <div class="tab">settings</div>
+    </div>
+
+    <h3>Buttons & tags</h3>
+    <div class="component-row">
+      <button class="btn">default</button>
+      <button class="btn-primary">primary</button>
+      <button class="btn-secondary">secondary</button>
+      <div class="tag">tag</div>
+      <div class="tag" style="background: #333; color: white;">inverted</div>
+    </div>
+
+    <h3>Panels</h3>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+      <div class="panel">
+        <div style="font-family: 'AllianceNo2'; font-size: 1.4rem; margin-bottom: 0.5rem;">standard panel</div>
+        <p>Basic card with subtle inner glow and border.</p>
+        <div class="tags-container"><span class="tag">clean</span><span class="tag">dark</span></div>
+      </div>
+      <div class="panel" style="border-left: 4px solid var(--emotion-creative);">
+        <div style="display: flex; align-items: center;"><span style="font-family: 'AllianceNo2'; font-size: 1.4rem;">creative panel</span><span class="emotion-badge badge-creative">creative</span></div>
+        <p>Left border indicates emotional tone.</p>
+      </div>
+    </div>
+
+    <h3>Form inputs</h3>
+    <div class="component-row" style="flex-direction: column; align-items: stretch;">
+      <input type="text" class="form-control" placeholder="Text input" value="sample text">
+      <select class="form-control"><option>Option one</option><option>Option two</option></select>
+      <textarea class="form-control" placeholder="Textarea" rows="2">Editable area</textarea>
+    </div>
+
+    <h3>Modal (static example)</h3>
+    <div class="modal-example">
+      <div class="modal-header">
+        <h4 style="font-family: 'AllianceNo2';">Confirm action</h4>
+        <span class="close">✕</span>
+      </div>
+      <p style="margin-bottom: 1.5rem;">Modal content preview   dark background, clean lines.</p>
+      <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+        <button class="btn-secondary">cancel</button>
+        <button class="btn-primary" style="background: white; color: black;">confirm</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="design-section" id="sections">
+    <h2>Sections with emotional color hits</h2>
+    <p style="margin-bottom: 2rem; color: var(--text-secondary);">Each section below uses a distinct accent color that reflects its purpose   the black canvas remains dominant.</p>
+
+    <div class="panel emotion-panel urgent">
+      <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+        <h3 style="font-family: 'AllianceNo2';">Threat intelligence</h3>
+        <span class="emotion-badge badge-urgent">urgent</span>
+      </div>
+      <p>Red accent creates tension and alertness   perfect for fraud, risks, high-priority alerts.</p>
+      <div class="finding-item">
+        <div style="display: flex; justify-content: space-between;"><span style="font-weight: 600;">suspicious login</span><span class="finding-risk" style="background: #f4433622; color:#f44336;">high</span></div>
+        <div style="color: #aaa; font-size: 0.9rem; margin-top: 0.5rem;">multiple failed attempts from new location</div>
+      </div>
+    </div>
+
+    <div class="panel emotion-panel calm">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <h3 style="font-family: 'AllianceNo2';">User serenity</h3>
+        <span class="emotion-badge badge-calm">calm</span>
+      </div>
+      <p>Calm blue signals trust and stability   profiles, general information.</p>
+      <div style="display: flex; gap: 1rem; align-items: center; margin-top: 1rem;">
+        <div class="profile-placeholder">👤</div>
+        <div><span style="display: block; font-weight: 600;">jane doe</span><span style="color: #888;">verified user</span></div>
+      </div>
+    </div>
+
+    <div class="panel emotion-panel creative">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <h3 style="font-family: 'AllianceNo2';">Creative lab</h3>
+        <span class="emotion-badge badge-creative">creative</span>
+      </div>
+      <p>Purple inspires imagination   experiments, new features, generative tools.</p>
+      <div class="tags-container"><span class="tag">prototype</span><span class="tag">generative</span><span class="tag">new</span></div>
+    </div>
+
+    <div class="panel emotion-panel success">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <h3 style="font-family: 'AllianceNo2';">Operations nominal</h3>
+        <span class="emotion-badge badge-success">success</span>
+      </div>
+      <p>Green reinforces safety   system health, completed tasks, all-clear sections.</p>
+      <div style="background: rgba(102,187,106,0.1); padding: 0.75rem; border-radius: 6px; margin-top: 0.5rem;">✅ 98% uptime</div>
+    </div>
+
+    <div class="panel emotion-panel warning">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <h3 style="font-family: 'AllianceNo2';">Pending review</h3>
+        <span class="emotion-badge badge-warning">warning</span>
+      </div>
+      <p>Orange strikes a balance   items needing attention but not critical.</p>
+      <ul style="color: #aaa; margin-left: 1.2rem; margin-top: 0.8rem;">
+        <li>2 documents require signature</li>
+        <li>unusual pattern detected</li>
+      </ul>
+    </div>
+
+    <hr>
+    <p style="text-align: center; color: #666; font-style: italic;">The black canvas absorbs   the colors speak with emotion.</p>
+  </section>
+</div>
+</body>
+</html>
