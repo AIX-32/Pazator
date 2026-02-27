@@ -51,6 +51,8 @@ const exportChatReportBtn = document.getElementById('exportChatReportBtn');
 const clearChatHistoryBtn = document.getElementById('clearChatHistoryBtn');
 const savedChatsList = document.getElementById('savedChatsList');
 
+const classificationBanner = document.getElementById('classificationBanner');
+
 const tabBar = document.getElementById('tabBar');
 const addTabBtn = document.getElementById('addTabBtn');
 
@@ -1833,6 +1835,7 @@ const chatParticipants = document.getElementById('chatParticipants');
 const chatContext = document.getElementById('chatContext');
 const cancelChatUploadBtn = document.getElementById('cancelChatUploadBtn');
 const uploadChatBtn = document.getElementById('uploadChatBtn');
+const classifyModal = document.getElementById('classifyModal');
 
 chatUploadBtn.addEventListener('click', () => {
     [humanModal, otherModal, detailViewModal, aiChatModal, typeModal].forEach(modal => {
@@ -2463,7 +2466,7 @@ function getAdminContext() {
 askAIBtn.addEventListener('click', () => {
     console.log('Ask AI button clicked - attempting to show modal');
 
-    const allModals = [typeModal, humanModal, otherModal, detailViewModal, document.getElementById('hiddenConnectionsModal')];
+    const allModals = [typeModal, humanModal, otherModal, detailViewModal, classifyModal, document.getElementById('hiddenConnectionsModal')];
     allModals.forEach(modal => {
         if (modal) {
             modal.style.display = 'none';
@@ -2530,7 +2533,7 @@ document.querySelectorAll('.close').forEach(button => {
             }, 300);
         } else {
 
-            [typeModal, humanModal, otherModal, detailViewModal, aiChatModal, document.getElementById('hiddenConnectionsModal')].forEach(modal => {
+            [typeModal, humanModal, otherModal, detailViewModal, classifyModal, aiChatModal, document.getElementById('hiddenConnectionsModal')].forEach(modal => {
                 if (modal && modal.style.display !== 'none') {
                     modal.classList.add('hiding');
                 }
@@ -2541,10 +2544,11 @@ document.querySelectorAll('.close').forEach(button => {
                 humanModal.style.display = 'none';
                 otherModal.style.display = 'none';
                 detailViewModal.style.display = 'none';
+                classifyModal && (classifyModal.style.display = 'none');
                 aiChatModal.style.display = 'none';
                 document.getElementById('hiddenConnectionsModal').style.display = 'none';
 
-                [typeModal, humanModal, otherModal, detailViewModal, aiChatModal, document.getElementById('hiddenConnectionsModal')].forEach(modal => {
+                [typeModal, humanModal, otherModal, detailViewModal, classifyModal, aiChatModal, document.getElementById('hiddenConnectionsModal')].forEach(modal => {
                     modal.style.zIndex = '-1';
                     modal.classList.remove('hiding');
                 });
@@ -2559,6 +2563,7 @@ window.addEventListener('click', (event) => {
         { element: humanModal, condition: event.target === humanModal },
         { element: otherModal, condition: event.target === otherModal },
         { element: detailViewModal, condition: event.target === detailViewModal },
+        { element: classifyModal, condition: event.target === classifyModal },
         { element: aiChatModal, condition: event.target === aiChatModal },
         { element: chatUploadModal, condition: event.target === chatUploadModal },
         { element: document.getElementById('hiddenConnectionsModal'), condition: event.target === document.getElementById('hiddenConnectionsModal') }
@@ -2575,7 +2580,7 @@ window.addEventListener('click', (event) => {
         }
     });
 
-    [typeModal, humanModal, otherModal, detailViewModal, aiChatModal, chatUploadModal, document.getElementById('hiddenConnectionsModal')].forEach(modal => {
+    [typeModal, humanModal, otherModal, detailViewModal, classifyModal, aiChatModal, chatUploadModal, document.getElementById('hiddenConnectionsModal')].forEach(modal => {
         if (modal && modal.style.display === 'none') {
             modal.style.zIndex = '-1';
         }
@@ -4614,53 +4619,6 @@ if (typeof puter !== 'undefined' && puter.auth) {
     }, 10000);
 }
 
-console.log(' Setting up logo dropdown event listeners...');
-
-console.log(' Logo image exists:', !!logoImage);
-console.log(' Refresh option exists:', !!refreshNodesOption);
-console.log(' Classify option exists:', !!classifyOption);
-
-if (refreshNodesOption) {
-    console.log(' Adding event listener to Refresh Nodes');
-    refreshNodesOption.addEventListener('click', (e) => {
-        e.stopPropagation();
-        console.log(' Logo dropdown: Refresh Nodes clicked');
-
-        manualRefresh();
-    });
-} else {
-    console.error(' RefreshNodesOption not found!');
-}
-
-if (classifyOption) {
-    console.log(' Adding event listener to Classify');
-    classifyOption.addEventListener('click', (e) => {
-        e.stopPropagation();
-        console.log('️ Logo dropdown: Classify clicked');
-
-        if (logoImage) {
-            if (logoImage.classList.contains('classified')) {
-                logoImage.classList.remove('classified');
-                window.screenshotsDisabled = false;
-                classifyOption.innerHTML = '<i class="fas fa-shield-alt"></i><span>Classify</span>';
-                classifyOption.style.color = '';
-                console.log(' Logo declassified - returned to normal');
-            } else {
-                logoImage.classList.add('classified');
-                console.log(' Logo image classified - turned red');
-
-                window.screenshotsDisabled = true;
-                console.log(' Screenshots disabled');
-
-                classifyOption.innerHTML = '<i class="fas fa-shield-alt"></i><span>Classified</span>';
-                classifyOption.style.color = '#ff6b6b';
-            }
-        }
-    });
-} else {
-    console.error(' ClassifyOption not found!');
-}
-
 console.log(' Initializing Pazator app...');
 
 if (document.readyState === 'loading') {
@@ -4672,15 +4630,13 @@ if (document.readyState === 'loading') {
 function setupLogoDropdownListeners() {
     console.log(' Setting up logo dropdown event listeners...');
 
-    const logoImage = document.getElementById('logoImage');
     const refreshNodesOption = document.getElementById('refreshNodesOption');
     const classifyOption = document.getElementById('classifyOption');
 
-    console.log(' Logo image exists:', !!logoImage);
     console.log(' Refresh option exists:', !!refreshNodesOption);
     console.log(' Classify option exists:', !!classifyOption);
 
-    if (refreshNodesOption && logoImage) {
+    if (refreshNodesOption) {
         console.log(' Adding event listener to Refresh Nodes');
         refreshNodesOption.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -4689,38 +4645,189 @@ function setupLogoDropdownListeners() {
             manualRefresh();
         });
     } else {
-        console.error(' RefreshNodesOption or logoImage not found!');
+        console.error(' RefreshNodesOption not found!');
     }
 
-    if (classifyOption && logoImage) {
+    if (classifyOption) {
         console.log(' Adding event listener to Classify');
-        classifyOption.addEventListener('click', (e) => {
-            e.stopPropagation();
-            console.log('️ Logo dropdown: Classify clicked');
 
-            if (logoImage.classList.contains('classified')) {
-                logoImage.classList.remove('classified');
-                logoImage.style.boxShadow = '';
-                logoImage.style.background = '';
-                window.screenshotsDisabled = false;
-                classifyOption.innerHTML = '<i class="fas fa-shield-alt"></i><span>Classify</span>';
-                classifyOption.style.color = '';
-                console.log(' Logo declassified - returned to normal');
+        const classificationDataSelect = document.getElementById('classificationDataset');
+        const classificationConfidenceInput = document.getElementById('classificationConfidence');
+        const classificationConfidenceValue = document.getElementById('classificationConfidenceValue');
+        const classificationStatus = document.getElementById('classificationStatus');
+        const classificationPreview = document.getElementById('classificationPreview');
+        const applyClassifyBtn = document.getElementById('applyClassifyBtn');
+        const cancelClassifyBtn = document.getElementById('cancelClassifyBtn');
+        const resetClassifyBtn = document.getElementById('resetClassifyBtn');
+
+        const datasetLabels = {
+            all: 'All entries',
+            humans: 'Humans only',
+            others: 'Other entities',
+            high_risk: 'High-risk humans',
+            new_alerts: 'New alerts'
+        };
+
+        let classificationState = {
+            active: false,
+            dataset: 'all',
+            confidence: 85
+        };
+
+        const getDatasetLabel = (key) => datasetLabels[key] || 'Custom collection';
+
+        const updateClassificationPreview = () => {
+            if (!classificationPreview) return;
+            const label = getDatasetLabel(classificationState.dataset);
+            const confidence = classificationState.confidence;
+            classificationPreview.textContent = classificationState.active
+                ? `Last applied: ${label} (${confidence}% confidence).`
+                : `Targeting ${label} with ${confidence}% confidence when you apply classification.`;
+        };
+
+        const updateClassificationStatusText = () => {
+            if (!classificationStatus) return;
+            const label = getDatasetLabel(classificationState.dataset);
+            classificationStatus.textContent = classificationState.active
+                ? `Active classification · ${label} · ${classificationState.confidence}% confidence`
+                : `Inactive · will target ${label} at ${classificationState.confidence}% confidence`;
+        };
+
+        const updateModalControls = () => {
+            if (classificationDataSelect) {
+                classificationDataSelect.value = classificationState.dataset;
+            }
+            if (classificationConfidenceInput) {
+                classificationConfidenceInput.value = classificationState.confidence;
+            }
+            if (classificationConfidenceValue) {
+                classificationConfidenceValue.textContent = `${classificationState.confidence}%`;
+            }
+        };
+
+        const persistClassificationState = () => {
+            try {
+                localStorage.setItem('classificationState', JSON.stringify(classificationState));
+            } catch (error) {
+                console.warn('Unable to persist classification state:', error);
+            }
+        };
+
+        const loadClassificationState = () => {
+            try {
+                const stored = JSON.parse(localStorage.getItem('classificationState') || 'null');
+                if (stored && typeof stored === 'object') {
+                    classificationState = { ...classificationState, ...stored };
+                }
+            } catch (error) {
+                console.warn('Failed to load classification state:', error);
+            }
+        };
+
+        const updateClassificationBanner = (active) => {
+            if (!classificationBanner) return;
+            if (active) {
+                classificationBanner.style.display = 'flex';
+                document.body.classList.add('classified-active');
             } else {
-                logoImage.classList.add('classified');
-                logoImage.style.boxShadow = '0 0 15px #ff0000';
-                logoImage.style.background = 'radial-gradient(circle, #ff0000 0%, #cc0000 100%)';
-                console.log(' Logo image classified - turned red');
+                classificationBanner.style.display = 'none';
+                document.body.classList.remove('classified-active');
+            }
+        };
 
-                window.screenshotsDisabled = true;
-                console.log(' Screenshots disabled');
+        const setClassificationVisuals = (active) => {
+            if (!classifyOption) return;
+            window.screenshotsDisabled = active;
+            classifyOption.innerHTML = active
+                ? '<i class="fas fa-shield-alt"></i><span>Classified</span>'
+                : '<i class="fas fa-shield-alt"></i><span>Classify</span>';
+            classifyOption.style.color = active ? '#ff6b6b' : '';
+            updateClassificationBanner(active);
+        };
 
-                classifyOption.innerHTML = '<i class="fas fa-shield-alt"></i><span>Classified</span>';
-                classifyOption.style.color = '#ff6b6b';
+        const closeClassifyModal = () => {
+            if (!classifyModal) return;
+            classifyModal.classList.add('hiding');
+            setTimeout(() => {
+                classifyModal.style.display = 'none';
+                classifyModal.style.zIndex = '-1';
+                classifyModal.classList.remove('hiding');
+            }, 300);
+        };
+
+        const openClassifyModal = () => {
+            if (!classifyModal) return;
+            updateModalControls();
+            updateClassificationPreview();
+            updateClassificationStatusText();
+            classifyModal.style.display = 'flex';
+            classifyModal.style.zIndex = '1002';
+        };
+
+        classificationDataSelect?.addEventListener('change', () => {
+            classificationState.dataset = classificationDataSelect.value;
+            persistClassificationState();
+            updateClassificationPreview();
+            updateClassificationStatusText();
+        });
+
+        classificationConfidenceInput?.addEventListener('input', () => {
+            const value = parseInt(classificationConfidenceInput.value, 10);
+            if (!Number.isNaN(value)) {
+                classificationState.confidence = value;
+                classificationConfidenceValue.textContent = `${value}%`;
+                persistClassificationState();
+                updateClassificationPreview();
+                updateClassificationStatusText();
             }
         });
+
+        applyClassifyBtn?.addEventListener('click', (event) => {
+            event.preventDefault();
+            classificationState.dataset = classificationDataSelect?.value || classificationState.dataset;
+            classificationState.confidence = classificationConfidenceInput
+                ? parseInt(classificationConfidenceInput.value, 10) || classificationState.confidence
+                : classificationState.confidence;
+            classificationState.active = true;
+            persistClassificationState();
+            updateClassificationPreview();
+            updateClassificationStatusText();
+            setClassificationVisuals(true);
+            closeClassifyModal();
+        });
+
+        resetClassifyBtn?.addEventListener('click', (event) => {
+            event.preventDefault();
+            classificationState = {
+                active: false,
+                dataset: 'all',
+                confidence: 85
+            };
+            persistClassificationState();
+            updateModalControls();
+            updateClassificationPreview();
+            updateClassificationStatusText();
+            setClassificationVisuals(false);
+        });
+
+        cancelClassifyBtn?.addEventListener('click', (event) => {
+            event.preventDefault();
+            closeClassifyModal();
+        });
+
+        classifyOption.addEventListener('click', (event) => {
+            event.stopPropagation();
+            console.log('️ Logo dropdown: Classify clicked');
+            openClassifyModal();
+        });
+
+        loadClassificationState();
+        updateModalControls();
+        updateClassificationPreview();
+        updateClassificationStatusText();
+        setClassificationVisuals(classificationState.active);
     } else {
-        console.error(' ClassifyOption or logoImage not found!');
+        console.error(' ClassifyOption not found!');
     }
 }
 

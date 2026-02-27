@@ -11,6 +11,9 @@
 </head>
 
 <body>
+    <div id="classificationBanner" class="classification-banner" aria-live="assertive">
+        Classified - Do not share.
+    </div>
     <div id="aiChatModal" class="ai-chat-modal">
         <button class="close" id="closeAIChat"
             style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
@@ -1177,6 +1180,60 @@
             <div class="form-actions">
                 <button type="button" class="btn btn-secondary" id="cancelContextBtn">Cancel</button>
                 <button type="button" class="btn btn-primary" id="applyContextBtn">Apply Context</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="classifyModal" class="modal classify-modal">
+        <button class="close" style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2>Classification Control</h2>
+                    <p style="margin: 4px 0 0 0; font-size: 0.9rem; color: #aaa;">Review and lock down a classification level for your data.</p>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="classification-controls">
+                    <div class="form-group">
+                        <label for="classificationDataset">Target Dataset</label>
+                        <select id="classificationDataset" class="form-control">
+                            <option value="all">All entries</option>
+                            <option value="humans">Humans only</option>
+                            <option value="others">Others / Entities</option>
+                            <option value="high_risk">High-risk humans</option>
+                            <option value="new_alerts">New alerts</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="classificationConfidence">
+                            Confidence threshold
+                            <span id="classificationConfidenceValue" style="float: right; font-weight: 600; color: #6bcf7f;">85%</span>
+                        </label>
+                        <input type="range" id="classificationConfidence" min="60" max="98" value="85">
+                    </div>
+
+                    <div class="classification-preview" id="classificationPreview">
+                        Ready to classify once you hit "Apply classification".
+                    </div>
+
+                    <div class="classification-status" id="classificationStatus">
+                        Current state: Inactive — no classification applied.
+                    </div>
+
+                    <button id="resetClassifyBtn" class="btn btn-danger" style="width: 100%; margin-top: 5px;">
+                        Reset classification
+                    </button>
+                </div>
+            </div>
+            <div class="form-actions-horizontal">
+                <button class="btn-enhanced btn-secondary" id="cancelClassifyBtn">
+                    <i class="fas fa-times"></i> Close
+                </button>
+                <button class="btn-enhanced btn-primary" id="applyClassifyBtn">
+                    <i class="fas fa-shield-alt"></i> Apply classification
+                </button>
             </div>
         </div>
     </div>
