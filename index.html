@@ -211,6 +211,19 @@
                 width: 80%;
             }
         }
+
+        .whitebtn {
+
+            background-color: #fff;
+            color: #000;
+
+        }
+
+        .whitebtn:hover {
+            background-color: transparent;
+            color: #000000;
+            border-color: var(--border);
+        }
     </style>
 </head>
 
@@ -225,8 +238,10 @@
         <div class="gate-text text-top">PAZA</div>
 
         <div class="hero-controls">
-            <button class="paza-btn" id="try-btn" onclick="window.location.href='./app'">TRY NOW.</button>
+            <button class="paza-btn whitebtn" id="try-btn" onclick="window.location.href='./app'">TRY NOW.</button>
             <button class="paza-btn" onclick="window.open('https://discord.gg/74c9RBYD4R', '_blank')">contact</button>
+            <button class="paza-btn" onclick="window.location.href='./gallery'">Gallery</button>
+
         </div>
 
         <div class="scroll-indicator">

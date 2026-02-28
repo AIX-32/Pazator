@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GALLERY</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background-color: #ffffff;
+      color: #000000;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.2;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .header {
+      width: 100%;
+      text-align: center;
+      padding: 1.2rem 0.5rem 0.8rem;
+    }
+    h1 {
+      font-size: clamp(4rem, 20vw, 12rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: rgb(0, 0, 0);
+      line-height: 1;
+      text-transform: uppercase;
+      user-select: none;
+      margin: 0;
+      word-break: keep-all;
+    }
+    .gallery {
+      width: 100%;
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 1.5rem 1rem 3rem;
+      column-count: 4;
+      column-gap: 1.2rem;
+      position: relative;
+    }
+    .gallery img {
+      display: block;
+      width: 100%;
+      height: auto;
+      margin-bottom: 1.2rem;
+      background-color: #1a1a1a;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+    .gallery img.loaded {
+      opacity: 1;
+    }
+    .loading-spinner {
+      position: absolute;
+      top: 3rem;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #aaa;
+      font-size: 1.2rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border: 1px solid #333;
+      padding: 0.75rem 2rem;
+      background: #0a0a0a;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .loading-spinner::after {
+      content: '';
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      margin-left: 0.75rem;
+      border: 2px solid #666;
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @media (max-width: 900px) {
+      .gallery {
+        column-count: 3;
+      }
+    }
+    @media (max-width: 600px) {
+      .gallery {
+        column-count: 2;
+        column-gap: 0.8rem;
+        padding-left: 0.8rem;
+        padding-right: 0.8rem;
+      }
+      .gallery img {
+        margin-bottom: 0.8rem;
+      }
+      h1 {
+        font-size: clamp(3.5rem, 15vw, 8rem);
+      }
+      .loading-spinner {
+        font-size: 1rem;
+        padding: 0.5rem 1.5rem;
+      }
+    }
+    @media (max-width: 380px) {
+      .gallery {
+        column-count: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="page-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: black; z-index: 10000; transition: opacity 1s ease; pointer-events: none; opacity: 1;"></div>
+
+  <div class="header">
+    <h1>GALLERY</h1>
+  </div>
+  <div id="gallery-container" class="gallery">
+    <div class="loading-spinner">LOADING</div>
+  </div>
+  <script>
+    (function() {
+      const gallery = document.getElementById('gallery-container');
+      const totalImages = 12;
+      const imagePromises = [];
+
+      function createImageElement(src, altText) {
+        return new Promise((resolve) => {
+          const img = document.createElement('img');
+          img.src = src;
+          img.alt = altText;
+          img.loading = 'lazy';
+          img.addEventListener('load', () => {
+            img.classList.add('loaded');
+            resolve(img);
+          });
+          img.addEventListener('error', () => {
+            img.classList.add('loaded');
+            resolve(img);
+          });
+          if (img.complete) {
+            img.classList.add('loaded');
+            resolve(img);
+          }
+        });
+      }
+
+      for (let i = 1; i <= totalImages; i++) {
+        const src = `./${i}.png`;
+        const alt = `gallery image ${i}`;
+        imagePromises.push(createImageElement(src, alt));
+      }
+
+      Promise.all(imagePromises).then((imgElements) => {
+        const loadingEl = gallery.querySelector('.loading-spinner');
+        if (loadingEl) loadingEl.remove();
+
+        const fragment = document.createDocumentFragment();
+        imgElements.forEach((img) => {
+          fragment.appendChild(img);
+        });
+        gallery.appendChild(fragment);
+
+        const overlay = document.getElementById('page-overlay');
+        if (overlay) {
+          overlay.style.opacity = '0';
+          const removeOverlay = () => {
+            if (overlay.parentNode) overlay.remove();
+          };
+          overlay.addEventListener('transitionend', removeOverlay, { once: true });
+          setTimeout(removeOverlay, 2000);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
