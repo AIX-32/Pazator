@@ -1,185 +1,390 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GALLERY</title>
+  <title>PAZATOR · gallery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bg: #050505;
+      --text-main: #ffffff;
+      --text-muted: #666666;
+      --border: rgba(255, 255, 255, 0.08);
+      --accent: #ffffff;
+    }
+
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
+
     body {
-      background-color: #ffffff;
-      color: #000000;
-      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-      line-height: 1.2;
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.5;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      align-items: center;
     }
-    .header {
-      width: 100%;
-      text-align: center;
-      padding: 1.2rem 0.5rem 0.8rem;
-    }
-    h1 {
-      font-size: clamp(4rem, 20vw, 12rem);
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      color: rgb(0, 0, 0);
-      line-height: 1;
+
+    .paza-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 12px 28px;
+      font-size: 11px;
+      letter-spacing: 0.25em;
       text-transform: uppercase;
-      user-select: none;
-      margin: 0;
-      word-break: keep-all;
+      cursor: pointer;
+      transition: all 0.4s;
+      backdrop-filter: blur(5px);
+      text-decoration: none;
+      display: inline-block;
+      font-weight: 500;
     }
-    .gallery {
+
+    .paza-btn:hover {
+      background: #fff;
+      color: #000;
+      border-color: #fff;
+    }
+
+    .gallery-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 40px 8%;
+      border-bottom: 1px solid var(--border);
+      transition: border-color 0.2s;
+    }
+
+    .gallery-header:hover {
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .gallery-header h1 {
+      font-weight: 400;
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      letter-spacing: -0.02em;
+      text-transform: uppercase;
+    }
+
+    .gallery-header h1 span {
+      color: var(--text-muted);
+      font-weight: 300;
+      font-size: 0.5em;
+      margin-left: 0.5rem;
+    }
+
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 2rem;
+      padding: 60px 8% 80px;
+    }
+
+    .gallery-item {
+      background: transparent;
+      border: 1px solid var(--border);
+      transition: border-color 0.4s cubic-bezier(0.2, 0.9, 0.3, 1);
+      overflow: hidden;
+      aspect-ratio: 4 / 3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .gallery-item:hover {
+      border-color: #fff;
+    }
+
+    .gallery-item img {
       width: 100%;
-      max-width: 1600px;
-      margin: 0 auto;
-      padding: 1.5rem 1rem 3rem;
-      column-count: 4;
-      column-gap: 1.2rem;
-      position: relative;
-    }
-    .gallery img {
+      height: 100%;
+      object-fit: cover;
       display: block;
-      width: 100%;
-      height: auto;
-      margin-bottom: 1.2rem;
-      background-color: #1a1a1a;
-      opacity: 0;
-      transition: opacity 0.15s ease;
+      transition: object-fit 0.2s ease;
+      background-color: #111;
     }
-    .gallery img.loaded {
+
+    .gallery-item:hover img {
+      object-fit: contain;
+    }
+
+    .gallery-item {
+      opacity: 0;
+      animation: appear 0.6s ease forwards;
+    }
+
+    @keyframes appear {
+      0% {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .gallery-item:nth-child(1) {
+      animation-delay: 0.02s;
+    }
+
+    .gallery-item:nth-child(2) {
+      animation-delay: 0.05s;
+    }
+
+    .gallery-item:nth-child(3) {
+      animation-delay: 0.08s;
+    }
+
+    .gallery-item:nth-child(4) {
+      animation-delay: 0.11s;
+    }
+
+    .gallery-item:nth-child(5) {
+      animation-delay: 0.14s;
+    }
+
+    .gallery-item:nth-child(6) {
+      animation-delay: 0.17s;
+    }
+
+    .gallery-item:nth-child(7) {
+      animation-delay: 0.20s;
+    }
+
+    .gallery-item:nth-child(8) {
+      animation-delay: 0.23s;
+    }
+
+    .gallery-item:nth-child(9) {
+      animation-delay: 0.26s;
+    }
+
+    .gallery-item:nth-child(10) {
+      animation-delay: 0.29s;
+    }
+
+    .gallery-item:nth-child(11) {
+      animation-delay: 0.32s;
+    }
+
+    .gallery-item:nth-child(12) {
+      animation-delay: 0.35s;
+    }
+
+    .gallery-footer {
+      margin-top: auto;
+      border-top: 1px solid var(--border);
+      padding: 60px 8% 40px;
+      text-align: center;
+    }
+
+    .gallery-footer .wordmark {
+      font-size: clamp(3rem, 15vw, 8rem);
+      font-weight: 900;
+      color: #0f0f0f;
+      letter-spacing: -0.05em;
+      transition: color 0.5s ease;
+      user-select: none;
+      line-height: 1;
+    }
+
+    .gallery-footer .wordmark:hover {
+      color: #fff;
+    }
+
+    .gallery-footer small {
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      display: block;
+      margin-top: 1rem;
+    }
+
+    .back-link {
+      text-decoration: none;
+    }
+
+    @media (max-width: 600px) {
+      .gallery-header {
+        padding: 25px 6%;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+      }
+
+      .gallery-grid {
+        padding: 40px 6%;
+        gap: 1.2rem;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      }
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.95);
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+    }
+
+    .modal img {
+      max-width: 90%;
+      max-height: 85vh;
+      object-fit: contain;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 30px;
+      right: 40px;
+      color: #fff;
+      font-size: 40px;
+      font-weight: 300;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      opacity: 0.6;
+      line-height: 1;
+    }
+
+    .modal-close:hover {
       opacity: 1;
     }
-    .loading-spinner {
-      position: absolute;
-      top: 3rem;
-      left: 50%;
-      transform: translateX(-50%);
-      color: #aaa;
-      font-size: 1.2rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      border: 1px solid #333;
-      padding: 0.75rem 2rem;
-      background: #0a0a0a;
-      pointer-events: none;
-      z-index: 10;
-    }
-    .loading-spinner::after {
-      content: '';
-      display: inline-block;
-      width: 1rem;
-      height: 1rem;
-      margin-left: 0.75rem;
-      border: 2px solid #666;
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      vertical-align: middle;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    @media (max-width: 900px) {
-      .gallery {
-        column-count: 3;
-      }
-    }
-    @media (max-width: 600px) {
-      .gallery {
-        column-count: 2;
-        column-gap: 0.8rem;
-        padding-left: 0.8rem;
-        padding-right: 0.8rem;
-      }
-      .gallery img {
-        margin-bottom: 0.8rem;
-      }
-      h1 {
-        font-size: clamp(3.5rem, 15vw, 8rem);
-      }
-      .loading-spinner {
-        font-size: 1rem;
-        padding: 0.5rem 1.5rem;
-      }
-    }
-    @media (max-width: 380px) {
-      .gallery {
-        column-count: 1;
-      }
+
+    body.modal-open {
+      overflow: hidden;
     }
   </style>
 </head>
+
 <body>
-  <div id="page-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: black; z-index: 10000; transition: opacity 1s ease; pointer-events: none; opacity: 1;"></div>
+  <header class="gallery-header">
+    <h1>gallery <span>12 frames</span></h1>
+    <a href="https://aix-32.github.io/Pazator/" class="back-link">
+      <button class="paza-btn">← back</button>
+    </a>
+  </header>
 
-  <div class="header">
-    <h1>GALLERY</h1>
+  <div class="gallery-grid">
+    <div class="gallery-item">
+      <img src="./1.png" alt="Pazator capture 1" loading="lazy">
+    </div>
+    <div class="gallery-item">
+      <img src="./2.png" alt="Pazator capture 2" loading="lazy">
+    </div>
+    <div class="gallery-item">
+      <img src="./3.png" alt="Pazator capture 3" loading="lazy">
+    </div>
+    <div class="gallery-item">
+      <img src="./4.png" alt="Pazator capture 4" loading="lazy">
+    </div>
+    <div class="gallery-item">
+      <img src="./5.png" alt="Pazator capture 5" loading="lazy">
+    </div>
+    <div class="gallery-item">
+      <img src="./6.png" alt="Pazator capture 6" loading="lazy">
+    </div>
+    <div class="gallery-item">
+      <img src="./7.png" alt="Pazator capture 7" loading="lazy">
+    </div>
+    <div class="gallery-item">
+      <img src="./8.png" alt="Pazator capture 8" loading="lazy">
+    </div>
+    <div class="gallery-item">
+      <img src="./9.png" alt="Pazator capture 9" loading="lazy">
+    </div>
+    <div class="gallery-item">
+      <img src="./10.png" alt="Pazator capture 10" loading="lazy">
+    </div>
+    <div class="gallery-item">
+      <img src="./11.png" alt="Pazator capture 11" loading="lazy">
+    </div>
+    <div class="gallery-item">
+      <img src="./12.png" alt="Pazator capture 12" loading="lazy">
+    </div>
   </div>
-  <div id="gallery-container" class="gallery">
-    <div class="loading-spinner">LOADING</div>
+
+  <footer class="gallery-footer">
+    <div class="wordmark">PAZATOR</div>
+    <small>Gallery</small>
+  </footer>
+
+  <div id="imageModal" class="modal">
+    <span class="modal-close">&times;</span>
+    <img id="modalImage" src="" alt="enlarged view">
   </div>
+
   <script>
-    (function() {
-      const gallery = document.getElementById('gallery-container');
-      const totalImages = 12;
-      const imagePromises = [];
+    (function () {
+      const modal = document.getElementById('imageModal');
+      const modalImg = document.getElementById('modalImage');
+      const closeBtn = document.querySelector('.modal-close');
+      const items = document.querySelectorAll('.gallery-item');
 
-      function createImageElement(src, altText) {
-        return new Promise((resolve) => {
-          const img = document.createElement('img');
-          img.src = src;
-          img.alt = altText;
-          img.loading = 'lazy';
-          img.addEventListener('load', () => {
-            img.classList.add('loaded');
-            resolve(img);
-          });
-          img.addEventListener('error', () => {
-            img.classList.add('loaded');
-            resolve(img);
-          });
-          if (img.complete) {
-            img.classList.add('loaded');
-            resolve(img);
+      function openModal(src) {
+        modalImg.src = src;
+        modal.style.display = 'flex';
+        document.body.classList.add('modal-open');
+      }
+
+      function closeModal() {
+        modal.style.display = 'none';
+        document.body.classList.remove('modal-open');
+      }
+
+      items.forEach(item => {
+        item.addEventListener('click', () => {
+          const img = item.querySelector('img');
+          if (img && img.src) {
+            openModal(img.src);
           }
         });
-      }
+      });
 
-      for (let i = 1; i <= totalImages; i++) {
-        const src = `./${i}.png`;
-        const alt = `gallery image ${i}`;
-        imagePromises.push(createImageElement(src, alt));
-      }
+      closeBtn.addEventListener('click', closeModal);
 
-      Promise.all(imagePromises).then((imgElements) => {
-        const loadingEl = gallery.querySelector('.loading-spinner');
-        if (loadingEl) loadingEl.remove();
-
-        const fragment = document.createDocumentFragment();
-        imgElements.forEach((img) => {
-          fragment.appendChild(img);
-        });
-        gallery.appendChild(fragment);
-
-        const overlay = document.getElementById('page-overlay');
-        if (overlay) {
-          overlay.style.opacity = '0';
-          const removeOverlay = () => {
-            if (overlay.parentNode) overlay.remove();
-          };
-          overlay.addEventListener('transitionend', removeOverlay, { once: true });
-          setTimeout(removeOverlay, 2000);
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          closeModal();
         }
       });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.style.display === 'flex') {
+          closeModal();
+        }
+      });
+
+      const header = document.querySelector('.gallery-header');
+      if (header) {
+        header.addEventListener('mouseenter', () => {
+          header.style.borderBottomColor = 'rgba(255,255,255,0.3)';
+        });
+        header.addEventListener('mouseleave', () => {
+          header.style.borderBottomColor = '';
+        });
+      }
     })();
   </script>
 </body>
+
 </html>
