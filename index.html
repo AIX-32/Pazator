@@ -2,314 +2,846 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pazator. Mass Data Intelligence Platform</title>
-    <meta name="description" content="Pazator is a company focused on operational systems and intelligence solutions.">
-    <meta name="keywords" content="Pazator, operational systems, intelligence solutions, AIOIP, Tirsun, Vundra">
-    <meta name="author" content="Xyper">
-    <meta name="theme-color" content="#ffffff">
-    <style>
-        :root {
-            --bg: #050505;
-            --text-main: #ffffff;
-            --text-muted: #666666;
-            --border: rgba(255, 255, 255, 0.08);
-            --accent: #ffffff;
-        }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pazator - Mass Data Intelligence</title>
+<meta name="description" content="Pazator delivers AI‑driven operational systems and predictive intelligence to stop threats before they happen. ">
+<meta name="keywords" content="Pazator, operational systems, intelligence solutions, AIOIP, Tirsun, Vundra, predictive intelligence, AI security">
+<meta name="author" content="AIX.">
+<meta name="theme-color" content="#ffffff">
 
-        * {
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+
+<meta property="og:title" content="Pazator – Mass Data Intelligence">
+<meta property="og:description" content="AI‑powered operational intelligence that helps you stop problems before they start.">
+<meta property="og:image" content="https://aix-32.github.io/Pazator/embedimg.png">
+<meta property="og:type" content="website">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Pazator – Mass Data Intelligence">
+<meta name="twitter:description" content="AI‑powered operational intelligence that helps you stop problems before they start.">
+<meta name="twitter:image" content="https://aix-32.github.io/Pazator/embedimg.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:ital,wght@0,300;0,400;1,300&family=Space+Grotesk:wght@400;500&display=swap" rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        body {
-            background-color: var(--bg);
-            color: var(--text-main);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            overflow-x: hidden;
-            line-height: 1.5;
+        :root {
+            --black: #000;
+            --white: #fff;
+            --off: #f2f2f0;
+            --dim: #666;
         }
 
+        html {
+            font-size: 16px;
+        }
+
+        body {
+            background: var(--black);
+            color: var(--white);
+            font-family: 'DM Mono', monospace;
+            overflow-x: hidden;
+            cursor: crosshair;
+        }
+
+        /* LOADER */
         #loader {
             position: fixed;
             inset: 0;
-            background: #000;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
             z-index: 999;
-            transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            background: var(--black);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 20px;
+            transition: opacity 0.5s;
         }
 
-        .hero-gate {
-            height: 100vh;
+        #loader.out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .lcount {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(100px, 22vw, 260px);
+            line-height: 1;
+            letter-spacing: -0.04em;
+        }
+
+        .llabel {
+            font-size: 9px;
+            letter-spacing: 0.5em;
+            color: var(--dim);
+        }
+
+        /* TOPBAR */
+        .topbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 32px;
+            height: 52px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: var(--black);
+        }
+
+        .tb-left {
+            font-size: 9px;
+            letter-spacing: 0.5em;
+            color: var(--dim);
+        }
+
+        .tb-center {
+            font-family: 'Anton', sans-serif;
+            font-size: 18px;
+            letter-spacing: 0.12em;
+        }
+
+        .tb-right {
+            display: flex;
+            gap: 28px;
+        }
+
+        .tb-right a {
+            font-size: 9px;
+            letter-spacing: 0.35em;
+            color: var(--dim);
+            text-decoration: none;
+            text-transform: uppercase;
+            transition: color 0.2s;
+        }
+
+        .tb-right a:hover {
+            color: var(--white);
+        }
+
+        /* HERO */
+        .hero {
+            min-height: 100vh;
+            padding-top: 52px;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .ticker-wrap {
+            overflow: hidden;
+            white-space: nowrap;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .ticker-inner {
+            display: inline-block;
+            animation: tick 20s linear infinite;
+            font-size: 9px;
+            letter-spacing: 0.45em;
+            color: var(--dim);
+        }
+
+        @keyframes tick {
+            to {
+                transform: translateX(-50%);
+            }
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .hero-left {
+            padding: 60px 48px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 40px;
-            position: relative;
+        }
+
+        .hero-wordmark {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(90px, 18vw, 250px);
+            line-height: 0.82;
+            letter-spacing: -0.03em;
             overflow: hidden;
-            border-bottom: 1px solid var(--border);
         }
 
-        .gate-text {
-            font-size: 24vw;
-            font-weight: 900;
-            line-height: 0.7;
-            letter-spacing: -0.07em;
-            text-transform: uppercase;
-            transition: transform 1.5s cubic-bezier(0.16, 1, 0.3, 1);
-            will-change: transform;
-            z-index: 2;
+        .wm-line {
+            display: block;
+            transform: translateY(110%);
+            transition: transform 1s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .text-top {
-            transform: translateX(-100%);
+        .wm-line:nth-child(2) {
+            transition-delay: 0.08s;
         }
 
-        .text-bottom {
-            transform: translateX(100%);
-            align-self: flex-end;
+        .revealed .wm-line {
+            transform: translateY(0);
         }
 
-        .loaded .text-top,
-        .loaded .text-bottom {
-            transform: translateX(0);
+        .hero-sub {
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 500;
+            font-style: normal;
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.32);
+            letter-spacing: 0.18em;
+            margin-top: 20px;
+            line-height: 1.2;
         }
 
-        .hero-controls {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+        .hero-right {
+            padding: 56px 36px;
             display: flex;
-            gap: 15px;
-            opacity: 0;
-            transition: opacity 1s ease 1s;
-            z-index: 10;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
-        .loaded .hero-controls {
+        .hr-label {
+            font-size: 9px;
+            letter-spacing: 0.5em;
+            color: var(--dim);
+            margin-bottom: 18px;
+        }
+
+        .hr-desc {
+            font-size: 12px;
+            line-height: 1.9;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .hr-actions {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hbtn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 10px;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: var(--white);
+            text-decoration: none;
+            transition: padding-left 0.3s;
+            cursor: crosshair;
+        }
+
+        .hbtn:last-child {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .hbtn:hover {
+            padding-left: 10px;
+        }
+
+        .hbtn .a {
+            opacity: 0.25;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .hbtn:hover .a {
+            opacity: 1;
+            transform: translateX(5px);
+        }
+
+        .hbtn.fill {
+            background: var(--white);
+            color: var(--black);
+            padding: 16px 18px;
+            border: none;
+            margin-bottom: 1px;
+        }
+
+        .hbtn.fill:hover {
+            padding-left: 28px;
+        }
+
+        .hbtn.fill .a {
             opacity: 1;
         }
 
-        .paza-btn {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: #fff;
-            padding: 14px 32px;
-            font-size: 11px;
-            letter-spacing: 0.25em;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: all 0.4s;
-            backdrop-filter: blur(5px);
+        .hero-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
         }
 
-        .paza-btn:hover {
-            background: #fff;
-            color: #000;
-            border-color: #fff;
+        .stat {
+            padding: 22px 32px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .scroll-indicator {
-            position: absolute;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            opacity: 0;
-            transition: opacity 1s ease 1.5s;
+        .stat:last-child {
+            border-right: none;
         }
 
-        .loaded .scroll-indicator {
-            opacity: 0.4;
+        .stat-n {
+            font-family: 'Anton', sans-serif;
+            font-size: 38px;
+            letter-spacing: -0.02em;
+            line-height: 1;
         }
 
-        .content {
-            padding: 0 8% 120px;
-            position: relative;
-            z-index: 2;
+        .stat-l {
+            font-size: 8px;
+            letter-spacing: 0.4em;
+            color: var(--dim);
+            margin-top: 5px;
         }
 
-        .row {
+        /* WHITE MARQUEE */
+        .wmarquee {
+            overflow: hidden;
+            padding: 14px 0;
+            background: var(--white);
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .wmarquee-track {
+            display: inline-flex;
+            gap: 3rem;
+            animation: wmarquee-loop 18s linear infinite;
+            font-family: 'Anton', sans-serif;
+            font-size: 13px;
+            letter-spacing: 0.3em;
+            color: var(--black);
+            white-space: nowrap;
+        }
+
+        .wmarquee-track span {
+            flex: 0 0 auto;
+        }
+
+        @keyframes wmarquee-loop {
+            from {
+                transform: translateX(0);
+            }
+
+            to {
+                transform: translateX(-50%);
+            }
+        }
+
+        /* PRODUCTS */
+        .products-head {
             display: flex;
             justify-content: space-between;
-            align-items: flex-end;
-            padding: 100px 0 40px;
-            border-bottom: 1px solid var(--border);
-            transition: border-color 0.4s;
-            opacity: 0;
-            transform: translateY(30px);
+            align-items: baseline;
+            padding: 44px 48px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .row.visible {
+        .products-head h2 {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(26px, 4vw, 52px);
+            letter-spacing: -0.01em;
+        }
+
+        .products-head span {
+            font-size: 9px;
+            letter-spacing: 0.4em;
+            color: var(--dim);
+        }
+
+        .prow {
+            display: grid;
+            grid-template-columns: 60px 1fr 1fr 110px;
+            align-items: stretch;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            min-height: 130px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s, transform 0.6s;
+        }
+
+        .prow.vis {
             opacity: 1;
-            transform: translateY(0);
-            transition: opacity 0.8s ease, transform 0.8s ease;
+            transform: none;
         }
 
-        .row:hover {
-            border-color: #fff;
+        .prow:hover .pidx {
+            background: var(--white);
+            color: var(--black);
         }
 
-        .row h2 {
-            font-size: clamp(2rem, 8vw, 6rem);
-            font-weight: 400;
+        .prow:hover .pname {
+            letter-spacing: 0.04em;
+        }
+
+        .pidx {
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            letter-spacing: 0.3em;
+            color: var(--dim);
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .pmain {
+            padding: 32px 40px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+        }
+
+        .pname {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(32px, 4.5vw, 66px);
+            letter-spacing: -0.01em;
+            transition: letter-spacing 0.4s;
+        }
+
+        .pdesc {
+            padding: 32px 36px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            font-size: 11px;
+            line-height: 1.85;
+            color: rgba(255, 255, 255, 0.38);
+        }
+
+        .pstatus {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .pill {
+            font-size: 8px;
+            letter-spacing: 0.35em;
+            padding: 5px 13px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--dim);
+        }
+
+        .pill.live {
+            border-color: var(--white);
+            color: var(--white);
+        }
+
+        .sdot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--dim);
+        }
+
+        .sdot.live {
+            background: var(--white);
+            animation: blink 1.8s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.15
+            }
+        }
+
+        /* STATEMENT */
+        .statement {
+            padding: 100px 48px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: end;
+        }
+
+        .st-left {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(34px, 5vw, 70px);
+            line-height: 1.05;
             letter-spacing: -0.02em;
-        }
-
-        .row-info {
-            color: var(--text-muted);
-            max-width: 320px;
-            font-size: 0.85rem;
-            margin-bottom: 1rem;
-            text-align: right;
-        }
-
-        .footer-logo {
-            font-size: 15vw;
-            font-weight: 900;
-            color: #0f0f0f;
-            letter-spacing: -0.05em;
-            text-align: center;
-            padding: 100px 0;
-            cursor: default;
-            transition: color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .footer-logo:hover {
-            color: #fff;
-        }
-
-        #hover-logo {
-            position: fixed;
-            width: 200px;
-            height: auto;
-            pointer-events: none;
-            z-index: 0;
             opacity: 0;
-            transform: translate(-50%, -50%);
-            transition: opacity 0.1s ease;
+            transform: translateY(24px);
+            transition: opacity 0.8s, transform 0.8s;
         }
 
-        @media (max-width: 768px) {
-            .row {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .row-info {
-                text-align: left;
-                margin-top: 10px;
-            }
-
-            .hero-controls {
-                flex-direction: column;
-                width: 80%;
-            }
+        .st-left.vis {
+            opacity: 1;
+            transform: none;
         }
 
-        .whitebtn {
-
-            background-color: #fff;
-            color: #000;
-
+        .st-left em {
+            font-family: 'Space Grotesk', 'DM Mono', monospace;
+            font-weight: 400;
+            font-style: normal;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.9em;
+            letter-spacing: 0.08em;
         }
 
-        .whitebtn:hover {
-            background-color: transparent;
-            color: #000000;
-            border-color: var(--border);
+        .st-right {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.8s 0.2s, transform 0.8s 0.2s;
+        }
+
+        .st-right.vis {
+            opacity: 1;
+            transform: none;
+        }
+
+        .st-body {
+            font-size: 12px;
+            line-height: 2;
+            color: rgba(255, 255, 255, 0.42);
+            margin-bottom: 36px;
+        }
+
+        .st-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 9px;
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            color: var(--white);
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+            padding-bottom: 6px;
+            transition: border-color 0.3s;
+        }
+
+        .st-link:hover {
+            border-color: var(--white);
+        }
+
+        /* FOOTER */
+        footer {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .fl {
+            padding: 60px 48px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .flogo {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(56px, 9vw, 120px);
+            line-height: 0.85;
+            letter-spacing: -0.03em;
+            color: rgba(255, 255, 255, 0.05);
+            transition: color 0.8s;
+            cursor: default;
+            user-select: none;
+        }
+
+        .flogo:hover {
+            color: rgba(255, 255, 255, 0.12);
+        }
+
+        .fcopy {
+            margin-top: 44px;
+            font-size: 9px;
+            letter-spacing: 0.3em;
+            color: var(--dim);
+        }
+
+        .fr {
+            padding: 60px 48px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .fnav {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .fnav a {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(22px, 3vw, 40px);
+            letter-spacing: -0.01em;
+            color: rgba(255, 255, 255, 0.15);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .fnav a:hover {
+            color: var(--white);
+        }
+
+        .fstatus {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 9px;
+            letter-spacing: 0.35em;
+            color: var(--dim);
+        }
+
+        .fdot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--white);
+            animation: blink 2s infinite;
+        }
+
+        @media(max-width:860px) {
+            .hero-grid {
+                grid-template-columns: 1fr
+            }
+
+            .hero-right {
+                border-top: 1px solid rgba(255, 255, 255, 0.1)
+            }
+
+            .hero-stats {
+                grid-template-columns: 1fr 1fr
+            }
+
+            .stat:nth-child(2) {
+                border-right: none
+            }
+
+            .prow {
+                grid-template-columns: 44px 1fr
+            }
+
+            .pdesc,
+            .pstatus {
+                display: none
+            }
+
+            .statement {
+                grid-template-columns: 1fr;
+                gap: 36px
+            }
+
+            footer {
+                grid-template-columns: 1fr
+            }
+
+            .fl {
+                border-right: none
+            }
+
+            .tb-right {
+                display: none
+            }
         }
     </style>
 </head>
 
 <body>
 
-    <img src="./favicon.png" id="hover-logo" alt="Logo" style="filter: invert(1) brightness(2) saturate(0);"> 
     <div id="loader">
-        <p style="letter-spacing: 0.8em; font-size: 10px;">INITIALIZING</p>
+        <div class="lcount" id="lc">0</div>
+        <div class="llabel">PAZATOR — INITIALIZING</div>
     </div>
 
-    <header class="hero-gate" id="heroGate">
-        <div class="gate-text text-top">PAZA</div>
-
-        <div class="hero-controls">
-            <button class="paza-btn whitebtn" id="try-btn" onclick="window.location.href='./app'">TRY NOW.</button>
-            <button class="paza-btn" onclick="window.open('https://discord.gg/74c9RBYD4R', '_blank')">contact</button>
-            <button class="paza-btn" onclick="window.location.href='./gallery/'">Gallery</button>
-
-        </div>
-
-        <div class="scroll-indicator">
-            <div style="width: 1px; height: 60px; background: linear-gradient(to bottom, transparent, #fff);"></div>
-        </div>
-
-        <div class="gate-text text-bottom">TOR</div>
+    <header class="topbar">
+        <div class="tb-left">MASS DATA INTELLIGENCE</div>
+        <div class="tb-center">PAZATOR</div>
+        <nav class="tb-right">
+            <a href="./app">App</a>
+            <a href="./gallery/">Gallery</a>
+            <a href="https://discord.gg/74c9RBYD4R" target="_blank">Discord</a>
+        </nav>
     </header>
 
-    <main class="content">
-        <div class="row">
-            <h2>AIOIP</h2>
-            <div class="row-info">Mass data infrastructure engineered to identify anomalies, assess risk, and deliver
+    <section class="hero">
+
+        <div class="ticker-wrap">
+            <span class="ticker-inner">PAZATOR &nbsp;·&nbsp; MASS DATA INTELLIGENCE &nbsp;·&nbsp; ANOMALY DETECTION
+                &nbsp;·&nbsp; RISK ASSESSMENT &nbsp;·&nbsp; OPERATIONAL SYSTEMS &nbsp;·&nbsp; AIOIP &nbsp;·&nbsp; TIRSUN
+                &nbsp;·&nbsp; VUNDRA &nbsp;·&nbsp; PAZATOR &nbsp;·&nbsp; MASS DATA INTELLIGENCE &nbsp;·&nbsp; ANOMALY
+                DETECTION &nbsp;·&nbsp; RISK ASSESSMENT &nbsp;·&nbsp; OPERATIONAL SYSTEMS &nbsp;·&nbsp; AIOIP
+                &nbsp;·&nbsp; TIRSUN &nbsp;·&nbsp; VUNDRA &nbsp;·&nbsp;</span>
+        </div>
+
+        <div class="hero-grid">
+            <div class="hero-left">
+                <div>
+                    <div class="hero-wordmark" id="wm">
+                        <span class="wm-line">PAZA</span>
+                        <span class="wm-line">TOR.</span>
+                    </div>
+                    <div class="hero-sub">Stopping problems before they start. </div>
+                </div>
+            </div>
+            <div class="hero-right">
+                <div>
+                    <div class="hr-label">// PLATFORM</div>
+                    <p class="hr-desc">Mass data infrastructure engineered to identify anomalies, assess risk, and
+                        deliver actionable intelligence before disruption occurs.</p>
+                </div>
+                <div class="hr-actions">
+                    <a href="./app" class="hbtn fill"><span>Launch App</span><span class="a">→</span></a>
+                    <a href="https://discord.gg/74c9RBYD4R" target="_blank" class="hbtn"><span>Join Discord</span><span
+                            class="a">↗</span></a>
+                    <a href="./gallery/" class="hbtn"><span>Gallery</span><span class="a">→</span></a>
+                </div>
+            </div>
+        </div>
+
+        <div class="hero-stats">
+            <div class="stat">
+                <div class="stat-n">ONLY 1 FOR NOW.</div>
+                <div class="stat-l">SYSTEMS</div>
+            </div>
+            <div class="stat">
+                <div class="stat-n">ALL THE TIME.</div>
+                <div class="stat-l">UPTIME</div>
+            </div>
+            <div class="stat">
+                <div class="stat-n">FREE</div>
+                <div class="stat-l">PRICE</div>
+            </div>
+            <div class="stat">
+                <div class="stat-n">18200</div>
+                <div class="stat-l">MAX DATA AMOUNT</div>
+            </div>
+        </div>
+    </section>
+
+    <div class="wmarquee">
+        <div class="wmarquee-track" aria-label="Endless Pazator marquee">
+            <span>PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR
+                &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp;
+                PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR
+                &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp;</span>
+            <span aria-hidden="true">PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR
+                &nbsp;/&nbsp; PAZATOR
+                &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp;
+                PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR
+                &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp;</span>
+        </div>
+    </div>
+
+    <section>
+        <div class="products-head">
+            <h2>SYSTEMS</h2>
+            <span>03 PRODUCTS</span>
+        </div>
+        <div class="prow">
+            <div class="pidx">01</div>
+            <div class="pmain">
+                <div class="pname">AIOIP</div>
+            </div>
+            <div class="pdesc">Mass data infrastructure engineered to identify anomalies, assess risk, and deliver
                 actionable intelligence before disruption occurs.</div>
+            <div class="pstatus">
+                <div class="pill live">LIVE</div>
+                <div class="sdot live"></div>
+            </div>
         </div>
-        <div class="row">
-            <h2>Tirsun</h2>
-            <div class="row-info">May happen soon.</div>
+        <div class="prow">
+            <div class="pidx">02</div>
+            <div class="pmain">
+                <div class="pname">TIRSUN</div>
+            </div>
+            <div class="pdesc">May happen.</div>
+            <div class="pstatus">
+                <div class="pill">SOON</div>
+                <div class="sdot"></div>
+            </div>
         </div>
-        <div class="row">
-            <h2>Vundra</h2>
-            <div class="row-info">may happen soon.</div>
+        <div class="prow">
+            <div class="pidx">03</div>
+            <div class="pmain">
+                <div class="pname">VUNDRA</div>
+            </div>
+            <div class="pdesc">May happen.</div>
+            <div class="pstatus">
+                <div class="pill">SOON</div>
+                <div class="sdot"></div>
+            </div>
         </div>
-    </main>
+    </section>
+
+    <section class="statement">
+        <div class="st-left">Data doesn't wait.<br><em>Neither<br>should you.</em></div>
+        <div class="st-right">
+            <p class="st-body">Pazator is built for operators who need answers before questions form. Our systems
+                process mass data at the edge of what's possible, surfacing the signal in the noise with zero compromise
+                on speed or precision.</p>
+            <a href="./app" class="st-link">Get Early Access <span>→</span></a>
+        </div>
+    </section>
 
     <footer>
-        <div class="footer-logo">PAZATOR</div>
+        <div class="fl">
+            <div class="flogo">PAZA<br>TOR</div>
+            <div class="fcopy">A SOLO PROJECT BY AIX..</div>
+        </div>
+        <div class="fr">
+            <nav class="fnav">
+                <a href="./app">Launch App</a>
+                <a href="./gallery/">Gallery</a>
+                <a href="https://discord.gg/74c9RBYD4R" target="_blank">Discord</a>
+            </nav>
+            <div class="fstatus">
+                <div class="fdot"></div>Note. This is a real project and is in beta.
+            </div>
+        </div>
     </footer>
 
     <script>
-        window.addEventListener('load', () => {
-            const loader = document.getElementById('loader');
-            const gate = document.getElementById('heroGate');
-            const tryBtn = document.getElementById('try-btn');
-            const hoverLogo = document.getElementById('hover-logo');
-
-            setTimeout(() => {
-                loader.style.opacity = '0';
+        // Loader counter
+        const lc = document.getElementById('lc');
+        const loader = document.getElementById('loader');
+        let n = 0;
+        const iv = setInterval(() => {
+            n += Math.ceil(Math.random() * 16);
+            if (n >= 100) {
+                n = 100; clearInterval(iv);
+                lc.textContent = n;
                 setTimeout(() => {
-                    loader.style.display = 'none';
-                    gate.classList.add('loaded');
-                }, 600);
-            }, 800);
+                    loader.classList.add('out');
+                    setTimeout(() => loader.style.display = 'none', 500);
+                    document.getElementById('wm').classList.add('revealed');
+                }, 280);
+            } else { lc.textContent = n; }
+        }, 55);
 
-            tryBtn.addEventListener('mouseenter', () => {
-                hoverLogo.style.opacity = '1';
-            });
-
-            tryBtn.addEventListener('mouseleave', () => {
-                hoverLogo.style.opacity = '0';
-            });
-
-            window.addEventListener('mousemove', (e) => {
-                hoverLogo.style.left = e.clientX + 'px';
-                hoverLogo.style.top = e.clientY + 'px';
-            });
-
-            const rows = document.querySelectorAll('.row');
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('visible');
-                    }
-                });
-            }, { threshold: 0.1 });
-
-            rows.forEach(row => observer.observe(row));
-        });
+        // Scroll reveals
+        const obs = new IntersectionObserver(entries => {
+            entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('vis'); });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.prow, .st-left, .st-right').forEach(el => obs.observe(el));
     </script>
 </body>
 
