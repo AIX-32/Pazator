@@ -2514,7 +2514,6 @@
         }
     }
 
-    /* Additional utility classes for better spacing and polish */
     .glass-effect {
         background: rgba(30, 30, 30, 0.6);
         backdrop-filter: blur(12px);
@@ -2567,19 +2566,16 @@
         background: #444;
     }
 
-    /* Selection styling */
     ::selection {
         background: rgba(255, 255, 255, 0.2);
         color: #fff;
     }
 
-    /* Focus visible for accessibility */
     :focus-visible {
         outline: 2px solid rgba(255, 255, 255, 0.3);
         outline-offset: 2px;
     }
 
-    /* Disabled state improvements */
     button:disabled,
     .btn:disabled,
     .ai-send-btn:disabled {
@@ -2590,7 +2586,6 @@
         filter: grayscale(0.5);
     }
 
-    /* Loading state shimmer */
     .loading-shimmer {
         background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
         background-size: 200% 100%;
@@ -2605,4 +2600,10 @@
         100% {
             background-position: -200% 0;
         }
+    }
+
+    .versiontext {
+        font-size: 0.75rem;
+        color: #777;
+        margin-top: 4px;
     }
