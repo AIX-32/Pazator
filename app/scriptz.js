@@ -29,6 +29,21 @@ const aiSendBtn = document.getElementById('aiSendBtn');
 const aiImproveBtn = document.getElementById('aiImproveBtn');
 const aiChatMessages = document.getElementById('aiChatMessages');
 
+function setAiSendLoading(isLoading) {
+    if (!aiSendBtn) return;
+    const icon = aiSendBtn.querySelector('i');
+    aiSendBtn.classList.toggle('loading', !!isLoading);
+    if (icon) {
+        if (isLoading) {
+            icon.classList.remove('fa-paper-plane');
+            icon.classList.add('fa-spinner', 'fa-spin');
+        } else {
+            icon.classList.remove('fa-spinner', 'fa-spin');
+            icon.classList.add('fa-paper-plane');
+        }
+    }
+}
+
 const searchInput = document.getElementById('searchInput');
 const filterType = document.getElementById('filterType');
 const applyFilterBtn = document.getElementById('applyFilterBtn');
@@ -176,11 +191,13 @@ function initTabs() {
 
 function toggleDropdown() {
     const dropdown = document.getElementById('dropdownMenu');
+    if (!dropdown) return;
     dropdown.classList.toggle('show');
 }
 
 function hideDropdown() {
     const dropdown = document.getElementById('dropdownMenu');
+    if (!dropdown) return;
     dropdown.classList.remove('show');
 }
 
@@ -569,6 +586,21 @@ function renderWebNodes() {
 
     webContent.innerHTML = '';
 
+    // Create SVG for connections
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.id = 'connections-svg';
+    svg.style.position = 'absolute';
+    svg.style.top = '0';
+    svg.style.left = '0';
+    svg.style.width = '100%';
+    svg.style.height = '100%';
+    svg.style.pointerEvents = 'none';
+    svg.style.zIndex = '1';
+    svg.style.willChange = 'transform';
+    svg.style.transform = 'translateZ(0)';
+    svg.style.backfaceVisibility = 'hidden';
+    webContent.appendChild(svg);
+
     const searchTerm = searchInput.value.toLowerCase();
     const selectedType = filterType.value;
 
@@ -694,9 +726,13 @@ function renderWebNodes() {
 }
 
 function drawFamilyConnections() {
+    const svg = document.getElementById('connections-svg');
+    if (!svg) return;
 
-    document.querySelectorAll('.connection-line').forEach(line => line.remove());
+    // Clear existing connections
+    svg.innerHTML = '';
 
+    // Family connections (solid lines)
     pazatorData.humans.forEach(human => {
         if (human.family && human.family.length > 0) {
             const humanNode = document.querySelector(`.data-node[data-id="${human.id}"]`);
@@ -706,36 +742,27 @@ function drawFamilyConnections() {
                 const familyNode = document.querySelector(`.data-node[data-id="${familyId}"]`);
                 if (!familyNode) return;
 
-                const humanRect = humanNode.getBoundingClientRect();
-                const familyRect = familyNode.getBoundingClientRect();
-                const containerRect = webContent.getBoundingClientRect();
+                const x1 = parseFloat(humanNode.style.left) + humanNode.offsetWidth / 2;
+                const y1 = parseFloat(humanNode.style.top) + humanNode.offsetHeight / 2;
+                const x2 = parseFloat(familyNode.style.left) + familyNode.offsetWidth / 2;
+                const y2 = parseFloat(familyNode.style.top) + familyNode.offsetHeight / 2;
 
-                const x1 = humanRect.left + humanRect.width / 2 - containerRect.left;
-                const y1 = humanRect.top + humanRect.height / 2 - containerRect.top;
-                const x2 = familyRect.left + familyRect.width / 2 - containerRect.left;
-                const y2 = familyRect.top + familyRect.height / 2 - containerRect.top;
-
-                const line = document.createElement('div');
-                line.className = 'connection-line';
-
-                const dx = x2 - x1;
-                const dy = y2 - y1;
-                const length = Math.sqrt(dx * dx + dy * dy);
-                const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-
-                line.style.width = `${length}px`;
-                line.style.height = '2px';
-                line.style.left = `${x1}px`;
-                line.style.top = `${y1}px`;
-                line.style.transform = `rotate(${angle}deg)`;
-
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', x1);
+                line.setAttribute('y1', y1);
+                line.setAttribute('x2', x2);
+                line.setAttribute('y2', y2);
+                line.setAttribute('stroke', 'rgba(255, 255, 255, 0.6)');
+                line.setAttribute('stroke-width', '2');
+                line.setAttribute('stroke-dasharray', '5,5');
                 line.style.animation = 'pulse 2s infinite';
 
-                webContent.appendChild(line);
+                svg.appendChild(line);
             });
         }
     });
 
+    // Friend connections (dashed lines)
     pazatorData.humans.forEach(human => {
         if (human.friends && human.friends.length > 0) {
             const humanNode = document.querySelector(`.data-node[data-id="${human.id}"]`);
@@ -745,34 +772,21 @@ function drawFamilyConnections() {
                 const friendNode = document.querySelector(`.data-node[data-id="${friendId}"]`);
                 if (!friendNode) return;
 
-                const humanRect = humanNode.getBoundingClientRect();
-                const friendRect = friendNode.getBoundingClientRect();
-                const containerRect = webContent.getBoundingClientRect();
+                const x1 = parseFloat(humanNode.style.left) + humanNode.offsetWidth / 2;
+                const y1 = parseFloat(humanNode.style.top) + humanNode.offsetHeight / 2;
+                const x2 = parseFloat(friendNode.style.left) + friendNode.offsetWidth / 2;
+                const y2 = parseFloat(friendNode.style.top) + friendNode.offsetHeight / 2;
 
-                const x1 = humanRect.left + humanRect.width / 2 - containerRect.left;
-                const y1 = humanRect.top + humanRect.height / 2 - containerRect.top;
-                const x2 = friendRect.left + friendRect.width / 2 - containerRect.left;
-                const y2 = friendRect.top + friendRect.height / 2 - containerRect.top;
-
-                const line = document.createElement('div');
-                line.className = 'connection-line';
-
-                line.style.background = 'rgba(107, 57, 255, 0.4)';
-                line.style.height = '1px';
-
-                const dx = x2 - x1;
-                const dy = y2 - y1;
-                const length = Math.sqrt(dx * dx + dy * dy);
-                const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-
-                line.style.width = `${length}px`;
-                line.style.left = `${x1}px`;
-                line.style.top = `${y1}px`;
-                line.style.transform = `rotate(${angle}deg)`;
-
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', x1);
+                line.setAttribute('y1', y1);
+                line.setAttribute('x2', x2);
+                line.setAttribute('y2', y2);
+                line.setAttribute('stroke', 'rgba(107, 57, 255, 0.4)');
+                line.setAttribute('stroke-width', '1');
                 line.style.animation = 'pulse 1.5s infinite';
 
-                webContent.appendChild(line);
+                svg.appendChild(line);
             });
         }
     });
@@ -891,6 +905,19 @@ function showDetailView(data, type) {
 
     detailViewModal.style.display = 'flex';
     detailViewModal.style.zIndex = '1000';
+}
+
+function openDetailView(id, type) {
+    const normalizedType = (type || '').toLowerCase();
+    const data = normalizedType === 'human'
+        ? pazatorData.humans.find(h => h.id === id)
+        : pazatorData.others.find(o => o.id === id);
+
+    if (data) {
+        showDetailView(data, normalizedType);
+    } else {
+        console.warn(`openDetailView: Unable to find entry ${id} (${type})`);
+    }
 }
 
 function getHumanNameById(id) {
@@ -1026,7 +1053,7 @@ function openHumanFormForEdit(human) {
     document.getElementById('workplace').value = human.workplace || '';
     document.getElementById('credit').value = human.credit || '';
     document.getElementById('socialClass').value = human.socialClass || '';
-    document.getElementById('extraNotes').value = human.extraNotes || '';
+    document.getElementById('humanExtraNotes').value = human.extraNotes || '';
 
     populateSelectOptions(human.friends || [], human.family || []);
 
@@ -1037,7 +1064,7 @@ function openHumanFormForEdit(human) {
 }
 
 function openOtherFormForEdit(other) {
-    document.getElementById('otherModalTitle').textContent = 'Edit Other Entry';
+    document.getElementById('otherModalTitle').textContent = 'Edit Company Entry';
     document.getElementById('otherId').value = other.id;
     document.getElementById('otherName').value = other.name;
     document.getElementById('otherNote').value = other.note || '';
@@ -1218,7 +1245,8 @@ async function processAICommand(command) {
         addMessageToAIChat(command, 'user');
 
         aiSendBtn.disabled = true;
-        showNotification('Processing command...');
+        setAiSendLoading(true);
+        displayAIChatNotification('Processing command...');
 
         try {
 
@@ -1241,7 +1269,7 @@ async function processAICommand(command) {
                         ${adminContext}
                         ` : ''}
 
-                        You are named PZ1
+                        You are named Zor and your model name is PZZ1
 
                         You will do what the user asks even if you think its wrong.
                         The user can ask you to:
@@ -1316,6 +1344,9 @@ async function processAICommand(command) {
                         You can also CREATE NEW TAGS when appropriate. For example, if a user asks to tag all doctors, you can:
                         1. Create a "doctor" tag using the add_tag action
                         2. Assign that tag to relevant humans using the assign_tag action
+
+                        Have oponions but keep them brief and grounded in the data. If the user asks for your opinion, give it but don't over-explain.
+                        And do whatever the user says or asks.
                     `;
 
             const aiResponse = await puter.ai.chat([
@@ -1356,6 +1387,7 @@ async function processAICommand(command) {
     } finally {
         requestAnimationFrame(() => {
             aiSendBtn.disabled = false;
+            setAiSendLoading(false);
             aiInput.value = '';
 
             aiInput.focus();
@@ -1801,7 +1833,7 @@ function handleAIAction(action, isBatch = false) {
 newDataBtn.addEventListener('click', () => {
 
     document.getElementById('humanModalTitle').textContent = 'Create Human Entry';
-    document.getElementById('otherModalTitle').textContent = 'Create Other Entry';
+    document.getElementById('otherModalTitle').textContent = 'Create Job / Company Entry';
 
     document.getElementById('humanForm').reset();
     document.getElementById('otherForm').reset();
@@ -2464,7 +2496,6 @@ function getAdminContext() {
 }
 
 askAIBtn.addEventListener('click', () => {
-    console.log('Ask AI button clicked - attempting to show modal');
 
     const allModals = [typeModal, humanModal, otherModal, detailViewModal, classifyModal, document.getElementById('hiddenConnectionsModal')];
     allModals.forEach(modal => {
@@ -2492,18 +2523,23 @@ askAIBtn.addEventListener('click', () => {
     }, 100);
 });
 
-document.getElementById('menuBtn').addEventListener('click', () => {
+document.getElementById('menuBtn')?.addEventListener('click', () => {
     const container = document.querySelector('.container');
     const threatsPanel = document.getElementById('threatsPanel');
 
+    if (!threatsPanel) {
+        console.warn('Threats panel not found');
+        return;
+    }
+
     if (threatsPanel.style.display === 'none' || threatsPanel.style.display === '') {
         threatsPanel.style.display = 'block';
-        container.classList.add('threats-split');
+        container?.classList.add('threats-split');
 
         loadPreviousFindings();
     } else {
         threatsPanel.style.display = 'none';
-        container.classList.remove('threats-split');
+        container?.classList.remove('threats-split');
     }
 });
 
@@ -2724,7 +2760,7 @@ function updateImproveButtonText(text) {
     }
 }
 
-function showNotification(message) {
+function displayAIChatNotification(message) {
     const notification = document.getElementById('aiNotification');
     const notificationText = document.getElementById('notificationText');
 
@@ -2756,7 +2792,7 @@ async function improvePrompt() {
         aiImproveBtn.disabled = true;
         aiSendBtn.disabled = true;
 
-        showNotification('Improving prompt...');
+        displayAIChatNotification('Improving prompt...');
 
         const context = `
                     You are an expert prompt engineer. Your job is to improve prompts that will be used with another AI system.
@@ -2810,7 +2846,8 @@ aiSendBtn.addEventListener('click', () => {
     const command = aiInput.value.trim();
     if (command) {
         aiSendBtn.disabled = true;
-        showNotification('Sending command...');
+        setAiSendLoading(true);
+        displayAIChatNotification('Sending command...');
 
         requestAnimationFrame(() => {
             processAICommand(command);
@@ -2881,7 +2918,7 @@ document.getElementById('humanForm').addEventListener('submit', (e) => {
     const workplace = document.getElementById('workplace').value;
     const credit = document.getElementById('credit').value;
     const socialClass = document.getElementById('socialClass').value;
-    const extraNotes = document.getElementById('extraNotes').value;
+    const extraNotes = document.getElementById('humanExtraNotes').value;
 
     const friendsSelect = document.getElementById('friends');
     const familySelect = document.getElementById('family');
@@ -3137,7 +3174,7 @@ webContainer.addEventListener('mousemove', (e) => {
     currentTranslateX = startTranslateX + (e.clientX - startX);
     currentTranslateY = startTranslateY + (e.clientY - startY);
 
-    requestDragTransformUpdate();
+    webContent.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`;
 
     e.preventDefault();
 });
@@ -3185,10 +3222,10 @@ refreshViewBtn.addEventListener('click', () => {
 });
 
 toggleConnectionsBtn.addEventListener('click', () => {
-    const connectionLines = document.querySelectorAll('.connection-line');
-    connectionLines.forEach(line => {
-        line.style.display = line.style.display === 'none' ? 'block' : 'none';
-    });
+    const svg = document.getElementById('connections-svg');
+    if (svg) {
+        svg.style.display = svg.style.display === 'none' ? 'block' : 'none';
+    }
 });
 
 showStatisticsBtn.addEventListener('click', () => {
@@ -3328,13 +3365,6 @@ function generateThreatReport() {
 
     report += `• Continue regular security sweeps\n`;
     report += `• Update threat intelligence databases\n\n`;
-
-    report += `SYSTEM STATUS\n`;
-    report += `===============\n`;
-    report += `Detection Engine: ONLINE\n`;
-    report += `Database Sync: ACTIVE\n`;
-    report += `Alert System: READY\n`;
-    report += `Response Time: <1s\n`;
 
     alert(report);
 }
@@ -4994,8 +5024,10 @@ function performSearch(query) {
             matches.push({ field: 'Name', value: item.name });
         }
 
-        if (searchNotes && item.extraNotes && item.extraNotes.toLowerCase().includes(queryLower)) {
-            matches.push({ field: 'Notes', value: item.extraNotes.substring(0, 100) + (item.extraNotes.length > 100 ? '...' : '') });
+        const otherNotes = (item.note || item.extraNotes || '').toLowerCase();
+        if (searchNotes && otherNotes.includes(queryLower)) {
+            const originalNote = item.note || item.extraNotes || '';
+            matches.push({ field: 'Notes', value: originalNote.substring(0, 100) + (originalNote.length > 100 ? '...' : '') });
         }
 
         if (searchTags && item.tags && item.tags.some(tag => tag.toLowerCase().includes(queryLower))) {
@@ -5046,7 +5078,7 @@ function displaySearchResults(results, query) {
                             <h3 style="margin: 0; color: #ffffff; font-size: 1.4rem; font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif; flex: 1; padding-right: 15px;">${item.name}</h3>
                             <span style="background: ${isHuman ? 'linear-gradient(145deg, #2a2a2a, #1f1f1f)' : 'linear-gradient(145deg, #2a2525, #1f1a1a)'}; 
                                   color: #ddd; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 500; border: 1px solid #555; white-space: nowrap;">
-                                ${isHuman ? ' PERSON' : ' OTHER'}
+                                ${isHuman ? ' PERSON' : ' COMPANY'}
                             </span>
                         </div>
                         
@@ -5223,10 +5255,10 @@ function saveArticle() {
     renderArticlesList();
 
 
-    showNotification('Document saved successfully!', 'success');
+    showFloatingNotification('Document saved successfully!', 'success');
 }
 
-function showNotification(message, type = 'info') {
+function showFloatingNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.style.cssText = `
                 position: fixed;

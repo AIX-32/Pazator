@@ -20,7 +20,7 @@
         <div class="ai-chat-content">
             <div class="ai-chat-header">
                 <div class="header-left">
-                    <h2>AI Assistant</h2>
+                    <h2>Zor.</h2>
                     <div class="ai-status">
                         <span class="status-indicator"></span>
                         <span class="status-text">Context ready</span>
@@ -94,7 +94,7 @@
 
             <div class="ai-chat-messages" id="aiChatMessages">
                 <div class="ai-message system">
-                    <h3>Pazator AI</h3>
+                    <h3>Im Zor,</h3>
                     <p>I can help you manage your data. Click the menu button for extra things.</p>
                 </div>
             </div>
@@ -105,9 +105,9 @@
                         Context" to include people, chats, or security logs</div>
                 </div>
                 <div class="input-row">
-                    <input type="text" class="ai-input" id="aiInput" placeholder="Ask me anything about your data...">
+                    <input type="text" class="ai-input" id="aiInput" placeholder="Search for anything.">
                     <div class="ai-input-buttons">
-                        <button class="ai-action-btn" id="aiImproveBtn" title="Improve your prompt">
+                        <button class=" btncube" id="aiImproveBtn" title="Improve your prompt">
                             <i class="fas fa-magic"></i>
                             <span class="btn-icon-text"></span>
                         </button>
@@ -182,12 +182,10 @@
                     <div class="sidebar-section">
                         <h3>Quick Actions</h3>
                         <div class="form-group">
-                            <button id="newDataBtn" class="btn btn-primary"
-                                style="width: 100%; margin-bottom: 10px;">New Data</button>
-                        </div>
-                        <div class="form-group">
-                            <button id="askAIBtn" class="btn btn-primary" style="width: 100%; margin-bottom: 10px;">Ask
-                                AI</button>
+                            <div class="quick-action-row">
+                                <button id="newDataBtn" class="btn btn-primary btn-dual">New Data</button>
+                                <button id="askAIBtn" class="btn btn-primary btn-dual">Zor.</button>
+                            </div>
                         </div>
                         <div class="form-group">
                             <button id="chatUploadBtn" class="btn btn-secondary"
@@ -195,7 +193,7 @@
                         </div>
                         <div class="form-group">
                             <button id="menuBtn" class="btn btn-secondary"
-                                style="width: 100%; margin-bottom: 10px;">SCF</button>
+                                style="width: 100%; margin-bottom: 10px;display: none;">SCF</button>
                         </div>
                         <div class="form-group">
                             <button id="signInBtn" class="btn btn-secondary" style="width: 100%;">Sign In</button>
@@ -205,13 +203,13 @@
                     <div class="sidebar-section">
                         <h3>Search & Filter</h3>
                         <div class="form-group">
-                            <input type="text" id="searchInput" class="form-control" placeholder="Search entries...">
+                            <input type="text" id="searchInput" class="form-control" placeholder="Search">
                         </div>
                         <div class="form-group">
                             <select id="filterType" class="form-control">
                                 <option value="all">All Types</option>
                                 <option value="human">Humans</option>
-                                <option value="other">Others</option>
+                                <option value="other">Jobs & Companies</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -223,7 +221,7 @@
                     <div class="sidebar-section">
                         <h3>Tags</h3>
                         <div class="form-group">
-                            <input type="text" id="tagInput" class="form-control" placeholder="Add new tag...">
+                            <input type="text" id="tagInput" class="form-control" placeholder="New tag name">
                         </div>
                         <div class="form-group">
                             <button id="addTagBtn" class="btn btn-secondary" style="width: 100%;">Add Tag</button>
@@ -635,34 +633,13 @@
                             </div>
                         </div>
 
-                        <div style="padding: 20px; background: rgba(30, 30, 30, 0.5); border-radius: 12px;">
-                            <h4 style="margin: 0 0 15px 0; color: #ffffff; display: flex; align-items: center;">
-                                <i class="fas fa-server" style="margin-right: 10px; color: #888;"></i>
-                                System Status
-                            </h4>
-                            <div style="font-size: 0.9rem; color: #aaa; line-height: 1.6;">
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                                    <span>Detection Engine:</span>
-                                    <span style="color: #6bcf7f;">Online</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                                    <span>Database Sync:</span>
-                                    <span style="color: #6bcf7f;">Active</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                                    <span>Alert System:</span>
-                                    <span style="color: #6bcf7f;">Ready</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between;">
-                                    <span>Response Time:</span>
-                                    <span style="color: #ffd93d;">&lt;1s</span>
-                                </div>
-                            </div>
-                        </div>
+
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+    </div>
     </div>
 
     <div class="tab-content" id="agents-tab">
@@ -687,15 +664,14 @@
                         <div>
                             <label style="display: block; margin-bottom: 8px; color: #ddd; font-weight: 500;">Agent
                                 Name</label>
-                            <input type="text" id="agentName" class="form-control" placeholder="e.g., Data Investigator"
+                            <input type="text" id="agentName" class="form-control" placeholder="Agent name"
                                 style="width: 100%; padding: 12px; font-size: 1rem;">
                         </div>
 
                         <div>
                             <label
                                 style="display: block; margin-bottom: 8px; color: #ddd; font-weight: 500;">Goal/Objective</label>
-                            <textarea id="agentGoal" class="form-control"
-                                placeholder="What should this agent try to accomplish?"
+                            <textarea id="agentGoal" class="form-control" placeholder="Agent goal"
                                 style="width: 100%; padding: 12px; font-size: 1rem; height: 120px; resize: vertical;"></textarea>
                         </div>
 
@@ -759,8 +735,7 @@
 
             <div style="max-width: 700px; width: 100%; margin: 0 auto; flex: 1; display: flex; flex-direction: column;">
                 <div style="position: relative; margin-bottom: 30px;">
-                    <input type="text" id="universalSearchInput" class="form-control"
-                        placeholder="Search people, jobs, dates, notes, tags, relationships..."
+                    <input type="text" id="universalSearchInput" class="form-control" placeholder="Search the database..."
                         style="font-size: 1.2rem; padding: 18px 20px; border-radius: 12px; border: 2px solid #333; background: rgba(30, 30, 30, 0.8); width: 100%; text-align: center;">
                     <i class="fas fa-search"
                         style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); color: #777; font-size: 1.2rem;"></i>
@@ -824,8 +799,7 @@
                                 <option value="recent">Recently Added</option>
                             </select>
                             <div style="position: relative; width: 200px;">
-                                <input type="text" id="articleSearch" class="form-control"
-                                    placeholder="Search documents..."
+                                <input type="text" id="articleSearch" class="form-control" placeholder="Search documents..."
                                     style="width: 100%; padding: 8px 15px 8px 35px; background: rgba(40, 40, 40, 0.7); border: 1px solid #444; border-radius: 8px; color: #ddd;">
                                 <i class="fas fa-search"
                                     style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #777; font-size: 0.9rem;"></i>
@@ -866,8 +840,7 @@
                         <div>
                             <label
                                 style="display: block; margin-bottom: 8px; color: #ddd; font-weight: 500; font-size: 1rem;">Organization/Source</label>
-                            <input type="text" id="articleCompany" class="form-control"
-                                placeholder="e.g., TechCorp Industries, News Agency"
+                            <input type="text" id="articleCompany" class="form-control" placeholder="Organization/Source"
                                 style="width: 100%; padding: 14px; font-size: 1rem; border-radius: 10px; border: 2px solid #333; background: rgba(20, 20, 20, 0.5); transition: border-color 0.2s ease;">
                         </div>
 
@@ -875,8 +848,7 @@
                             <label
                                 style="display: block; margin-bottom: 8px; color: #ddd; font-weight: 500; font-size: 1rem;">Document
                                 Title</label>
-                            <input type="text" id="articleTitle" class="form-control"
-                                placeholder="e.g., Q3 Financial Report, Market Analysis"
+                            <input type="text" id="articleTitle" class="form-control" placeholder="Document title"
                                 style="width: 100%; padding: 14px; font-size: 1rem; border-radius: 10px; border: 2px solid #333; background: rgba(20, 20, 20, 0.5); transition: border-color 0.2s ease;">
                         </div>
 
@@ -884,8 +856,7 @@
                             <label
                                 style="display: block; margin-bottom: 8px; color: #ddd; font-weight: 500; font-size: 1rem;">Document
                                 Content</label>
-                            <textarea id="articleContent" class="form-control"
-                                placeholder="Paste the full document content here..."
+                            <textarea id="articleContent" class="form-control" placeholder="Document content"
                                 style="flex: 1; width: 100%; padding: 14px; font-size: 0.95rem; border-radius: 10px; border: 2px solid #333; background: rgba(20, 20, 20, 0.5); resize: none; transition: border-color 0.2s ease;"></textarea>
                         </div>
 
@@ -921,7 +892,7 @@
                         </button>
                         <button id="otherTypeBtn" class="btn btn-primary"
                             style="flex: 1; padding: 20px; font-size: 1.2rem;">
-                            Other
+                            Job / Company
                         </button>
                     </div>
                 </div>
@@ -945,7 +916,7 @@
                             <div class="form-group compact">
                                 <label for="humanName">Full Name *</label>
                                 <input type="text" id="humanName" class="form-control" required
-                                    placeholder="Enter full name">
+                                    placeholder="Full name">
                             </div>
                             <div class="form-group compact">
                                 <label for="humanGender">Gender</label>
@@ -964,7 +935,7 @@
                             </div>
                             <div class="form-group compact">
                                 <label for="workplace">Workplace</label>
-                                <input type="text" id="workplace" class="form-control" placeholder="Current workplace">
+                                <input type="text" id="workplace" class="form-control" placeholder="Workplace">
                             </div>
                         </div>
 
@@ -973,7 +944,7 @@
                             <div class="form-group compact">
                                 <label for="credit">Credit Score (0-100)</label>
                                 <input type="number" id="credit" class="form-control" min="0" max="100"
-                                    placeholder="Enter credit score">
+                                    placeholder="Credit score">
                             </div>
                             <div class="form-group compact">
                                 <label for="socialClass">Social Class</label>
@@ -1011,9 +982,9 @@
                         <div class="form-section full-width">
                             <h3><i class="fas fa-sticky-note"></i> Additional Information</h3>
                             <div class="form-group">
-                                <label for="extraNotes">Extra Notes</label>
-                                <textarea id="extraNotes" class="form-control" rows="4"
-                                    placeholder="Any additional information about this person..."></textarea>
+                                <label for="humanExtraNotes">Extra Notes</label>
+                                <textarea id="humanExtraNotes" class="form-control" rows="4"
+                                    placeholder="Additional information about the individual"></textarea>
                             </div>
                             <div class="form-group">
                                 <label for="humanImage">Profile Image</label>
@@ -1038,21 +1009,23 @@
         <button class="close" style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="otherModalTitle">Create Other Entry</h2>
+                <h2 id="otherModalTitle">Create Job / Company Entry</h2>
             </div>
             <div class="modal-body">
                 <form id="otherForm">
                     <input type="hidden" id="otherId">
                     <div class="form-group">
-                        <label for="otherName">Name</label>
+                        <label for="otherName">Company / Job Title</label>
                         <input type="text" id="otherName" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label for="type">Type</label>
+                        <label for="type">Industry / Role</label>
                         <select id="type" class="form-control">
-                            <option value="friend">Friend</option>
-                            <option value="family">Family</option>
-                            <option value="colleague">Colleague</option>
+                            <option value="startup">Startup</option>
+                            <option value="corporation">Corporation</option>
+                            <option value="agency">Agency</option>
+                            <option value="nonprofit">Non-profit</option>
+                            <option value="government">Government</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -1060,8 +1033,12 @@
                         <input type="text" id="contactInfo" class="form-control">
                     </div>
                     <div class="form-group">
-                        <label for="extraNotes">Extra Notes</label>
-                        <textarea id="extraNotes" class="form-control"></textarea>
+                        <label for="otherNote">Company Notes</label>
+                        <textarea id="otherNote" class="form-control"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="otherImage">Image</label>
+                        <input type="file" id="otherImage" class="form-control" accept="image/*">
                     </div>
                 </form>
                 <div class="form-actions">
@@ -1103,8 +1080,7 @@
 
                     <div class="form-group">
                         <label for="chatContent">Or Paste Chat Content</label>
-                        <textarea id="chatContent" class="form-control" rows="8"
-                            placeholder="Paste your chat content here..."></textarea>
+                        <textarea id="chatContent" class="form-control" rows="8" placeholder="Paste chat content here..."></textarea>
                         <button type="button" class="btn btn-secondary" id="analyzeDiscordBtn"
                             style="margin-top: 10px; width: 100%;">Analyze Discord Chat for Suspicious Content</button>
                     </div>
@@ -1119,8 +1095,7 @@
 
                     <div class="form-group">
                         <label for="chatContext">Additional Context</label>
-                        <textarea id="chatContext" class="form-control" rows="3"
-                            placeholder="Any additional context about this chat (topic, purpose, etc.)"></textarea>
+                        <textarea id="chatContext" class="form-control" rows="3" placeholder="Additional context for the chat..."></textarea>
                     </div>
                 </form>
             </div>
@@ -1173,8 +1148,7 @@
 
                 <div class="form-group" style="margin-top: 20px;">
                     <label for="contextNotes">Additional Notes</label>
-                    <textarea id="contextNotes" class="form-control" rows="3"
-                        placeholder="Any additional notes about this context..."></textarea>
+                    <textarea id="contextNotes" class="form-control" rows="3" placeholder="Additional context for the selected items..."></textarea>
                 </div>
             </div>
             <div class="form-actions">
@@ -1190,7 +1164,8 @@
             <div class="modal-header">
                 <div>
                     <h2>Classification Control</h2>
-                    <p style="margin: 4px 0 0 0; font-size: 0.9rem; color: #aaa;">Review and lock down a classification level for your data.</p>
+                    <p style="margin: 4px 0 0 0; font-size: 0.9rem; color: #aaa;">Review and lock down a classification
+                        level for your data.</p>
                 </div>
             </div>
             <div class="modal-body">
@@ -1200,7 +1175,7 @@
                         <select id="classificationDataset" class="form-control">
                             <option value="all">All entries</option>
                             <option value="humans">Humans only</option>
-                            <option value="others">Others / Entities</option>
+                            <option value="others">Jobs & Companies / Entities</option>
                             <option value="high_risk">High-risk humans</option>
                             <option value="new_alerts">New alerts</option>
                         </select>
@@ -1209,7 +1184,8 @@
                     <div class="form-group">
                         <label for="classificationConfidence">
                             Confidence threshold
-                            <span id="classificationConfidenceValue" style="float: right; font-weight: 600; color: #6bcf7f;">85%</span>
+                            <span id="classificationConfidenceValue"
+                                style="float: right; font-weight: 600; color: #6bcf7f;">85%</span>
                         </label>
                         <input type="range" id="classificationConfidence" min="60" max="98" value="85">
                     </div>
