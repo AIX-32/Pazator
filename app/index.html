@@ -7,6 +7,7 @@
     <link rel="icon" type="image/png" href="favicon.png">
     <title>Pazator. - Mass data container</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.css">
     <link rel="stylesheet" href="stylez.css">
 </head>
 
@@ -125,31 +126,41 @@
         </div>
     </div>
     <div class="tab-bar" id="tabBar">
+        <div class="tab-bar-info">
+            <div class="tab-bar-clock">
+                <span id="tabBarTime">--:--</span>
+                <small id="tabBarDate">Loading...</small>
+            </div>
+            <div class="tab-bar-extra" id="tabBarStatus">If you see this its broken.    </div>
+        </div>
         <button class="tab active" data-tab="dashboard">
             Dashboard
             <span class="tab-close">&times;</span>
         </button>
         <div style="flex: 1;"></div>
-        <button class="tab-action" id="dashboardBtn" title="Main workspace with data visualization">
+        <button class="tab-action" id="dashboardBtn" title="Main workspace with data visualization" data-tab-target="dashboard">
             <i class="fas fa-home"></i>
         </button>
-        <button class="tab-action" id="analysisBtn" title="Data insights and connection mapping">
+        <button class="tab-action" id="analysisBtn" title="Data insights and connection mapping" data-tab-target="analysis">
             <i class="fas fa-chart-line"></i>
         </button>
-        <button class="tab-action" id="threatsBtn" title="Security intelligence and risk assessment">
+        <button class="tab-action" id="threatsBtn" title="Security intelligence and risk assessment" data-tab-target="threats">
             <i class="fas fa-shield-alt"></i>
         </button>
-        <button class="tab-action" id="chatControlBtn" title="Chat management and analysis">
+        <button class="tab-action" id="chatControlBtn" title="Chat management and analysis" data-tab-target="chat-control">
             <i class="fas fa-comments"></i>
         </button>
-        <button class="tab-action" id="searchBtn" title="Powerful search across all data">
+        <button class="tab-action" id="searchBtn" title="Powerful search across all data" data-tab-target="search">
             <i class="fas fa-search"></i>
         </button>
-        <button class="tab-action" id="agentsBtn" title="Autonomous AI agents">
+        <button class="tab-action" id="agentsBtn" title="Autonomous AI agents" data-tab-target="agents">
             <i class="fas fa-robot"></i>
         </button>
-        <button class="tab-action" id="articlesBtn" title="Article context for AI">
+        <button class="tab-action" id="articlesBtn" title="Article context for AI" data-tab-target="articles">
             <i class="fas fa-newspaper"></i>
+        </button>
+        <button class="tab-action" id="trackerBtn" title="Shahed Tracker" data-tab-target="tracker">
+            <i class="fas fa-location-crosshairs"></i>
         </button>
         <div class="logo-card" title="Pazator Logo">
             <img src="favicon.png" alt="Pazator Logo" id="logoImage">
@@ -171,7 +182,7 @@
             <div class="workspace">
                 <div class="main-panel">
                     <div class="logo">
-                        <h1>Pazator AIOIP - beta <p class="versiontext">0.Mar526 </p></h1>
+                        <h1>Pazator AIOIP - beta <p class="versiontext">0.Mar1426 </p></h1>
                     </div>
                     <div class="web-container" id="webContainer">
                         <div class="web-content" id="webContent">
@@ -635,11 +646,8 @@
 
 
                     </div>
-                </div>
             </div>
         </div>
-    </div>
-    </div>
     </div>
 
     <div class="tab-content" id="agents-tab">
@@ -876,6 +884,50 @@
         </div>
     </div>
 
+    <div class="tab-content" id="tracker-tab">
+        <div class="tracker-tab">
+            <div class="tracker-panel">
+                <div class="tracker-sidebar" id="trackerSidebar">
+                    <div class="tracker-sidebar-header">
+                        <h3>Shahed Tracker</h3>
+                        <p>Live locations from the secure tracker</p>
+                        <button id="trackerConfigureBtn" class="tracker-config-btn">Configure tracker server</button>
+                    </div>
+                    <div class="tracker-sync-actions">
+                        <label for="trackerHumanSelect">Connect Pazator person</label>
+                        <div class="tracker-select-row">
+                            <select id="trackerHumanSelect">
+                                <option value="">Select a human</option>
+                            </select>
+                            <button class="btn btn-primary" id="trackerConnectBtn">Show</button>
+                        </div>
+                        <button class="btn btn-secondary" id="trackerRefreshBtn" style="width: 100%;">Refresh tracker</button>
+                    </div>
+                    <div class="tracker-people-list" id="trackerPeopleList">
+                        <div class="tracker-placeholder">Tracker data will appear here.</div>
+                    </div>
+                    <div class="tracker-location-info" id="trackerLocationInfo">
+                        Last known position will appear here once you select someone.
+                    </div>
+                    <div class="tracker-sidebar-footer">
+                        <button class="btn btn-danger" id="trackerPurgeBtn">⚠ Purge tracker records</button>
+                    </div>
+                </div>
+                <div class="tracker-map-area">
+                    <div class="tracker-map-overlay">
+                        <button id="trackerToggleSidebarBtn" class="tracker-map-button">◀ hide sidebar</button>
+                        <button id="trackerSpinToggleBtn" class="tracker-map-button active">Pause spin</button>
+                        <button id="streetLabelToggle" class="tracker-map-button tracker-label-toggle">Show street names</button>
+                    </div>
+                    <div id="trackerMap" class="tracker-map"></div>
+                    <div class="tracker-debug" id="trackerDebug">ready</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
     <div id="typeModal" class="modal">
         <button class="close" style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
         <div class="modal-content">
@@ -979,18 +1031,28 @@
                             </div>
                         </div>
 
-                        <div class="form-section full-width">
-                            <h3><i class="fas fa-sticky-note"></i> Additional Information</h3>
-                            <div class="form-group">
-                                <label for="humanExtraNotes">Extra Notes</label>
-                                <textarea id="humanExtraNotes" class="form-control" rows="4"
-                                    placeholder="Additional information about the individual"></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label for="humanImage">Profile Image</label>
-                                <input type="file" id="humanImage" class="form-control" accept="image/*">
+                    <div class="form-section full-width">
+                        <h3><i class="fas fa-sticky-note"></i> Additional Information</h3>
+                        <div class="form-group">
+                            <label for="humanExtraNotes">Extra Notes</label>
+                            <textarea id="humanExtraNotes" class="form-control" rows="4"
+                                placeholder="Additional information about the individual"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="humanTrackerSelect">Tracker alias / Shahed ID</label>
+                            <div class="tracker-alias-controls">
+                                <select id="humanTrackerSelect" class="form-control">
+                                    <option value="">Select from Shahed tracker</option>
+                                </select>
+                                <input type="text" id="humanTrackerAlias" class="form-control"
+                                    placeholder="Alias or ID (can be reused from tracker)">
                             </div>
                         </div>
+                        <div class="form-group">
+                            <label for="humanImage">Profile Image</label>
+                            <input type="file" id="humanImage" class="form-control" accept="image/*">
+                        </div>
+                    </div>
                     </div>
                 </form>
             </div>
@@ -1249,6 +1311,10 @@
                             <div class="stat-label">Credit</div>
                             <div class="stat-value" id="statCredit">N/A</div>
                         </div>
+                        <div class="stat-item">
+                            <div class="stat-label">ID</div>
+                            <div class="stat-value" id="statId">—</div>
+                        </div>
                     </div>
                 </div>
 
@@ -1289,6 +1355,19 @@
                     <div class="detail-item" id="detailTagsContainer">
                         <div class="detail-label">Tags</div>
                         <div id="detailTags" class="detail-value">Loading...</div>
+                    </div>
+                    <div class="detail-item" id="detailTrackerContainer">
+                        <div class="detail-label">Shahed Tracker</div>
+                        <div class="detail-value detail-tracker-value">
+                            <div id="detailTrackerStatus" class="detail-tracker-status">Not linked</div>
+                            <div class="detail-tracker-controls">
+                                <input type="text" id="detailTrackerAlias" placeholder="Tracker alias or ID" />
+                                <div class="detail-tracker-buttons">
+                                    <button class="btn detail-tracker-btn" id="detailTrackerSaveAliasBtn">Save</button>
+                                    <button class="btn detail-tracker-btn" id="detailTrackerShowBtn">View on map</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="detail-item" id="detailFriendsContainer">
                         <div class="detail-label">Friends</div>
@@ -1352,6 +1431,8 @@
 
 
 
+    <script src="https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://js.puter.com/v2/"></script>
     <script src="scriptz.js"></script>
 

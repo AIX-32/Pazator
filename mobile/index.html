@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pazator</title>
+  <style>
+    /* (keep your existing styles – unchanged) */
+    :root {
+      --primary-bg: #0d0d0d;
+      --secondary-bg: #121212;
+      --card-bg: #1a1a1a;
+      --border-color: #2a2a2a;
+      --text-primary: #e0e0e0;
+      --text-secondary: #a0a0a0;
+      --text-muted: #777777;
+      --accent-calm: #42a5f5;
+      --accent-warning: #ffa726;
+      --shadow-color: rgba(0,0,0,0.3);
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    body {
+      background: var(--primary-bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .tracker-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 2rem 1.5rem;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 20px 40px var(--shadow-color);
+      position: relative;
+      overflow: hidden;
+    }
+    .tracker-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    }
+    h1 {
+      font-size: 2rem;
+      font-weight: 500;
+      letter-spacing: -0.5px;
+      margin-bottom: 1.5rem;
+      background: linear-gradient(90deg, #ffffff, #bbbbbb);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .input-group {
+      margin-bottom: 1.5rem;
+    }
+    label {
+      display: block;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.5rem;
+    }
+    input {
+      width: 100%;
+      background: rgba(20,20,20,0.8);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1rem;
+      color: var(--text-primary);
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--accent-calm);
+      box-shadow: 0 0 0 3px rgba(66,165,245,0.2);
+    }
+    .warning-note {
+      background: rgba(255,255,255,0.02);
+      border-left: 4px solid var(--accent-warning);
+      padding: 1rem;
+      border-radius: 8px;
+      margin: 1.5rem 0;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+    .warning-note strong {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+    button {
+      width: 100%;
+      background: linear-gradient(145deg, #2a2a2a, #252525);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 1rem;
+      color: var(--text-primary);
+      font-size: 1.1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      margin-top: 0.5rem;
+    }
+    button:active {
+      transform: scale(0.98);
+      background: #2f2f2f;
+    }
+    .accent {
+      color: var(--accent-calm);
+      font-weight: 500;
+    }
+    .status {
+      margin-top: 1.5rem;
+      padding: 0.75rem;
+      background: rgba(255,255,255,0.02);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      text-align: center;
+      word-break: break-word;
+    }
+    .keep-open {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 1rem;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid var(--border-color);
+      margin: 1.5rem 0 1rem;
+    }
+  </style>
+</head>
+<body>
+<div class="tracker-card">
+  <h1>pazator: Shahed</h1>
+  <div class="input-group">
+    <label>your name</label>
+    <input type="text" id="nameInput" placeholder="lebron james" autocomplete="off">
+  </div>
+
+  <div class="warning-note">
+    <strong>this app will track you</strong><br>
+    if you feel unwell, just close it.
+  </div>
+
+  <button id="trackBtn">▶ start tracking</button>
+  <div class="keep-open">This is not a finished product.</div>
+
+  <hr>
+  <div class="status" id="statusMsg">waiting to send location...</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://osvgpmhrjwsmlykeyenz.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zdmdwbWhyandzbWx5a2V5ZW56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0NjcwOTQsImV4cCI6MjA4OTA0MzA5NH0.28lDls7uuL5EE3xQAm9u9bBiSqdtnSg7e3saIv6HZy8';
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const nameInput = document.getElementById('nameInput');
+  const trackBtn = document.getElementById('trackBtn');
+  const statusMsg = document.getElementById('statusMsg');
+
+  async function getIP() {
+    try {
+      const res = await fetch('https://api.ipify.org?format=json');
+      const data = await res.json();
+      return data.ip;
+    } catch (e) {
+      return 'unknown';
+    }
+  }
+
+  async function sendLocation(name, lat, lon, ip) {
+    const { error } = await supabaseClient
+      .from('locations')
+      .insert([
+        {
+          name: name,
+          latitude: lat,
+          longitude: lon,
+          ip: ip,
+          user_agent: navigator.userAgent
+        }
+      ]);
+    if (error) {
+      statusMsg.innerText = 'send failed: ' + error.message;
+      console.error(error);
+    } else {
+      statusMsg.innerText = `location sent at ${new Date().toLocaleTimeString()}`;
+    }
+  }
+
+  trackBtn.addEventListener('click', async () => {
+    const name = nameInput.value.trim();
+    if (!name) {
+      alert('please enter a name');
+      return;
+    }
+
+    statusMsg.innerText = 'getting location...';
+    trackBtn.disabled = true;
+
+    const ip = await getIP();
+
+    if (!navigator.geolocation) {
+      statusMsg.innerText = 'geolocation not supported';
+      trackBtn.disabled = false;
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        await sendLocation(name, latitude, longitude, ip);
+        trackBtn.disabled = false;
+      },
+      (err) => {
+        statusMsg.innerText = 'gps error: ' + err.message;
+        trackBtn.disabled = false;
+      },
+      { 
+        enableHighAccuracy: true, 
+        timeout: 15000,
+        maximumAge: 0               
+      }
+    );
+  });
+</script>
+</body>
+</html>

@@ -15,6 +15,582 @@ const AUTO_SAVE_DELAY = 2000;
 const PERIODIC_SAVE_INTERVAL = 30000;
 
 let openMenuSections = [];
+let trackerPersonNames = [];
+
+const TRACKER_CONFIG_KEY = 'shahedTrackerConfig';
+const TRACKER_CONFIG_EXAMPLE = {
+    url: 'https://xyz.supabase.co',
+    key: 'anon-key'
+};
+const DEFAULT_TRACKER_CONFIG = {
+    url: '',
+    key: ''
+};
+
+function hasValidTrackerConfig(config) {
+    return Boolean(config && config.url && config.key);
+}
+
+let trackerConfig = null;
+let trackerSupabase = null;
+let trackerConfigPromptedThisSession = false;
+let pendingTrackerDetailShowAlias = null;
+const PERSON_ID_SEQUENCE_KEY = 'pziIdSequence';
+let personIdSequence = 1;
+loadPersonIdSequence();
+
+function loadTrackerConfig() {
+    try {
+        const stored = localStorage.getItem(TRACKER_CONFIG_KEY);
+        if (stored) {
+            return JSON.parse(stored);
+        }
+    } catch (e) {
+        console.warn('Malformed tracker config, ignoring.', e);
+    }
+    return null;
+}
+
+function loadPersonIdSequence() {
+    const stored = localStorage.getItem(PERSON_ID_SEQUENCE_KEY);
+    if (stored) {
+        const parsed = parseInt(stored, 10);
+        if (!Number.isNaN(parsed) && parsed > 0) {
+            personIdSequence = parsed;
+            return;
+        }
+    }
+    personIdSequence = 1;
+}
+
+function persistPersonIdSequence() {
+    localStorage.setItem(PERSON_ID_SEQUENCE_KEY, personIdSequence.toString());
+}
+
+function extractSequenceFromId(id) {
+    if (!id) return 0;
+    const match = id.match(/^PZI(\d+)(\d{2})$/);
+    if (!match) return 0;
+    return parseInt(match[1], 10) || 0;
+}
+
+function updatePersonIdSequenceFromData() {
+    let maxSeen = 0;
+    pazatorData.humans.forEach(human => {
+        const seq = extractSequenceFromId(human.id);
+        if (seq > maxSeen) {
+            maxSeen = seq;
+        }
+    });
+    personIdSequence = Math.max(personIdSequence, maxSeen + 1, 1);
+    persistPersonIdSequence();
+}
+
+function getNextPersonSequence() {
+    const value = personIdSequence;
+    personIdSequence += 1;
+    persistPersonIdSequence();
+    return value;
+}
+
+function computeAge(birthDate) {
+    if (!birthDate) return 0;
+    const dob = new Date(birthDate);
+    if (Number.isNaN(dob.getTime())) return 0;
+    const now = new Date();
+    let age = now.getFullYear() - dob.getFullYear();
+    const monthDiff = now.getMonth() - dob.getMonth();
+    const dateDiff = now.getDate() - dob.getDate();
+    if (monthDiff < 0 || (monthDiff === 0 && dateDiff < 0)) {
+        age -= 1;
+    }
+    return Math.max(age, 0);
+}
+
+function applyTrackerConfig(config) {
+    if (!config || !config.url || !config.key) {
+        trackerSupabase = null;
+        trackerDebug && (trackerDebug.innerText = 'Tracker disabled until you configure a Supabase connection.');
+        return;
+    }
+
+    if (typeof supabase === 'undefined') {
+        trackerSupabase = null;
+        trackerDebug && (trackerDebug.innerText = 'Supabase client library is not available.');
+        return;
+    }
+
+    trackerSupabase = supabase.createClient(config.url, config.key);
+    trackerDebug && (trackerDebug.innerText = `Tracker connected to ${config.url}`);
+}
+
+function showTrackerStatusModal(title, message, { variant = 'info', onClose } = {}) {
+    const typeColor = {
+        info: '#4d9de0',
+        success: '#6bcf7f',
+        error: '#ff6b6b'
+    }[variant] || '#4d9de0';
+
+    const modal = document.createElement('div');
+    modal.className = 'modal context-modal';
+    modal.style.display = 'flex';
+    modal.style.zIndex = '1105';
+
+    const dialog = document.createElement('div');
+    dialog.className = 'modal-content';
+    dialog.style.maxWidth = '440px';
+    dialog.style.minWidth = '320px';
+
+    const header = document.createElement('div');
+    header.className = 'modal-header';
+
+    const titleEl = document.createElement('h2');
+    titleEl.textContent = title;
+    titleEl.style.color = typeColor;
+    titleEl.style.fontSize = '1.4rem';
+    titleEl.style.margin = '0';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'close';
+    closeBtn.type = 'button';
+    closeBtn.innerHTML = '&times;';
+
+    header.appendChild(titleEl);
+    header.appendChild(closeBtn);
+
+    const body = document.createElement('div');
+    body.className = 'modal-body';
+    body.style.padding = '8px 0';
+    body.innerHTML = '';
+    message = String(message || '');
+    message.split('\n').forEach((line, index) => {
+        const paragraph = document.createElement('p');
+        paragraph.textContent = line;
+        paragraph.style.margin = index ? '12px 0 0' : '0';
+        paragraph.style.color = '#d7d7d7';
+        paragraph.style.lineHeight = '1.5';
+        paragraph.style.fontSize = '0.95rem';
+        body.appendChild(paragraph);
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'form-actions';
+    actions.style.marginTop = '20px';
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.type = 'button';
+    confirmBtn.className = 'btn btn-primary';
+    confirmBtn.textContent = 'Close';
+    actions.appendChild(confirmBtn);
+
+    const cleanup = () => {
+        if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+        if (typeof onClose === 'function') {
+            onClose();
+        }
+    };
+
+    closeBtn.addEventListener('click', cleanup);
+    confirmBtn.addEventListener('click', cleanup);
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            cleanup();
+        }
+    });
+
+    dialog.appendChild(header);
+    dialog.appendChild(body);
+    dialog.appendChild(actions);
+    modal.appendChild(dialog);
+    document.body.appendChild(modal);
+}
+
+function openTrackerConfigModal(previousConfig, placeholderConfig = {}) {
+    const modal = document.createElement('div');
+    modal.className = 'modal context-modal';
+    modal.style.display = 'flex';
+    modal.style.zIndex = '1110';
+
+    const dialog = document.createElement('div');
+    dialog.className = 'modal-content';
+    dialog.style.maxWidth = '520px';
+    dialog.style.minWidth = '320px';
+
+    const header = document.createElement('div');
+    header.className = 'modal-header';
+
+    const titleEl = document.createElement('h2');
+    titleEl.textContent = 'Tracker configuration';
+    titleEl.style.margin = '0';
+    titleEl.style.fontSize = '1.4rem';
+
+    header.appendChild(titleEl);
+
+    const form = document.createElement('form');
+    form.className = 'modal-body';
+    form.style.display = 'flex';
+    form.style.flexDirection = 'column';
+    form.style.gap = '16px';
+    form.style.padding = '0';
+
+    const info = document.createElement('p');
+    info.textContent = 'Enter the Supabase tracker URL and anonymous key so the tracker sync can run securely.';
+    info.style.color = '#b7b7b7';
+    info.style.fontSize = '0.9rem';
+    info.style.margin = '0';
+
+    const createField = (labelText, initialValue, placeholder, type = 'text') => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'form-group';
+        const label = document.createElement('label');
+        label.textContent = labelText;
+        label.style.display = 'block';
+        label.style.fontSize = '0.85rem';
+        label.style.fontWeight = '600';
+        label.style.color = '#cfd8ff';
+        label.style.marginBottom = '6px';
+        const input = document.createElement('input');
+        input.className = 'form-control';
+        input.type = type;
+        input.value = initialValue || '';
+        input.placeholder = placeholder;
+        input.autocomplete = 'off';
+        wrapper.appendChild(label);
+        wrapper.appendChild(input);
+        return { wrapper, input };
+    };
+
+    const urlPlaceholder = placeholderConfig.url || 'https://xyz.supabase.co';
+    const keyPlaceholder = placeholderConfig.key || 'Supabase anonymous key';
+    const urlField = createField('Supabase URL', previousConfig.url || '', urlPlaceholder, 'url');
+    const keyField = createField('Anonymous key', previousConfig.key || '', keyPlaceholder, 'text');
+
+    const messageEl = document.createElement('div');
+    messageEl.style.minHeight = '18px';
+    messageEl.style.fontSize = '0.9rem';
+    messageEl.style.color = '#ff6b6b';
+    messageEl.style.margin = '0';
+
+    const actions = document.createElement('div');
+    actions.className = 'form-actions';
+    actions.style.paddingTop = '12px';
+    actions.style.marginTop = '0';
+    actions.style.borderTop = '1px solid rgba(255, 255, 255, 0.08)';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'btn btn-secondary';
+    cancelBtn.textContent = 'Cancel';
+
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'submit';
+    saveBtn.className = 'btn btn-primary';
+    saveBtn.textContent = 'Save configuration';
+
+    actions.appendChild(cancelBtn);
+    actions.appendChild(saveBtn);
+
+    form.appendChild(info);
+    form.appendChild(urlField.wrapper);
+    form.appendChild(keyField.wrapper);
+    form.appendChild(messageEl);
+    form.appendChild(actions);
+
+    const cleanup = () => {
+        document.removeEventListener('keydown', handleKeydown);
+        if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+    };
+
+    const revertToPrevious = () => {
+        trackerDebug && (trackerDebug.innerText = 'Tracker configuration unchanged.');
+        if (hasValidTrackerConfig(previousConfig)) {
+            applyTrackerConfig(previousConfig);
+        } else {
+            trackerSupabase = null;
+            trackerDebug && (trackerDebug.innerText = 'Tracker disabled until you configure a Supabase connection.');
+        }
+    };
+
+    const handleCancel = () => {
+        revertToPrevious();
+        cleanup();
+    };
+
+    const handleSave = () => {
+        messageEl.textContent = '';
+        const trimmedUrl = urlField.input.value.trim();
+        const trimmedKey = keyField.input.value.trim();
+        if (!trimmedUrl || !trimmedKey) {
+            const alertMsg = 'Tracker configuration requires both URL and key.';
+            messageEl.textContent = alertMsg;
+            trackerDebug && (trackerDebug.innerText = alertMsg);
+            return;
+        }
+
+        trackerConfig = { url: trimmedUrl, key: trimmedKey, userSaved: true };
+        try {
+            localStorage.setItem(TRACKER_CONFIG_KEY, JSON.stringify(trackerConfig));
+        } catch (storageError) {
+            console.warn('Unable to persist tracker config:', storageError);
+        }
+
+        applyTrackerConfig(trackerConfig);
+        trackerDebug && (trackerDebug.innerText = 'Tracker configuration updated.');
+        if (trackerMap) {
+            fetchTrackerPeople();
+        }
+        cleanup();
+    };
+
+    const handleKeydown = (event) => {
+        if (event.key === 'Escape') {
+            handleCancel();
+        }
+    };
+
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        handleSave();
+    });
+
+    cancelBtn.addEventListener('click', handleCancel);
+
+    [urlField.input, keyField.input].forEach(input => {
+        input.addEventListener('input', () => {
+            messageEl.textContent = '';
+        });
+    });
+
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            handleCancel();
+        }
+    });
+
+    document.addEventListener('keydown', handleKeydown);
+
+    dialog.appendChild(header);
+    dialog.appendChild(form);
+    modal.appendChild(dialog);
+    document.body.appendChild(modal);
+
+    setTimeout(() => {
+        urlField.input.focus();
+    }, 0);
+}
+
+function promptForTrackerConfig() {
+    trackerConfigPromptedThisSession = true;
+    const storedConfig = loadTrackerConfig();
+    const previousConfig = trackerConfig || storedConfig || DEFAULT_TRACKER_CONFIG;
+    openTrackerConfigModal(previousConfig, TRACKER_CONFIG_EXAMPLE);
+}
+
+function ensureTrackerConfig(promptForNew = false) {
+    const storedConfig = loadTrackerConfig();
+    trackerConfig = trackerConfig || storedConfig;
+    if (hasValidTrackerConfig(trackerConfig)) {
+        applyTrackerConfig(trackerConfig);
+    } else {
+        trackerSupabase = null;
+        trackerDebug && (trackerDebug.innerText = 'Tracker disabled until you configure a Supabase connection.');
+    }
+
+    if (promptForNew && !trackerConfigPromptedThisSession && !trackerConfig?.userSaved) {
+        promptForTrackerConfig();
+    }
+}
+
+function formatTrackerTimestamp(iso) {
+    if (!iso) return 'never';
+    const parsed = new Date(iso);
+    if (Number.isNaN(parsed.getTime())) return 'never';
+    return parsed.toLocaleString();
+}
+
+function generatePersonId(name, birthDate) {
+    const seq = getNextPersonSequence();
+    const seqStr = String(seq).padStart(4, '0');
+    const age = computeAge(birthDate);
+    const ageStr = String(age).padStart(2, '0');
+    const candidate = `PZI${seqStr}${ageStr}`;
+    if (pazatorData.humans.some(h => h.id === candidate)) {
+        return generatePersonId(name, birthDate);
+    }
+    return candidate;
+}
+
+function updateDetailTrackerInfo(data) {
+    if (!detailTrackerContainer) return;
+    if (!data || data.type !== 'human') {
+        detailTrackerContainer.style.display = 'none';
+        return;
+    }
+
+    detailTrackerContainer.style.display = 'block';
+    const alias = data.trackerAlias || '';
+    const statusText = alias
+        ? `Linked to "${alias}" (last sync ${formatTrackerTimestamp(data.trackerLinkedAt)}).`
+        : 'Not linked yet. Use the tracker tab to connect this person.';
+
+    if (detailTrackerStatus) {
+        detailTrackerStatus.textContent = statusText;
+    }
+
+    if (detailTrackerAliasInput) {
+        detailTrackerAliasInput.value = alias || data.name || '';
+    }
+
+    if (detailTrackerShowBtn) {
+        detailTrackerShowBtn.disabled = !alias;
+    }
+}
+
+async function reverseGeocodeLocation(lat, lon, signal) {
+    if (typeof lat !== 'number' || typeof lon !== 'number') {
+        throw new Error('Invalid coordinates');
+    }
+    const url = new URL('https://nominatim.openstreetmap.org/reverse');
+    url.search = new URLSearchParams({
+        format: 'json',
+        lat: lat.toFixed(6),
+        lon: lon.toFixed(6),
+        zoom: '14',
+        addressdetails: '1'
+    }).toString();
+
+    const response = await fetch(url.toString(), {
+        method: 'GET',
+        signal,
+        headers: {
+            'Accept-Language': 'en-US,en;q=0.9'
+        }
+    });
+
+    if (!response.ok) {
+        throw new Error(`Geocode HTTP ${response.status}`);
+    }
+
+    const payload = await response.json();
+    if (payload && payload.error) {
+        throw new Error(payload.error);
+    }
+
+    return payload.display_name || payload.address?.road || 'Unknown place';
+}
+
+async function setTrackerLocationDetails(lat, lon) {
+    if (!trackerLocationInfo) return;
+
+    const key = `${lat.toFixed(5)}|${lon.toFixed(5)}`;
+    if (key === trackerLocationCacheKey) return;
+    trackerLocationCacheKey = key;
+    trackerLocationInfo.textContent = 'Resolving place details…';
+
+    if (trackerLocationAbortController) {
+        trackerLocationAbortController.abort();
+    }
+    trackerLocationAbortController = new AbortController();
+
+    try {
+        const displayName = await reverseGeocodeLocation(lat, lon, trackerLocationAbortController.signal);
+        trackerLocationInfo.textContent = displayName;
+    } catch (error) {
+        if (error.name === 'AbortError') return;
+        trackerLocationInfo.textContent = 'Unable to resolve location.';
+        console.warn('Tracker reverse geocode failed', error);
+    }
+}
+
+function requestTrackerShow(alias) {
+    if (!alias) return;
+    pendingTrackerDetailShowAlias = alias;
+    if (trackerMap) {
+        showTrackerPersonLocations(alias);
+        pendingTrackerDetailShowAlias = null;
+    }
+}
+
+function ensureTrackerLabelLayers() {
+    if (!trackerMap || trackerLabelLayersAdded) return;
+
+    trackerMap.addSource(STREET_LABEL_SOURCE, {
+        type: 'raster',
+        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        tileSize: 256
+    });
+    trackerMap.addLayer({
+        id: STREET_LABEL_LAYER,
+        type: 'raster',
+        source: STREET_LABEL_SOURCE,
+        layout: { visibility: 'none' },
+        paint: { 'raster-opacity': 0.9 }
+    });
+
+    trackerLabelLayersAdded = true;
+}
+
+function toggleLabelLayer(type) {
+    if (!trackerMap) return;
+    ensureTrackerLabelLayers();
+
+    const isStreet = type === 'street';
+    const layerId = STREET_LABEL_LAYER;
+    const btn = trackerStreetLabelBtn;
+    const activeState = !streetLabelsActive;
+
+    trackerMap.setLayoutProperty(layerId, 'visibility', activeState ? 'visible' : 'none');
+
+    streetLabelsActive = activeState;
+
+    if (btn) {
+        btn.classList.toggle('active', activeState);
+        const label = 'Street';
+        btn.textContent = `${activeState ? 'Hide' : 'Show'} ${label.toLowerCase()} names`;
+    }
+}
+
+const trackerSidebar = document.getElementById('trackerSidebar');
+const trackerPeopleListEl = document.getElementById('trackerPeopleList');
+const trackerDebug = document.getElementById('trackerDebug');
+const trackerLocationInfo = document.getElementById('trackerLocationInfo');
+const trackerToggleSidebarBtn = document.getElementById('trackerToggleSidebarBtn');
+const trackerSpinToggleBtn = document.getElementById('trackerSpinToggleBtn');
+const trackerStreetLabelBtn = document.getElementById('streetLabelToggle');
+const trackerHumanSelect = document.getElementById('trackerHumanSelect');
+const trackerConnectBtn = document.getElementById('trackerConnectBtn');
+const trackerRefreshBtn = document.getElementById('trackerRefreshBtn');
+const trackerPurgeBtn = document.getElementById('trackerPurgeBtn');
+const trackerConfigureBtn = document.getElementById('trackerConfigureBtn');
+const trackerMapContainer = document.getElementById('trackerMap');
+
+let trackerMap;
+let trackerSpinning = false;
+let trackerAnimationFrame = null;
+let trackerInitialized = false;
+let trackerLocationAbortController = null;
+let trackerLocationCacheKey = '';
+let trackerLabelLayersAdded = false;
+let streetLabelsActive = false;
+
+const TRACKER_PATH_LAYER = 'tracker-path';
+const TRACKER_MARKERS_LAYER = 'tracker-markers';
+const STREET_LABEL_LAYER = 'tracker-street-labels';
+const STREET_LABEL_SOURCE = 'tracker-street-source';
+
+function escapeHtml(unsafe) {
+    return unsafe.replace(/[&<>"']/g, function (m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        if (m === '"') return '&quot;';
+        return '&#039;';
+    });
+}
 
 const newDataBtn = document.getElementById('newDataBtn');
 const askAIBtn = document.getElementById('askAIBtn');
@@ -22,6 +598,13 @@ const typeModal = document.getElementById('typeModal');
 const humanModal = document.getElementById('humanModal');
 const otherModal = document.getElementById('otherModal');
 const detailViewModal = document.getElementById('detailViewModal');
+const detailTrackerContainer = document.getElementById('detailTrackerContainer');
+const detailTrackerStatus = document.getElementById('detailTrackerStatus');
+const detailTrackerAliasInput = document.getElementById('detailTrackerAlias');
+const detailTrackerSaveAliasBtn = document.getElementById('detailTrackerSaveAliasBtn');
+const detailTrackerShowBtn = document.getElementById('detailTrackerShowBtn');
+const humanTrackerSelect = document.getElementById('humanTrackerSelect');
+const humanTrackerAliasInput = document.getElementById('humanTrackerAlias');
 const aiChatModal = document.getElementById('aiChatModal');
 const webContainer = document.getElementById('webContainer');
 const aiInput = document.getElementById('aiInput');
@@ -70,6 +653,9 @@ const classificationBanner = document.getElementById('classificationBanner');
 
 const tabBar = document.getElementById('tabBar');
 const addTabBtn = document.getElementById('addTabBtn');
+const tabBarTime = document.getElementById('tabBarTime');
+const tabBarDate = document.getElementById('tabBarDate');
+const tabBarStatus = document.getElementById('tabBarStatus');
 
 const chatMenu = document.getElementById('chatMenu');
 
@@ -99,6 +685,22 @@ function toggleMenuSection(sectionId) {
         console.error('Error in toggleMenuSection:', error);
     }
 }
+
+function updateTabBarClock() {
+    if (!tabBarTime || !tabBarDate) return;
+    const now = new Date();
+    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const dateString = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+    tabBarTime.textContent = timeString;
+    tabBarDate.textContent = dateString;
+    if (tabBarStatus) {
+        const statuses = ['Its running.',];
+        tabBarStatus.textContent = statuses[now.getSeconds() % statuses.length];
+    }
+}
+
+setInterval(updateTabBarClock, 1000);
+updateTabBarClock();
 
 function quickAction(action) {
     try {
@@ -166,7 +768,7 @@ function initTabs() {
     document.querySelectorAll('.dropdown-item').forEach(item => {
         item.addEventListener('click', () => {
             const tabId = item.dataset.tab;
-            openOrCreateTab(tabId);
+            switchTab(tabId);
             hideDropdown();
         });
     });
@@ -229,6 +831,7 @@ function createTab(tabId) {
     let tabLabel = tabId.charAt(0).toUpperCase() + tabId.slice(1);
     if (tabId === 'threats') tabLabel = 'Threats & Fraud';
     if (tabId === 'chat-control') tabLabel = 'Chat Security';
+    if (tabId === 'tracker') tabLabel = 'Shahed Tracker';
 
     newTab.innerHTML = `
                 ${tabLabel}
@@ -282,11 +885,26 @@ function switchTab(tabId) {
     const activeContent = document.getElementById(`${tabId}-tab`);
     if (activeContent) {
         activeContent.classList.add('active');
-
-        if (tabId === 'chat-control') {
-            loadSavedChats();
-        }
     }
+
+    if (tabId === 'tracker') {
+        ensureTrackerConfig(true);
+        ensureTrackerTabReady();
+    } else if (tabId === 'chat-control') {
+        loadSavedChats();
+    }
+
+    setActiveTabButton(tabId);
+}
+
+function setActiveTabButton(tabId) {
+    document.querySelectorAll('.tab[data-tab], .tab-action[data-tab-target]').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    const primary = document.querySelector(`.tab[data-tab="${tabId}"]`);
+    if (primary) primary.classList.add('active');
+    const action = document.querySelector(`.tab-action[data-tab-target="${tabId}"]`);
+    if (action) action.classList.add('active');
 }
 
 function closeTab(tabId) {
@@ -368,6 +986,376 @@ function saveData(immediate = false) {
         } catch (restoreError) {
             console.error(' Could not restore from backup:', restoreError);
         }
+    }
+}
+
+function ensureTrackerTabReady() {
+    if (trackerInitialized) {
+        refreshTrackerHumanOptions();
+        return;
+    }
+
+    trackerInitialized = true;
+    refreshTrackerHumanOptions();
+
+    if (!trackerMapContainer || typeof maplibregl === 'undefined') {
+        trackerDebug && (trackerDebug.innerText = 'Tracker map requires MapLibre library.');
+        return;
+    }
+
+    trackerMap = new maplibregl.Map({
+        container: 'trackerMap',
+        style: {
+            version: 8,
+            sources: {
+                satellite: {
+                    type: 'raster',
+                    tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+                    tileSize: 256,
+                    attribution: 'Tiles © Esri'
+                }
+            },
+            layers: [{
+                id: 'satellite',
+                type: 'raster',
+                source: 'satellite'
+            }]
+        },
+        center: [0, 0],
+        zoom: 2,
+        pitch: 60,
+        bearing: 0
+    });
+
+    trackerMap.on('load', () => {
+        startTrackerSpin();
+        ensureTrackerLabelLayers();
+        fetchTrackerPeople().then(() => {
+            if (pendingTrackerDetailShowAlias) {
+                showTrackerPersonLocations(pendingTrackerDetailShowAlias);
+                pendingTrackerDetailShowAlias = null;
+            }
+        });
+    });
+}
+
+function spinTrackerMap() {
+    if (!trackerSpinning || !trackerMap) return;
+    trackerMap.setBearing((trackerMap.getBearing() + 0.5) % 360);
+    trackerAnimationFrame = requestAnimationFrame(spinTrackerMap);
+}
+
+function startTrackerSpin() {
+    if (trackerSpinning) return;
+    trackerSpinning = true;
+    trackerSpinToggleBtn?.classList.add('active');
+    if (trackerSpinToggleBtn) trackerSpinToggleBtn.innerText = 'Pause spin';
+    spinTrackerMap();
+}
+
+function stopTrackerSpin() {
+    trackerSpinning = false;
+    trackerSpinToggleBtn?.classList.remove('active');
+    if (trackerSpinToggleBtn) trackerSpinToggleBtn.innerText = 'Resume spin';
+    if (trackerAnimationFrame) {
+        cancelAnimationFrame(trackerAnimationFrame);
+        trackerAnimationFrame = null;
+    }
+}
+
+async function fetchTrackerPeople() {
+    if (!trackerSupabase) {
+        trackerDebug && (trackerDebug.innerText = 'Tracker connection is unavailable.');
+        return;
+    }
+
+    trackerDebug && (trackerDebug.innerText = 'Fetching tracker people...');
+
+    const { data, error } = await trackerSupabase
+        .from('locations')
+        .select('name')
+        .order('timestamp', { ascending: false });
+
+    if (error) {
+        const message = escapeHtml(error.message || 'Unknown error');
+        trackerDebug && (trackerDebug.innerText = `Error fetching tracker: ${error.message}`);
+        if (trackerPeopleListEl) {
+            trackerPeopleListEl.innerHTML = `<div class="tracker-placeholder">Unable to load tracker data: ${message}</div>`;
+        }
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        trackerDebug && (trackerDebug.innerText = 'Tracker table is empty.');
+        if (trackerPeopleListEl) {
+            trackerPeopleListEl.innerHTML = '<div class="tracker-placeholder">No tracker data available.</div>';
+        }
+        return;
+    }
+
+    const nameCount = {};
+    data.forEach(row => {
+        if (!row.name) return;
+        nameCount[row.name] = (nameCount[row.name] || 0) + 1;
+    });
+
+    const uniqueNames = Object.keys(nameCount).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    renderTrackerPeopleList(uniqueNames, nameCount);
+
+    trackerDebug && (trackerDebug.innerText = `Found ${data.length} tracker points across ${uniqueNames.length} people.`);
+}
+
+function renderTrackerPeopleList(names, countMap) {
+    if (!trackerPeopleListEl) return;
+
+    if (!names.length) {
+        trackerPeopleListEl.innerHTML = '<div class="tracker-placeholder">No tracker data found.</div>';
+        return;
+    }
+
+    trackerPeopleListEl.innerHTML = '';
+
+    names.forEach(name => {
+        const item = document.createElement('div');
+        item.className = 'tracker-person-item';
+        item.dataset.name = name;
+        item.innerHTML = `
+            <span>${escapeHtml(name)}</span>
+            <span class="tracker-person-count">${countMap[name]} point${countMap[name] !== 1 ? 's' : ''}</span>
+        `;
+
+        item.addEventListener('click', () => {
+            document.querySelectorAll('.tracker-person-item').forEach(el => el.classList.remove('active'));
+            item.classList.add('active');
+            showTrackerPersonLocations(name);
+        });
+
+    trackerPeopleListEl.appendChild(item);
+});
+
+    trackerPersonNames = names;
+    updateHumanTrackerOptions();
+}
+
+function clearTrackerOverlays() {
+    if (!trackerMap) return;
+    [TRACKER_PATH_LAYER, TRACKER_MARKERS_LAYER].forEach(layerId => {
+        if (trackerMap.getLayer(layerId)) trackerMap.removeLayer(layerId);
+        if (trackerMap.getSource(layerId)) trackerMap.removeSource(layerId);
+    });
+}
+
+function updateHumanTrackerOptions(selectedValue = '') {
+    const select = humanTrackerSelect;
+    if (!select) return;
+    const previous = select.value;
+    select.innerHTML = '<option value="">Select from Shahed tracker</option>';
+    trackerPersonNames.forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        select.appendChild(option);
+    });
+    const toSelect = selectedValue || previous;
+    if (toSelect) {
+        select.value = toSelect;
+    }
+}
+
+function applyTrackerAliasToHuman(entry, alias, existingEntry = null) {
+    if (!entry) return;
+    if (alias) {
+        entry.trackerAlias = alias;
+        if (existingEntry && existingEntry.trackerAlias === alias && existingEntry.trackerLinkedAt) {
+            entry.trackerLinkedAt = existingEntry.trackerLinkedAt;
+        } else {
+            entry.trackerLinkedAt = new Date().toISOString();
+        }
+    } else {
+        delete entry.trackerAlias;
+        delete entry.trackerLinkedAt;
+    }
+}
+
+async function showTrackerPersonLocations(name) {
+    if (!trackerSupabase || !trackerMap) {
+        trackerDebug && (trackerDebug.innerText = 'Tracker map is not ready.');
+        return;
+    }
+
+    trackerDebug && (trackerDebug.innerText = `Loading locations for ${name}…`);
+
+    const { data, error } = await trackerSupabase
+        .from('locations')
+        .select('latitude, longitude, timestamp')
+        .eq('name', name)
+        .order('timestamp', { ascending: true });
+
+    if (error) {
+        trackerDebug && (trackerDebug.innerText = `Error: ${error.message}`);
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        trackerDebug && (trackerDebug.innerText = `No tracker points for ${name}.`);
+        return;
+    }
+
+    clearTrackerOverlays();
+
+    const coords = data
+        .filter(row => row.latitude !== null && row.longitude !== null)
+        .map(row => [row.longitude, row.latitude]);
+
+    if (!coords.length) {
+        trackerDebug && (trackerDebug.innerText = 'Tracker coordinates are invalid.');
+        return;
+    }
+
+    trackerMap.addSource(TRACKER_PATH_LAYER, {
+        type: 'geojson',
+        data: {
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates: coords }
+        }
+    });
+    trackerMap.addLayer({
+        id: TRACKER_PATH_LAYER,
+        type: 'line',
+        source: TRACKER_PATH_LAYER,
+        paint: {
+            'line-color': '#ff4d4d',
+            'line-width': 4,
+            'line-opacity': 0.9
+        }
+    });
+
+    const markersGeoJSON = {
+        type: 'FeatureCollection',
+        features: coords.map((coord, index) => ({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: coord },
+            properties: { index, timestamp: data[index]?.timestamp }
+        }))
+    };
+
+    trackerMap.addSource(TRACKER_MARKERS_LAYER, { type: 'geojson', data: markersGeoJSON });
+    trackerMap.addLayer({
+        id: TRACKER_MARKERS_LAYER,
+        type: 'circle',
+        source: TRACKER_MARKERS_LAYER,
+        paint: {
+            'circle-radius': 6,
+            'circle-color': '#00ccff',
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#ffffff'
+        }
+    });
+
+    const lastCoord = coords[coords.length - 1];
+    trackerMap.flyTo({
+        center: lastCoord,
+        zoom: 15,
+        pitch: 60,
+        bearing: trackerMap.getBearing(),
+        duration: 1800,
+        essential: true
+    });
+
+    setTrackerLocationDetails(lastCoord[1], lastCoord[0]);
+}
+
+function connectTrackerSelection() {
+    if (!trackerHumanSelect) return;
+    const humanId = trackerHumanSelect.value;
+    if (!humanId) {
+        trackerDebug && (trackerDebug.innerText = 'Select a Pazator person to connect.');
+        return;
+    }
+
+    const option = trackerHumanSelect.selectedOptions?.[0];
+    const human = pazatorData.humans.find(h => String(h.id) === humanId || h.name === humanId);
+
+    if (!human) {
+        trackerDebug && (trackerDebug.innerText = 'Linked Pazator entry is missing.');
+        return;
+    }
+
+    const trackerAlias = (option?.dataset?.trackerName || option?.textContent || human.name).trim();
+    human.trackerAlias = trackerAlias || human.name;
+    human.trackerLinkedAt = new Date().toISOString();
+    saveData();
+    refreshTrackerHumanOptions();
+
+    if (document.currentDetailData?.type === 'human' &&
+        String(document.currentDetailData.id) === String(human.id)) {
+        document.currentDetailData = { ...human, type: 'human' };
+        updateDetailTrackerInfo(document.currentDetailData);
+    }
+
+    trackerDebug && (trackerDebug.innerText = `Connected ${human.name} to tracker alias ${trackerAlias}.`);
+    const escName = (typeof CSS !== 'undefined' && CSS.escape)
+        ? CSS.escape(trackerAlias)
+        : trackerAlias.replace(/["\\]/g, '\\$&');
+
+    const target = document.querySelector(`.tracker-person-item[data-name="${escName}"]`);
+    if (target) {
+        target.click();
+    } else {
+        requestTrackerShow(trackerAlias);
+    }
+}
+
+async function purgeTrackerData() {
+    if (!trackerSupabase) {
+        trackerDebug && (trackerDebug.innerText = 'Tracker connection is unavailable.');
+        return;
+    }
+
+    if (!confirm('Delete ALL tracker location data? This cannot be undone.')) return;
+
+    const { error } = await trackerSupabase
+        .from('locations')
+        .delete()
+        .neq('id', 0);
+
+    if (error) {
+        alert('Error: ' + error.message);
+    } else {
+        alert('All tracker data purged.');
+        fetchTrackerPeople();
+        clearTrackerOverlays();
+        trackerDebug && (trackerDebug.innerText = 'Tracker data cleared.');
+    }
+}
+
+function refreshTrackerHumanOptions() {
+    if (!trackerHumanSelect) return;
+
+    const previousValue = trackerHumanSelect.value;
+    trackerHumanSelect.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Select a human';
+    trackerHumanSelect.appendChild(placeholder);
+
+    const humanOptions = pazatorData.humans
+        .filter(human => human?.name)
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+
+    humanOptions.forEach(human => {
+        const option = document.createElement('option');
+        const optionValue = human.id ?? human.name;
+        option.value = optionValue;
+        const alias = human.trackerAlias;
+        option.textContent = alias ? `${human.name} / ${alias}` : human.name;
+        option.dataset.trackerName = alias || human.name;
+        trackerHumanSelect.appendChild(option);
+    });
+
+    if (previousValue) {
+        trackerHumanSelect.value = previousValue;
     }
 }
 
@@ -512,6 +1500,8 @@ function loadData() {
     console.log('Rendering web nodes with loaded data...');
     console.log('Data to render:', { humans: pazatorData.humans.length, others: pazatorData.others.length });
     renderWebNodes();
+
+    updatePersonIdSequenceFromData();
 
     const totalItems = pazatorData.humans.length + pazatorData.others.length;
     updatePersistenceIndicator('online', `Loaded (${totalItems} items)`);
@@ -811,11 +1801,13 @@ function showDetailView(data, type) {
         document.getElementById('statFamily').textContent = familyCount;
         document.getElementById('statTags').textContent = tagsCount;
         document.getElementById('statCredit').textContent = creditValue;
+        document.getElementById('statId').textContent = data.id || '—';
     } else {
         document.getElementById('statFriends').textContent = 'N/A';
         document.getElementById('statFamily').textContent = 'N/A';
         document.getElementById('statTags').textContent = 'N/A';
         document.getElementById('statCredit').textContent = 'N/A';
+        document.getElementById('statId').textContent = '—';
     }
 
     const profilePictureContainer = document.getElementById('profilePictureContainer');
@@ -902,6 +1894,8 @@ function showDetailView(data, type) {
         document.getElementById('detailNotesContainer').style.display = 'block';
         document.getElementById('detailNotes').textContent = data.note || 'None';
     }
+
+    updateDetailTrackerInfo({ ...data, type });
 
     detailViewModal.style.display = 'flex';
     detailViewModal.style.zIndex = '1000';
@@ -1058,6 +2052,14 @@ function openHumanFormForEdit(human) {
     populateSelectOptions(human.friends || [], human.family || []);
 
     populateTagsForHuman(human.tags || []);
+    updateHumanTrackerOptions(human.trackerAlias || '');
+
+    if (humanTrackerAliasInput) {
+        humanTrackerAliasInput.value = human.trackerAlias || '';
+    }
+    if (humanTrackerSelect) {
+        humanTrackerSelect.value = human.trackerAlias || '';
+    }
 
     humanModal.style.display = 'flex';
     humanModal.style.zIndex = '1000';
@@ -1620,7 +2622,7 @@ function handleAIAction(action, isBatch = false) {
         case "add_human":
             try {
                 const newHuman = {
-                    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                    id: generatePersonId(action.data?.name, action.data?.birthDate),
                     ...action.data
                 };
                 pazatorData.humans.push(newHuman);
@@ -1851,6 +2853,7 @@ newDataBtn.addEventListener('click', () => {
 
     populateSelectOptions();
     populateTagsForHuman();
+    updateHumanTrackerOptions();
 
     typeModal.style.display = 'flex';
     typeModal.style.zIndex = '1000';
@@ -2544,15 +3547,15 @@ document.getElementById('menuBtn')?.addEventListener('click', () => {
 });
 
 document.getElementById('dashboardBtn').addEventListener('click', () => {
-    createTab('dashboard');
+    switchTab('dashboard');
 });
 
 document.getElementById('analysisBtn').addEventListener('click', () => {
-    createTab('analysis');
+    switchTab('analysis');
 });
 
 document.getElementById('threatsBtn').addEventListener('click', () => {
-    createTab('threats');
+    switchTab('threats');
 });
 
 document.querySelectorAll('.close').forEach(button => {
@@ -2928,12 +3931,14 @@ document.getElementById('humanForm').addEventListener('submit', (e) => {
 
     const tagsSelect = document.getElementById('humanTags');
     const selectedTags = Array.from(tagsSelect.selectedOptions).map(option => option.value);
+    const trackerAliasValue = humanTrackerAliasInput?.value?.trim();
 
     if (id) {
 
         const humanIndex = pazatorData.humans.findIndex(h => h.id === id);
         if (humanIndex !== -1) {
             const existingImage = pazatorData.humans[humanIndex].imagePreview;
+            const existingHuman = pazatorData.humans[humanIndex];
 
             pazatorData.humans[humanIndex] = {
                 id,
@@ -2949,11 +3954,12 @@ document.getElementById('humanForm').addEventListener('submit', (e) => {
                 tags: selectedTags,
                 imagePreview: existingImage
             };
+            applyTrackerAliasToHuman(pazatorData.humans[humanIndex], trackerAliasValue, existingHuman);
         }
     } else {
 
         const newHuman = {
-            id: Date.now().toString(),
+            id: generatePersonId(name),
             name,
             gender,
             birthDate,
@@ -2967,6 +3973,7 @@ document.getElementById('humanForm').addEventListener('submit', (e) => {
             imagePreview: null
         };
 
+        applyTrackerAliasToHuman(newHuman, trackerAliasValue);
         pazatorData.humans.push(newHuman);
     }
 
@@ -3271,19 +4278,86 @@ sortByCreditBtn.addEventListener('click', () => {
 });
 
 chatControlBtn?.addEventListener('click', () => {
-    openOrCreateTab('chat-control');
+    switchTab('chat-control');
 });
 
 document.getElementById('searchBtn')?.addEventListener('click', () => {
-    openOrCreateTab('search');
+    switchTab('search');
 });
 
 document.getElementById('agentsBtn')?.addEventListener('click', () => {
-    openOrCreateTab('agents');
+    switchTab('agents');
 });
 
 document.getElementById('articlesBtn')?.addEventListener('click', () => {
-    openOrCreateTab('articles');
+    switchTab('articles');
+});
+
+document.getElementById('trackerBtn')?.addEventListener('click', () => {
+    switchTab('tracker');
+});
+
+trackerConnectBtn?.addEventListener('click', connectTrackerSelection);
+trackerRefreshBtn?.addEventListener('click', () => {
+    if (trackerDebug) trackerDebug.innerText = 'Refreshing tracker data...';
+    fetchTrackerPeople();
+});
+trackerPurgeBtn?.addEventListener('click', () => {
+    purgeTrackerData();
+});
+trackerConfigureBtn?.addEventListener('click', () => {
+    promptForTrackerConfig();
+});
+trackerToggleSidebarBtn?.addEventListener('click', () => {
+    if (!trackerSidebar) return;
+    trackerSidebar.classList.toggle('collapsed');
+    trackerToggleSidebarBtn.innerText = trackerSidebar.classList.contains('collapsed') ? '▶ show sidebar' : '◀ hide sidebar';
+});
+trackerSpinToggleBtn?.addEventListener('click', () => {
+    if (trackerSpinning) {
+        stopTrackerSpin();
+    } else {
+        startTrackerSpin();
+    }
+});
+trackerStreetLabelBtn?.addEventListener('click', () => toggleLabelLayer('street'));
+humanTrackerSelect?.addEventListener('change', () => {
+    if (!humanTrackerAliasInput) return;
+    if (!humanTrackerAliasInput.value) {
+        humanTrackerAliasInput.value = humanTrackerSelect.value;
+    }
+});
+
+detailTrackerSaveAliasBtn?.addEventListener('click', () => {
+    const current = document.currentDetailData;
+    if (!current || current.type !== 'human') return;
+
+    const alias = detailTrackerAliasInput?.value?.trim();
+    const human = pazatorData.humans.find(h => String(h.id) === String(current.id));
+    if (!human) return;
+
+    if (!alias) {
+        delete human.trackerAlias;
+        delete human.trackerLinkedAt;
+    } else {
+        human.trackerAlias = alias;
+        human.trackerLinkedAt = new Date().toISOString();
+    }
+
+    saveData();
+    refreshTrackerHumanOptions();
+    document.currentDetailData = { ...human, type: 'human' };
+    updateDetailTrackerInfo(document.currentDetailData);
+    trackerDebug && (trackerDebug.innerText = alias
+        ? `Tracker alias saved for ${human.name}.`
+        : `Tracker link removed for ${human.name}.`);
+});
+
+detailTrackerShowBtn?.addEventListener('click', () => {
+    const alias = detailTrackerAliasInput?.value?.trim();
+    if (!alias) return;
+    openOrCreateTab('tracker');
+    requestTrackerShow(alias);
 });
 
 analyzeAllChatsBtn?.addEventListener('click', async () => {
