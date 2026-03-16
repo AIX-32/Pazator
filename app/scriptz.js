@@ -412,6 +412,42 @@ function formatTrackerTimestamp(iso) {
     return parsed.toLocaleString();
 }
 
+const TRACKER_META_FIELDS = [
+    { key: 'timestamp', label: 'Last seen', format: value => formatTrackerTimestamp(value) },
+    { key: 'ip', label: 'IP Address' },
+    { key: 'ip_address', label: 'IP Address' },
+    { key: 'server', label: 'Server' },
+    { key: 'region', label: 'Region' },
+    { key: 'country', label: 'Country' },
+    { key: 'device', label: 'Device' },
+    { key: 'platform', label: 'Platform' },
+    { key: 'user_agent', label: 'User Agent' },
+    { key: 'speed', label: 'Speed' },
+    { key: 'heading', label: 'Heading' }
+];
+
+function buildTrackerMetaHtml(row) {
+    if (!row) return '';
+    const seen = new Set();
+    const lines = [];
+    TRACKER_META_FIELDS.forEach(field => {
+        if (seen.has(field.label)) return;
+        let rawValue = row[field.key];
+        if (rawValue == null || rawValue === '') return;
+        const formatted = field.format
+            ? field.format(rawValue)
+            : rawValue;
+        if (formatted == null || formatted === '') return;
+        lines.push(
+            `<div class="tracker-meta-line"><span class="tracker-meta-label">${escapeHtml(field.label)}</span>` +
+            `<strong class="tracker-meta-value">${escapeHtml(String(formatted))}</strong></div>`
+        );
+        seen.add(field.label);
+    });
+    if (!lines.length) return '';
+    return `<div class="tracker-location-meta">${lines.join('')}</div>`;
+}
+
 function generatePersonId(name, birthDate) {
     const seq = getNextPersonSequence();
     const seqStr = String(seq).padStart(4, '0');
@@ -483,13 +519,14 @@ async function reverseGeocodeLocation(lat, lon, signal) {
     return payload.display_name || payload.address?.road || 'Unknown place';
 }
 
-async function setTrackerLocationDetails(lat, lon) {
+async function setTrackerLocationDetails(lat, lon, metaRow = null) {
     if (!trackerLocationInfo) return;
 
-    const key = `${lat.toFixed(5)}|${lon.toFixed(5)}`;
+    const metaIdentifier = metaRow?.timestamp ? metaRow.timestamp : '';
+    const key = `${lat.toFixed(5)}|${lon.toFixed(5)}|${metaIdentifier}`;
     if (key === trackerLocationCacheKey) return;
     trackerLocationCacheKey = key;
-    trackerLocationInfo.textContent = 'Resolving place details…';
+    trackerLocationInfo.innerHTML = '<span class="tracker-location-status">Resolving place details…</span>';
 
     if (trackerLocationAbortController) {
         trackerLocationAbortController.abort();
@@ -498,10 +535,16 @@ async function setTrackerLocationDetails(lat, lon) {
 
     try {
         const displayName = await reverseGeocodeLocation(lat, lon, trackerLocationAbortController.signal);
-        trackerLocationInfo.textContent = displayName;
+        trackerLocationInfo.innerHTML = `
+            <div class="tracker-location-title">${escapeHtml(displayName)}</div>
+            ${buildTrackerMetaHtml(metaRow)}
+        `;
     } catch (error) {
         if (error.name === 'AbortError') return;
-        trackerLocationInfo.textContent = 'Unable to resolve location.';
+        trackerLocationInfo.innerHTML = `
+            <div class="tracker-location-title">Unable to resolve location.</div>
+            ${buildTrackerMetaHtml(metaRow)}
+        `;
         console.warn('Tracker reverse geocode failed', error);
     }
 }
@@ -1187,7 +1230,7 @@ async function showTrackerPersonLocations(name) {
 
     const { data, error } = await trackerSupabase
         .from('locations')
-        .select('latitude, longitude, timestamp')
+        .select('*')
         .eq('name', name)
         .order('timestamp', { ascending: true });
 
@@ -1224,8 +1267,8 @@ async function showTrackerPersonLocations(name) {
         type: 'line',
         source: TRACKER_PATH_LAYER,
         paint: {
-            'line-color': '#ff4d4d',
-            'line-width': 4,
+            'line-color': '#000000',
+            'line-width': 3,
             'line-opacity': 0.9
         }
     });
@@ -1245,13 +1288,15 @@ async function showTrackerPersonLocations(name) {
         type: 'circle',
         source: TRACKER_MARKERS_LAYER,
         paint: {
-            'circle-radius': 6,
-            'circle-color': '#00ccff',
+            'circle-radius': 5,
+            'circle-color': '#000000',
             'circle-stroke-width': 2,
-            'circle-stroke-color': '#ffffff'
+            'circle-stroke-color': '#ffffff',
+            'circle-opacity': 1
         }
     });
 
+    const latestPoint = data[data.length - 1];
     const lastCoord = coords[coords.length - 1];
     trackerMap.flyTo({
         center: lastCoord,
@@ -1262,7 +1307,7 @@ async function showTrackerPersonLocations(name) {
         essential: true
     });
 
-    setTrackerLocationDetails(lastCoord[1], lastCoord[0]);
+    setTrackerLocationDetails(lastCoord[1], lastCoord[0], latestPoint);
 }
 
 function connectTrackerSelection() {
