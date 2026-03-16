@@ -792,6 +792,56 @@
         min-height: 0;
     }
 
+    .tracker-crosshair {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10;
+    }
+
+    .tracker-crosshair::before,
+    .tracker-crosshair::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .tracker-crosshair::before {
+        width: 60%;
+        height: 1px;
+    }
+
+    .tracker-crosshair::after {
+        width: 1px;
+        height: 60%;
+    }
+
+    .tracker-crosshair span {
+        position: relative;
+        width: 72px;
+        height: 72px;
+        border-radius: 30%;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 0 25px rgba(0, 0, 0, 0.25);
+    }
+
+    .tracker-crosshair span::after {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.8);
+    }
+
     .tracker-map-overlay {
         position: absolute;
         top: 12px;
@@ -804,22 +854,18 @@
     }
 
     .tracker-map-button {
-        background: rgba(10, 10, 10, 0.85);
-        border: 1px solid var(--border-color);
-        border-radius: 999px;
-        color: var(--text-primary);
+        border-radius: 7px;
         font-size: 0.85rem;
-        padding: 8px 14px;
-        cursor: pointer;
-        transition: transform 0.2s ease, border 0.2s ease;
-        display: inline-flex;
-        align-items: center;
+        padding: 10px 16px;
+        min-width: 0;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
         gap: 6px;
+        box-shadow: 0 5px 14px rgba(0, 0, 0, 0.25);
     }
 
     .tracker-map-button.active {
-        border-color: #6bcf7f;
-        background: rgba(107, 207, 127, 0.2);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
     }
 
     .tracker-map-button:hover {
@@ -827,13 +873,14 @@
     }
 
     .tracker-label-toggle {
-        border-color: transparent;
-        background: rgba(255, 255, 255, 0.08);
+        border-color: #3a3a3a !important;
+        background: linear-gradient(145deg, #2a2a2a, #252525) !important;
+        color: var(--text-secondary);
     }
 
     .tracker-label-toggle.active {
-        border-color: #ffd93d;
-        background: rgba(255, 217, 61, 0.2);
+        border-color: #ffd93d !important;
+        background: linear-gradient(145deg, #3a3a3a, #2b2b2b) !important;
         color: #ffd93d;
     }
 

@@ -4311,7 +4311,7 @@ trackerConfigureBtn?.addEventListener('click', () => {
 trackerToggleSidebarBtn?.addEventListener('click', () => {
     if (!trackerSidebar) return;
     trackerSidebar.classList.toggle('collapsed');
-    trackerToggleSidebarBtn.innerText = trackerSidebar.classList.contains('collapsed') ? '▶ show sidebar' : '◀ hide sidebar';
+    trackerToggleSidebarBtn.innerText = trackerSidebar.classList.contains('collapsed') ? 'show sidebar' : 'hide sidebar';
 });
 trackerSpinToggleBtn?.addEventListener('click', () => {
     if (trackerSpinning) {

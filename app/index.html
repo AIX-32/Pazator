@@ -182,7 +182,7 @@
             <div class="workspace">
                 <div class="main-panel">
                     <div class="logo">
-                        <h1>Pazator AIOIP - beta <p class="versiontext">0.Mar1426 </p></h1>
+                        <h1>Pazator AIOIP - beta <p class="versiontext">0.Mar1626 </p></h1>
                     </div>
                     <div class="web-container" id="webContainer">
                         <div class="web-content" id="webContent">
@@ -897,7 +897,7 @@
                         <label for="trackerHumanSelect">Connect Pazator person</label>
                         <div class="tracker-select-row">
                             <select id="trackerHumanSelect">
-                                <option value="">Select a human</option>
+                                <option value="">Setlect a human</option>
                             </select>
                             <button class="btn btn-primary" id="trackerConnectBtn">Show</button>
                         </div>
@@ -915,11 +915,14 @@
                 </div>
                 <div class="tracker-map-area">
                     <div class="tracker-map-overlay">
-                        <button id="trackerToggleSidebarBtn" class="tracker-map-button">◀ hide sidebar</button>
+                        <button id="trackerToggleSidebarBtn" class="tracker-map-button">hide sidebar</button>
                         <button id="trackerSpinToggleBtn" class="tracker-map-button active">Pause spin</button>
                         <button id="streetLabelToggle" class="tracker-map-button tracker-label-toggle">Show street names</button>
                     </div>
                     <div id="trackerMap" class="tracker-map"></div>
+                    <div class="tracker-crosshair" aria-hidden="true">
+                        <span></span>
+                    </div>
                     <div class="tracker-debug" id="trackerDebug">ready</div>
                 </div>
             </div>
