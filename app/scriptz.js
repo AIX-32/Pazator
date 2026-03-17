@@ -27,6 +27,68 @@ const DEFAULT_TRACKER_CONFIG = {
     key: ''
 };
 
+// Clean Modal UI Functions
+const cleanModal = document.getElementById('cleanModal');
+const modalIcon = document.getElementById('modalIcon');
+const modalTitle = document.getElementById('modalTitle');
+const modalBody = document.getElementById('modalBody');
+const modalActions = document.getElementById('modalActions');
+const modalBackdrop = document.querySelector('.clean-modal-backdrop');
+
+function showModal({ title, message, type = 'info', buttons = [] }) {
+    const icons = {
+        info: 'fa-info-circle',
+        success: 'fa-check-circle',
+        warning: 'fa-exclamation-triangle',
+        error: 'fa-times-circle',
+        question: 'fa-question-circle'
+    };
+    
+    modalIcon.className = `clean-modal-icon ${type}`;
+    modalIcon.innerHTML = `<i class="fas ${icons[type] || 'fa-info-circle'}"></i>`;
+    modalTitle.textContent = title;
+    modalBody.textContent = message;
+    
+    modalActions.innerHTML = '';
+    buttons.forEach(btn => {
+        const button = document.createElement('button');
+        button.className = btn.primary ? 'clean-modal-btn-primary' : 'clean-modal-btn';
+        if (btn.danger) button.className = 'clean-modal-btn-danger';
+        button.textContent = btn.text;
+        button.onclick = () => {
+            hideModal();
+            if (btn.onClick) btn.onClick();
+        };
+        modalActions.appendChild(button);
+    });
+    
+    cleanModal.classList.add('active');
+}
+
+function hideModal() {
+    cleanModal.classList.remove('active');
+}
+
+modalBackdrop.addEventListener('click', hideModal);
+
+function showAlert(message, title = 'Notice', type = 'info') {
+    showModal({ title, message, type, buttons: [{ text: 'OK', primary: true }] });
+}
+
+function showConfirm(message, title = 'Confirm', type = 'question') {
+    return new Promise((resolve) => {
+        showModal({
+            title,
+            message,
+            type,
+            buttons: [
+                { text: 'Cancel', primary: false, onClick: () => resolve(false) },
+                { text: 'Confirm', primary: true, danger: true, onClick: () => resolve(true) }
+            ]
+        });
+    });
+}
+
 function hasValidTrackerConfig(config) {
     return Boolean(config && config.url && config.key);
 }
@@ -1357,7 +1419,8 @@ async function purgeTrackerData() {
         return;
     }
 
-    if (!confirm('Delete ALL tracker location data? This cannot be undone.')) return;
+    const confirmed = await showConfirm('Delete ALL tracker location data? This cannot be undone.', 'Confirm Deletion', 'warning');
+    if (!confirmed) return;
 
     const { error } = await trackerSupabase
         .from('locations')
@@ -1365,9 +1428,9 @@ async function purgeTrackerData() {
         .neq('id', 0);
 
     if (error) {
-        alert('Error: ' + error.message);
+        showAlert('Error: ' + error.message, 'Error', 'error');
     } else {
-        alert('All tracker data purged.');
+        showAlert('All tracker data purged.', 'Success', 'success');
         fetchTrackerPeople();
         clearTrackerOverlays();
         trackerDebug && (trackerDebug.innerText = 'Tracker data cleared.');
@@ -1545,6 +1608,7 @@ function loadData() {
     console.log('Rendering web nodes with loaded data...');
     console.log('Data to render:', { humans: pazatorData.humans.length, others: pazatorData.others.length });
     renderWebNodes();
+    updateCreditStats();
 
     updatePersonIdSequenceFromData();
 
@@ -1703,14 +1767,14 @@ function renderWebNodes() {
         let displayText = data.name;
         if (data.type === 'human') {
             if (data.credit !== undefined) {
-                displayText = `${data.name}\n(${Math.round(data.credit)})`;
+                const credit = Math.round(data.credit);
+                displayText = `${data.name}\n${credit}`;
             }
             if (data.socialClass) {
-
                 const classSymbol = data.socialClass === '1%' ? '1%' :
                     data.socialClass === 'high class' ? 'HC' :
                         data.socialClass === 'medium class' ? 'MC' : 'LC';
-                displayText += `\n[${classSymbol}]`;
+                displayText += ` ${classSymbol}`;
             }
         }
 
@@ -2120,11 +2184,12 @@ function openOtherFormForEdit(other) {
     otherModal.style.zIndex = '1000';
 }
 
-function deleteCurrentEntry() {
+async function deleteCurrentEntry() {
     const data = document.currentDetailData;
     if (!data) return;
 
-    if (confirm(`Are you sure you want to delete "${data.name}"?`)) {
+    const confirmed = await showConfirm(`Are you sure you want to delete "${data.name}"?`, 'Confirm Deletion', 'warning');
+    if (confirmed) {
         if (data.type === 'human') {
             pazatorData.humans = pazatorData.humans.filter(h => h.id !== data.id);
         } else {
@@ -2943,7 +3008,7 @@ document.getElementById('analyzeDiscordBtn')?.addEventListener('click', async ()
     const chatContent = document.getElementById('chatContent').value.trim();
 
     if (!chatContent) {
-        alert('Please paste Discord chat content first.');
+        showAlert('Please paste Discord chat content first.');
         return;
     }
 
@@ -3005,18 +3070,18 @@ document.getElementById('analyzeDiscordBtn')?.addEventListener('click', async ()
                     result += `Recommendations:\n${analysis.recommendations.map(rec => `• ${rec}`).join('\n')}`;
                 }
 
-                alert(result);
+                showAlert(result, 'Analysis Result', 'info');
             } else {
-                alert(`Analysis complete!\n\n${responseText}`);
+                showAlert(`Analysis complete!\n\n${responseText}`, 'Analysis Complete', 'success');
             }
         } catch (parseError) {
             console.error('Error parsing analysis response:', parseError);
-            alert(`Analysis complete!\n\n${responseText}`);
+            showAlert(`Analysis complete!\n\n${responseText}`, 'Analysis Complete', 'success');
         }
 
     } catch (error) {
         console.error('Error analyzing Discord chat:', error);
-        alert('Error analyzing chat. Please try again.');
+        showAlert('Error analyzing chat. Please try again.', 'Error', 'error');
     } finally {
         analyzeBtn.disabled = false;
         analyzeBtn.textContent = 'Analyze Discord Chat for Suspicious Content';
@@ -3099,12 +3164,12 @@ document.getElementById('chatUploadForm').addEventListener('submit', async (e) =
     });
 
     if (selectedParticipants.length === 0) {
-        alert('Please select at least one participant from your database.');
+        showAlert('Please select at least one participant from your database.');
         return;
     }
 
     if (!content) {
-        alert('Please provide chat content either by uploading a file or pasting content.');
+        showAlert('Please provide chat content either by uploading a file or pasting content.');
         return;
     }
 
@@ -3126,7 +3191,7 @@ document.getElementById('chatUploadForm').addEventListener('submit', async (e) =
 
         addChatContextToAI(chatData);
 
-        alert(`Successfully processed chat with ${selectedParticipants.length} participants! This chat data is now available for AI analysis.`);
+        showAlert(`Successfully processed chat with ${selectedParticipants.length} participants! This chat data is now available for AI analysis.`, 'Success', 'success');
 
         chatUploadModal.style.display = 'none';
         chatUploadModal.style.zIndex = '-1';
@@ -3135,7 +3200,7 @@ document.getElementById('chatUploadForm').addEventListener('submit', async (e) =
 
     } catch (error) {
         console.error('Error processing chat:', error);
-        alert('Error processing chat. Please try again.');
+            showAlert('Error processing chat. Please try again.', 'Error', 'error');
     } finally {
         uploadChatBtn.disabled = false;
         uploadChatBtn.textContent = 'Process Chat';
@@ -3329,13 +3394,13 @@ function loadContextFraudLogs() {
         const severityColor = log.severity === 'high' ? '#ff6b6b' :
             log.severity === 'medium' ? '#ffd93d' : '#6bcf7f';
 
-        const icon = log.category === 'fraud' ? '' : '️';
+        const iconClass = log.category === 'fraud' ? 'fa-exclamation-circle' : 'fa-user-secret';
         const date = new Date(log.timestamp).toLocaleDateString();
 
         logDiv.innerHTML = `
                     <input type="checkbox" id="context_log_${log.id}" value="${log.id}" style="margin-right: 10px;">
                     <label for="context_log_${log.id}" style="flex: 1; cursor: pointer;">
-                        <strong style="color: ${severityColor}">${icon} ${log.type}</strong>
+                        <strong style="color: ${severityColor}"><i class="fas ${iconClass}" style="margin-right:6px;"></i>${log.type}</strong>
                         <br>
                         <small style="color: #aaa;">${log.person || 'Unknown person'} • ${log.confidence || 'Medium'} confidence • ${date}</small>
                     </label>
@@ -3409,7 +3474,7 @@ applyContextBtn.addEventListener('click', () => {
     contextModal.style.zIndex = '-1';
     aiChatModal.style.pointerEvents = 'auto';
 
-    alert(`Context applied! Selected: ${selectedContext.people.length} people, ${selectedContext.chats.length} chats, ${selectedContext.fraudLogs.length} fraud logs.`);
+    showAlert(`Context applied! Selected: ${selectedContext.people.length} people, ${selectedContext.chats.length} chats, ${selectedContext.fraudLogs.length} fraud logs.`, 'Context Updated', 'success');
 });
 
 function updateContextDisplay(context) {
@@ -3434,7 +3499,7 @@ function updateContextDisplay(context) {
                     <span class="card-name" title="${person.name}">${person.name}</span>
                 `;
         card.addEventListener('click', () => {
-            alert(`Person: ${person.name}\nCredit: ${person.credit !== undefined ? Math.round(person.credit) : 'N/A'}\nNotes: ${person.extraNotes || 'None'}`);
+            showAlert(`Person: ${person.name}\nCredit: ${person.credit !== undefined ? Math.round(person.credit) : 'N/A'}\nNotes: ${person.extraNotes || 'None'}`, 'Person Details', 'info');
         });
         contextDisplay.appendChild(card);
     });
@@ -3449,7 +3514,7 @@ function updateContextDisplay(context) {
                     <span class="card-name" title="${chat.source.toUpperCase()} Chat - ${participants}">${chat.source.toUpperCase()} Chat (${wordCount} words)</span>
                 `;
         card.addEventListener('click', () => {
-            alert(`${chat.source.toUpperCase()} Chat\nParticipants: ${participants}\nWords: ${wordCount}\nContext: ${chat.context || 'None'}`);
+            showAlert(`${chat.source.toUpperCase()} Chat\nParticipants: ${participants}\nWords: ${wordCount}\nContext: ${chat.context || 'None'}`, 'Chat Details', 'info');
         });
         contextDisplay.appendChild(card);
     });
@@ -3458,11 +3523,11 @@ function updateContextDisplay(context) {
         const card = document.createElement('div');
         card.className = 'context-card fraud';
         card.innerHTML = `
-                    <span class="card-icon">️</span>
+                    <span class="card-icon"><i class="fas fa-exclamation-circle"></i></span>
                     <span class="card-name" title="${log.type} - ${log.person || 'Unknown'}">${log.type} (${log.person || 'Unknown'})</span>
                 `;
         card.addEventListener('click', () => {
-            alert(`${log.type}\nPerson: ${log.person || 'Unknown'}\nSeverity: ${log.severity || 'Unknown'}\nEvidence: ${log.evidence || 'None'}`);
+            showAlert(`${log.type}\nPerson: ${log.person || 'Unknown'}\nSeverity: ${log.severity || 'Unknown'}\nEvidence: ${log.evidence || 'None'}`, 'Fraud Log Details', 'warning');
         });
         contextDisplay.appendChild(card);
     });
@@ -3473,7 +3538,7 @@ function updateContextDisplay(context) {
         clearBtn.style.backgroundColor = 'rgba(200, 50, 50, 0.3)';
         clearBtn.style.borderColor = '#cc4444';
         clearBtn.innerHTML = `
-                    <span class="card-icon">️</span>
+                    <span class="card-icon"><i class="fas fa-trash-alt"></i></span>
                     <span class="card-name">Clear All Context</span>
                 `;
         clearBtn.addEventListener('click', () => {
@@ -3930,11 +3995,11 @@ aiInput.addEventListener('input', debounce(() => {
 }, 50));
 
 document.getElementById('historyBtn')?.addEventListener('click', () => {
-    alert('Chat history feature would open here. This is a placeholder for future implementation.');
+    showAlert('Chat history feature would open here. This is a placeholder for future implementation.', 'Coming Soon', 'info');
 });
 
 document.getElementById('favoritesBtn')?.addEventListener('click', () => {
-    alert('Favorite commands would appear here. This is a placeholder for future implementation.');
+    showAlert('Favorite commands would appear here. This is a placeholder for future implementation.', 'Coming Soon', 'info');
 });
 
 const chatOptionsMenu = document.getElementById('chatOptionsMenu');
@@ -3951,7 +4016,7 @@ document.addEventListener('click', (e) => {
 });
 
 document.getElementById('clearChatOption')?.addEventListener('click', () => {
-    alert('Clear chat functionality would go here. This is a placeholder for future implementation.');
+    showAlert('Clear chat functionality would go here. This is a placeholder for future implementation.', 'Coming Soon', 'info');
     chatOptionsMenu.classList.remove('active');
 });
 
@@ -4287,11 +4352,11 @@ showStatisticsBtn.addEventListener('click', () => {
         return total + (human.family ? human.family.length : 0) + (human.friends ? human.friends.length : 0);
     }, 0);
 
-    alert(`Statistics:
+    showAlert(`Statistics:
 - Humans: ${humanCount}
 - Others: ${otherCount}
 - Total Entries: ${humanCount + otherCount}
-- Connections: ${totalConnections}`);
+- Connections: ${totalConnections}`, 'Statistics', 'info');
 });
 
 findConnectionsBtn.addEventListener('click', async () => {
@@ -4438,8 +4503,29 @@ function sortByCredit() {
 
     saveData();
     renderWebNodes();
+    updateCreditStats();
 
-    alert(`Sorted ${pazatorData.humans.length} people by credit score!`);
+    showAlert(`Sorted ${pazatorData.humans.length} people by credit score!`, 'Sorted', 'success');
+}
+
+function updateCreditStats() {
+    const creditStats = document.getElementById('creditStats');
+    if (!creditStats || pazatorData.humans.length === 0) return;
+    
+    const highRisk = pazatorData.humans.filter(h => (h.credit || 50) < 30).length;
+    const mediumRisk = pazatorData.humans.filter(h => (h.credit || 50) >= 30 && (h.credit || 50) < 60).length;
+    const lowRisk = pazatorData.humans.filter(h => (h.credit || 50) >= 60).length;
+    
+    const total = pazatorData.humans.length;
+    const highPct = Math.round((highRisk / total) * 100);
+    const mediumPct = Math.round((mediumRisk / total) * 100);
+    const lowPct = Math.round((lowRisk / total) * 100);
+    
+    creditStats.innerHTML = `
+        <div class="stat-row"><span>High Risk:</span><span class="stat-red">${highPct}%</span></div>
+        <div class="stat-row"><span>Medium Risk:</span><span class="stat-yellow">${mediumPct}%</span></div>
+        <div class="stat-row"><span>Low Risk:</span><span class="stat-green">${lowPct}%</span></div>
+    `;
 }
 
 function generateThreatReport() {
@@ -4485,7 +4571,7 @@ function generateThreatReport() {
     report += `• Continue regular security sweeps\n`;
     report += `• Update threat intelligence databases\n\n`;
 
-    alert(report);
+    showAlert(report, 'Security Report', 'info');
 }
 
 function reviewHistoricalPatterns() {
@@ -4496,7 +4582,7 @@ function reviewHistoricalPatterns() {
 
     if (fraudLogs.length === 0 && terroristLogs.length === 0 &&
         previousThreats.length === 0 && previousFraud.length === 0) {
-        alert('No historical security incidents found.\n\nThis system tracks:\n• Fraud detection cases\n• Terrorism indicators\n• Threat assessments\n• Security pattern analysis\n\nContinue monitoring to build historical data.');
+        showAlert('No historical security incidents found.\n\nThis system tracks:\n• Fraud detection cases\n• Terrorism indicators\n• Threat assessments\n• Security pattern analysis\n\nContinue monitoring to build historical data.', 'No Data', 'info');
         return;
     }
 
@@ -4536,7 +4622,7 @@ function reviewHistoricalPatterns() {
     report += `• Update security protocols based on findings\n`;
     report += `• Schedule regular pattern analysis reviews\n`;
 
-    alert(report);
+    showAlert(report, 'Historical Analysis', 'info');
 }
 
 function loadSavedChats() {
@@ -4602,7 +4688,7 @@ async function analyzeAllChats() {
     const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
 
     if (chatHistory.length === 0) {
-        alert('No chats to analyze!');
+        showAlert('No chats to analyze!', 'Notice', 'info');
         return;
     }
 
@@ -4651,11 +4737,11 @@ async function analyzeAllChats() {
             report += `No suspicious chats detected. All chats appear secure.`;
         }
 
-        alert(report);
+        showAlert(report, 'Chat Analysis Report', 'info');
 
     } catch (error) {
         console.error('Error analyzing all chats:', error);
-        alert('Error analyzing chats. Please try again.');
+        showAlert('Error analyzing chats. Please try again.', 'Error', 'error');
     } finally {
         analyzeAllChatsBtn.disabled = false;
         analyzeAllChatsBtn.innerHTML = '<i class="fas fa-search"></i> Analyze All Chats for Suspicious Content';
@@ -4721,7 +4807,7 @@ async function analyzeSingleChat(index) {
     const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
 
     if (!chatHistory[index]) {
-        alert('Chat not found!');
+        showAlert('Chat not found!', 'Error', 'error');
         return;
     }
 
@@ -4741,11 +4827,12 @@ async function analyzeSingleChat(index) {
 
     message += `Summary: ${result.summary || 'No specific concerns'}`;
 
-    alert(message);
+    showAlert(message, 'Single Chat Analysis', 'info');
 }
 
-function deleteChat(index) {
-    if (confirm('Are you sure you want to delete this chat?')) {
+async function deleteChat(index) {
+    const confirmed = await showConfirm('Are you sure you want to delete this chat?', 'Confirm Deletion', 'warning');
+    if (confirmed) {
         let chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
         chatHistory.splice(index, 1);
         localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
@@ -4757,7 +4844,7 @@ function exportChatReport() {
     const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
 
     if (chatHistory.length === 0) {
-        alert('No chats to export!');
+        showAlert('No chats to export!', 'Notice', 'info');
         return;
     }
 
@@ -4790,11 +4877,12 @@ function exportChatReport() {
     URL.revokeObjectURL(url);
 }
 
-function clearChatHistory() {
-    if (confirm('Are you sure you want to clear ALL chat history? This cannot be undone.')) {
+async function clearChatHistory() {
+    const confirmed = await showConfirm('Are you sure you want to clear ALL chat history? This cannot be undone.', 'Confirm Deletion', 'warning');
+    if (confirmed) {
         localStorage.removeItem('chatHistory');
         loadSavedChats();
-        alert('Chat history cleared successfully!');
+        showAlert('Chat history cleared successfully!', 'Success', 'success');
     }
 }
 
@@ -5000,146 +5088,78 @@ function renderConnectionsList(connections, listContainer) {
     });
 }
 
-async function refreshPersonCredits() {
-    refreshCreditsBtn.disabled = true;
-    refreshCreditsBtn.textContent = 'Refreshing...';
-
-    try {
-
-        for (const human of pazatorData.humans) {
-            try {
-
-                const existingTags = tags.join(', ') || 'None';
-                const adminContext = getAdminContext();
-
-                const context = `
-                            You are an AI evaluator analyzing a person's data to assign them a credit score, social class, and relevant tags.
-                            The credit score should be between 0 and 100, where:
-                            
-                            ${adminContext ? `ADMIN CONTEXT TO CONSIDER:
-                            ${adminContext}
-                            ` : ''}
-                            - 100 is a perfect score (ideal person)
-                            - 50 is average
-                            - 0 is the worst possible score
-
-                            The social class should be one of these four options:
-                            - "low class"
-                            - "medium class"
-                            - "high class"
-                            - "1%"
-
-                            Based on the person's data, you can also CREATE NEW TAGS that would be relevant to describe them.
-                            These tags should be descriptive of their characteristics, profession, interests, or other notable traits.
-
-                            Existing tags in the system: ${existingTags}
-
-                            Here's the person's data:
-                            Name: ${human.name}
-                            Gender: ${human.gender || 'Not specified'}
-                            Birth Date: ${human.birthDate || 'Not specified'}
-                            Workplace: ${human.workplace || 'Not specified'}
-                            Friends: ${human.friends && human.friends.length > 0 ? human.friends.map(id => getHumanNameById(id)).join(', ') : 'None'}
-                            Family: ${human.family && human.family.length > 0 ? human.family.map(id => getHumanNameById(id)).join(', ') : 'None'}
-                            Current Tags: ${human.tags && human.tags.length > 0 ? human.tags.join(', ') : 'None'}
-                            Extra Notes: ${human.extraNotes || 'None'}
-
-                            Based on this information, assign them a credit score from 0-100, determine their social class, and suggest relevant tags.
-                            Consider factors like:
-                            - Positive character traits mentioned in notes
-                            - Professional/work information
-                            - Social connections (quality and quantity)
-                            - Any negative indicators
-                            - Tags that might indicate positive or negative traits
-                            - Wealth indicators
-                            - Lifestyle indicators
-
-                            Respond ONLY with a JSON object in this format:
-                            {
-                                "credit": 75,
-                                "socialClass": "medium class",
-                                "newTags": ["professional", "reliable"], 
-                                "assignTags": ["professional", "reliable"] 
-                            }
-
-                            Make sure the socialClass is one of these four options:
-                            - "low class"
-                            - "medium class"
-                            - "high class"
-                            - "1%"
-
-                            The newTags array should contain tags that don't already exist and should be created.
-                            The assignTags array should contain tags (both existing and new) that should be assigned to this person.
-                            If no new tags need to be created, newTags can be an empty array.
-                            If no tags need to be assigned, assignTags can be an empty array.
-                        `;
-
-                const aiResponse = await puter.ai.chat([
-                    { role: "system", content: context },
-                    { role: "user", content: `Assign a credit score, social class, and relevant tags to ${human.name} based on their data.` }
-                ]);
-
-                const responseText = aiResponse.content ? aiResponse.content : aiResponse;
-
-                const result = extractJSONFromResponse(responseText);
-
-                if (result && typeof result === 'object') {
-
-                    if (typeof result.credit === 'number' && result.credit >= 0 && result.credit <= 100) {
-                        human.credit = result.credit;
-                    } else {
-                        human.credit = 50;
-                    }
-
-                    const validClasses = ['low class', 'medium class', 'high class', '1%'];
-                    if (typeof result.socialClass === 'string' && validClasses.includes(result.socialClass)) {
-                        human.socialClass = result.socialClass;
-                    } else {
-                        human.socialClass = 'medium class';
-                    }
-
-                    if (Array.isArray(result.newTags)) {
-                        result.newTags.forEach(tag => {
-                            if (typeof tag === 'string' && tag.trim() && !tags.includes(tag.trim())) {
-                                tags.push(tag.trim());
-                            }
-                        });
-                    }
-
-                    if (Array.isArray(result.assignTags)) {
-                        human.tags = human.tags || [];
-                        result.assignTags.forEach(tag => {
-                            if (typeof tag === 'string' && tag.trim() && !human.tags.includes(tag.trim())) {
-                                human.tags.push(tag.trim());
-                            }
-                        });
-                    }
-                } else {
-
-                    human.credit = 50;
-                    human.socialClass = 'medium class';
-                }
-            } catch (error) {
-                console.error(`Error getting credit score and social class for ${human.name}:`, error);
-
-                human.credit = 50;
-                human.socialClass = 'medium class';
-            }
-        }
-
-        saveData();
-        renderTags();
-
-        alert(`Credits, social classes, and tags refreshed for ${pazatorData.humans.length} people using AI analysis!`);
-
-        renderWebNodes();
-    } catch (error) {
-        console.error('Error refreshing credits:', error);
-        alert('Error refreshing credits. Please try again.');
-    } finally {
-        refreshCreditsBtn.disabled = false;
-        refreshCreditsBtn.textContent = 'Refresh Person Credits';
+function calculateCreditScore(human) {
+    let score = 50;
+    
+    const positiveTags = ['rich', 'professional', 'trusted', 'reliable', 'honest', 'successful', 'educated', 'business', 'leader', 'owner', 'manager', 'doctor', 'engineer', 'investor'];
+    const negativeTags = ['suspicious', 'fraud', 'dangerous', 'criminal', 'scam', 'untrusted', 'debt', 'bankrupt'];
+    
+    if (human.tags && human.tags.length > 0) {
+        human.tags.forEach(tag => {
+            const t = tag.toLowerCase();
+            if (positiveTags.includes(t)) score += 5;
+            if (negativeTags.includes(t)) score -= 10;
+        });
     }
+    
+    if (human.workplace) {
+        const wp = human.workplace.toLowerCase();
+        if (wp.includes('bank') || wp.includes('corp') || wp.includes('inc') || wp.includes('llc') || wp.includes('company') || wp.includes('ltd')) {
+            score += 5;
+        }
+    }
+    
+    if (human.socialClass === '1%') score = Math.min(100, score + 30);
+    else if (human.socialClass === 'high class') score = Math.min(100, score + 15);
+    else if (human.socialClass === 'low class') score = Math.max(0, score - 15);
+    
+    const connections = (human.friends ? human.friends.length : 0) + (human.family ? human.family.length : 0);
+    if (connections > 5) score = Math.min(100, score + 5);
+    else if (connections === 0) score = Math.max(0, score - 5);
+    
+    if (human.extraNotes) {
+        const notes = human.extraNotes.toLowerCase();
+        if (notes.includes('trust') || notes.includes('reliable') || notes.includes('good')) score += 5;
+        if (notes.includes('suspicious') || notes.includes('warning') || notes.includes('risk')) score -= 10;
+    }
+    
+    return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+function inferSocialClass(creditScore) {
+    if (creditScore >= 80) return '1%';
+    if (creditScore >= 60) return 'high class';
+    if (creditScore >= 40) return 'medium class';
+    return 'low class';
+}
+
+function refreshPersonCredits() {
+    refreshCreditsBtn.disabled = true;
+    refreshCreditsBtn.textContent = 'Calculating...';
+    
+    let updated = 0;
+    
+    pazatorData.humans.forEach(human => {
+        const newCredit = calculateCreditScore(human);
+        
+        if (human.credit !== newCredit) {
+            human.credit = newCredit;
+            updated++;
+        }
+        
+        if (!human.socialClass || human.socialClass === 'medium class') {
+            human.socialClass = inferSocialClass(newCredit);
+        }
+    });
+    
+    saveData();
+    renderWebNodes();
+    updateCreditStats();
+    
+    refreshCreditsBtn.disabled = false;
+    refreshCreditsBtn.textContent = 'Evaluate Credit Scores';
+    
+    showAlert(`Credit scores calculated for ${pazatorData.humans.length} people. ${updated} scores updated.`, 'Complete', 'success');
 }
 
 async function findPotentialTerrorists() {
@@ -6350,7 +6370,7 @@ function saveArticle() {
     const content = document.getElementById('articleContent').value.trim();
 
     if (!company || !title || !content) {
-        alert('Please fill in all fields');
+        showAlert('Please fill in all fields', 'Notice', 'warning');
         return;
     }
 
@@ -6482,8 +6502,9 @@ function renderFilteredArticles(articles) {
             `).join('');
 }
 
-function deleteArticle(articleId) {
-    if (confirm('Are you sure you want to delete this article?')) {
+async function deleteArticle(articleId) {
+    const confirmed = await showConfirm('Are you sure you want to delete this article?', 'Confirm Deletion', 'warning');
+    if (confirmed) {
         const articles = JSON.parse(localStorage.getItem('knowledgeBase') || '[]');
         const filteredArticles = articles.filter(a => a.id !== articleId);
         localStorage.setItem('knowledgeBase', JSON.stringify(filteredArticles));
@@ -6556,12 +6577,12 @@ function createNewAgent() {
     const goal = document.getElementById('agentGoal').value.trim();
 
     if (!name || !goal) {
-        alert('Please enter both agent name and goal');
+        showAlert('Please enter both agent name and goal', 'Notice', 'warning');
         return;
     }
 
     if (activeAgents.length >= 3) {
-        alert('Maximum 3 agents allowed. Please stop an existing agent first.');
+        showAlert('Maximum 3 agents allowed. Please stop an existing agent first.', 'Limit Reached', 'warning');
         return;
     }
 
@@ -6588,23 +6609,53 @@ async function startAgent(agentId) {
     const agent = activeAgents.find(a => a.id === agentId);
     if (!agent) return;
 
+    if (pazatorData.humans.length === 0) {
+        agent.thoughts.push({
+            timestamp: new Date(),
+            message: 'No people in database. Cannot start investigation.'
+        });
+        agent.status = 'completed';
+        renderAgentsList();
+        showAlert('No people in database. Add some data first.', 'Notice', 'warning');
+        return;
+    }
+
     const personNames = pazatorData.humans.map(h => h.name);
 
     const systemPrompt = `
-                You are an autonomous AI investigator named "${agent.name}". 
-                Your goal is: ${agent.goal}
-                
-                Available commands:
-                1. GET_PERSON_INFO: {"command": "GET_PERSON_INFO", "person": "Name"} - Get detailed info about a person
-                2. LOG_FINDING: {"command": "LOG_FINDING", "message": "your log message"} - Record findings
-                3. MISSION_COMPLETE: {"command": "MISSION_COMPLETE", "reason": "why you're done"} - End mission
-                
-                Available data: ${personNames.join(', ')}
-                
-                Think step by step. First analyze what information you need, then use commands to gather it.
-                Always explain your reasoning before taking action.
-                Work towards your goal systematically.
-            `;
+You are "${agent.name}", an autonomous AI investigator.
+
+GOAL: ${agent.goal}
+
+DATABASE CONTEXT:
+- You have access to a database of ${pazatorData.humans.length} people
+- Each person has: name, workplace, birthDate, tags, friends, family, notes
+- You MUST use GET_PERSON_INFO to find information about specific people
+
+AVAILABLE COMMANDS (respond ONLY with these JSON formats):
+1. GET_PERSON_INFO: {"command": "GET_PERSON_INFO", "person": "Exact person name"}
+   - Use this to get detailed info about anyone in the database
+   - Example: {"command": "GET_PERSON_INFO", "person": "John Smith"}
+   
+2. LOG_FINDING: {"command": "LOG_FINDING", "message": "What you discovered"}
+   - Use this to record important findings
+   
+3. MISSION_COMPLETE: {"command": "MISSION_COMPLETE", "reason": "Summary of what you accomplished"}
+   - Use when your goal is achieved
+
+PEOPLE IN DATABASE: ${personNames.slice(0, 50).join(', ')}${personNames.length > 50 ? '...' : ''}
+
+RULES:
+- Always use GET_PERSON_INFO first to gather facts about people
+- Search by exact name matches - be precise
+- If a person doesn't exist, try variations of their name
+- Once you have enough information, declare MISSION_COMPLETE
+- Be concise - don't overthink, act systematically
+
+Example response format:
+THINKING: I need to find information about this person first.
+ACTION: {"command": "GET_PERSON_INFO", "person": "Person Name"}
+`;
 
     agent.thoughts.push({
         timestamp: new Date(),
@@ -6625,25 +6676,45 @@ async function runAgentCycle(agentId, systemPrompt) {
         ).join('\n');
 
         const userPrompt = `
-                    Recent activity:\n${recentThoughts}\n\n
-                    What is your next step? Respond with your thinking process, then execute ONE command.
-                    Format: THINKING: [your analysis]\nACTION: {"command": "COMMAND_NAME", "parameters"}
-                `;
+Continue investigating. 
+
+Recent activity:
+${recentThoughts}
+
+Respond with:
+THINKING: Your immediate analysis
+ACTION: {"command": "...", "person": "Name"} or {"command": "...", "message": "..."} or {"command": "MISSION_COMPLETE", "reason": "..."}
+
+If you don't have enough info, use GET_PERSON_INFO to look up people.
+`;
 
         const aiResponse = await puter.ai.chat([
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt }
         ]);
 
-        const responseText = aiResponse.content || aiResponse;
+        let responseText = '';
+        if (typeof aiResponse === 'string') {
+            responseText = aiResponse;
+        } else if (aiResponse && typeof aiResponse === 'object') {
+            responseText = aiResponse.content || JSON.stringify(aiResponse);
+        } else {
+            responseText = String(aiResponse || 'No response');
+        }
+        
         agent.thoughts.push({
             timestamp: new Date(),
             message: responseText
         });
 
         const command = parseAgentCommand(responseText);
-        if (command) {
+        if (command && command.command) {
             await executeAgentCommand(agentId, command);
+        } else {
+            agent.thoughts.push({
+                timestamp: new Date(),
+                message: 'No valid command found in response. Will retry...'
+            });
         }
 
         renderAgentDetail(agentId);
@@ -6663,6 +6734,11 @@ async function runAgentCycle(agentId, systemPrompt) {
 }
 
 function parseAgentCommand(response) {
+    if (!response || typeof response !== 'string') {
+        console.error('Invalid response type:', typeof response);
+        return null;
+    }
+    
     const actionMatch = response.match(/ACTION:\s*(\{[^}]+\})/i);
     if (actionMatch) {
         try {
@@ -6732,7 +6808,7 @@ async function executeAgentCommand(agentId, command) {
                 timestamp: new Date(),
                 message: `Mission completed: ${command.reason}`
             });
-            alert(`Agent ${agent.name} has completed its mission!\nReason: ${command.reason}`);
+            showAlert(`Agent ${agent.name} has completed its mission!\nReason: ${command.reason}`, 'Agent Complete', 'success');
             break;
     }
 }
@@ -6749,8 +6825,9 @@ function stopAgent(agentId) {
     }
 }
 
-function deleteAgent(agentId) {
-    if (confirm('Are you sure you want to delete this agent?')) {
+async function deleteAgent(agentId) {
+    const confirmed = await showConfirm('Are you sure you want to delete this agent?', 'Confirm Deletion', 'warning');
+    if (confirmed) {
         activeAgents = activeAgents.filter(a => a.id !== agentId);
         renderAgentsList();
     }
