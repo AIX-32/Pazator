@@ -25,7 +25,7 @@
                     <div class="ai-status">
                         <span class="status-indicator"></span>
                         <span class="status-text">Context ready</span>
-                    </div>
+                    </div> 
                 </div>
                 <div class="header-right">
                     <button class="chat-menu-btn" id="chatMenuBtn">
@@ -173,6 +173,10 @@
                     <i class="fas fa-shield-alt"></i>
                     <span>Classify</span>
                 </div>
+                <div class="logo-dropdown-item" id="exportCsvOption">
+                    <i class="fas fa-file-export"></i>
+                    <span>Export CSV</span>
+                </div>
             </div>
         </div>
     </div>
@@ -182,7 +186,7 @@
             <div class="workspace">
                 <div class="main-panel">
                     <div class="logo">
-                        <h1>Pazator SARPARAST - beta <p class="versiontext">0.Mar1626 </p></h1>
+                        <h1>Pazator SARPARAST - beta <p class="versiontext">0.Mar2226 </p></h1>
                     </div>
                     <div class="web-container" id="webContainer">
                         <div class="web-content" id="webContent">
@@ -198,6 +202,9 @@
                         </div>
                         <div class="form-group" style="margin-top: 10px;">
                             <button id="chatUploadBtn" class="btn btn-secondary" style="width: 100%;">Upload Chat</button>
+                        </div>
+                        <div class="form-group" style="margin-top: 10px;">
+                            <button id="dataUploadBtn" class="btn btn-secondary" style="width: 100%;">Upload Data</button>
                         </div>
                     </div>
 
@@ -228,6 +235,7 @@
 
                     <div class="sidebar-section sidebar-mini">
                         <h3>Account</h3>
+                        <div id="accountGreeting" class="account-greeting" style="display:none;"></div>
                         <button id="signInBtn" class="btn btn-secondary" style="width: 100%;">Sign In</button>
                     </div>
                 </div>
@@ -615,6 +623,8 @@
                     <i class="fas fa-search"
                         style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); color: #777; font-size: 1.2rem;"></i>
                 </div>
+
+                <div id="recentSearchesContainer" style="margin: 0 auto 22px auto; max-width: 700px;"></div>
 
                 <div id="searchResultsCount"
                     style="text-align: center; color: #888; margin-bottom: 20px; font-size: 1rem; min-height: 24px;">
@@ -1035,6 +1045,46 @@
                 <button type="button" class="btn btn-secondary" id="cancelChatUploadBtn">Cancel</button>
                 <button type="submit" class="btn btn-primary" form="chatUploadForm" id="uploadChatBtn">Process
                     Chat</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="dataUploadModal" class="modal">
+        <button class="close" style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2>Upload Data from CSV</h2>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <p><strong>CSV Format Instructions:</strong></p>
+                    <p>For <strong>People (Humans)</strong>, use these columns (in any order):</p>
+                    <ul>
+                        <li><code>Name</code> (required) - Full name</li>
+                        <li><code>Birth Date</code> (optional) - Format: YYYY-MM-DD</li>
+                        <li><code>Notes</code> (optional) - Additional information</li>
+                        <li><code>Tags</code> (optional) - Comma-separated tags</li>
+                        <li><code>Friends</code> (optional) - Comma-separated friend names</li>
+                        <li><code>Family</code> (optional) - Comma-separated family member names</li>
+                    </ul>
+                    <p>For <strong>Companies/Organizations</strong>, use these columns:</p>
+                    <ul>
+                        <li><code>Name</code> (required) - Company/Organization name</li>
+                        <li><code>Type</code> (required) - e.g., Company, Organization, Government</li>
+                        <li><code>Notes</code> (optional) - Additional information</li>
+                    </ul>
+                    <p><em>Note: The first row should be headers. Data will be automatically categorized based on the presence of 'Type' column.</em></p>
+                </div>
+                <form id="dataUploadForm">
+                    <div class="form-group">
+                        <label for="dataFile">Upload CSV File</label>
+                        <input type="file" id="dataFile" class="form-control" accept=".csv" required>
+                    </div>
+                </form>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="cancelDataUploadBtn">Cancel</button>
+                <button type="button" class="btn btn-primary" id="uploadDataBtn">Upload Data</button>
             </div>
         </div>
     </div>

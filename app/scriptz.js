@@ -17,6 +17,10 @@ const PERIODIC_SAVE_INTERVAL = 30000;
 let openMenuSections = [];
 let trackerPersonNames = [];
 
+let searchTabInitialized = false;
+let agentsTabInitialized = false;
+let articlesTabInitialized = false;
+
 const TRACKER_CONFIG_KEY = 'shahedTrackerConfig';
 const TRACKER_CONFIG_EXAMPLE = {
     url: 'https://xyz.supabase.co',
@@ -522,6 +526,13 @@ function generatePersonId(name, birthDate) {
     return candidate;
 }
 
+function generateOtherId() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return `OTH-${crypto.randomUUID()}`;
+    }
+    return `OTH-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 11)}`;
+}
+
 function updateDetailTrackerInfo(data) {
     if (!detailTrackerContainer) return;
     if (!data || data.type !== 'human') {
@@ -997,6 +1008,12 @@ function switchTab(tabId) {
         ensureTrackerTabReady();
     } else if (tabId === 'chat-control') {
         loadSavedChats();
+    } else if (tabId === 'search') {
+        setTimeout(initSearchTab, 50);
+    } else if (tabId === 'agents') {
+        setTimeout(initAgentsTab, 50);
+    } else if (tabId === 'articles') {
+        setTimeout(initArticlesTab, 50);
     }
 
     setActiveTabButton(tabId);
@@ -1498,37 +1515,6 @@ function manualRefresh() {
     }
 }
 
-function autoRefreshSequence() {
-    console.log(' Starting auto-refresh sequence...');
-
-    let refreshCount = 0;
-    const maxRefreshes = 10;
-    const interval = 1000;
-
-    const refreshInterval = setInterval(() => {
-        refreshCount++;
-        console.log(` Auto-refresh ${refreshCount}/${maxRefreshes}`);
-
-        try {
-            loadData();
-            renderTags();
-            const totalItems = pazatorData.humans.length + pazatorData.others.length;
-            updatePersistenceIndicator('syncing', `Auto-loading... (${refreshCount}/${maxRefreshes})`);
-            console.log(` Auto-refresh ${refreshCount} completed - ${totalItems} items`);
-        } catch (error) {
-            console.error(` Auto-refresh ${refreshCount} failed:`, error);
-        }
-
-        if (refreshCount >= maxRefreshes ||
-            (pazatorData.humans.length > 0 || pazatorData.others.length > 0)) {
-            clearInterval(refreshInterval);
-            const finalCount = pazatorData.humans.length + pazatorData.others.length;
-            updatePersistenceIndicator('online', `Auto-loaded (${finalCount} items)`);
-            console.log(` Auto-refresh sequence completed - Final count: ${finalCount} items`);
-        }
-    }, interval);
-}
-
 function startAutoSave() {
     autoSaveInterval = setInterval(() => {
         saveData();
@@ -1547,6 +1533,89 @@ function stopAutoSave() {
         window.autoSaveTimeout = null;
     }
     console.log('Auto-save system stopped');
+}
+
+function normalizeLoadedData() {
+    if (!pazatorData || typeof pazatorData !== 'object') return;
+    if (!Array.isArray(pazatorData.humans)) pazatorData.humans = [];
+    if (!Array.isArray(pazatorData.others)) pazatorData.others = [];
+
+    const normalizeNameKey = (name) => String(name || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' ');
+
+    const isHumanId = (value) => /^PZI\d{4}\d{2}$/.test(String(value || '').trim());
+
+    // Field normalization (notes aliases, array defaults).
+    pazatorData.humans.forEach(human => {
+        if (!human || typeof human !== 'object') return;
+        if (!human.extraNotes && human.notes) human.extraNotes = human.notes;
+        if (!Array.isArray(human.tags)) human.tags = [];
+        if (!Array.isArray(human.friends)) {
+            human.friends = typeof human.friends === 'string'
+                ? human.friends.split(',').map(v => v.trim()).filter(Boolean)
+                : [];
+        }
+        if (!Array.isArray(human.family)) {
+            human.family = typeof human.family === 'string'
+                ? human.family.split(',').map(v => v.trim()).filter(Boolean)
+                : [];
+        }
+    });
+
+    pazatorData.others.forEach(other => {
+        if (!other || typeof other !== 'object') return;
+        if (!other.note && other.notes) other.note = other.notes;
+        if (!Array.isArray(other.tags)) other.tags = other.tags ? [String(other.tags)] : [];
+    });
+
+    // Relationship normalization (names → ids).
+    const nameToId = new Map();
+    const knownIds = new Set();
+    pazatorData.humans.forEach(h => {
+        if (!h || !h.id) return;
+        knownIds.add(String(h.id));
+        const key = normalizeNameKey(h.name);
+        if (key && !nameToId.has(key)) nameToId.set(key, String(h.id));
+    });
+
+    const resolveHumanRef = (token) => {
+        const raw = String(token || '').trim();
+        if (!raw) return null;
+        if (isHumanId(raw) && knownIds.has(raw)) return raw;
+        const key = normalizeNameKey(raw);
+        if (key && nameToId.has(key)) return nameToId.get(key);
+
+        const stub = {
+            id: generatePersonId(raw, ''),
+            name: raw,
+            birthDate: '',
+            extraNotes: '',
+            tags: [],
+            friends: [],
+            family: []
+        };
+        pazatorData.humans.push(stub);
+        knownIds.add(stub.id);
+        if (key) nameToId.set(key, stub.id);
+        return stub.id;
+    };
+
+    pazatorData.humans.forEach(human => {
+        if (!human || typeof human !== 'object') return;
+        const resolvedFriends = (human.friends || [])
+            .map(resolveHumanRef)
+            .filter(Boolean)
+            .filter(id => id !== human.id);
+        const resolvedFamily = (human.family || [])
+            .map(resolveHumanRef)
+            .filter(Boolean)
+            .filter(id => id !== human.id);
+
+        human.friends = [...new Set(resolvedFriends)];
+        human.family = [...new Set(resolvedFamily)];
+    });
 }
 
 function loadData() {
@@ -1605,12 +1674,13 @@ function loadData() {
         }
     }
 
+    updatePersonIdSequenceFromData();
+    normalizeLoadedData();
+
     console.log('Rendering web nodes with loaded data...');
     console.log('Data to render:', { humans: pazatorData.humans.length, others: pazatorData.others.length });
     renderWebNodes();
     updateCreditStats();
-
-    updatePersonIdSequenceFromData();
 
     const totalItems = pazatorData.humans.length + pazatorData.others.length;
     updatePersistenceIndicator('online', `Loaded (${totalItems} items)`);
@@ -1981,7 +2051,6 @@ function showDetailView(data, type) {
         }
 
         document.getElementById('familyGraphContainer').style.display = 'block';
-        renderFamilyGraph(data);
     } else {
         document.getElementById('detailGenderContainer').style.display = 'none';
         document.getElementById('detailBirthDateContainer').style.display = 'none';
@@ -2008,6 +2077,10 @@ function showDetailView(data, type) {
 
     detailViewModal.style.display = 'flex';
     detailViewModal.style.zIndex = '1000';
+
+    if (type === 'human') {
+        scheduleFamilyGraphRender(data);
+    }
 }
 
 function openDetailView(id, type) {
@@ -2028,6 +2101,23 @@ function getHumanNameById(id) {
     return human ? human.name : 'Unknown';
 }
 
+function scheduleFamilyGraphRender(human) {
+    const attempt = () => {
+        const graphContainer = document.getElementById('familyGraph');
+        if (!graphContainer) return;
+
+        const rect = graphContainer.getBoundingClientRect();
+        if (rect.width < 10 || rect.height < 10) {
+            requestAnimationFrame(attempt);
+            return;
+        }
+        renderFamilyGraph(human);
+    };
+
+    // Two frames to allow modal layout to settle before measuring.
+    requestAnimationFrame(() => requestAnimationFrame(attempt));
+}
+
 function renderFamilyGraph(human) {
     const graphContainer = document.getElementById('familyGraph');
     graphContainer.innerHTML = '';
@@ -2042,11 +2132,14 @@ function renderFamilyGraph(human) {
 
     const centralNode = document.createElement('div');
     centralNode.className = 'graph-node';
+    centralNode.classList.add('graph-node-center');
     centralNode.textContent = human.name;
-    centralNode.style.left = `${centerX - 40}px`;
-    centralNode.style.top = `${centerY - 40}px`;
-    centralNode.style.background = 'linear-gradient(145deg, #398fff, #5a9cff)';
     graphContainer.appendChild(centralNode);
+
+    const centerNodeRadiusX = (centralNode.offsetWidth || 72) / 2;
+    const centerNodeRadiusY = (centralNode.offsetHeight || 72) / 2;
+    centralNode.style.left = `${centerX - centerNodeRadiusX}px`;
+    centralNode.style.top = `${centerY - centerNodeRadiusY}px`;
 
     const familyCount = human.family.length;
     human.family.forEach((familyId, index) => {
@@ -2054,28 +2147,31 @@ function renderFamilyGraph(human) {
         if (!familyMember) return;
 
         const angle = (index / familyCount) * Math.PI * 2;
-        const distance = 120;
-        const x = centerX + Math.cos(angle) * distance - 40;
-        const y = centerY + Math.sin(angle) * distance - 40;
+        const maxDistance = Math.min(centerX, centerY) - Math.max(centerNodeRadiusX, centerNodeRadiusY) - 20;
+        const distance = Math.max(90, Math.min(160, maxDistance));
+        const x = centerX + Math.cos(angle) * distance;
+        const y = centerY + Math.sin(angle) * distance;
 
         const node = document.createElement('div');
         node.className = 'graph-node';
+        node.classList.add('graph-node-member');
         node.textContent = familyMember.name;
-        node.style.left = `${x}px`;
-        node.style.top = `${y}px`;
-        node.style.background = 'linear-gradient(145deg, #ffffff, #dddddd)';
         graphContainer.appendChild(node);
+
+        const nodeRadiusX = (node.offsetWidth || 72) / 2;
+        const nodeRadiusY = (node.offsetHeight || 72) / 2;
+        node.style.left = `${x - nodeRadiusX}px`;
+        node.style.top = `${y - nodeRadiusY}px`;
 
         const line = document.createElement('div');
         line.className = 'graph-line';
 
-        const dx = x + 40 - centerX;
-        const dy = y + 40 - centerY;
+        const dx = x - centerX;
+        const dy = y - centerY;
         const length = Math.sqrt(dx * dx + dy * dy);
         const angleDeg = Math.atan2(dy, dx) * 180 / Math.PI;
 
         line.style.width = `${length}px`;
-        line.style.height = '3px';
         line.style.left = `${centerX}px`;
         line.style.top = `${centerY}px`;
         line.style.transform = `rotate(${angleDeg}deg)`;
@@ -2982,6 +3078,29 @@ const cancelChatUploadBtn = document.getElementById('cancelChatUploadBtn');
 const uploadChatBtn = document.getElementById('uploadChatBtn');
 const classifyModal = document.getElementById('classifyModal');
 
+const dataUploadModal = document.getElementById('dataUploadModal');
+const dataFile = document.getElementById('dataFile');
+const cancelDataUploadBtn = document.getElementById('cancelDataUploadBtn');
+const uploadDataBtn = document.getElementById('uploadDataBtn');
+const dataUploadBtn = document.getElementById('dataUploadBtn');
+
+function closeDataUploadModal() {
+    if (!dataUploadModal) return;
+    dataUploadModal.classList.add('hiding');
+    setTimeout(() => {
+        dataUploadModal.style.display = 'none';
+        dataUploadModal.style.zIndex = '-1';
+        dataUploadModal.classList.remove('hiding');
+    }, 300);
+
+    document.getElementById('dataUploadForm')?.reset();
+    if (dataFile) dataFile.value = '';
+    if (uploadDataBtn) {
+        uploadDataBtn.disabled = false;
+        uploadDataBtn.textContent = 'Upload Data';
+    }
+}
+
 chatUploadBtn.addEventListener('click', () => {
     [humanModal, otherModal, detailViewModal, aiChatModal, typeModal].forEach(modal => {
         if (modal) {
@@ -2998,6 +3117,21 @@ chatUploadBtn.addEventListener('click', () => {
     chatUploadModal.style.zIndex = '1000';
 
     setTimeout(loadChatParticipants, 500);
+});
+
+dataUploadBtn.addEventListener('click', () => {
+    [humanModal, otherModal, detailViewModal, aiChatModal, typeModal, chatUploadModal].forEach(modal => {
+        if (modal) {
+            modal.style.display = 'none';
+            modal.style.zIndex = '-1';
+        }
+    });
+
+    document.getElementById('dataUploadForm').reset();
+    dataFile.value = '';
+
+    dataUploadModal.style.display = 'flex';
+    dataUploadModal.style.zIndex = '1000';
 });
 
 browseFileBtn.addEventListener('click', () => {
@@ -3206,6 +3340,283 @@ document.getElementById('chatUploadForm').addEventListener('submit', async (e) =
         uploadChatBtn.textContent = 'Process Chat';
     }
 });
+
+cancelDataUploadBtn.addEventListener('click', () => {
+    closeDataUploadModal();
+});
+
+uploadDataBtn.addEventListener('click', async () => {
+    const file = dataFile.files[0];
+    if (!file) {
+        showAlert('Please select a CSV file.', 'Error', 'error');
+        return;
+    }
+
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+        showAlert('Please select a valid CSV file.', 'Error', 'error');
+        return;
+    }
+
+    uploadDataBtn.disabled = true;
+    uploadDataBtn.textContent = 'Uploading...';
+
+    try {
+        const text = await file.text();
+        const data = parseCSV(text);
+        const result = processCSVData(data);
+
+        closeDataUploadModal();
+
+        showAlert(`Successfully uploaded ${result.humans} humans and ${result.others} companies/organizations.`, 'Success', 'success');
+        
+        markDataChanged();
+        renderWebNodes();
+        
+    } catch (error) {
+        console.error('Error uploading data:', error);
+        showAlert(`Error processing CSV file: ${error.message}`, 'Error', 'error');
+    } finally {
+        uploadDataBtn.disabled = false;
+        uploadDataBtn.textContent = 'Upload Data';
+    }
+});
+
+function parseCSV(csvText) {
+    if (!csvText || !String(csvText).trim()) {
+        throw new Error('CSV file is empty.');
+    }
+
+    const text = String(csvText).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const rows = [];
+    let currentRow = [];
+    let currentValue = '';
+    let inQuotes = false;
+
+    const pushValue = () => {
+        currentRow.push(currentValue);
+        currentValue = '';
+    };
+
+    const pushRow = () => {
+        const hasNonEmpty = currentRow.some(v => String(v || '').trim() !== '');
+        if (hasNonEmpty) rows.push(currentRow);
+        currentRow = [];
+    };
+
+    for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (ch === '"') {
+            if (inQuotes && text[i + 1] === '"') {
+                currentValue += '"';
+                i += 1;
+                continue;
+            }
+            inQuotes = !inQuotes;
+            continue;
+        }
+
+        if (!inQuotes && ch === ',') {
+            pushValue();
+            continue;
+        }
+
+        if (!inQuotes && ch === '\n') {
+            pushValue();
+            pushRow();
+            continue;
+        }
+
+        currentValue += ch;
+    }
+
+    if (inQuotes) {
+        throw new Error('CSV parsing error: unterminated quoted field.');
+    }
+
+    pushValue();
+    pushRow();
+
+    if (rows.length < 2) {
+        throw new Error('CSV file must contain at least a header row and one data row.');
+    }
+
+    const normalizeHeader = (header) => String(header || '')
+        .replace(/^\uFEFF/, '')
+        .trim();
+
+    const headers = rows[0].map(normalizeHeader);
+    const data = [];
+    const errors = [];
+
+    for (let rowIndex = 1; rowIndex < rows.length; rowIndex++) {
+        const values = rows[rowIndex].map(v => String(v ?? '').trim());
+
+        if (values.length !== headers.length) {
+            errors.push(`Row ${rowIndex + 1}: Expected ${headers.length} columns, found ${values.length}.`);
+            continue;
+        }
+
+        const row = {};
+        headers.forEach((header, index) => {
+            row[header] = values[index];
+        });
+        data.push(row);
+    }
+
+    if (errors.length > 0) {
+        throw new Error(`CSV parsing errors:\n${errors.join('\n')}`);
+    }
+
+    if (data.length === 0) {
+        throw new Error('No valid data rows found in CSV file.');
+    }
+
+    return data;
+}
+
+function processCSVData(data) {
+    let humansAdded = 0;
+    let othersAdded = 0;
+    let relationshipStubsAdded = 0;
+    const errors = [];
+
+    const normalizeNameKey = (name) => String(name || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' ');
+
+    const nameToId = new Map();
+    const knownIds = new Set();
+    pazatorData.humans.forEach(h => {
+        if (!h || !h.id) return;
+        knownIds.add(String(h.id));
+        const key = normalizeNameKey(h.name);
+        if (key && !nameToId.has(key)) {
+            nameToId.set(key, String(h.id));
+        }
+    });
+
+    const importedHumans = [];
+
+    const parseList = (value) => {
+        if (!value) return [];
+        if (Array.isArray(value)) return value.map(v => String(v).trim()).filter(Boolean);
+        return String(value)
+            .split(',')
+            .map(v => v.trim())
+            .filter(Boolean);
+    };
+
+    const isHumanId = (value) => /^PZI\d{4}\d{2}$/.test(String(value || '').trim());
+
+    const resolveHumanRef = (token) => {
+        const raw = String(token || '').trim();
+        if (!raw) return null;
+
+        if (isHumanId(raw) && knownIds.has(raw)) {
+            return raw;
+        }
+
+        const key = normalizeNameKey(raw);
+        if (key && nameToId.has(key)) {
+            return nameToId.get(key);
+        }
+
+        // Create a stub person so relationships render and resolve in detail view.
+        const stub = {
+            id: generatePersonId(raw, ''),
+            name: raw,
+            birthDate: '',
+            extraNotes: '',
+            tags: [],
+            friends: [],
+            family: []
+        };
+        pazatorData.humans.push(stub);
+        importedHumans.push(stub);
+        humansAdded++;
+        relationshipStubsAdded++;
+        knownIds.add(stub.id);
+        if (key) nameToId.set(key, stub.id);
+        return stub.id;
+    };
+
+    data.forEach((row, index) => {
+        const typeCell = row.Type ? String(row.Type).trim() : '';
+
+        if (typeCell) {
+            // It's an "other" entry
+            if (!row.Name || !String(row.Name).trim()) {
+                errors.push(`Row ${index + 2}: Company/Organization entry missing required 'Name' field.`);
+                return;
+            }
+            const other = {
+                id: generateOtherId(),
+                name: String(row.Name).trim(),
+                type: typeCell,
+                note: String(row.Notes || row.Note || '').trim(),
+                tags: row.Tags ? parseList(row.Tags) : []
+            };
+            pazatorData.others.push(other);
+            othersAdded++;
+            return;
+        }
+
+        // It's a human
+        if (!row.Name || !String(row.Name).trim()) {
+            errors.push(`Row ${index + 2}: Human entry missing required 'Name' field.`);
+            return;
+        }
+        const name = String(row.Name).trim();
+        const birthDate = String(row['Birth Date'] || '').trim();
+
+        const human = {
+            id: generatePersonId(name, birthDate),
+            name,
+            birthDate,
+            extraNotes: String(row.Notes || '').trim(),
+            tags: row.Tags ? parseList(row.Tags) : [],
+            friends: [],
+            family: [],
+            _friendsRaw: parseList(row.Friends),
+            _familyRaw: parseList(row.Family)
+        };
+
+        pazatorData.humans.push(human);
+        importedHumans.push(human);
+        humansAdded++;
+        knownIds.add(human.id);
+        const key = normalizeNameKey(human.name);
+        if (key && !nameToId.has(key)) nameToId.set(key, human.id);
+    });
+
+    // Resolve relationships (names → ids) after all people exist.
+    importedHumans.forEach(human => {
+        const friends = Array.isArray(human._friendsRaw) ? human._friendsRaw : [];
+        const family = Array.isArray(human._familyRaw) ? human._familyRaw : [];
+
+        const resolvedFriends = friends
+            .map(resolveHumanRef)
+            .filter(Boolean)
+            .filter(id => id !== human.id);
+        const resolvedFamily = family
+            .map(resolveHumanRef)
+            .filter(Boolean)
+            .filter(id => id !== human.id);
+
+        human.friends = [...new Set(resolvedFriends)];
+        human.family = [...new Set(resolvedFamily)];
+
+        delete human._friendsRaw;
+        delete human._familyRaw;
+    });
+    
+    if (errors.length > 0) {
+        throw new Error(`Data validation errors:\n${errors.join('\n')}`);
+    }
+    
+    return { humans: humansAdded, others: othersAdded, relationshipStubs: relationshipStubsAdded };
+}
 
 function addChatContextToAI(chatData) {
     const chatSummary = {
@@ -3715,6 +4126,7 @@ window.addEventListener('click', (event) => {
         { element: classifyModal, condition: event.target === classifyModal },
         { element: aiChatModal, condition: event.target === aiChatModal },
         { element: chatUploadModal, condition: event.target === chatUploadModal },
+        { element: dataUploadModal, condition: event.target === dataUploadModal },
         { element: document.getElementById('hiddenConnectionsModal'), condition: event.target === document.getElementById('hiddenConnectionsModal') }
     ];
 
@@ -3729,7 +4141,7 @@ window.addEventListener('click', (event) => {
         }
     });
 
-    [typeModal, humanModal, otherModal, detailViewModal, classifyModal, aiChatModal, chatUploadModal, document.getElementById('hiddenConnectionsModal')].forEach(modal => {
+    [typeModal, humanModal, otherModal, detailViewModal, classifyModal, aiChatModal, chatUploadModal, dataUploadModal, document.getElementById('hiddenConnectionsModal')].forEach(modal => {
         if (modal && modal.style.display === 'none') {
             modal.style.zIndex = '-1';
         }
@@ -4260,6 +4672,9 @@ webContainer.addEventListener('touchmove', (e) => {
 });
 
 let dragTicking = false;
+let webContentTransitionBeforeDrag = '';
+let dragCandidate = false;
+const DRAG_START_THRESHOLD_PX = 6;
 
 function updateDragTransform() {
     webContent.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`;
@@ -4276,8 +4691,16 @@ function requestDragTransformUpdate() {
 webContainer.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
 
-    isDragging = true;
-    webContainer.classList.add('dragging');
+    // Don't start panning if the user is trying to interact with a node/UI element.
+    const ignoreDrag = Boolean(
+        e.target?.closest?.(
+            '.data-node, .node-label, .graph-node, .connection-node, button, a, input, textarea, select, label, .modal, .clean-modal'
+        )
+    );
+    if (ignoreDrag) return;
+
+    dragCandidate = true;
+    isDragging = false;
 
     startX = e.clientX;
     startY = e.clientY;
@@ -4286,26 +4709,41 @@ webContainer.addEventListener('mousedown', (e) => {
 });
 
 webContainer.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
+    if (!dragCandidate && !isDragging) return;
 
-    currentTranslateX = startTranslateX + (e.clientX - startX);
-    currentTranslateY = startTranslateY + (e.clientY - startY);
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
 
-    webContent.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`;
+    if (!isDragging) {
+        if (Math.hypot(dx, dy) < DRAG_START_THRESHOLD_PX) return;
+        isDragging = true;
+        webContainer.classList.add('dragging');
+        webContentTransitionBeforeDrag = webContent.style.transition;
+        webContent.style.transition = 'none';
+    }
+
+    currentTranslateX = startTranslateX + dx;
+    currentTranslateY = startTranslateY + dy;
+
+    requestDragTransformUpdate();
 
     e.preventDefault();
 });
 
 webContainer.addEventListener('mouseup', (e) => {
-    if (isDragging) {
-        isDragging = false;
-        webContainer.classList.remove('dragging');
-    }
+    dragCandidate = false;
+    if (!isDragging) return;
+    isDragging = false;
+    webContainer.classList.remove('dragging');
+    webContent.style.transition = webContentTransitionBeforeDrag || '';
 });
 
 webContainer.addEventListener('mouseleave', () => {
+    dragCandidate = false;
+    if (!isDragging) return;
     isDragging = false;
     webContainer.classList.remove('dragging');
+    webContent.style.transition = webContentTransitionBeforeDrag || '';
 });
 
 applyFilterBtn.addEventListener('click', () => {
@@ -5739,6 +6177,56 @@ function storeTerroristLogs(logs) {
     localStorage.setItem('terroristLogs', JSON.stringify(currentLogs));
 }
 
+async function getSignedInUsername() {
+    try {
+        if (typeof puter === 'undefined' || !puter.auth) return '';
+
+        // Prefer explicit getter if available.
+        if (typeof puter.auth.getUser === 'function') {
+            const user = await puter.auth.getUser();
+            const username = user?.username || user?.name || user?.display_name || user?.displayName;
+            if (username) return String(username);
+        }
+
+        // Common fallback shapes.
+        const user = puter.auth.user || puter.user || puter?.auth?.currentUser;
+        const username = user?.username || user?.name || user?.display_name || user?.displayName;
+        return username ? String(username) : '';
+    } catch (e) {
+        return '';
+    }
+}
+
+async function updateAccountSection() {
+    const signInBtn = document.getElementById('signInBtn');
+    const greeting = document.getElementById('accountGreeting');
+
+    if (!greeting) return;
+
+    const signedIn = Boolean(
+        typeof puter !== 'undefined' &&
+        puter.auth &&
+        typeof puter.auth.isSignedIn === 'function' &&
+        puter.auth.isSignedIn()
+    );
+
+    if (!signedIn) {
+        greeting.style.display = 'none';
+        greeting.textContent = '';
+        if (signInBtn) signInBtn.style.display = 'block';
+        return;
+    }
+
+    if (signInBtn) signInBtn.style.display = 'none';
+    greeting.style.display = 'block';
+    greeting.textContent = 'Welcome back';
+
+    const username = await getSignedInUsername();
+    if (username) {
+        greeting.textContent = `Good to see you back ${username}.`;
+    }
+}
+
 function checkAuthStatus() {
     const signInBtn = document.getElementById('signInBtn');
     if (signInBtn && typeof puter !== 'undefined' && puter.auth) {
@@ -5752,6 +6240,9 @@ function checkAuthStatus() {
             signInBtn.style.display = 'none';
         }
     }
+
+    // Fire-and-forget; ensures greeting is updated when auth changes.
+    updateAccountSection();
 }
 
 document.getElementById('signInBtn')?.addEventListener('click', async () => {
@@ -5801,9 +6292,11 @@ function setupLogoDropdownListeners() {
 
     const refreshNodesOption = document.getElementById('refreshNodesOption');
     const classifyOption = document.getElementById('classifyOption');
+    const exportCsvOption = document.getElementById('exportCsvOption');
 
     console.log(' Refresh option exists:', !!refreshNodesOption);
     console.log(' Classify option exists:', !!classifyOption);
+    console.log(' Export CSV option exists:', !!exportCsvOption);
 
     if (refreshNodesOption) {
         console.log(' Adding event listener to Refresh Nodes');
@@ -5998,6 +6491,88 @@ function setupLogoDropdownListeners() {
     } else {
         console.error(' ClassifyOption not found!');
     }
+
+    if (exportCsvOption) {
+        exportCsvOption.addEventListener('click', (event) => {
+            event.stopPropagation();
+
+            if (!pazatorData || (!Array.isArray(pazatorData.humans) && !Array.isArray(pazatorData.others))) {
+                showAlert('No data found to export yet.', 'Notice', 'info');
+                return;
+            }
+
+            const humans = Array.isArray(pazatorData.humans) ? pazatorData.humans : [];
+            const others = Array.isArray(pazatorData.others) ? pazatorData.others : [];
+
+            if (humans.length === 0 && others.length === 0) {
+                showAlert('No entries to export yet.', 'Notice', 'info');
+                return;
+            }
+
+            const headers = ['Name', 'Type', 'Birth Date', 'Notes', 'Tags', 'Friends', 'Family'];
+
+            const csvEscape = (value) => {
+                const raw = value == null ? '' : String(value);
+                if (raw.includes('"') || raw.includes(',') || raw.includes('\n')) {
+                    return `"${raw.replace(/"/g, '""')}"`;
+                }
+                return raw;
+            };
+
+            const joinList = (value) => {
+                if (!value) return '';
+                if (Array.isArray(value)) return value.filter(Boolean).map(String).join(', ');
+                return String(value);
+            };
+
+            const rows = [];
+            rows.push(headers.map(csvEscape).join(','));
+
+            humans.forEach(human => {
+                rows.push([
+                    human?.name || '',
+                    '',
+                    human?.birthDate || '',
+                    human?.extraNotes || human?.notes || '',
+                    joinList(human?.tags),
+                    joinList(human?.friends),
+                    joinList(human?.family)
+                ].map(csvEscape).join(','));
+            });
+
+            others.forEach(other => {
+                rows.push([
+                    other?.name || '',
+                    other?.type || '',
+                    '',
+                    other?.note || other?.notes || '',
+                    '',
+                    '',
+                    ''
+                ].map(csvEscape).join(','));
+            });
+
+            const pad2 = (n) => String(n).padStart(2, '0');
+            const now = new Date();
+            const stamp = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}_${pad2(now.getHours())}-${pad2(now.getMinutes())}-${pad2(now.getSeconds())}`;
+            const filename = `pazator-export-${stamp}.csv`;
+
+            const csvText = rows.join('\n');
+            const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 0);
+
+            showAlert(`Exported ${humans.length} humans and ${others.length} companies/organizations to CSV.`, 'Success', 'success');
+        });
+    } else {
+        console.error(' ExportCsvOption not found!');
+    }
 }
 
 console.log(' Checking localStorage availability...');
@@ -6028,11 +6603,6 @@ try {
     console.log(' Pazator app fully initialized with enhanced data persistence');
     console.log(` Current data: ${pazatorData.humans.length} humans, ${pazatorData.others.length} others`);
 
-    setTimeout(() => {
-        console.log('⏰ Triggering auto-refresh sequence...');
-        autoRefreshSequence();
-    }, 2000);
-
 } catch (initError) {
     console.error(' Fatal initialization error:', initError);
     pazatorData = { humans: [], others: [] };
@@ -6040,11 +6610,93 @@ try {
     renderWebNodes();
     renderTags();
     console.log('️ Using fallback initialization');
+}
 
-    setTimeout(() => {
-        console.log('⏰ Triggering auto-refresh sequence after error...');
-        autoRefreshSequence();
-    }, 2000);
+const RECENT_SEARCHES_KEY = 'pazatorRecentSearches';
+
+function loadRecentSearches() {
+    try {
+        const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
+        const parsed = stored ? JSON.parse(stored) : [];
+        return Array.isArray(parsed) ? parsed.filter(Boolean).map(String) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveRecentSearches(list) {
+    try {
+        localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(Array.isArray(list) ? list : []));
+    } catch (e) {
+        console.warn('Could not persist recent searches', e);
+    }
+}
+
+function addRecentSearch(term) {
+    const value = String(term || '').trim();
+    if (!value) return;
+
+    const existing = loadRecentSearches();
+    const lower = value.toLowerCase();
+    const next = [value, ...existing.filter(x => String(x).toLowerCase() !== lower)].slice(0, 12);
+    saveRecentSearches(next);
+}
+
+function clearRecentSearches() {
+    saveRecentSearches([]);
+    renderRecentSearches();
+}
+
+function renderRecentSearches() {
+    const container = document.getElementById('recentSearchesContainer');
+    if (!container) return;
+
+    const items = loadRecentSearches();
+    if (items.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    const chips = items.map(term => {
+        const safeLabel = escapeHtml(term);
+        const encoded = encodeURIComponent(term);
+        return `
+            <button type="button" class="recent-search-chip" data-term="${encoded}">
+                <i class="fas fa-history" style="margin-right: 8px; color: #777;"></i>${safeLabel}
+            </button>
+        `;
+    }).join('');
+
+    container.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 10px;">
+            <div style="color: #888; font-size: 0.95rem; font-weight: 600; letter-spacing: 0.3px;">
+                Recent searches
+            </div>
+            <button type="button" class="recent-search-clear" style="background: none; border: 1px solid #444; color: #bbb; padding: 6px 10px; border-radius: 10px; cursor: pointer;">
+                Clear
+            </button>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
+            ${chips}
+        </div>
+    `;
+
+    container.querySelectorAll('.recent-search-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const encoded = btn.getAttribute('data-term') || '';
+            let term = encoded;
+            try {
+                term = decodeURIComponent(encoded);
+            } catch (e) {
+                term = encoded;
+            }
+            const input = document.getElementById('universalSearchInput');
+            if (input) input.value = term;
+            performSearch(term);
+        });
+    });
+
+    container.querySelector('.recent-search-clear')?.addEventListener('click', clearRecentSearches);
 }
 
 function initializeSearch() {
@@ -6074,6 +6726,7 @@ function performSearch(query) {
     const resultsCount = document.getElementById('searchResultsCount');
 
     if (!query) {
+        renderRecentSearches();
         resultsContainer.innerHTML = `
                     <div style="text-align: center; padding: 40px;">
                         <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 20px; color: #444;"></i>
@@ -6081,9 +6734,12 @@ function performSearch(query) {
                         <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666;">Search across all people, their jobs, dates, notes, and relationships</p>
                     </div>
                 `;
-        resultsCount.textContent = '0 results found';
+        if (resultsCount) resultsCount.textContent = '';
         return;
     }
+
+    addRecentSearch(query);
+    renderRecentSearches();
 
     const searchNames = document.getElementById('searchNames')?.checked ?? true;
     const searchJobs = document.getElementById('searchJobs')?.checked ?? true;
@@ -6184,7 +6840,7 @@ function performSearch(query) {
     });
 
     displaySearchResults(results, query);
-    resultsCount.textContent = `${results.length} result${results.length !== 1 ? 's' : ''} found`;
+    if (resultsCount) resultsCount.textContent = `${results.length} result${results.length !== 1 ? 's' : ''} found`;
 }
 
 function displaySearchResults(results, query) {
@@ -6271,39 +6927,31 @@ function displaySearchResults(results, query) {
 
 
 function initSearchTab() {
-    initializeSearch();
+    if (!searchTabInitialized) {
+        initializeSearch();
+        searchTabInitialized = true;
+    }
     renderRecentSearches();
 }
 
-const originalSwitchTab = switchTab;
-switchTab = function (tabId) {
-    originalSwitchTab(tabId);
-    if (tabId === 'search') {
-        setTimeout(initSearchTab, 100);
-    }
-    if (tabId === 'agents') {
-        setTimeout(initAgentsTab, 100);
-    }
-    if (tabId === 'articles') {
-        setTimeout(initArticlesTab, 100);
-    }
-};
-
-
 function initArticlesTab() {
-    const saveBtn = document.getElementById('saveArticleBtn');
-    const toggleBtn = document.getElementById('toggleAddArticle');
-    const closeBtn = document.getElementById('closeAddPanel');
-    const clearBtn = document.getElementById('clearArticleBtn');
-    const searchInput = document.getElementById('articleSearch');
-    const filterSelect = document.getElementById('articleFilter');
+    if (!articlesTabInitialized) {
+        const saveBtn = document.getElementById('saveArticleBtn');
+        const toggleBtn = document.getElementById('toggleAddArticle');
+        const closeBtn = document.getElementById('closeAddPanel');
+        const clearBtn = document.getElementById('clearArticleBtn');
+        const searchInput = document.getElementById('articleSearch');
+        const filterSelect = document.getElementById('articleFilter');
 
-    if (saveBtn) saveBtn.addEventListener('click', saveArticle);
-    if (toggleBtn) toggleBtn.addEventListener('click', toggleAddPanel);
-    if (closeBtn) closeBtn.addEventListener('click', hideAddPanel);
-    if (clearBtn) clearBtn.addEventListener('click', clearArticleForm);
-    if (searchInput) searchInput.addEventListener('input', filterArticles);
-    if (filterSelect) filterSelect.addEventListener('change', filterArticles);
+        if (saveBtn) saveBtn.addEventListener('click', saveArticle);
+        if (toggleBtn) toggleBtn.addEventListener('click', toggleAddPanel);
+        if (closeBtn) closeBtn.addEventListener('click', hideAddPanel);
+        if (clearBtn) clearBtn.addEventListener('click', clearArticleForm);
+        if (searchInput) searchInput.addEventListener('input', filterArticles);
+        if (filterSelect) filterSelect.addEventListener('change', filterArticles);
+
+        articlesTabInitialized = true;
+    }
 
     renderArticlesList();
 }
@@ -6561,12 +7209,12 @@ function viewFullArticle(articleId) {
 let activeAgents = [];
 
 function initAgentsTab() {
-    const createBtn = document.getElementById('createAgentBtn');
-    const nameInput = document.getElementById('agentName');
-    const goalInput = document.getElementById('agentGoal');
-
-    if (createBtn) {
-        createBtn.addEventListener('click', createNewAgent);
+    if (!agentsTabInitialized) {
+        const createBtn = document.getElementById('createAgentBtn');
+        if (createBtn) {
+            createBtn.addEventListener('click', createNewAgent);
+        }
+        agentsTabInitialized = true;
     }
 
     renderAgentsList();
@@ -6895,7 +7543,11 @@ function renderAgentDetail(agentId) {
     const agent = activeAgents.find(a => a.id === agentId);
     if (!agent) return;
 
+    const existing = document.getElementById('agentDetailModal');
+    if (existing) existing.remove();
+
     const modal = document.createElement('div');
+    modal.id = 'agentDetailModal';
     modal.className = 'modal';
     modal.style.display = 'flex';
     modal.style.zIndex = '1000';
@@ -6920,7 +7572,7 @@ function renderAgentDetail(agentId) {
                                 <span style="margin-left: auto; background: #444; color: #ddd; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem;">${minutes}m ${seconds}s</span>
                             </h3>
                             
-                            <div style="flex: 1; overflow-y: auto; background: rgba(20, 20, 20, 0.5); border-radius: 10px; padding: 15px;">
+                            <div id="agentDetailThoughts" style="flex: 1; overflow-y: auto; background: rgba(20, 20, 20, 0.5); border-radius: 10px; padding: 15px;">
                                 ${agent.thoughts.map(thought => `
                                     <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #333;">
                                         <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">${thought.timestamp.toLocaleTimeString()}</div>
@@ -6988,7 +7640,7 @@ function renderAgentDetail(agentId) {
 
     document.body.appendChild(modal);
 
-    const thoughtsContainer = modal.querySelector('div[style*="overflow-y: auto"]:first-child');
+    const thoughtsContainer = modal.querySelector('#agentDetailThoughts');
     if (thoughtsContainer) {
         setTimeout(() => {
             thoughtsContainer.scrollTop = thoughtsContainer.scrollHeight;

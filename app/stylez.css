@@ -35,7 +35,13 @@
         margin: 0;
         padding: 0;
         box-sizing: border-box;
-        transition: all 0.3s var(--transition-smooth);
+        transition:
+            background-color 0.3s var(--transition-smooth),
+            border-color 0.3s var(--transition-smooth),
+            color 0.3s var(--transition-smooth),
+            box-shadow 0.3s var(--transition-smooth),
+            opacity 0.3s var(--transition-smooth),
+            filter 0.3s var(--transition-smooth);
     }
 
     body {
@@ -169,6 +175,17 @@
         font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;
         font-weight: 600;
         letter-spacing: 0.5px;
+    }
+
+    .account-greeting {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        margin-bottom: 12px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(20, 20, 20, 0.35);
+        line-height: 1.35;
     }
 
     .tags-container {
@@ -1065,10 +1082,12 @@
         cursor: grab;
         border-radius: 8px;
         background: radial-gradient(circle at center, rgba(255, 255, 255, 0.02) 0%, transparent 70%);
+        touch-action: none;
     }
 
     .web-container.dragging {
         cursor: grabbing;
+        user-select: none;
     }
 
     .web-content {
@@ -1079,6 +1098,25 @@
         will-change: transform;
         transform: translateZ(0);
         backface-visibility: hidden;
+        transition: none;
+    }
+
+    .web-container.dragging .web-content {
+        pointer-events: none;
+        transition: none !important;
+    }
+
+    .web-container.dragging .data-node,
+    .web-container.dragging .connection-node,
+    .web-container.dragging .graph-node,
+    .web-container.dragging .node-label {
+        transition: none !important;
+    }
+
+    .web-container.dragging .data-node:hover,
+    .web-container.dragging .connection-node:hover,
+    .web-container.dragging .graph-node:hover {
+        transform: none !important;
     }
 
     .data-node {
@@ -1684,6 +1722,27 @@
         box-shadow: none;
     }
 
+    .recent-search-chip {
+        background: rgba(40, 40, 40, 0.65);
+        border: 1px solid #444;
+        color: #ddd;
+        padding: 10px 14px;
+        border-radius: 999px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+        white-space: nowrap;
+    }
+
+    .recent-search-chip:hover {
+        background: rgba(55, 55, 55, 0.75);
+        border-color: #555;
+        transform: translateY(-1px);
+    }
+
     .detail-view {
         display: none;
         position: fixed;
@@ -2034,7 +2093,7 @@
         position: absolute;
         width: 72px;
         height: 72px;
-        border-radius: 50%;
+        border-radius: 14px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -2045,22 +2104,40 @@
         cursor: pointer;
         z-index: 10;
         box-shadow:
-            0 4px 16px rgba(0, 0, 0, 0.3),
-            inset 0 2px 4px rgba(255, 255, 255, 0.1);
-        border: 2px solid rgba(255, 255, 255, 0.8);
-        background: linear-gradient(145deg, #ffffff, #e0e0e0);
-        color: #000;
-        transition: all 0.3s ease;
+            0 10px 24px rgba(0, 0, 0, 0.35),
+            inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: linear-gradient(145deg, rgba(46, 46, 46, 0.92), rgba(28, 28, 28, 0.92));
+        color: #e8e8e8;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
     }
 
     .graph-node:hover {
-        transform: scale(1.15);
-        box-shadow: 0 6px 24px rgba(255, 255, 255, 0.3);
+        transform: scale(1.07);
+        border-color: rgba(255, 255, 255, 0.32);
+        box-shadow:
+            0 14px 32px rgba(0, 0, 0, 0.45),
+            0 0 0 4px rgba(255, 255, 255, 0.06);
+    }
+
+    .graph-node-center {
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        background: linear-gradient(145deg, rgba(60, 60, 60, 0.95), rgba(34, 34, 34, 0.95));
+        color: #f2f2f2;
+        box-shadow:
+            0 16px 34px rgba(0, 0, 0, 0.5),
+            0 0 0 4px rgba(255, 255, 255, 0.06);
+    }
+
+    .graph-node-member {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: linear-gradient(145deg, rgba(44, 44, 44, 0.9), rgba(26, 26, 26, 0.9));
+        color: #e6e6e6;
     }
 
     .graph-line {
         position: absolute;
-        background: linear-gradient(90deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.6));
+        background: linear-gradient(90deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08));
         transform-origin: 0 0;
         z-index: 5;
         height: 2px;
