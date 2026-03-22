@@ -670,6 +670,21 @@ function toggleLabelLayer(type) {
     }
 }
 
+function setTrackerMapFilterActive(activeState) {
+    const enabled = !!activeState;
+    trackerFilterActive = enabled;
+    trackerMapContainer?.classList.toggle('tracker-filter-active', enabled);
+
+    if (trackerFilterToggleBtn) {
+        trackerFilterToggleBtn.classList.toggle('active', enabled);
+        trackerFilterToggleBtn.textContent = `${enabled ? 'Hide' : 'Show'} filter`;
+    }
+}
+
+function toggleTrackerMapFilter() {
+    setTrackerMapFilterActive(!trackerFilterActive);
+}
+
 const trackerSidebar = document.getElementById('trackerSidebar');
 const trackerPeopleListEl = document.getElementById('trackerPeopleList');
 const trackerDebug = document.getElementById('trackerDebug');
@@ -677,6 +692,7 @@ const trackerLocationInfo = document.getElementById('trackerLocationInfo');
 const trackerToggleSidebarBtn = document.getElementById('trackerToggleSidebarBtn');
 const trackerSpinToggleBtn = document.getElementById('trackerSpinToggleBtn');
 const trackerStreetLabelBtn = document.getElementById('streetLabelToggle');
+const trackerFilterToggleBtn = document.getElementById('trackerFilterToggle');
 const trackerHumanSelect = document.getElementById('trackerHumanSelect');
 const trackerConnectBtn = document.getElementById('trackerConnectBtn');
 const trackerRefreshBtn = document.getElementById('trackerRefreshBtn');
@@ -692,11 +708,14 @@ let trackerLocationAbortController = null;
 let trackerLocationCacheKey = '';
 let trackerLabelLayersAdded = false;
 let streetLabelsActive = false;
+let trackerFilterActive = false;
 
 const TRACKER_PATH_LAYER = 'tracker-path';
 const TRACKER_MARKERS_LAYER = 'tracker-markers';
 const STREET_LABEL_LAYER = 'tracker-street-labels';
 const STREET_LABEL_SOURCE = 'tracker-street-source';
+
+setTrackerMapFilterActive(false);
 
 function escapeHtml(unsafe) {
     return unsafe.replace(/[&<>"']/g, function (m) {
@@ -4869,6 +4888,7 @@ trackerSpinToggleBtn?.addEventListener('click', () => {
     }
 });
 trackerStreetLabelBtn?.addEventListener('click', () => toggleLabelLayer('street'));
+trackerFilterToggleBtn?.addEventListener('click', toggleTrackerMapFilter);
 humanTrackerSelect?.addEventListener('change', () => {
     if (!humanTrackerAliasInput) return;
     if (!humanTrackerAliasInput.value) {

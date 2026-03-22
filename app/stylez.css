@@ -824,6 +824,35 @@
         min-height: 0;
     }
 
+    /* Shahed tracker map: ultra-contrasty + green tint */
+    #trackerMap {
+        position: relative;
+        overflow: hidden;
+        background: #000;
+    }
+
+    /* Apply to both MapLibre and Mapbox canvas classnames (varies by build) */
+    #trackerMap.tracker-filter-active .maplibregl-canvas,
+    #trackerMap.tracker-filter-active .mapboxgl-canvas,
+    #trackerMap.tracker-filter-active canvas {
+        -webkit-filter: saturate(0) contrast(900%) brightness(1.15) !important;
+        filter: saturate(0) contrast(900%) brightness(1.15) !important;
+    }
+
+    #trackerMap.tracker-filter-active::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: rgba(0, 255, 110, 0.22);
+        mix-blend-mode: color;
+        z-index: 1;
+    }
+
+    #trackerMap .maplibregl-control-container {
+        z-index: 2;
+    }
+
     .tracker-crosshair {
         position: absolute;
         inset: 0;
@@ -882,6 +911,12 @@
         display: flex;
         justify-content: space-between;
         z-index: 20;
+        gap: 10px;
+    }
+
+    .tracker-map-overlay-right {
+        display: flex;
+        justify-content: flex-end;
         gap: 10px;
     }
 
