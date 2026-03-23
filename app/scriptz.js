@@ -693,6 +693,10 @@ const trackerToggleSidebarBtn = document.getElementById('trackerToggleSidebarBtn
 const trackerSpinToggleBtn = document.getElementById('trackerSpinToggleBtn');
 const trackerStreetLabelBtn = document.getElementById('streetLabelToggle');
 const trackerFilterToggleBtn = document.getElementById('trackerFilterToggle');
+const trackerSettingsBtn = document.getElementById('trackerSettingsBtn');
+const trackerSettingsMenu = document.getElementById('trackerSettingsMenu');
+const trackerSpinSpeedInput = document.getElementById('trackerSpinSpeed');
+const trackerSpinSpeedValue = document.getElementById('trackerSpinSpeedValue');
 const trackerHumanSelect = document.getElementById('trackerHumanSelect');
 const trackerConnectBtn = document.getElementById('trackerConnectBtn');
 const trackerRefreshBtn = document.getElementById('trackerRefreshBtn');
@@ -703,12 +707,44 @@ const trackerMapContainer = document.getElementById('trackerMap');
 let trackerMap;
 let trackerSpinning = false;
 let trackerAnimationFrame = null;
+let trackerLastSpinTimestamp = null;
 let trackerInitialized = false;
 let trackerLocationAbortController = null;
 let trackerLocationCacheKey = '';
 let trackerLabelLayersAdded = false;
 let streetLabelsActive = false;
 let trackerFilterActive = false;
+let trackerSpinSpeedDps = 10;
+
+function setTrackerSpinSpeed(nextSpeed) {
+    const parsed = Number(nextSpeed);
+    const safeValue = Number.isFinite(parsed) ? Math.max(0, Math.min(60, parsed)) : 10;
+    trackerSpinSpeedDps = safeValue;
+
+    if (trackerSpinSpeedInput) trackerSpinSpeedInput.value = String(Math.round(safeValue));
+    if (trackerSpinSpeedValue) trackerSpinSpeedValue.textContent = `${Math.round(safeValue)}°/s`;
+
+    try {
+        localStorage.setItem('trackerSpinSpeedDps', String(Math.round(safeValue)));
+    } catch (err) {
+        // ignore storage errors
+    }
+}
+
+function setTrackerSettingsMenuOpen(isOpen) {
+    if (!trackerSettingsMenu || !trackerSettingsBtn) return;
+    trackerSettingsMenu.classList.toggle('open', !!isOpen);
+    trackerSettingsBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+}
+
+try {
+    const saved = localStorage.getItem('trackerSpinSpeedDps');
+    if (saved != null) setTrackerSpinSpeed(saved);
+} catch (err) {
+    // ignore storage errors
+}
+
+setTrackerSpinSpeed(trackerSpinSpeedDps);
 
 const TRACKER_PATH_LAYER = 'tracker-path';
 const TRACKER_MARKERS_LAYER = 'tracker-markers';
@@ -1180,22 +1216,33 @@ function ensureTrackerTabReady() {
     });
 }
 
-function spinTrackerMap() {
+function spinTrackerMap(timestamp) {
     if (!trackerSpinning || !trackerMap) return;
-    trackerMap.setBearing((trackerMap.getBearing() + 0.5) % 360);
+    const now = typeof timestamp === 'number' ? timestamp : performance.now();
+    if (trackerLastSpinTimestamp == null) trackerLastSpinTimestamp = now;
+    const deltaSeconds = Math.min(0.05, Math.max(0, (now - trackerLastSpinTimestamp) / 1000));
+    trackerLastSpinTimestamp = now;
+
+    const deltaBearing = trackerSpinSpeedDps * deltaSeconds;
+    if (deltaBearing) {
+        trackerMap.setBearing((trackerMap.getBearing() + deltaBearing) % 360);
+    }
+
     trackerAnimationFrame = requestAnimationFrame(spinTrackerMap);
 }
 
 function startTrackerSpin() {
     if (trackerSpinning) return;
     trackerSpinning = true;
+    trackerLastSpinTimestamp = null;
     trackerSpinToggleBtn?.classList.add('active');
     if (trackerSpinToggleBtn) trackerSpinToggleBtn.innerText = 'Pause spin';
-    spinTrackerMap();
+    trackerAnimationFrame = requestAnimationFrame(spinTrackerMap);
 }
 
 function stopTrackerSpin() {
     trackerSpinning = false;
+    trackerLastSpinTimestamp = null;
     trackerSpinToggleBtn?.classList.remove('active');
     if (trackerSpinToggleBtn) trackerSpinToggleBtn.innerText = 'Resume spin';
     if (trackerAnimationFrame) {
@@ -4889,6 +4936,33 @@ trackerSpinToggleBtn?.addEventListener('click', () => {
 });
 trackerStreetLabelBtn?.addEventListener('click', () => toggleLabelLayer('street'));
 trackerFilterToggleBtn?.addEventListener('click', toggleTrackerMapFilter);
+trackerSettingsBtn?.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const isOpen = trackerSettingsMenu?.classList.contains('open');
+    setTrackerSettingsMenuOpen(!isOpen);
+});
+trackerSettingsMenu?.addEventListener('click', (event) => {
+    event.stopPropagation();
+});
+trackerSpinSpeedInput?.addEventListener('input', () => {
+    setTrackerSpinSpeed(trackerSpinSpeedInput.value);
+});
+
+document.addEventListener('click', (event) => {
+    if (!trackerSettingsMenu || !trackerSettingsBtn) return;
+    if (!trackerSettingsMenu.classList.contains('open')) return;
+    const target = event.target;
+    if (!(target instanceof Node)) return;
+    if (trackerSettingsMenu.contains(target)) return;
+    if (trackerSettingsBtn.contains(target)) return;
+    setTrackerSettingsMenuOpen(false);
+});
+
+document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    if (!trackerSettingsMenu?.classList.contains('open')) return;
+    setTrackerSettingsMenuOpen(false);
+});
 humanTrackerSelect?.addEventListener('change', () => {
     if (!humanTrackerAliasInput) return;
     if (!humanTrackerAliasInput.value) {

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="icon" type="image/png" href="./favicon.ico" />
     <title>Pazator SARPARAST - Mass data container</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.css">
@@ -25,7 +25,7 @@
                     <div class="ai-status">
                         <span class="status-indicator"></span>
                         <span class="status-text">Context ready</span>
-                    </div> 
+                    </div>
                 </div>
                 <div class="header-right">
                     <button class="chat-menu-btn" id="chatMenuBtn">
@@ -131,23 +131,27 @@
                 <span id="tabBarTime">--:--</span>
                 <small id="tabBarDate">Loading...</small>
             </div>
-            <div class="tab-bar-extra" id="tabBarStatus">System operational</div>
+            <div class="tab-bar-extra" id="tabBarStatus">Something broke, or its loading. prop broke.</div>
         </div>
         <button class="tab active" data-tab="dashboard">
             Dashboard
             <span class="tab-close">&times;</span>
         </button>
         <div style="flex: 1;"></div>
-        <button class="tab-action" id="dashboardBtn" title="Main workspace with data visualization" data-tab-target="dashboard">
+        <button class="tab-action" id="dashboardBtn" title="Main workspace with data visualization"
+            data-tab-target="dashboard">
             <i class="fas fa-home"></i>
         </button>
-        <button class="tab-action" id="analysisBtn" title="Data insights and connection mapping" data-tab-target="analysis">
+        <button class="tab-action" id="analysisBtn" title="Data insights and connection mapping"
+            data-tab-target="analysis">
             <i class="fas fa-chart-line"></i>
         </button>
-        <button class="tab-action" id="threatsBtn" title="Security intelligence and risk assessment" data-tab-target="threats">
+        <button class="tab-action" id="threatsBtn" title="Security intelligence and risk assessment"
+            data-tab-target="threats">
             <i class="fas fa-shield-alt"></i>
         </button>
-        <button class="tab-action" id="chatControlBtn" title="Chat management and analysis" data-tab-target="chat-control">
+        <button class="tab-action" id="chatControlBtn" title="Chat management and analysis"
+            data-tab-target="chat-control">
             <i class="fas fa-comments"></i>
         </button>
         <button class="tab-action" id="searchBtn" title="Powerful search across all data" data-tab-target="search">
@@ -186,7 +190,8 @@
             <div class="workspace">
                 <div class="main-panel">
                     <div class="logo">
-                        <h1>Pazator SARPARAST - beta <p class="versiontext">0.Mar2226 </p></h1>
+                        <h1>Pazator SARPARAST - beta <p class="versiontext">0.Mar2226 </p>
+                        </h1>
                     </div>
                     <div class="web-container" id="webContainer">
                         <div class="web-content" id="webContent">
@@ -201,10 +206,12 @@
                             <button id="askAIBtn" class="btn btn-primary btn-dual">Zor.</button>
                         </div>
                         <div class="form-group" style="margin-top: 10px;">
-                            <button id="chatUploadBtn" class="btn btn-secondary" style="width: 100%;">Upload Chat</button>
+                            <button id="chatUploadBtn" class="btn btn-secondary" style="width: 100%;">Upload
+                                Chat</button>
                         </div>
                         <div class="form-group" style="margin-top: 10px;">
-                            <button id="dataUploadBtn" class="btn btn-secondary" style="width: 100%;">Upload Data</button>
+                            <button id="dataUploadBtn" class="btn btn-secondary" style="width: 100%;">Upload
+                                Data</button>
                         </div>
                     </div>
 
@@ -261,7 +268,8 @@
                                 </div>
                                 <div style="flex: 1; display: flex; flex-direction: column;">
                                     <div class="form-group" style="margin-bottom: 16px;">
-                                        <button id="findConnectionsBtn" class="btn btn-secondary btn-full">Discover Hidden Links</button>
+                                        <button id="findConnectionsBtn" class="btn btn-secondary btn-full">Discover
+                                            Hidden Links</button>
                                     </div>
                                     <div class="analysis-placeholder">
                                         <p>Connection Map Visualization</p>
@@ -277,10 +285,12 @@
                                 </div>
                                 <div style="flex: 1; display: flex; flex-direction: column;">
                                     <div class="form-group" style="margin-bottom: 12px;">
-                                        <button id="refreshCreditsBtn" class="btn btn-secondary btn-full">Evaluate Credit Scores</button>
+                                        <button id="refreshCreditsBtn" class="btn btn-secondary btn-full">Evaluate
+                                            Credit Scores</button>
                                     </div>
                                     <div class="form-group" style="margin-bottom: 16px;">
-                                        <button id="sortByCreditBtn" class="btn btn-secondary btn-full">Rank by Risk Level</button>
+                                        <button id="sortByCreditBtn" class="btn btn-secondary btn-full">Rank by Risk
+                                            Level</button>
                                     </div>
                                     <div class="analysis-stats">
                                         <h4>Risk Distribution</h4>
@@ -309,10 +319,12 @@
                     <div class="sidebar-section sidebar-mini">
                         <h3>Analytics Suite</h3>
                         <div class="form-group compact">
-                            <button id="showStatisticsBtn" class="btn btn-secondary btn-full">Statistical Overview</button>
+                            <button id="showStatisticsBtn" class="btn btn-secondary btn-full">Statistical
+                                Overview</button>
                         </div>
                         <div class="form-group compact">
-                            <button id="toggleConnectionsBtn" class="btn btn-secondary btn-full">Network Visibility</button>
+                            <button id="toggleConnectionsBtn" class="btn btn-secondary btn-full">Network
+                                Visibility</button>
                         </div>
                         <div class="form-group compact">
                             <button id="refreshViewBtn" class="btn btn-secondary btn-full">Refresh Analytics
@@ -376,10 +388,12 @@
                     <div class="sidebar-section sidebar-mini">
                         <h3>Security Operations</h3>
                         <div class="form-group compact">
-                            <button id="refreshChatListBtn" class="btn btn-secondary btn-full">Update Conversation List</button>
+                            <button id="refreshChatListBtn" class="btn btn-secondary btn-full">Update Conversation
+                                List</button>
                         </div>
                         <div class="form-group compact">
-                            <button id="exportChatReportBtn" class="btn btn-secondary btn-full">Generate Security Report</button>
+                            <button id="exportChatReportBtn" class="btn btn-secondary btn-full">Generate Security
+                                Report</button>
                         </div>
                         <div class="form-group compact">
                             <button id="clearChatHistoryBtn" class="btn btn-danger btn-full">Purge All Records</button>
@@ -512,7 +526,8 @@
                         <div class="threat-action-card">
                             <h4>Situation Report</h4>
                             <p>Current threat assessment overview</p>
-                            <button id="generateThreatReportBtn" class="btn btn-secondary btn-full">Generate Report</button>
+                            <button id="generateThreatReportBtn" class="btn btn-secondary btn-full">Generate
+                                Report</button>
                         </div>
 
                         <div class="threat-action-card">
@@ -521,295 +536,328 @@
                             <button id="reviewArchiveBtn" class="btn btn-secondary btn-full">Review Archive</button>
                         </div>
                     </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="tab-content" id="agents-tab">
-        <div style="display: flex; flex-direction: column; height: 100%; padding: 30px;">
-            <div style="text-align: center; margin-bottom: 30px;">
-                <h1
-                    style="margin: 0; font-size: 2.5rem; background: linear-gradient(45deg, #ffffff, #dddddd); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;">
-                    Autonomous Agents</h1>
-                <p style="margin: 15px 0 0 0; color: #aaa; font-size: 1.1rem;">Beta.</p>
-            </div>
-
-            <div style="display: flex; gap: 25px; flex: 1;">
-                <div
-                    style="flex: 1; background: rgba(30, 30, 30, 0.7); border: 1px solid #333; border-radius: 15px; padding: 25px; display: flex; flex-direction: column;">
-                    <h2
-                        style="margin: 0 0 20px 0; color: #ffffff; font-size: 1.5rem; display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-plus-circle" style="color: #6bcf7f;"></i>
-                        Create New Agent
-                    </h2>
-
-                    <div style="flex: 1; display: flex; flex-direction: column; gap: 20px;">
-                        <div>
-                            <label style="display: block; margin-bottom: 8px; color: #ddd; font-weight: 500;">Agent
-                                Name</label>
-                            <input type="text" id="agentName" class="form-control" placeholder="Agent name"
-                                style="width: 100%; padding: 12px; font-size: 1rem;">
-                        </div>
-
-                        <div>
-                            <label
-                                style="display: block; margin-bottom: 8px; color: #ddd; font-weight: 500;">Goal/Objective</label>
-                            <textarea id="agentGoal" class="form-control" placeholder="Agent goal"
-                                style="width: 100%; padding: 12px; font-size: 1rem; height: 120px; resize: vertical;"></textarea>
-                        </div>
-
-                        <button id="createAgentBtn" class="btn btn-primary"
-                            style="padding: 15px; font-size: 1.1rem; background: linear-gradient(145deg, #2a2a2a, #222222); border: 1px solid #444;">
-                            <i class="fas fa-robot" style="margin-right: 10px;"></i>Create Agent
-                        </button>
-
-                        <div
-                            style="background: rgba(255, 255, 255, 0.05); border-radius: 10px; padding: 15px; border-left: 3px solid #666;">
-                            <h4
-                                style="margin: 0 0 10px 0; color: #ddd; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
-                                <i class="fas fa-info-circle" style="color: #6bcf7f;"></i>
-                                Agent Capabilities
-                            </h4>
-                            <ul
-                                style="margin: 0; padding-left: 20px; color: #aaa; font-size: 0.9rem; line-height: 1.6;">
-                                <li>Access to all person names in database</li>
-                                <li>Can request detailed information about any person</li>
-                                <li>Can leave investigation logs</li>
-                                <li>Can declare mission complete</li>
-                                <li>Limited to 3 concurrent agents</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
-                <div
-                    style="flex: 2; background: rgba(30, 30, 30, 0.7); border: 1px solid #333; border-radius: 15px; padding: 25px; display: flex; flex-direction: column;">
-                    <h2
-                        style="margin: 0 0 20px 0; color: #ffffff; font-size: 1.5rem; display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-tasks" style="color: #ffd93d;"></i>
-                        Active Agents
-                        <span id="agentCount"
-                            style="background: #444; color: #ddd; padding: 3px 10px; border-radius: 12px; font-size: 0.9rem; margin-left: auto;">0/3</span>
-                    </h2>
-
-                    <div id="agentsList"
-                        style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;">
-                        <div style="text-align: center; padding: 40px; color: #777;">
-                            <i class="fas fa-robot" style="font-size: 3rem; margin-bottom: 20px; color: #444;"></i>
-                            <p style="margin: 0; font-size: 1.2rem;">No active agents</p>
-                            <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666;">Create an agent to get
-                                started</p>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="tab-content" id="search-tab">
-        <div style="display: flex; flex-direction: column; height: 100%; padding: 40px;">
-            <div style="text-align: center; margin-bottom: 40px;">
-                <h1
-                    style="margin: 0; font-size: 2.5rem; background: linear-gradient(45deg, #ffffff, #dddddd); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;">
-                    Search Database</h1>
-                <p style="margin: 15px 0 0 0; color: #aaa; font-size: 1.1rem;">Search across all people, jobs, dates,
-                    notes, and relationships</p>
-            </div>
-
-            <div style="max-width: 700px; width: 100%; margin: 0 auto; flex: 1; display: flex; flex-direction: column;">
-                <div style="position: relative; margin-bottom: 30px;">
-                    <input type="text" id="universalSearchInput" class="form-control" placeholder="Search the database..."
-                        style="font-size: 1.2rem; padding: 18px 20px; border-radius: 12px; border: 2px solid #333; background: rgba(30, 30, 30, 0.8); width: 100%; text-align: center;">
-                    <i class="fas fa-search"
-                        style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); color: #777; font-size: 1.2rem;"></i>
-                </div>
-
-                <div id="recentSearchesContainer" style="margin: 0 auto 22px auto; max-width: 700px;"></div>
-
-                <div id="searchResultsCount"
-                    style="text-align: center; color: #888; margin-bottom: 20px; font-size: 1rem; min-height: 24px;">
-                </div>
-
-                <div id="searchResultsContainer"
-                    style="flex: 1; overflow-y: auto; background: rgba(20, 20, 20, 0.3); border-radius: 12px; padding: 25px; min-height: 300px; display: flex; align-items: center; justify-content: center; color: #777; transition: all 0.3s ease; border: 1px solid #2a2a2a; max-height: 60vh;">
-                    <div style="text-align: center; padding: 40px;">
-                        <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 20px; color: #444;"></i>
-                        <p style="margin: 0; font-size: 1.2rem; color: #aaa;">Start typing to search the database</p>
-                        <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666;">Results will appear here</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Articles Tab -->
-    <div class="tab-content" id="articles-tab">
-        <div style="height: 100%; padding: 30px; display: flex; flex-direction: column;">
-            <!-- Header Section -->
-            <div style="margin-bottom: 25px; padding: 0 10px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <div class="tab-content" id="agents-tab">
+            <div style="display: flex; flex-direction: column; height: 100%; padding: 30px;">
+                <div style="text-align: center; margin-bottom: 30px;">
                     <h1
-                        style="margin: 0; font-size: 2.2rem; background: linear-gradient(45deg, #ffffff, #dddddd); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;">
-                        Knowledge Repository</h1>
-                    <div style="display: flex; gap: 15px; align-items: center;">
-                        <span id="articlesCount"
-                            style="background: rgba(107, 207, 127, 0.2); color: #6bcf7f; padding: 8px 18px; border-radius: 25px; font-size: 1rem; font-weight: 500; border: 1px solid #6bcf7f;">0
-                            documents</span>
-                        <button id="toggleAddArticle" class="btn btn-primary"
-                            style="padding: 12px 22px; font-size: 1rem; background: linear-gradient(145deg, #2a2a2a, #222222); border: 2px solid #444; border-radius: 12px; font-weight: 600; display: flex; align-items: center; gap: 10px; transition: all 0.2s ease;">
-                            <i class="fas fa-plus"></i> Add Document
-                        </button>
-                    </div>
+                        style="margin: 0; font-size: 2.5rem; background: linear-gradient(45deg, #ffffff, #dddddd); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;">
+                        Autonomous Agents</h1>
+                    <p style="margin: 15px 0 0 0; color: #aaa; font-size: 1.1rem;">Beta.</p>
                 </div>
-                <p style="margin: 0; color: #aaa; font-size: 1.1rem;">Store articles and documents as contextual
-                    knowledge for AI analysis</p>
-            </div>
 
-            <!-- Main Content Area -->
-            <div style="flex: 1; display: flex; gap: 25px; overflow: hidden;">
-                <!-- Articles List (Main Panel) -->
-                <div
-                    style="flex: 3; background: rgba(25, 25, 25, 0.8); border: 1px solid #333; border-radius: 15px; padding: 25px; display: flex; flex-direction: column; overflow: hidden;">
+                <div style="display: flex; gap: 25px; flex: 1;">
                     <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #333;">
+                        style="flex: 1; background: rgba(30, 30, 30, 0.7); border: 1px solid #333; border-radius: 15px; padding: 25px; display: flex; flex-direction: column;">
                         <h2
-                            style="margin: 0; color: #ffffff; font-size: 1.4rem; display: flex; align-items: center; gap: 12px;">
-                            <i class="fas fa-book-open" style="color: #4d9de0;"></i>
-                            Document Library
+                            style="margin: 0 0 20px 0; color: #ffffff; font-size: 1.5rem; display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-plus-circle" style="color: #6bcf7f;"></i>
+                            Create New Agent
                         </h2>
-                        <div style="display: flex; gap: 10px;">
-                            <select id="articleFilter" class="form-control"
-                                style="padding: 8px 15px; background: rgba(40, 40, 40, 0.7); border: 1px solid #444; border-radius: 8px; color: #ddd; width: 150px;">
-                                <option value="all">All Documents</option>
-                                <option value="recent">Recently Added</option>
-                            </select>
-                            <div style="position: relative; width: 200px;">
-                                <input type="text" id="articleSearch" class="form-control" placeholder="Search documents..."
-                                    style="width: 100%; padding: 8px 15px 8px 35px; background: rgba(40, 40, 40, 0.7); border: 1px solid #444; border-radius: 8px; color: #ddd;">
-                                <i class="fas fa-search"
-                                    style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #777; font-size: 0.9rem;"></i>
+
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 20px;">
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; color: #ddd; font-weight: 500;">Agent
+                                    Name</label>
+                                <input type="text" id="agentName" class="form-control" placeholder="Agent name"
+                                    style="width: 100%; padding: 12px; font-size: 1rem;">
+                            </div>
+
+                            <div>
+                                <label
+                                    style="display: block; margin-bottom: 8px; color: #ddd; font-weight: 500;">Goal/Objective</label>
+                                <textarea id="agentGoal" class="form-control" placeholder="Agent goal"
+                                    style="width: 100%; padding: 12px; font-size: 1rem; height: 120px; resize: vertical;"></textarea>
+                            </div>
+
+                            <button id="createAgentBtn" class="btn btn-primary"
+                                style="padding: 15px; font-size: 1.1rem; background: linear-gradient(145deg, #2a2a2a, #222222); border: 1px solid #444;">
+                                <i class="fas fa-robot" style="margin-right: 10px;"></i>Create Agent
+                            </button>
+
+                            <div
+                                style="background: rgba(255, 255, 255, 0.05); border-radius: 10px; padding: 15px; border-left: 3px solid #666;">
+                                <h4
+                                    style="margin: 0 0 10px 0; color: #ddd; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fas fa-info-circle" style="color: #6bcf7f;"></i>
+                                    Agent Capabilities
+                                </h4>
+                                <ul
+                                    style="margin: 0; padding-left: 20px; color: #aaa; font-size: 0.9rem; line-height: 1.6;">
+                                    <li>Access to all person names in database</li>
+                                    <li>Can request detailed information about any person</li>
+                                    <li>Can leave investigation logs</li>
+                                    <li>Can declare mission complete</li>
+                                    <li>Limited to 3 concurrent agents</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
 
-                    <div id="articlesList"
-                        style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; padding-right: 10px;">
-                        <div
-                            style="text-align: center; padding: 60px 20px; color: #777; flex: 1; display: flex; flex-direction: column; justify-content: center;">
-                            <i class="fas fa-file-alt" style="font-size: 4rem; margin-bottom: 25px; color: #333;"></i>
-                            <h3 style="margin: 0 0 15px 0; color: #999; font-size: 1.4rem;">No documents in repository
-                            </h3>
-                            <p style="margin: 0; font-size: 1.1rem; color: #666; max-width: 400px; margin: 0 auto;">
-                                Click "Add Document" to begin building your knowledge base</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Add Article Panel (Slide-in) -->
-                <div id="addArticlePanel"
-                    style="flex: 2; background: rgba(30, 30, 30, 0.9); border: 1px solid #444; border-radius: 15px; padding: 25px; display: none; flex-direction: column; max-width: 450px; transition: all 0.3s ease; transform: translateX(20px); opacity: 0;">
                     <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                        style="flex: 2; background: rgba(30, 30, 30, 0.7); border: 1px solid #333; border-radius: 15px; padding: 25px; display: flex; flex-direction: column;">
                         <h2
-                            style="margin: 0; color: #ffffff; font-size: 1.4rem; display: flex; align-items: center; gap: 12px;">
-                            <i class="fas fa-file-import" style="color: #6bcf7f;"></i>
-                            Add New Document
+                            style="margin: 0 0 20px 0; color: #ffffff; font-size: 1.5rem; display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-tasks" style="color: #ffd93d;"></i>
+                            Active Agents
+                            <span id="agentCount"
+                                style="background: #444; color: #ddd; padding: 3px 10px; border-radius: 12px; font-size: 0.9rem; margin-left: auto;">0/3</span>
                         </h2>
-                        <button id="closeAddPanel" class="btn btn-secondary"
-                            style="padding: 8px 15px; background: rgba(60, 60, 60, 0.7); border: 1px solid #555; border-radius: 8px; color: #ddd; cursor: pointer;">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
 
-                    <div style="display: flex; flex-direction: column; gap: 20px; flex: 1;">
-                        <div>
-                            <label
-                                style="display: block; margin-bottom: 8px; color: #ddd; font-weight: 500; font-size: 1rem;">Organization/Source</label>
-                            <input type="text" id="articleCompany" class="form-control" placeholder="Organization/Source"
-                                style="width: 100%; padding: 14px; font-size: 1rem; border-radius: 10px; border: 2px solid #333; background: rgba(20, 20, 20, 0.5); transition: border-color 0.2s ease;">
-                        </div>
-
-                        <div>
-                            <label
-                                style="display: block; margin-bottom: 8px; color: #ddd; font-weight: 500; font-size: 1rem;">Document
-                                Title</label>
-                            <input type="text" id="articleTitle" class="form-control" placeholder="Document title"
-                                style="width: 100%; padding: 14px; font-size: 1rem; border-radius: 10px; border: 2px solid #333; background: rgba(20, 20, 20, 0.5); transition: border-color 0.2s ease;">
-                        </div>
-
-                        <div style="flex: 1; display: flex; flex-direction: column;">
-                            <label
-                                style="display: block; margin-bottom: 8px; color: #ddd; font-weight: 500; font-size: 1rem;">Document
-                                Content</label>
-                            <textarea id="articleContent" class="form-control" placeholder="Document content"
-                                style="flex: 1; width: 100%; padding: 14px; font-size: 0.95rem; border-radius: 10px; border: 2px solid #333; background: rgba(20, 20, 20, 0.5); resize: none; transition: border-color 0.2s ease;"></textarea>
-                        </div>
-
-                        <div style="display: flex; gap: 12px; margin-top: 10px;">
-                            <button id="saveArticleBtn" class="btn btn-primary"
-                                style="flex: 1; padding: 15px; font-size: 1.1rem; background: linear-gradient(145deg, #2a2a2a, #222222); border: 2px solid #444; border-radius: 12px; font-weight: 600; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                                <i class="fas fa-save"></i> Save Document
-                            </button>
-                            <button id="clearArticleBtn" class="btn btn-secondary"
-                                style="padding: 15px 20px; font-size: 1.1rem; background: rgba(60, 60, 60, 0.7); border: 1px solid #555; border-radius: 12px; transition: all 0.2s ease;">
-                                Clear
-                            </button>
+                        <div id="agentsList"
+                            style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;">
+                            <div style="text-align: center; padding: 40px; color: #777;">
+                                <i class="fas fa-robot" style="font-size: 3rem; margin-bottom: 20px; color: #444;"></i>
+                                <p style="margin: 0; font-size: 1.2rem;">No active agents</p>
+                                <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666;">Create an agent to get
+                                    started</p>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="tab-content" id="tracker-tab">
-        <div class="tracker-tab">
-            <div class="tracker-panel">
-                <div class="tracker-sidebar" id="trackerSidebar">
-                    <div class="tracker-sidebar-header">
-                        <h3>Shahed Tracker</h3>
-                        <p>Live locations from the secure tracker</p>
-                        <button id="trackerConfigureBtn" class="tracker-config-btn">Configure tracker server</button>
-                    </div>
-                    <div class="tracker-sync-actions">
-                        <label for="trackerHumanSelect">Connect Pazator person</label>
-                        <div class="tracker-select-row">
-                            <select id="trackerHumanSelect">
-                                <option value="">Select a human</option>
-                            </select>
-                            <button class="btn btn-primary" id="trackerConnectBtn">Show</button>
-                        </div>
-                        <button class="btn btn-secondary" id="trackerRefreshBtn" style="width: 100%;">Refresh tracker</button>
-                    </div>
-                    <div class="tracker-people-list" id="trackerPeopleList">
-                        <div class="tracker-placeholder">Tracker data will appear here.</div>
-                    </div>
-                    <div class="tracker-location-info" id="trackerLocationInfo">
-                        Last known position will appear here once you select someone.
-                    </div>
-                    <div class="tracker-sidebar-footer">
-                        <button class="btn btn-danger" id="trackerPurgeBtn"><i class="fas fa-exclamation-triangle"></i> Purge tracker records</button>
-                    </div>
+        <div class="tab-content" id="search-tab">
+            <div style="display: flex; flex-direction: column; height: 100%; padding: 40px;">
+                <div style="text-align: center; margin-bottom: 40px;">
+                    <h1
+                        style="margin: 0; font-size: 2.5rem; background: linear-gradient(45deg, #ffffff, #dddddd); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;">
+                        Search Database</h1>
+                    <p style="margin: 15px 0 0 0; color: #aaa; font-size: 1.1rem;">Search across all people, jobs,
+                        dates,
+                        notes, and relationships</p>
                 </div>
-                <div class="tracker-map-area">
-                    <div class="tracker-map-overlay">
-                        <button id="trackerToggleSidebarBtn" class="tracker-map-button">hide sidebar</button>
-                        <button id="trackerSpinToggleBtn" class="tracker-map-button active">Pause spin</button>
-                        <div class="tracker-map-overlay-right">
-                            <button id="streetLabelToggle" class="tracker-map-button tracker-label-toggle">Show street names</button>
-                            <button id="trackerFilterToggle" class="tracker-map-button tracker-label-toggle">Show filter</button>
+
+                <div
+                    style="max-width: 700px; width: 100%; margin: 0 auto; flex: 1; display: flex; flex-direction: column;">
+                    <div style="position: relative; margin-bottom: 30px;">
+                        <input type="text" id="universalSearchInput" class="form-control"
+                            placeholder="Search the database..."
+                            style="font-size: 1.2rem; padding: 18px 20px; border-radius: 12px; border: 2px solid #333; background: rgba(30, 30, 30, 0.8); width: 100%; text-align: center;">
+                        <i class="fas fa-search"
+                            style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); color: #777; font-size: 1.2rem;"></i>
+                    </div>
+
+                    <div id="recentSearchesContainer" style="margin: 0 auto 22px auto; max-width: 700px;"></div>
+
+                    <div id="searchResultsCount"
+                        style="text-align: center; color: #888; margin-bottom: 20px; font-size: 1rem; min-height: 24px;">
+                    </div>
+
+                    <div id="searchResultsContainer"
+                        style="flex: 1; overflow-y: auto; background: rgba(20, 20, 20, 0.3); border-radius: 12px; padding: 25px; min-height: 300px; display: flex; align-items: center; justify-content: center; color: #777; transition: all 0.3s ease; border: 1px solid #2a2a2a; max-height: 60vh;">
+                        <div style="text-align: center; padding: 40px;">
+                            <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 20px; color: #444;"></i>
+                            <p style="margin: 0; font-size: 1.2rem; color: #aaa;">Start typing to search the database
+                            </p>
+                            <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666;">Results will appear here</p>
                         </div>
                     </div>
-                    <div id="trackerMap" class="tracker-map"></div>
-                    <div class="tracker-crosshair" aria-hidden="true">
-                        <span></span>
-                    </div>
-                    <div class="tracker-debug" id="trackerDebug">ready</div>
                 </div>
             </div>
         </div>
-    </div>
 
-</div>
+        <!-- Articles Tab -->
+        <div class="tab-content" id="articles-tab">
+            <div style="height: 100%; padding: 30px; display: flex; flex-direction: column;">
+                <!-- Header Section -->
+                <div style="margin-bottom: 25px; padding: 0 10px;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h1
+                            style="margin: 0; font-size: 2.2rem; background: linear-gradient(45deg, #ffffff, #dddddd); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;">
+                            Knowledge Repository</h1>
+                        <div style="display: flex; gap: 15px; align-items: center;">
+                            <span id="articlesCount"
+                                style="background: rgba(107, 207, 127, 0.2); color: #6bcf7f; padding: 8px 18px; border-radius: 25px; font-size: 1rem; font-weight: 500; border: 1px solid #6bcf7f;">0
+                                documents</span>
+                            <button id="toggleAddArticle" class="btn btn-primary"
+                                style="padding: 12px 22px; font-size: 1rem; background: linear-gradient(145deg, #2a2a2a, #222222); border: 2px solid #444; border-radius: 12px; font-weight: 600; display: flex; align-items: center; gap: 10px; transition: all 0.2s ease;">
+                                <i class="fas fa-plus"></i> Add Document
+                            </button>
+                        </div>
+                    </div>
+                    <p style="margin: 0; color: #aaa; font-size: 1.1rem;">Store articles and documents as contextual
+                        knowledge for AI analysis</p>
+                </div>
+
+                <!-- Main Content Area -->
+                <div style="flex: 1; display: flex; gap: 25px; overflow: hidden;">
+                    <!-- Articles List (Main Panel) -->
+                    <div
+                        style="flex: 3; background: rgba(25, 25, 25, 0.8); border: 1px solid #333; border-radius: 15px; padding: 25px; display: flex; flex-direction: column; overflow: hidden;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #333;">
+                            <h2
+                                style="margin: 0; color: #ffffff; font-size: 1.4rem; display: flex; align-items: center; gap: 12px;">
+                                <i class="fas fa-book-open" style="color: #4d9de0;"></i>
+                                Document Library
+                            </h2>
+                            <div style="display: flex; gap: 10px;">
+                                <select id="articleFilter" class="form-control"
+                                    style="padding: 8px 15px; background: rgba(40, 40, 40, 0.7); border: 1px solid #444; border-radius: 8px; color: #ddd; width: 150px;">
+                                    <option value="all">All Documents</option>
+                                    <option value="recent">Recently Added</option>
+                                </select>
+                                <div style="position: relative; width: 200px;">
+                                    <input type="text" id="articleSearch" class="form-control"
+                                        placeholder="Search documents..."
+                                        style="width: 100%; padding: 8px 15px 8px 35px; background: rgba(40, 40, 40, 0.7); border: 1px solid #444; border-radius: 8px; color: #ddd;">
+                                    <i class="fas fa-search"
+                                        style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #777; font-size: 0.9rem;"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="articlesList"
+                            style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; padding-right: 10px;">
+                            <div
+                                style="text-align: center; padding: 60px 20px; color: #777; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                                <i class="fas fa-file-alt"
+                                    style="font-size: 4rem; margin-bottom: 25px; color: #333;"></i>
+                                <h3 style="margin: 0 0 15px 0; color: #999; font-size: 1.4rem;">No documents in
+                                    repository
+                                </h3>
+                                <p style="margin: 0; font-size: 1.1rem; color: #666; max-width: 400px; margin: 0 auto;">
+                                    Click "Add Document" to begin building your knowledge base</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add Article Panel (Slide-in) -->
+                    <div id="addArticlePanel"
+                        style="flex: 2; background: rgba(30, 30, 30, 0.9); border: 1px solid #444; border-radius: 15px; padding: 25px; display: none; flex-direction: column; max-width: 450px; transition: all 0.3s ease; transform: translateX(20px); opacity: 0;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                            <h2
+                                style="margin: 0; color: #ffffff; font-size: 1.4rem; display: flex; align-items: center; gap: 12px;">
+                                <i class="fas fa-file-import" style="color: #6bcf7f;"></i>
+                                Add New Document
+                            </h2>
+                            <button id="closeAddPanel" class="btn btn-secondary"
+                                style="padding: 8px 15px; background: rgba(60, 60, 60, 0.7); border: 1px solid #555; border-radius: 8px; color: #ddd; cursor: pointer;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 20px; flex: 1;">
+                            <div>
+                                <label
+                                    style="display: block; margin-bottom: 8px; color: #ddd; font-weight: 500; font-size: 1rem;">Organization/Source</label>
+                                <input type="text" id="articleCompany" class="form-control"
+                                    placeholder="Organization/Source"
+                                    style="width: 100%; padding: 14px; font-size: 1rem; border-radius: 10px; border: 2px solid #333; background: rgba(20, 20, 20, 0.5); transition: border-color 0.2s ease;">
+                            </div>
+
+                            <div>
+                                <label
+                                    style="display: block; margin-bottom: 8px; color: #ddd; font-weight: 500; font-size: 1rem;">Document
+                                    Title</label>
+                                <input type="text" id="articleTitle" class="form-control" placeholder="Document title"
+                                    style="width: 100%; padding: 14px; font-size: 1rem; border-radius: 10px; border: 2px solid #333; background: rgba(20, 20, 20, 0.5); transition: border-color 0.2s ease;">
+                            </div>
+
+                            <div style="flex: 1; display: flex; flex-direction: column;">
+                                <label
+                                    style="display: block; margin-bottom: 8px; color: #ddd; font-weight: 500; font-size: 1rem;">Document
+                                    Content</label>
+                                <textarea id="articleContent" class="form-control" placeholder="Document content"
+                                    style="flex: 1; width: 100%; padding: 14px; font-size: 0.95rem; border-radius: 10px; border: 2px solid #333; background: rgba(20, 20, 20, 0.5); resize: none; transition: border-color 0.2s ease;"></textarea>
+                            </div>
+
+                            <div style="display: flex; gap: 12px; margin-top: 10px;">
+                                <button id="saveArticleBtn" class="btn btn-primary"
+                                    style="flex: 1; padding: 15px; font-size: 1.1rem; background: linear-gradient(145deg, #2a2a2a, #222222); border: 2px solid #444; border-radius: 12px; font-weight: 600; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                    <i class="fas fa-save"></i> Save Document
+                                </button>
+                                <button id="clearArticleBtn" class="btn btn-secondary"
+                                    style="padding: 15px 20px; font-size: 1.1rem; background: rgba(60, 60, 60, 0.7); border: 1px solid #555; border-radius: 12px; transition: all 0.2s ease;">
+                                    Clear
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="tracker-tab">
+            <div class="tracker-tab">
+                <div class="tracker-panel">
+                    <div class="tracker-sidebar" id="trackerSidebar">
+                        <div class="tracker-sidebar-header">
+                            <h3>Shahed Tracker</h3>
+                            <p>Live locations from the secure tracker</p>
+                            <button id="trackerConfigureBtn" class="tracker-config-btn">Configure tracker
+                                server</button>
+                        </div>
+                        <div class="tracker-sync-actions">
+                            <label for="trackerHumanSelect">Connect Pazator person</label>
+                            <div class="tracker-select-row">
+                                <select id="trackerHumanSelect">
+                                    <option value="">Select a human</option>
+                                </select>
+                                <button class="btn btn-primary" id="trackerConnectBtn">Show</button>
+                            </div>
+                            <button class="btn btn-secondary" id="trackerRefreshBtn" style="width: 100%;">Refresh
+                                tracker</button>
+                        </div>
+                        <div class="tracker-people-list" id="trackerPeopleList">
+                            <div class="tracker-placeholder">Tracker data will appear here.</div>
+                        </div>
+                        <div class="tracker-location-info" id="trackerLocationInfo">
+                            Last known position will appear here once you select someone.
+                        </div>
+                        <div class="tracker-sidebar-footer">
+                            <button class="btn btn-danger" id="trackerPurgeBtn"><i
+                                    class="fas fa-exclamation-triangle"></i> Purge tracker records</button>
+                        </div>
+                    </div>
+                    <div class="tracker-map-area">
+                        <div class="tracker-map-overlay">
+                            <button id="trackerToggleSidebarBtn" class="tracker-map-button">hide sidebar</button>
+                            <button id="trackerSpinToggleBtn" class="tracker-map-button active">Pause spin</button>
+                            <div class="tracker-map-overlay-right">
+                                <button id="streetLabelToggle" class="tracker-map-button tracker-label-toggle">Show
+                                    street names</button>
+                                <button id="trackerFilterToggle" class="tracker-map-button tracker-label-toggle">Show
+                                    filter</button>
+                                <div class="tracker-settings-wrapper">
+                                    <button id="trackerSettingsBtn" class="tracker-map-button tracker-label-toggle"
+                                        title="Settings" aria-haspopup="true" aria-expanded="false">
+                                        <i class="fas fa-cog"></i>
+                                    </button>
+                                    <div id="trackerSettingsMenu" class="tracker-settings-menu" role="menu"
+                                        aria-label="Tracker settings">
+                                        <div class="tracker-settings-item">
+                                            <div class="tracker-settings-row">
+                                                <span>Spin speed</span>
+                                                <span id="trackerSpinSpeedValue"
+                                                    class="tracker-settings-value">10°/s</span>
+                                            </div>
+                                            <input id="trackerSpinSpeed" type="range" min="0" max="60" step="1"
+                                                value="10" aria-label="Spin speed">
+                                        </div>
+                                        <div class="tracker-settings-more">More will come</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="trackerMap" class="tracker-map"></div>
+                        <div class="tracker-crosshair" aria-hidden="true">
+                            <span></span>
+                        </div>
+                        <div class="tracker-debug" id="trackerDebug">ready</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
 
     <div id="typeModal" class="modal">
         <button class="close" style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
@@ -850,8 +898,7 @@
                             <h3><i class="fas fa-user"></i> Personal Info</h3>
                             <div class="form-group compact">
                                 <label for="humanName">Full Name *</label>
-                                <input type="text" id="humanName" class="form-control" required
-                                    placeholder="Full name">
+                                <input type="text" id="humanName" class="form-control" required placeholder="Full name">
                             </div>
                             <div class="form-group compact">
                                 <label for="humanGender">Gender</label>
@@ -914,28 +961,28 @@
                             </div>
                         </div>
 
-                    <div class="form-section full-width">
-                        <h3><i class="fas fa-sticky-note"></i> Additional Information</h3>
-                        <div class="form-group">
-                            <label for="humanExtraNotes">Extra Notes</label>
-                            <textarea id="humanExtraNotes" class="form-control" rows="4"
-                                placeholder="Additional information about the individual"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="humanTrackerSelect">Tracker alias / Shahed ID</label>
-                            <div class="tracker-alias-controls">
-                                <select id="humanTrackerSelect" class="form-control">
-                                    <option value="">Select from Shahed tracker</option>
-                                </select>
-                                <input type="text" id="humanTrackerAlias" class="form-control"
-                                    placeholder="Alias or ID (can be reused from tracker)">
+                        <div class="form-section full-width">
+                            <h3><i class="fas fa-sticky-note"></i> Additional Information</h3>
+                            <div class="form-group">
+                                <label for="humanExtraNotes">Extra Notes</label>
+                                <textarea id="humanExtraNotes" class="form-control" rows="4"
+                                    placeholder="Additional information about the individual"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="humanTrackerSelect">Tracker alias / Shahed ID</label>
+                                <div class="tracker-alias-controls">
+                                    <select id="humanTrackerSelect" class="form-control">
+                                        <option value="">Select from Shahed tracker</option>
+                                    </select>
+                                    <input type="text" id="humanTrackerAlias" class="form-control"
+                                        placeholder="Alias or ID (can be reused from tracker)">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="humanImage">Profile Image</label>
+                                <input type="file" id="humanImage" class="form-control" accept="image/*">
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label for="humanImage">Profile Image</label>
-                            <input type="file" id="humanImage" class="form-control" accept="image/*">
-                        </div>
-                    </div>
                     </div>
                 </form>
             </div>
@@ -1025,7 +1072,8 @@
 
                     <div class="form-group">
                         <label for="chatContent">Or Paste Chat Content</label>
-                        <textarea id="chatContent" class="form-control" rows="8" placeholder="Paste chat content here..."></textarea>
+                        <textarea id="chatContent" class="form-control" rows="8"
+                            placeholder="Paste chat content here..."></textarea>
                         <button type="button" class="btn btn-secondary" id="analyzeDiscordBtn"
                             style="margin-top: 10px; width: 100%;">Analyze Discord Chat for Suspicious Content</button>
                     </div>
@@ -1040,7 +1088,8 @@
 
                     <div class="form-group">
                         <label for="chatContext">Additional Context</label>
-                        <textarea id="chatContext" class="form-control" rows="3" placeholder="Additional context for the chat..."></textarea>
+                        <textarea id="chatContext" class="form-control" rows="3"
+                            placeholder="Additional context for the chat..."></textarea>
                     </div>
                 </form>
             </div>
@@ -1076,7 +1125,8 @@
                         <li><code>Type</code> (required) - e.g., Company, Organization, Government</li>
                         <li><code>Notes</code> (optional) - Additional information</li>
                     </ul>
-                    <p><em>Note: The first row should be headers. Data will be automatically categorized based on the presence of 'Type' column.</em></p>
+                    <p><em>Note: The first row should be headers. Data will be automatically categorized based on the
+                            presence of 'Type' column.</em></p>
                 </div>
                 <form id="dataUploadForm">
                     <div class="form-group">
@@ -1133,7 +1183,8 @@
 
                 <div class="form-group" style="margin-top: 20px;">
                     <label for="contextNotes">Additional Notes</label>
-                    <textarea id="contextNotes" class="form-control" rows="3" placeholder="Additional context for the selected items..."></textarea>
+                    <textarea id="contextNotes" class="form-control" rows="3"
+                        placeholder="Additional context for the selected items..."></textarea>
                 </div>
             </div>
             <div class="form-actions">
@@ -1287,7 +1338,8 @@
                                 <input type="text" id="detailTrackerAlias" placeholder="Tracker alias or ID" />
                                 <div class="detail-tracker-buttons">
                                     <button class="btn detail-tracker-btn" id="detailTrackerSaveAliasBtn">Save</button>
-                                    <button class="btn detail-tracker-btn" id="detailTrackerShowBtn">View on map</button>
+                                    <button class="btn detail-tracker-btn" id="detailTrackerShowBtn">View on
+                                        map</button>
                                 </div>
                             </div>
                         </div>

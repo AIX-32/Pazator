@@ -920,6 +920,69 @@
         gap: 10px;
     }
 
+    .tracker-settings-wrapper {
+        position: relative;
+        display: inline-flex;
+    }
+
+    .tracker-settings-menu {
+        position: absolute;
+        top: calc(100% + 10px);
+        right: 0;
+        width: 260px;
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(10, 10, 10, 0.9);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 14px 40px rgba(0, 0, 0, 0.65);
+        color: var(--text-secondary);
+        z-index: 30;
+        display: none;
+    }
+
+    .tracker-settings-menu.open {
+        display: block;
+        animation: fadeIn 0.15s ease-out;
+    }
+
+    .tracker-settings-item {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(25, 25, 25, 0.7);
+    }
+
+    .tracker-settings-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #ddd;
+    }
+
+    .tracker-settings-value {
+        font-variant-numeric: tabular-nums;
+        color: #ffd93d;
+    }
+
+    .tracker-settings-menu input[type="range"] {
+        width: 100%;
+        accent-color: #ffd93d;
+    }
+
+    .tracker-settings-more {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.65);
+    }
+
     .tracker-map-button {
         border-radius: 7px;
         font-size: 0.85rem;
