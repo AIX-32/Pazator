@@ -1747,6 +1747,7 @@ function loadData() {
     console.log('Data to render:', { humans: pazatorData.humans.length, others: pazatorData.others.length });
     renderWebNodes();
     updateCreditStats();
+    updateHeaderStats();
 
     const totalItems = pazatorData.humans.length + pazatorData.others.length;
     updatePersistenceIndicator('online', `Loaded (${totalItems} items)`);
@@ -1762,6 +1763,12 @@ let startTranslateX = 0, startTranslateY = 0;
 let currentTranslateX = 0, currentTranslateY = 0;
 
 const webContent = document.getElementById('webContent');
+
+let nodePositions = new Map();
+let connectionLinePool = [];
+const MAX_POOLED_LINES = 500;
+let connectionsSvg = null;
+let linesNeedFullRedraw = true;
 
 function fitAllNodesInView() {
 
@@ -1819,6 +1826,7 @@ function renderWebNodes() {
         total: pazatorData.humans.length + pazatorData.others.length
     });
 
+    nodePositions.clear();
     webContent.innerHTML = '';
 
     // Create SVG for connections
@@ -1835,6 +1843,7 @@ function renderWebNodes() {
     svg.style.transform = 'translateZ(0)';
     svg.style.backfaceVisibility = 'hidden';
     webContent.appendChild(svg);
+    connectionsSvg = svg;
 
     const searchTerm = searchInput.value.toLowerCase();
     const selectedType = filterType.value;
@@ -1900,6 +1909,8 @@ function renderWebNodes() {
         node.style.left = `${x}px`;
         node.style.top = `${y}px`;
 
+        nodePositions.set(data.id, { x, y, node });
+
         let displayText = data.name;
         if (data.type === 'human') {
             if (data.credit !== undefined) {
@@ -1957,6 +1968,7 @@ function renderWebNodes() {
         }, 100);
     }
 
+    updateHeaderStats();
     console.log('renderWebNodes completed!');
 }
 
@@ -1964,67 +1976,107 @@ function drawFamilyConnections() {
     const svg = document.getElementById('connections-svg');
     if (!svg) return;
 
-    // Clear existing connections
-    svg.innerHTML = '';
+    const containerRect = webContent.getBoundingClientRect();
+    const padding = 100;
+    const visibleMinX = -padding;
+    const visibleMinY = -padding;
+    const visibleMaxX = containerRect.width + padding;
+    const visibleMaxY = containerRect.height + padding;
 
-    // Family connections (solid lines)
+    const familyLines = [];
+    const friendLines = [];
+
     pazatorData.humans.forEach(human => {
+        const posA = nodePositions.get(human.id);
+        if (!posA) return;
+
         if (human.family && human.family.length > 0) {
-            const humanNode = document.querySelector(`.data-node[data-id="${human.id}"]`);
-            if (!humanNode) return;
-
             human.family.forEach(familyId => {
-                const familyNode = document.querySelector(`.data-node[data-id="${familyId}"]`);
-                if (!familyNode) return;
+                if (familyId === human.id) return;
+                const posB = nodePositions.get(familyId);
+                if (!posB) return;
 
-                const x1 = parseFloat(humanNode.style.left) + humanNode.offsetWidth / 2;
-                const y1 = parseFloat(humanNode.style.top) + humanNode.offsetHeight / 2;
-                const x2 = parseFloat(familyNode.style.left) + familyNode.offsetWidth / 2;
-                const y2 = parseFloat(familyNode.style.top) + familyNode.offsetHeight / 2;
+                const nodeW = posA.node?.offsetWidth || 60;
+                const nodeH = posA.node?.offsetHeight || 60;
+                const x1 = posA.x + nodeW / 2;
+                const y1 = posA.y + nodeH / 2;
+                const x2 = posB.x + nodeW / 2;
+                const y2 = posB.y + nodeH / 2;
 
-                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line.setAttribute('x1', x1);
-                line.setAttribute('y1', y1);
-                line.setAttribute('x2', x2);
-                line.setAttribute('y2', y2);
-                line.setAttribute('stroke', 'rgba(255, 255, 255, 0.6)');
-                line.setAttribute('stroke-width', '2');
-                line.setAttribute('stroke-dasharray', '5,5');
-                line.style.animation = 'pulse 2s infinite';
+                if (x1 < visibleMinX && x2 < visibleMinX) return;
+                if (y1 < visibleMinY && y2 < visibleMinY) return;
+                if (x1 > visibleMaxX && x2 > visibleMaxX) return;
+                if (y1 > visibleMaxY && y2 > visibleMaxY) return;
 
-                svg.appendChild(line);
+                familyLines.push({ x1, y1, x2, y2 });
             });
         }
-    });
 
-    // Friend connections (dashed lines)
-    pazatorData.humans.forEach(human => {
         if (human.friends && human.friends.length > 0) {
-            const humanNode = document.querySelector(`.data-node[data-id="${human.id}"]`);
-            if (!humanNode) return;
-
             human.friends.forEach(friendId => {
-                const friendNode = document.querySelector(`.data-node[data-id="${friendId}"]`);
-                if (!friendNode) return;
+                if (friendId === human.id) return;
+                const posB = nodePositions.get(friendId);
+                if (!posB) return;
 
-                const x1 = parseFloat(humanNode.style.left) + humanNode.offsetWidth / 2;
-                const y1 = parseFloat(humanNode.style.top) + humanNode.offsetHeight / 2;
-                const x2 = parseFloat(friendNode.style.left) + friendNode.offsetWidth / 2;
-                const y2 = parseFloat(friendNode.style.top) + friendNode.offsetHeight / 2;
+                const nodeW = posA.node?.offsetWidth || 60;
+                const nodeH = posA.node?.offsetHeight || 60;
+                const x1 = posA.x + nodeW / 2;
+                const y1 = posA.y + nodeH / 2;
+                const x2 = posB.x + nodeW / 2;
+                const y2 = posB.y + nodeH / 2;
 
-                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line.setAttribute('x1', x1);
-                line.setAttribute('y1', y1);
-                line.setAttribute('x2', x2);
-                line.setAttribute('y2', y2);
-                line.setAttribute('stroke', 'rgba(107, 57, 255, 0.4)');
-                line.setAttribute('stroke-width', '1');
-                line.style.animation = 'pulse 1.5s infinite';
+                if (x1 < visibleMinX && x2 < visibleMinX) return;
+                if (y1 < visibleMinY && y2 < visibleMinY) return;
+                if (x1 > visibleMaxX && x2 > visibleMaxX) return;
+                if (y1 > visibleMaxY && y2 > visibleMaxY) return;
 
-                svg.appendChild(line);
+                friendLines.push({ x1, y1, x2, y2 });
             });
         }
     });
+
+    const totalLines = familyLines.length + friendLines.length;
+    while (connectionLinePool.length < totalLines) {
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.className.baseVal = 'connection-line';
+        connectionLinePool.push(line);
+    }
+
+    const fragment = document.createDocumentFragment();
+    connectionLinePool.forEach(line => {
+        if (line.parentNode) line.parentNode.removeChild(line);
+    });
+
+    familyLines.forEach((l, i) => {
+        const line = connectionLinePool[i];
+        line.setAttribute('x1', l.x1);
+        line.setAttribute('y1', l.y1);
+        line.setAttribute('x2', l.x2);
+        line.setAttribute('y2', l.y2);
+        line.setAttribute('stroke', 'rgba(255, 255, 255, 0.6)');
+        line.setAttribute('stroke-width', '2');
+        line.setAttribute('stroke-dasharray', '5,5');
+        line.setAttribute('data-type', 'family');
+        fragment.appendChild(line);
+    });
+
+    friendLines.forEach((l, i) => {
+        const line = connectionLinePool[familyLines.length + i];
+        line.setAttribute('x1', l.x1);
+        line.setAttribute('y1', l.y1);
+        line.setAttribute('x2', l.x2);
+        line.setAttribute('y2', l.y2);
+        line.setAttribute('stroke', 'rgba(107, 57, 255, 0.4)');
+        line.setAttribute('stroke-width', '1');
+        line.setAttribute('data-type', 'friend');
+        fragment.appendChild(line);
+    });
+
+    for (let i = totalLines; i < connectionLinePool.length; i++) {
+        connectionLinePool[i].remove();
+    }
+
+    svg.appendChild(fragment);
 }
 
 function showDetailView(data, type) {
@@ -3964,9 +4016,11 @@ function updateContextDisplay(context) {
     const hasContext = context.people.length > 0 || context.chats.length > 0 || context.fraudLogs.length > 0;
 
     if (!hasContext) {
-        contextDisplay.innerHTML = '<div style="color: #777; font-style: italic; align-self: center;">No context selected - click "Add Context" to include people, chats, or security logs</div>';
+        contextDisplay.style.display = 'none';
         return;
     }
+
+    contextDisplay.style.display = 'flex';
 
     context.people.forEach(person => {
         const card = document.createElement('div');
@@ -4669,6 +4723,10 @@ let zoomTicking = false;
 function updateZoomTransform() {
     webContent.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`;
     zoomTicking = false;
+    if (connectionsSvg) {
+        connectionsSvg.style.transform = `scale(${1/currentScale})`;
+        connectionsSvg.style.transformOrigin = '0 0';
+    }
 }
 
 function requestZoomTransformUpdate() {
@@ -4745,6 +4803,11 @@ const DRAG_START_THRESHOLD_PX = 6;
 function updateDragTransform() {
     webContent.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`;
     dragTicking = false;
+    if (connectionsSvg) {
+        const tx = -currentTranslateX / currentScale;
+        const ty = -currentTranslateY / currentScale;
+        connectionsSvg.style.transform = `translate(${tx}px, ${ty}px)`;
+    }
 }
 
 function requestDragTransformUpdate() {
@@ -5058,6 +5121,16 @@ function updateCreditStats() {
         <div class="stat-row"><span>Medium Risk:</span><span class="stat-yellow">${mediumPct}%</span></div>
         <div class="stat-row"><span>Low Risk:</span><span class="stat-green">${lowPct}%</span></div>
     `;
+}
+
+function updateHeaderStats() {
+    const humansEl = document.getElementById('headerHumansCount');
+    const othersEl = document.getElementById('headerOthersCount');
+    const totalEl = document.getElementById('headerTotalCount');
+    
+    if (humansEl) humansEl.textContent = pazatorData.humans.length;
+    if (othersEl) othersEl.textContent = pazatorData.others.length;
+    if (totalEl) totalEl.textContent = pazatorData.humans.length + pazatorData.others.length;
 }
 
 function generateThreatReport() {

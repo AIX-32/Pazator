@@ -625,12 +625,12 @@
     .tracker-sidebar {
         width: 320px;
         max-width: 320px;
-        background: rgba(8, 8, 8, 0.9);
+        background: rgba(30, 30, 30, 0.4);
         border-right: 1px solid var(--border-color);
         display: flex;
         flex-direction: column;
-        padding: 20px;
-        gap: 16px;
+        padding: 16px;
+        gap: 12px;
         transition: width 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
     }
 
@@ -638,24 +638,27 @@
         display: flex;
         flex-direction: column;
         gap: 6px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border-color);
     }
 
     .tracker-config-btn {
         align-self: flex-start;
         border: 1px solid var(--border-color);
         background: rgba(255, 255, 255, 0.05);
-        color: var(--text-primary);
-        padding: 6px 14px;
-        border-radius: 10px;
+        color: var(--text-secondary);
+        padding: 8px 14px;
+        border-radius: 7px;
         font-size: 0.85rem;
         cursor: pointer;
         transition: all 0.2s ease;
+        font-weight: 500;
     }
 
     .tracker-config-btn:hover {
-        border-color: #6bcf7f;
-        color: #6bcf7f;
-        transform: translateY(-1px);
+        border-color: #3a3a3a;
+        color: var(--text-primary);
+        background: rgba(255, 255, 255, 0.08);
     }
 
     .tracker-sidebar.collapsed {
@@ -668,21 +671,29 @@
 
     .tracker-sidebar-header h3 {
         margin: 0;
-        font-size: 1.5rem;
-        color: #ffffff;
+        font-size: 1rem;
+        color: var(--text-primary);
         font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;
+        font-weight: 600;
+        letter-spacing: 0.5px;
     }
 
     .tracker-sidebar-header p {
-        margin: 6px 0 0;
+        margin: 4px 0 0;
         color: var(--text-muted);
-        font-size: 0.85rem;
+        font-size: 0.8rem;
     }
 
     .tracker-sync-actions {
         display: flex;
         flex-direction: column;
         gap: 8px;
+    }
+
+    .tracker-sync-actions label {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        font-weight: 500;
     }
 
     .tracker-select-row {
@@ -692,20 +703,20 @@
 
     .tracker-select-row select {
         flex: 1;
-        background: rgba(20, 20, 20, 0.7);
+        background: rgba(25, 25, 25, 0.8);
         border: 1px solid var(--border-color);
-        border-radius: 10px;
+        border-radius: 7px;
         color: var(--text-primary);
         padding: 10px 12px;
-        font-size: 0.92rem;
+        font-size: 0.9rem;
     }
 
     .tracker-people-list {
         flex: 1;
         overflow-y: auto;
-        background: rgba(18, 18, 18, 0.9);
+        background: rgba(30, 30, 30, 0.4);
         border: 1px solid var(--border-color);
-        border-radius: 12px;
+        border-radius: 7px;
         padding: 12px;
         display: flex;
         flex-direction: column;
@@ -713,9 +724,9 @@
     }
 
     .tracker-location-info {
-        background: rgba(20, 20, 20, 0.7);
-        border: 1px dashed rgba(255, 255, 255, 0.2);
-        border-radius: 12px;
+        background: rgba(30, 30, 30, 0.4);
+        border: 1px solid var(--border-color);
+        border-radius: 7px;
         padding: 12px;
         font-size: 0.9rem;
         color: var(--text-muted);
@@ -808,6 +819,8 @@
         display: flex;
         flex-direction: column;
         gap: 8px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-color);
     }
 
     .tracker-map-area {
@@ -1137,8 +1150,13 @@
         transform: translateY(-2px);
         box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
         border-color: #4a4a4a;
-        background: linear-gradient(145deg, #2e2e2e, #292929);
-        color: #fff;
+    }
+
+    button.btn-primary:hover {
+        background: linear-gradient(145deg, #ffffff, #e8e8e8);
+        box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3);
+        border-color: rgb(206, 206, 206);
+        color: #000;
     }
 
     button:active {
@@ -1159,6 +1177,58 @@
         flex-shrink: 0;
     }
 
+    .canvas-header {
+        padding-bottom: 12px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid var(--border-color);
+        flex-shrink: 0;
+    }
+
+    .canvas-header h1 {
+        font-size: 1.3rem;
+        margin: 0;
+        font-weight: 700;
+        font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;
+        background: linear-gradient(
+            to right,
+            #e0e0e0 0%,
+            #ffffff 25%,
+            rgba(0, 0, 0, 0.08) 45%,
+            rgba(0, 0, 0, 0.08) 55%,
+            #ffffff 75%,
+            #e0e0e0 100%
+        );
+        background-size: 300% 100%;
+        background-position: 100% 0;
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: 0.5px;
+        display: inline-block;
+        position: relative;
+        transition: background-position 0.6s ease;
+    }
+
+    .canvas-header:hover h1 {
+        background-position: 0% 0;
+    }
+
+    .canvas-header .title-sub {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--text-muted);
+        letter-spacing: 2px;
+        margin-left: 10px;
+        vertical-align: middle;
+    }
+
+    .canvas-header .canvas-version {
+        font-size: 0.65rem;
+        color: var(--text-muted);
+        margin: 4px 0 0 0;
+        letter-spacing: 1px;
+    }
+
     .logo h1 {
         font-size: 1.5rem;
         margin: 0;
@@ -1169,6 +1239,133 @@
         font-weight: 600;
         letter-spacing: 0.5px;
         font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    .canvas-title {
+        flex: 1;
+        min-width: 180px;
+    }
+
+    .canvas-title h1 {
+        font-size: 1.4rem;
+        margin: 0;
+        font-weight: 700;
+        font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;
+        background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: 1px;
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+    }
+
+    .title-sub {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--text-muted);
+        letter-spacing: 2px;
+        background: none;
+        -webkit-text-fill-color: var(--text-muted);
+    }
+
+    .canvas-version {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        margin: 4px 0 0 0;
+        letter-spacing: 1px;
+    }
+
+    .canvas-stats {
+        display: flex;
+        gap: 12px;
+    }
+
+    .stat-chip {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
+    }
+
+    .stat-chip:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: #3a3a3a;
+    }
+
+    .stat-chip i {
+        font-size: 0.8rem;
+    }
+
+    .stat-chip span {
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .stat-chip small {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        font-weight: 400;
+    }
+
+    .stat-humans i, .stat-humans span {
+        color: #6bcf7f;
+    }
+
+    .stat-others i, .stat-others span {
+        color: #4d9de0;
+    }
+
+    .stat-total i, .stat-total span {
+        color: #ffd93d;
+    }
+
+    .canvas-controls {
+        display: flex;
+        gap: 8px;
+    }
+
+    .control-btn {
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        padding: 0;
+        flex: none;
+    }
+
+    .control-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text-primary);
+        border-color: #444;
+        transform: translateY(-1px);
+    }
+
+    .control-btn:active {
+        transform: translateY(0);
+    }
+
+    .control-btn.active {
+        background: rgba(107, 207, 127, 0.15);
+        border-color: #6bcf7f;
+        color: #6bcf7f;
+    }
+
+    .control-btn i {
+        font-size: 0.9rem;
     }
 
     .web-container {
@@ -1662,7 +1859,7 @@
     .quick-action-row .btn-dual {
         flex: 1;
         min-height: 72px;
-        border-radius: 14px;
+        border-radius: 7px;
         position: relative;
         overflow: hidden;
         padding: 0 16px;
@@ -1779,6 +1976,7 @@
         background: linear-gradient(145deg, #ffffff, #e0e0e0) !important;
         color: #000;
         box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2);
+        border: 1px solid rgb(206, 206, 206);
     }
 
     .btn-secondary {
@@ -1799,11 +1997,10 @@
     }
 
     .btn-primary:hover {
-        background: linear-gradient(145deg, #ffffff, #f0f0f0);
+        background: linear-gradient(145deg, #ffffff, #e8e8e8);
         transform: translateY(-2px);
         color: #000;
         box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3);
-        letter-spacing: 3px;
     }
 
     .btn-secondary:hover {
@@ -1913,7 +2110,7 @@
     }
 
     .detail-section {
-        margin-bottom: 20px;
+        margin-bottom: 12px;
         background: rgba(30, 30, 30, 0.5);
         border: 1px solid #2a2a2a;
         border-radius: 16px;
@@ -3668,4 +3865,34 @@
 
     .metric-row:last-child {
         margin-bottom: 0;
+    }
+
+    .connection-line {
+        pointer-events: none;
+        will-change: stroke;
+    }
+
+    .connection-line[data-type="family"] {
+        opacity: 0.8;
+        animation: linePulseFamily 2s ease-in-out infinite;
+    }
+
+    .connection-line[data-type="friend"] {
+        opacity: 0.5;
+        animation: linePulseFriend 1.5s ease-in-out infinite;
+    }
+
+    @keyframes linePulseFamily {
+        0%, 100% { opacity: 0.6; }
+        50% { opacity: 0.9; }
+    }
+
+    @keyframes linePulseFriend {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 0.6; }
+    }
+
+    #connections-svg {
+        contain: strict;
+        transform-origin: 0 0;
     }
