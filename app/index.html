@@ -1233,10 +1233,27 @@
                         <input type="file" id="dataFile" class="form-control" accept=".csv" required>
                     </div>
                 </form>
+
+                <div class="form-group" style="margin-top: 18px; padding-top: 18px; border-top: 1px solid #2a2a2a;">
+                    <p><strong>AI Paste Import:</strong></p>
+                    <p style="color:#aaa; font-size:0.9rem; line-height:1.5;">
+                        Paste unstructured intel (notes, lists, messages). Zor will convert it into Pazator CSV and import it.
+                    </p>
+                    <label for="aiDataPaste" style="margin-top: 10px;">Paste text</label>
+                    <textarea id="aiDataPaste" class="form-control" rows="8"
+                        placeholder="Paste anything: names, orgs, birthdays, relationships, tags, notes..."></textarea>
+
+                    <details style="margin-top: 10px;">
+                        <summary style="cursor:pointer; color:#ddd;">Show generated CSV preview</summary>
+                        <textarea id="aiDataPreview" class="form-control" rows="6" readonly
+                            style="margin-top: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;"></textarea>
+                    </details>
+                </div>
             </div>
             <div class="form-actions">
                 <button type="button" class="btn btn-secondary" id="cancelDataUploadBtn">Cancel</button>
                 <button type="button" class="btn btn-primary" id="uploadDataBtn">Upload Data</button>
+                <button type="button" class="btn btn-secondary" id="aiFormatDataBtn">AI Format + Import</button>
             </div>
         </div>
     </div>

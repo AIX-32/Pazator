@@ -3249,6 +3249,9 @@ const dataUploadModal = document.getElementById('dataUploadModal');
 const dataFile = document.getElementById('dataFile');
 const cancelDataUploadBtn = document.getElementById('cancelDataUploadBtn');
 const uploadDataBtn = document.getElementById('uploadDataBtn');
+const aiFormatDataBtn = document.getElementById('aiFormatDataBtn');
+const aiDataPaste = document.getElementById('aiDataPaste');
+const aiDataPreview = document.getElementById('aiDataPreview');
 const dataUploadBtn = document.getElementById('dataUploadBtn');
 
 function closeDataUploadModal() {
@@ -3262,9 +3265,15 @@ function closeDataUploadModal() {
 
     document.getElementById('dataUploadForm')?.reset();
     if (dataFile) dataFile.value = '';
+    if (aiDataPaste) aiDataPaste.value = '';
+    if (aiDataPreview) aiDataPreview.value = '';
     if (uploadDataBtn) {
         uploadDataBtn.disabled = false;
         uploadDataBtn.textContent = 'Upload Data';
+    }
+    if (aiFormatDataBtn) {
+        aiFormatDataBtn.disabled = false;
+        aiFormatDataBtn.textContent = 'AI Format + Import';
     }
 }
 
@@ -3296,6 +3305,8 @@ dataUploadBtn.addEventListener('click', () => {
 
     document.getElementById('dataUploadForm').reset();
     dataFile.value = '';
+    if (aiDataPaste) aiDataPaste.value = '';
+    if (aiDataPreview) aiDataPreview.value = '';
 
     dataUploadModal.style.display = 'flex';
     dataUploadModal.style.zIndex = '1000';
@@ -3545,6 +3556,77 @@ uploadDataBtn.addEventListener('click', async () => {
     } finally {
         uploadDataBtn.disabled = false;
         uploadDataBtn.textContent = 'Upload Data';
+    }
+});
+
+function extractCSVFromAIResponse(text) {
+    let out = String(text || '').trim();
+    out = out.replace(/```(?:csv)?/gi, '').replace(/```/g, '').trim();
+    // If the model adds a leading label line, try to drop it.
+    if (out.toLowerCase().startsWith('csv')) {
+        const lines = out.split('\n');
+        if (lines.length > 1 && lines[0].toLowerCase().includes('csv')) {
+            out = lines.slice(1).join('\n').trim();
+        }
+    }
+    return out;
+}
+
+aiFormatDataBtn?.addEventListener('click', async () => {
+    const raw = aiDataPaste?.value?.trim() || '';
+    if (!raw) {
+        showAlert('Paste some text first.', 'Missing Input', 'warning');
+        return;
+    }
+
+    if (typeof puter === 'undefined' || !puter?.ai?.chat) {
+        showAlert('Puter AI is not available. Cannot run AI formatting.', 'Error', 'error');
+        return;
+    }
+
+    aiFormatDataBtn.disabled = true;
+    aiFormatDataBtn.textContent = 'Formatting...';
+
+    try {
+        const system = `
+You convert unstructured intel text into a CSV that Pazator can import.
+
+OUTPUT RULES:
+- Output ONLY raw CSV text (no markdown, no code fences).
+- Use comma as delimiter.
+- First row MUST be headers EXACTLY:
+Name,Type,Birth Date,Notes,Tags,Friends,Family
+- For humans: Type must be blank. For orgs: Type must be filled (Company, Organization, Government, etc).
+- Birth Date must be YYYY-MM-DD if known; otherwise blank.
+- Tags/Friends/Family must be comma-separated within the cell.
+- Escape quotes correctly if needed.
+`;
+
+        const aiResponse = await puter.ai.chat([
+            { role: "system", content: system },
+            { role: "user", content: raw }
+        ]);
+
+        const responseText = aiResponse?.content ? aiResponse.content : aiResponse;
+        const csvText = extractCSVFromAIResponse(responseText);
+
+        if (aiDataPreview) aiDataPreview.value = csvText;
+
+        const data = parseCSV(csvText);
+        const result = processCSVData(data);
+
+        closeDataUploadModal();
+        showAlert(`AI import complete: ${result.humans} humans, ${result.others} orgs.`, 'Success', 'success');
+
+        markDataChanged();
+        renderWebNodes();
+
+    } catch (error) {
+        console.error('AI paste import failed:', error);
+        showAlert(`AI import failed: ${error.message}`, 'Error', 'error');
+    } finally {
+        aiFormatDataBtn.disabled = false;
+        aiFormatDataBtn.textContent = 'AI Format + Import';
     }
 });
 
