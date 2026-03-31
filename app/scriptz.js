@@ -1003,6 +1003,7 @@ function createTab(tabId) {
     if (tabId === 'threats') tabLabel = 'Threats & Fraud';
     if (tabId === 'chat-control') tabLabel = 'Chat Security';
     if (tabId === 'tracker') tabLabel = 'Shahed Tracker';
+    if (tabId === 'tadbir') tabLabel = 'Tadbir';
 
     newTab.innerHTML = `
                 ${tabLabel}
@@ -1072,7 +1073,37 @@ function switchTab(tabId) {
     }
 
     setActiveTabButton(tabId);
+
+    try {
+        window.pazator_context?.dastur?.notifyEvent?.('tab_switched', { tabId, source: 'switchTab' });
+    } catch { }
+
+    try {
+        if (tabId === 'tadbir') showTadbirAlphaModal();
+    } catch { }
 }
+
+function showTadbirAlphaModal() {
+    const modal = document.getElementById('tadbirAlphaModal');
+    if (!modal) return;
+    modal.classList.add('active');
+    modal.setAttribute('aria-hidden', 'false');
+    const btn = document.getElementById('tadbirAlphaContinue');
+    btn?.focus?.();
+}
+
+function hideTadbirAlphaModal() {
+    const modal = document.getElementById('tadbirAlphaModal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    modal.setAttribute('aria-hidden', 'true');
+}
+
+document.getElementById('tadbirAlphaContinue')?.addEventListener('click', hideTadbirAlphaModal);
+document.querySelector('#tadbirAlphaModal [data-alpha-close="true"]')?.addEventListener('click', hideTadbirAlphaModal);
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hideTadbirAlphaModal();
+});
 
 function setActiveTabButton(tabId) {
     document.querySelectorAll('.tab[data-tab], .tab-action[data-tab-target]').forEach(btn => {
@@ -1150,6 +1181,10 @@ function saveData(immediate = false) {
         const totalItems = pazatorData.humans.length + pazatorData.others.length;
         updatePersistenceIndicator('online', `Saved (${totalItems} items)`);
         console.log(` Data persistence confirmed: ${totalItems} items stored`);
+
+        try {
+            window.pazator_context?.dastur?.notifyEvent?.('data_saved', { totalItems, source: 'saveData' });
+        } catch { }
     } catch (error) {
         console.error(' Error saving data:', error);
         updatePersistenceIndicator('offline', 'Save Failed');
@@ -2560,6 +2595,20 @@ function generate54PeopleCommand() {
 async function processAICommand(command) {
     try {
         command = command.trim();
+
+        const hojumMatch = command.match(/^(\/hojum|!hojum)\b\s*(.*)$/i);
+        if (hojumMatch) {
+            addMessageToAIChat(command, 'user');
+            const note = (hojumMatch[2] || '').trim();
+            try {
+                await window.pazator_context?.hojum?.proposeManual?.(note);
+                addMessageToAIChat('HOJUM: tactical proposal generated (see overlay card).', 'system');
+            } catch (e) {
+                console.error('HOJUM manual intervention failed:', e);
+                addMessageToAIChat('HOJUM: failed to generate proposal.', 'system');
+            }
+            return;
+        }
 
         if (command.toLowerCase().includes("make 54") && command.toLowerCase().includes("people")) {
             addMessageToAIChat(command, 'user');
@@ -4972,6 +5021,10 @@ document.getElementById('articlesBtn')?.addEventListener('click', () => {
 
 document.getElementById('trackerBtn')?.addEventListener('click', () => {
     switchTab('tracker');
+});
+
+document.getElementById('tadbirBtn')?.addEventListener('click', () => {
+    switchTab('tadbir');
 });
 
 trackerConnectBtn?.addEventListener('click', connectTrackerSelection);

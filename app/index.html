@@ -166,6 +166,9 @@
         <button class="tab-action" id="trackerBtn" title="Shahed Tracker" data-tab-target="tracker">
             <i class="fas fa-location-crosshairs"></i>
         </button>
+        <button class="tab-action" id="tadbirBtn" title="HOJUM + DASTUR (TADBIR)" data-tab-target="tadbir">
+            <i class="fas fa-bolt"></i>
+        </button>
         <div class="logo-card" title="Pazator Logo">
             <img src="../logo.png" alt="Pazator Logo" id="logoImage">
             <div class="logo-dropdown-menu" id="logoDropdownMenu">
@@ -191,7 +194,7 @@
                 <div class="main-panel">
                     <div class="canvas-header">
                         <h1>Pazator<span class="title-sub">SARPARAST</span></h1>
-                        <p class="canvas-version">v0.Mar2526</p>
+                        <p class="canvas-version">v0.Mar3126</p>
                     </div>
                     <div class="web-container" id="webContainer">
                         <div class="web-content" id="webContent">
@@ -247,6 +250,97 @@
                     </div>
                 </div>
 
+            </div>
+        </div>
+
+        <div class="tab-content" id="tadbir-tab">
+            <div class="workspace">
+                <div class="main-panel">
+                    <div class="canvas-header">
+                        <h1>Pazator<span class="title-sub">TADBIR</span></h1>
+                        <p class="canvas-version">DASTUR (rules) → HOJUM (incursion)</p>
+                    </div>
+
+                    <div class="tactics-layout" aria-label="Intelligence Workspace">
+                        <section class="tactics-pane" aria-label="DASTUR Builder">
+                            <div class="tactics-pane-head">
+                                <div>
+                                    <div class="tactics-pane-title">DASTUR</div>
+                                    <div class="tactics-pane-sub">When / If / Execute</div>
+                                </div>
+                                <button id="dasturTriggerManualBtn" class="dastur-mini-btn" title="Trigger manual event">Trigger</button>
+                            </div>
+                            <div class="tactics-pane-body">
+                                <div class="tactics-form-compact">
+                                    <div class="tactics-field">
+                                        <label class="tactics-label" for="dasturEvent">When</label>
+                                        <select id="dasturEvent" class="tactics-input tactics-mono">
+                                            <option value="state_changed">state_changed</option>
+                                            <option value="data_saved">data_saved</option>
+                                            <option value="tab_switched">tab_switched</option>
+                                            <option value="manual">manual</option>
+                                        </select>
+                                    </div>
+                                    <div class="tactics-field">
+                                        <label class="tactics-label" for="dasturCondition">If</label>
+                                        <input type="text" id="dasturCondition" class="tactics-input tactics-mono"
+                                            placeholder="state.pazatorData.humans.length > 10">
+                                        <div class="tactics-field-hint">Use: <span class="tactics-inline-code">state</span>, <span class="tactics-inline-code">event</span>, <span class="tactics-inline-code">helpers.countHumans()</span></div>
+                                    </div>
+                                    <div class="tactics-field">
+                                        <label class="tactics-label" for="dasturAction">Execute</label>
+                                        <select id="dasturAction" class="tactics-input tactics-mono">
+                                            <option value="hojum_propose">hojum_propose</option>
+                                            <option value="sarparast_flash">sarparast_flash</option>
+                                        </select>
+                                    </div>
+                                    <div class="tactics-field">
+                                        <label class="tactics-label" for="dasturActionNote">Note</label>
+                                        <input type="text" id="dasturActionNote" class="tactics-input tactics-mono"
+                                            placeholder="optional">
+                                    </div>
+                                    <button id="dasturAddRuleBtn" class="btn btn-secondary btn-full">Add Rule</button>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="tactics-pane tactics-pane-fill" aria-label="DASTUR Ruleset">
+                            <div class="tactics-pane-head">
+                                <div>
+                                    <div class="tactics-pane-title">RULESET</div>
+                                    <div class="tactics-pane-sub">KV persisted • live triggers</div>
+                                </div>
+                            </div>
+                            <div class="tactics-pane-body tactics-pane-scroll">
+                                <div id="dasturRulesList" class="dastur-rules-list" aria-label="DASTUR Rules"></div>
+                            </div>
+                        </section>
+
+                        <section class="tactics-pane" aria-label="HOJUM Feed">
+                            <div class="tactics-pane-head">
+                                <div>
+                                    <div class="tactics-pane-title">HOJUM</div>
+                                    <div class="tactics-pane-sub">Proposal feed</div>
+                                </div>
+                                <div class="tactics-hojum-actions">
+                                    <button id="hojumManualBtn" class="btn btn-primary btn-dual">Intervene</button>
+                                    <button id="hojumClearBtn" class="btn btn-secondary btn-dual">Clear</button>
+                                </div>
+                            </div>
+                            <div class="tactics-pane-body tactics-pane-scroll">
+                                <div id="hojumRecentList" class="hojum-recent-list" aria-label="Recent HOJUM Proposals"></div>
+                                <details class="tactics-notes-box">
+                                    <summary>Notes</summary>
+                                    <div class="tactics-notes">
+                                        - DASTUR fires → beep + SARPARAST flash → HOJUM proposal card.
+                                        <br>- Execute runs tool calls against DOM / SHAHED tracker.
+                                        <br>- In Zor chat: `/hojum scan + intervene`.
+                                    </div>
+                                </details>
+                            </div>
+                        </section>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -818,7 +912,7 @@
                                 Last known position will appear here once you select someone.
                         </div>
                         <div class="tracker-sidebar-footer">
-                            <button class="btn btn-danger" id="trackerPurgeBtn"><i
+                            <button class="btn btn-secondary" id="trackerPurgeBtn"><i
                                     class="fas fa-exclamation-triangle"></i> Purge tracker records</button>
                         </div>
                     </div>
@@ -1409,6 +1503,20 @@
         </div>
     </div>
 
+    <div id="hojumStack" class="hojum-stack" aria-label="HOJUM Tactical Proposals" aria-live="polite"></div>
+
+    <div id="tadbirAlphaModal" class="tactics-alpha-modal" aria-hidden="true">
+        <div class="tactics-alpha-backdrop" data-alpha-close="true"></div>
+        <div class="tactics-alpha-content" role="dialog" aria-modal="true" aria-label="TADBIR Alpha Notice">
+            <div class="tactics-alpha-topline">ALPHA</div>
+            <h2>TADBIR is in alpha</h2>
+            <p>This section is active development. Expect instability and changes.</p>
+            <div class="tactics-alpha-actions">
+                <button id="tadbirAlphaContinue" class="btn btn-primary btn-full">Continue</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Clean Modal UI -->
     <div id="cleanModal" class="clean-modal">
         <div class="clean-modal-backdrop"></div>
@@ -1426,6 +1534,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://js.puter.com/v2/"></script>
     <script src="scriptz.js"></script>
+    <script src="pazator_context.js"></script>
+    <script src="dastur.js"></script>
+    <script src="hojum.js"></script>
 
 </body>
 

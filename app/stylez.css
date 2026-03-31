@@ -615,44 +615,47 @@
         flex: 1;
         display: flex;
         min-height: 0;
-        border-radius: 16px;
+        border-radius: 0;
         overflow: hidden;
-        border: 1px solid var(--border-color);
-        background: rgba(10, 10, 10, 0.95);
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+        border: none;
+        background: #000;
+        box-shadow: none;
     }
 
     .tracker-sidebar {
-        width: 320px;
-        max-width: 320px;
-        background: rgba(30, 30, 30, 0.4);
-        border-right: 1px solid var(--border-color);
+        width: 300px;
+        max-width: 300px;
+        background: linear-gradient(180deg, rgba(26, 26, 26, 0.92) 0%, rgba(21, 21, 21, 0.92) 100%);
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
         display: flex;
         flex-direction: column;
         padding: 16px;
         gap: 12px;
         transition: width 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
 
     .tracker-sidebar-header {
         display: flex;
         flex-direction: column;
         gap: 6px;
-        padding-bottom: 12px;
-        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .tracker-config-btn {
         align-self: flex-start;
-        border: 1px solid var(--border-color);
-        background: rgba(255, 255, 255, 0.05);
-        color: var(--text-secondary);
-        padding: 8px 14px;
-        border-radius: 7px;
-        font-size: 0.85rem;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(255, 255, 255, 0.78);
+        padding: 8px 12px;
+        border-radius: 10px;
+        font-size: 0.78rem;
         cursor: pointer;
         transition: all 0.2s ease;
-        font-weight: 500;
+        font-weight: 800;
+        letter-spacing: 0.7px;
+        text-transform: uppercase;
     }
 
     .tracker-config-btn:hover {
@@ -671,17 +674,18 @@
 
     .tracker-sidebar-header h3 {
         margin: 0;
-        font-size: 1rem;
-        color: var(--text-primary);
-        font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;
-        font-weight: 600;
-        letter-spacing: 0.5px;
+        font-size: 0.95rem;
+        color: rgba(255, 255, 255, 0.92);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-weight: 900;
+        letter-spacing: 1px;
+        text-transform: uppercase;
     }
 
     .tracker-sidebar-header p {
         margin: 4px 0 0;
-        color: var(--text-muted);
-        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 0.78rem;
     }
 
     .tracker-sync-actions {
@@ -691,9 +695,11 @@
     }
 
     .tracker-sync-actions label {
-        font-size: 0.85rem;
-        color: var(--text-secondary);
-        font-weight: 500;
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.62);
+        font-weight: 800;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
     }
 
     .tracker-select-row {
@@ -703,31 +709,61 @@
 
     .tracker-select-row select {
         flex: 1;
-        background: rgba(25, 25, 25, 0.8);
-        border: 1px solid var(--border-color);
-        border-radius: 7px;
-        color: var(--text-primary);
-        padding: 10px 12px;
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 0;
+        color: rgba(255, 255, 255, 0.9);
+        padding: 10px 0;
         font-size: 0.9rem;
+    }
+
+    .tracker-select-row .btn {
+        padding: 9px 12px;
+        border-radius: 10px;
+        font-size: 0.85rem;
+    }
+
+    .tracker-search label {
+        display: block;
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.62);
+        font-weight: 800;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+    }
+
+    .tracker-search input.form-control {
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 0;
+        padding: 10px 0;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .tracker-search input.form-control:focus {
+        border-bottom-color: rgba(255, 255, 255, 0.28);
     }
 
     .tracker-people-list {
         flex: 1;
         overflow-y: auto;
-        background: rgba(30, 30, 30, 0.4);
-        border: 1px solid var(--border-color);
-        border-radius: 7px;
-        padding: 12px;
+        background: rgba(30, 30, 30, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 10px;
         display: flex;
         flex-direction: column;
         gap: 10px;
     }
 
     .tracker-location-info {
-        background: rgba(30, 30, 30, 0.4);
-        border: 1px solid var(--border-color);
-        border-radius: 7px;
-        padding: 12px;
+        background: rgba(30, 30, 30, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 10px;
         font-size: 0.9rem;
         color: var(--text-muted);
         min-height: 72px;
@@ -819,8 +855,8 @@
         display: flex;
         flex-direction: column;
         gap: 8px;
-        padding-top: 12px;
-        border-top: 1px solid var(--border-color);
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .tracker-map-area {
@@ -842,6 +878,13 @@
         position: relative;
         overflow: hidden;
         background: #000;
+    }
+
+    /* Make map feel like the canvas (no rounded edges) */
+    #trackerMap,
+    #trackerMap canvas,
+    #trackerMap .maplibregl-canvas {
+        border-radius: 0 !important;
     }
 
     /* Apply to both MapLibre and Mapbox canvas classnames (varies by build) */
@@ -918,19 +961,25 @@
 
     .tracker-map-overlay {
         position: absolute;
-        top: 12px;
-        left: 12px;
-        right: 12px;
+        top: 10px;
+        left: 10px;
+        right: 10px;
         display: flex;
         justify-content: space-between;
         z-index: 20;
         gap: 10px;
+        pointer-events: none;
     }
 
     .tracker-map-overlay-right {
         display: flex;
         justify-content: flex-end;
         gap: 10px;
+        pointer-events: auto;
+    }
+
+    .tracker-map-overlay > * {
+        pointer-events: auto;
     }
 
     .tracker-settings-wrapper {
@@ -997,13 +1046,17 @@
     }
 
     .tracker-map-button {
-        border-radius: 7px;
-        font-size: 0.85rem;
-        padding: 10px 16px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        padding: 8px 12px;
         min-width: 0;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
         gap: 6px;
-        box-shadow: 0 5px 14px rgba(0, 0, 0, 0.25);
+        box-shadow: none;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        font-weight: 800;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
 
     .tracker-map-button.active {
@@ -1027,18 +1080,43 @@
         color: #ffd93d;
     }
 
+    /* Cleaner, less "UI app" map controls */
+    #trackerMap .maplibregl-ctrl-group,
+    #trackerMap .mapboxgl-ctrl-group {
+        background: rgba(0, 0, 0, 0.55) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 12px !important;
+        box-shadow: none !important;
+        overflow: hidden;
+    }
+
+    #trackerMap .maplibregl-ctrl-group button,
+    #trackerMap .mapboxgl-ctrl-group button {
+        background: transparent !important;
+        border: none !important;
+        color: rgba(255, 255, 255, 0.85) !important;
+    }
+
+    #trackerMap .maplibregl-ctrl-group button:hover,
+    #trackerMap .mapboxgl-ctrl-group button:hover {
+        background: rgba(255, 255, 255, 0.08) !important;
+    }
+
     .tracker-debug {
         position: absolute;
         bottom: 12px;
         left: 12px;
-        background: rgba(0, 0, 0, 0.7);
-        padding: 8px 12px;
-        border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        font-size: 0.8rem;
-        color: #7df;
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.6);
+        background: linear-gradient(180deg, rgba(26, 26, 26, 0.92) 0%, rgba(21, 21, 21, 0.92) 100%);
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        font-size: 0.78rem;
+        letter-spacing: 0.4px;
+        color: rgba(255, 255, 255, 0.75);
+        box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.04);
         z-index: 15;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        text-transform: uppercase;
     }
 
     @keyframes fadeIn {
@@ -3519,6 +3597,80 @@
         background: linear-gradient(145deg, #ff5555, #dd0000) !important;
     }
 
+    /* TACTICS alpha popup */
+    .tactics-alpha-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 1200;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .tactics-alpha-modal.active {
+        display: flex;
+    }
+
+    .tactics-alpha-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(8px);
+    }
+
+    .tactics-alpha-content {
+        position: relative;
+        width: min(640px, 100%);
+        border-radius: 14px;
+        border: 1px solid rgba(255, 74, 74, 0.35);
+        background: linear-gradient(145deg, rgba(10, 10, 10, 0.95), rgba(16, 16, 16, 0.92));
+        box-shadow: 0 18px 60px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        padding: 22px;
+        text-align: left;
+        overflow: hidden;
+    }
+
+    .tactics-alpha-content::before {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: 16px;
+        pointer-events: none;
+        background: radial-gradient(circle at 20% 20%, rgba(255, 74, 74, 0.18), transparent 55%);
+        opacity: 1;
+    }
+
+    .tactics-alpha-topline {
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        font-weight: 900;
+        font-size: 0.8rem;
+        color: rgba(255, 160, 160, 0.95);
+        margin-bottom: 10px;
+    }
+
+    .tactics-alpha-content h2 {
+        margin: 0;
+        font-size: 1.35rem;
+        letter-spacing: 0.8px;
+        color: rgba(255, 255, 255, 0.95);
+        text-transform: uppercase;
+        font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    .tactics-alpha-content p {
+        margin: 10px 0 0 0;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.95rem;
+        line-height: 1.55;
+    }
+
+    .tactics-alpha-actions {
+        margin-top: 18px;
+    }
+
     /* Modern Sidebar Styles */
     .side-panel {
         width: 260px;
@@ -3895,4 +4047,468 @@
     #connections-svg {
         contain: strict;
         transform-origin: 0 0;
+    }
+
+    /* HOJUM (Tactical Proposal Cards) */
+    .hojum-stack {
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        width: min(520px, calc(100vw - 36px));
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        z-index: 950;
+        pointer-events: none;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .hojum-card {
+        pointer-events: auto;
+        background: linear-gradient(145deg, rgba(10, 10, 10, 0.95), rgba(18, 18, 18, 0.92));
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-left: 3px solid rgba(255, 74, 74, 0.9);
+        border-radius: 10px;
+        box-shadow: 0 18px 42px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        overflow: hidden;
+    }
+
+    .hojum-card-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 14px 10px 14px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .hojum-card-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        letter-spacing: 0.6px;
+        color: #f3f3f3;
+        text-transform: uppercase;
+        line-height: 1.2;
+    }
+
+    .hojum-card-meta {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.78rem;
+        white-space: nowrap;
+    }
+
+    .hojum-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        font-size: 0.72rem;
+    }
+
+    .hojum-pill.high {
+        border-color: rgba(255, 74, 74, 0.55);
+        background: rgba(255, 74, 74, 0.08);
+        color: rgba(255, 180, 180, 0.95);
+    }
+
+    .hojum-pill.medium {
+        border-color: rgba(255, 204, 74, 0.45);
+        background: rgba(255, 204, 74, 0.08);
+        color: rgba(255, 232, 190, 0.95);
+    }
+
+    .hojum-pill.low {
+        border-color: rgba(90, 255, 160, 0.35);
+        background: rgba(90, 255, 160, 0.08);
+        color: rgba(205, 255, 228, 0.95);
+    }
+
+    .hojum-card-body {
+        padding: 12px 14px 14px 14px;
+        color: rgba(240, 240, 240, 0.9);
+        font-size: 0.9rem;
+        line-height: 1.45;
+    }
+
+    .hojum-card-body pre {
+        margin: 10px 0 0 0;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.35);
+        overflow: auto;
+        max-height: 220px;
+        font-size: 0.82rem;
+        color: rgba(255, 255, 255, 0.86);
+    }
+
+    .hojum-card-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        padding: 12px 14px 14px 14px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0, 0, 0, 0.25);
+    }
+
+    .hojum-btn {
+        padding: 10px 14px;
+        border-radius: 9px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.88);
+        cursor: pointer;
+        font-weight: 700;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        font-size: 0.78rem;
+    }
+
+    .hojum-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.22);
+        transform: translateY(-1px);
+    }
+
+    .hojum-btn.execute {
+        background: linear-gradient(145deg, rgba(255, 74, 74, 0.9), rgba(190, 40, 40, 0.9));
+        border-color: rgba(255, 74, 74, 0.55);
+        color: #080808;
+    }
+
+    .hojum-btn.execute:hover {
+        background: linear-gradient(145deg, rgba(255, 92, 92, 0.95), rgba(205, 44, 44, 0.95));
+        transform: translateY(-1px);
+    }
+
+    .hojum-btn.dismiss {
+        opacity: 0.85;
+    }
+
+    /* DASTUR list (small, minimal) */
+    .dastur-rules-list {
+        margin-top: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 260px;
+        overflow: auto;
+        padding-right: 4px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 0.82rem;
+        color: rgba(255, 255, 255, 0.82);
+    }
+
+    .dastur-rule-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        padding: 10px 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.2);
+    }
+
+    .dastur-rule-row .meta {
+        color: rgba(255, 255, 255, 0.62);
+        font-size: 0.75rem;
+        margin-top: 4px;
+    }
+
+    .dastur-rule-row .controls {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .dastur-mini-btn {
+        padding: 6px 9px;
+        border-radius: 7px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(255, 255, 255, 0.85);
+        cursor: pointer;
+        font-size: 0.72rem;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+    }
+
+    .dastur-mini-btn:hover {
+        background: rgba(255, 255, 255, 0.07);
+        border-color: rgba(255, 255, 255, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .dastur-mini-btn.danger {
+        border-color: rgba(255, 74, 74, 0.35);
+        background: rgba(255, 74, 74, 0.08);
+        color: rgba(255, 205, 205, 0.95);
+    }
+
+    /* SARPARAST flash for DASTUR-triggered HOJUM */
+    #dashboard-tab.sarparast-alert .main-panel {
+        animation: sarparastAlertPulse 0.95s ease-out 1;
+        outline: 2px solid rgba(255, 74, 74, 0.55);
+        outline-offset: -2px;
+    }
+
+    @keyframes sarparastAlertPulse {
+        0% { box-shadow: 0 0 0 rgba(255, 74, 74, 0); }
+        25% { box-shadow: 0 0 0 3px rgba(255, 74, 74, 0.25); }
+        60% { box-shadow: 0 0 0 6px rgba(255, 74, 74, 0.12); }
+        100% { box-shadow: 0 0 0 rgba(255, 74, 74, 0); }
+    }
+
+    /* TADBIR tab layout (layout only) */
+    #tadbir-tab .workspace {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr;
+    }
+
+    #tadbir-tab .main-panel {
+        padding: 14px;
+    }
+
+    #tadbir-tab .canvas-header {
+        margin-bottom: 10px;
+    }
+
+    .tactics-layout {
+        display: grid;
+        grid-template-columns: 320px 1fr 320px;
+        gap: 12px;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .tactics-pane {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.18);
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    .tactics-pane-head {
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .tactics-pane-title {
+        font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;
+        font-weight: 700;
+        letter-spacing: 0.7px;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.92);
+        font-size: 0.95rem;
+        line-height: 1.1;
+    }
+
+    .tactics-pane-sub {
+        margin-top: 4px;
+        font-size: 0.78rem;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.55);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .tactics-pane-body {
+        padding: 10px 12px;
+        min-height: 0;
+    }
+
+    .tactics-pane-scroll {
+        overflow: auto;
+    }
+
+    .tactics-form-compact {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .tactics-field {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .tactics-input {
+        width: 100%;
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+        padding: 10px 0;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 0.9rem;
+        outline: none;
+    }
+
+    .tactics-input:focus {
+        border-bottom-color: rgba(255, 255, 255, 0.28);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+
+    .tactics-hojum-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .tactics-hojum-actions .btn {
+        padding: 8px 12px;
+        border-radius: 10px;
+        font-size: 0.85rem;
+    }
+
+    .tactics-label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 0.78rem;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.7);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .tactics-mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+        letter-spacing: 0;
+    }
+
+    .tactics-field-hint {
+        margin-top: 8px;
+        font-size: 0.82rem;
+        color: rgba(255, 255, 255, 0.55);
+        line-height: 1.35;
+    }
+
+    .tactics-inline-code {
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(0, 0, 0, 0.25);
+        color: rgba(255, 255, 255, 0.75);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 0.78rem;
+        letter-spacing: 0.2px;
+        white-space: nowrap;
+        display: inline-block;
+        transform: translateY(-1px);
+    }
+
+    .tactics-actions {
+        padding-top: 6px;
+    }
+
+    .tactics-notes {
+        color: rgba(255, 255, 255, 0.65);
+        font-size: 0.9rem;
+        line-height: 1.55;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .tactics-notes-box {
+        margin-top: 14px;
+        border-top: 1px dashed rgba(255, 255, 255, 0.12);
+        padding-top: 10px;
+    }
+
+    .tactics-notes-box summary {
+        cursor: pointer;
+        user-select: none;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 0.78rem;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .hojum-recent-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 12px;
+        max-height: 360px;
+        overflow: auto;
+        padding-right: 4px;
+    }
+
+    #tadbir-tab .dastur-rules-list {
+        max-height: none;
+        flex: 1;
+        min-height: 0;
+        margin-top: 0;
+        overflow: visible;
+        padding-right: 0;
+    }
+
+    #tadbir-tab .hojum-recent-list {
+        max-height: none;
+        overflow: visible;
+        padding-right: 0;
+    }
+
+    #tadbir-tab .dastur-rule-row {
+        border-radius: 10px;
+        background: rgba(20, 20, 20, 0.35);
+        border-color: rgba(255, 255, 255, 0.12);
+        border-left: 3px solid rgba(255, 255, 255, 0.16);
+    }
+
+    #tadbir-tab .dastur-rule-row:hover {
+        background: rgba(25, 25, 25, 0.5);
+        border-color: rgba(255, 255, 255, 0.16);
+        border-left-color: rgba(255, 255, 255, 0.22);
+    }
+
+    #tadbir-tab .dastur-rule-row.disabled {
+        opacity: 0.65;
+        border-left-color: rgba(255, 74, 74, 0.35);
+    }
+
+    .hojum-recent-item {
+        padding: 10px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        background: rgba(0, 0, 0, 0.2);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .hojum-recent-title {
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        font-weight: 800;
+        font-size: 0.78rem;
+        color: rgba(255, 255, 255, 0.88);
+    }
+
+    .hojum-recent-meta {
+        margin-top: 6px;
+        font-size: 0.76rem;
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    @media (max-width: 1160px) {
+        .tactics-layout {
+            grid-template-columns: 1fr;
+        }
     }
