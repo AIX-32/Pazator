@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="./favicon.ico" />
+    <link rel="icon" type="image/x-icon" href="../favicon.ico" />
     <title>Pazator SARPARAST - Mass data container</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.css">
@@ -167,7 +167,7 @@
             <i class="fas fa-location-crosshairs"></i>
         </button>
         <div class="logo-card" title="Pazator Logo">
-            <img src="favicon.png" alt="Pazator Logo" id="logoImage">
+            <img src="../logo.png" alt="Pazator Logo" id="logoImage">
             <div class="logo-dropdown-menu" id="logoDropdownMenu">
                 <div class="logo-dropdown-item" id="refreshNodesOption" style="display: none;">
                     <i class="fas fa-sync"></i>
@@ -788,29 +788,34 @@
         <div class="tab-content" id="tracker-tab">
             <div class="tracker-tab">
                 <div class="tracker-panel">
-                    <div class="tracker-sidebar" id="trackerSidebar">
-                        <div class="tracker-sidebar-header">
-                            <h3>Shahed Tracker</h3>
-                            <p>Live locations from the secure tracker</p>
-                            <button id="trackerConfigureBtn" class="tracker-config-btn">Configure tracker
-                                server</button>
-                        </div>
-                        <div class="tracker-sync-actions">
-                            <label for="trackerHumanSelect">Connect Pazator person</label>
-                            <div class="tracker-select-row">
-                                <select id="trackerHumanSelect">
-                                    <option value="">Select a human</option>
-                                </select>
-                                <button class="btn btn-primary" id="trackerConnectBtn">Show</button>
+                        <div class="tracker-sidebar" id="trackerSidebar">
+                            <div class="tracker-sidebar-header">
+                                <h3>Shahed Tracker</h3>
+                                <p>Live locations from the secure tracker</p>
+                            <button id="trackerConfigureBtn" class="btn btn-secondary tracker-config-btn">Configure
+                                tracker server</button>
                             </div>
+                            <div class="tracker-sync-actions">
+                                <label for="trackerHumanSelect">Connect Pazator person</label>
+                                <div class="tracker-select-row">
+                                    <select id="trackerHumanSelect">
+                                        <option value="">Select a human</option>
+                                    </select>
+                                    <button class="btn btn-primary" id="trackerConnectBtn">Show</button>
+                                </div>
                             <button class="btn btn-secondary" id="trackerRefreshBtn" style="width: 100%;">Refresh
                                 tracker</button>
-                        </div>
-                        <div class="tracker-people-list" id="trackerPeopleList">
-                            <div class="tracker-placeholder">Tracker data will appear here.</div>
-                        </div>
-                        <div class="tracker-location-info" id="trackerLocationInfo">
-                            Last known position will appear here once you select someone.
+                            </div>
+                            <div class="tracker-search">
+                                <label for="trackerPeopleSearch">Search tracker people</label>
+                                <input id="trackerPeopleSearch" class="form-control" type="search"
+                                    placeholder="Search…" autocomplete="off" spellcheck="false">
+                            </div>
+                            <div class="tracker-people-list" id="trackerPeopleList">
+                                <div class="tracker-placeholder">Tracker data will appear here.</div>
+                            </div>
+                            <div class="tracker-location-info" id="trackerLocationInfo">
+                                Last known position will appear here once you select someone.
                         </div>
                         <div class="tracker-sidebar-footer">
                             <button class="btn btn-danger" id="trackerPurgeBtn"><i

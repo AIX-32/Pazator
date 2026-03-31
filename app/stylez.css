@@ -383,8 +383,8 @@
         width: 24px;
         height: 24px;
         background: #fff;
-        mask: url('favicon.png') no-repeat center;
-        -webkit-mask: url('favicon.png') no-repeat center;
+        mask: url('../logo.png') no-repeat center;
+        -webkit-mask: url('../logo.png') no-repeat center;
         mask-size: contain;
         -webkit-mask-size: contain;
         transition: transform 0.3s ease;
