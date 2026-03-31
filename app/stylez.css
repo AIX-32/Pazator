@@ -1759,6 +1759,104 @@
         max-width: 520px;
     }
 
+    .about-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.72);
+        backdrop-filter: blur(8px);
+        z-index: 1006;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .about-overlay.open {
+        display: flex;
+    }
+
+    .about-card {
+        width: min(520px, 92vw);
+        background: linear-gradient(180deg, #1e1e1e 0%, #151515 100%);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 18px;
+        padding: 22px;
+        box-shadow: 0 28px 72px rgba(0, 0, 0, 0.6);
+        position: relative;
+    }
+
+    .about-close {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text-primary);
+        cursor: pointer;
+        font-size: 20px;
+        line-height: 1;
+    }
+
+    .about-close:hover {
+        background: rgba(255, 255, 255, 0.12);
+    }
+
+    .about-card h2 {
+        margin: 0 0 10px 0;
+        font-size: 1.4rem;
+        font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;
+        letter-spacing: 0.3px;
+    }
+
+    .about-devnote {
+        margin: 0 0 14px 0;
+        color: var(--text-secondary);
+        line-height: 1.5;
+        font-size: 0.95rem;
+    }
+
+    .about-links {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+    }
+
+    .about-links a {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text-primary);
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: transform 0.15s ease, background 0.15s ease;
+    }
+
+    .about-links a:hover {
+        background: rgba(255, 255, 255, 0.12);
+        transform: translateY(-1px);
+    }
+
+    .about-credits {
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        padding-top: 14px;
+        color: var(--text-secondary);
+        font-size: 0.92rem;
+        line-height: 1.45;
+    }
+
+    .about-credits-title {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 6px;
+    }
+
     .classification-controls {
         display: flex;
         flex-direction: column;

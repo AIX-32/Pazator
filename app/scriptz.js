@@ -6595,10 +6595,56 @@ function setupLogoDropdownListeners() {
     const refreshNodesOption = document.getElementById('refreshNodesOption');
     const classifyOption = document.getElementById('classifyOption');
     const exportCsvOption = document.getElementById('exportCsvOption');
+    const aboutOption = document.getElementById('aboutOption');
 
     console.log(' Refresh option exists:', !!refreshNodesOption);
     console.log(' Classify option exists:', !!classifyOption);
     console.log(' Export CSV option exists:', !!exportCsvOption);
+    console.log(' About option exists:', !!aboutOption);
+
+    const aboutOverlay = document.getElementById('aboutOverlay');
+    const aboutCard = document.getElementById('aboutCard');
+    const closeAboutBtn = document.getElementById('closeAboutBtn');
+
+    if (aboutOverlay && aboutCard) {
+        function onAboutKeydown(event) {
+            if (event.key === 'Escape') {
+                setAboutOpen(false);
+            }
+        }
+
+        function setAboutOpen(open) {
+            aboutOverlay.classList.toggle('open', open);
+            aboutOverlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+            if (open) {
+                closeAboutBtn?.focus?.();
+                document.addEventListener('keydown', onAboutKeydown);
+            } else {
+                document.removeEventListener('keydown', onAboutKeydown);
+            }
+        }
+
+        closeAboutBtn?.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setAboutOpen(false);
+        });
+
+        aboutOverlay.addEventListener('click', (event) => {
+            if (event.target === aboutOverlay) {
+                setAboutOpen(false);
+            }
+        });
+
+        aboutCard.addEventListener('click', (event) => {
+            event.stopPropagation();
+        });
+
+        aboutOption?.addEventListener('click', (event) => {
+            event.stopPropagation();
+            setAboutOpen(true);
+        });
+    }
 
     if (refreshNodesOption) {
         console.log(' Adding event listener to Refresh Nodes');
