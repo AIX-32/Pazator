@@ -3588,6 +3588,8 @@ aiFormatDataBtn?.addEventListener('click', async () => {
     aiFormatDataBtn.textContent = 'Formatting...';
 
     try {
+        const REQUIRED_AI_HEADERS = ['Name', 'Type', 'Birth Date', 'Notes', 'Tags', 'Friends', 'Family'];
+
         const system = `
 You convert unstructured intel text into a CSV that Pazator can import.
 
@@ -3602,38 +3604,113 @@ Name,Type,Birth Date,Notes,Tags,Friends,Family
 - Escape quotes correctly if needed.
 `;
 
-        const aiResponse = await puter.ai.chat([
-            { role: "system", content: system },
-            { role: "user", content: raw }
+        let firstResponseText = '';
+        let firstCsvText = '';
+        let firstFailure = null;
+
+        try {
+            const aiResponse = await puter.ai.chat([
+                { role: "system", content: system },
+                { role: "user", content: raw }
+            ]);
+
+            firstResponseText = aiResponse?.content ? aiResponse.content : aiResponse;
+            firstCsvText = extractCSVFromAIResponse(firstResponseText);
+
+            if (aiDataPreview) aiDataPreview.value = firstCsvText;
+
+            const data = parseCSV(firstCsvText, { expectedHeaders: REQUIRED_AI_HEADERS, strictHeaderOrder: true });
+            const result = processCSVData(data);
+
+            closeDataUploadModal();
+            showAlert(`AI import complete: ${result.humans} humans, ${result.others} orgs.`, 'Success', 'success');
+
+            markDataChanged();
+            renderWebNodes();
+            return;
+        } catch (e) {
+            firstFailure = e;
+        }
+
+        const retry = await showConfirm(
+            'AI CSV formatter failed. Do you want it to try harder?',
+            'AI Import Failed',
+            'question'
+        );
+
+        if (!retry) {
+            throw firstFailure || new Error('AI import failed.');
+        }
+
+        aiFormatDataBtn.textContent = 'Trying harder...';
+
+        const repairSystem = `
+You repair and validate CSV for Pazator import.
+
+OUTPUT RULES (STRICT):
+- Output ONLY raw CSV text (no markdown, no code fences, no commentary).
+- Use comma as delimiter.
+- First row MUST be headers EXACTLY:
+Name,Type,Birth Date,Notes,Tags,Friends,Family
+- Every data row MUST have exactly 7 columns.
+- For humans: Type must be blank. For orgs: Type must be filled (Company, Organization, Government, etc).
+- Birth Date must be YYYY-MM-DD if known; otherwise blank.
+- Tags/Friends/Family must be comma-separated within the cell.
+- Escape quotes correctly if needed.
+
+DATA RULES:
+- Preserve as much of the original info as possible.
+- Do not invent facts. If unsure, leave cells blank.
+`;
+
+        const repairUser = `
+RAW USER INPUT:
+${raw}
+
+PREVIOUS AI OUTPUT (MAY BE BROKEN):
+${firstCsvText || firstResponseText || '[no output]'}
+
+IMPORT / FORMAT ERRORS:
+${String(firstFailure?.message || firstFailure || 'Unknown error')}
+
+Task: Produce a corrected CSV that obeys the strict output rules.
+`;
+
+        const repairResponse = await puter.ai.chat([
+            { role: "system", content: repairSystem },
+            { role: "user", content: repairUser }
         ]);
 
-        const responseText = aiResponse?.content ? aiResponse.content : aiResponse;
-        const csvText = extractCSVFromAIResponse(responseText);
+        const repairResponseText = repairResponse?.content ? repairResponse.content : repairResponse;
+        const repairedCsvText = extractCSVFromAIResponse(repairResponseText);
+        if (aiDataPreview) aiDataPreview.value = repairedCsvText;
 
-        if (aiDataPreview) aiDataPreview.value = csvText;
-
-        const data = parseCSV(csvText);
-        const result = processCSVData(data);
+        const repairedData = parseCSV(repairedCsvText, { expectedHeaders: REQUIRED_AI_HEADERS, strictHeaderOrder: true });
+        const repairedResult = processCSVData(repairedData);
 
         closeDataUploadModal();
-        showAlert(`AI import complete: ${result.humans} humans, ${result.others} orgs.`, 'Success', 'success');
+        showAlert(`AI import complete (retry): ${repairedResult.humans} humans, ${repairedResult.others} orgs.`, 'Success', 'success');
 
         markDataChanged();
         renderWebNodes();
 
     } catch (error) {
         console.error('AI paste import failed:', error);
-        showAlert(`AI import failed: ${error.message}`, 'Error', 'error');
+        const message = error?.message ? error.message : String(error);
+        showAlert(`AI import failed: ${message}`, 'Error', 'error');
     } finally {
         aiFormatDataBtn.disabled = false;
         aiFormatDataBtn.textContent = 'AI Format + Import';
     }
 });
 
-function parseCSV(csvText) {
+function parseCSV(csvText, options = {}) {
     if (!csvText || !String(csvText).trim()) {
         throw new Error('CSV file is empty.');
     }
+
+    const expectedHeadersRaw = Array.isArray(options.expectedHeaders) ? options.expectedHeaders : null;
+    const strictHeaderOrder = Boolean(options.strictHeaderOrder);
 
     const text = String(csvText).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     const rows = [];
@@ -3694,6 +3771,27 @@ function parseCSV(csvText) {
         .trim();
 
     const headers = rows[0].map(normalizeHeader);
+
+    if (expectedHeadersRaw) {
+        const expectedHeaders = expectedHeadersRaw.map(normalizeHeader);
+
+        if (strictHeaderOrder) {
+            const sameLength = headers.length === expectedHeaders.length;
+            const sameOrder = sameLength && headers.every((h, idx) => h === expectedHeaders[idx]);
+            if (!sameOrder) {
+                throw new Error(
+                    `CSV header mismatch.\nExpected: ${expectedHeaders.join(',')}\nGot: ${headers.join(',')}`
+                );
+            }
+        } else {
+            const gotSet = new Set(headers.map(h => h.toLowerCase()));
+            const missing = expectedHeaders.filter(h => !gotSet.has(h.toLowerCase()));
+            if (missing.length > 0) {
+                throw new Error(`CSV header missing required columns: ${missing.join(', ')}`);
+            }
+        }
+    }
+
     const data = [];
     const errors = [];
 
