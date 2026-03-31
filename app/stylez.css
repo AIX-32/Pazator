@@ -3090,6 +3090,57 @@
         animation: pulse 2s infinite;
     }
 
+    .status-indicator.processing {
+        animation: processingPulse 0.8s ease-in-out infinite;
+    }
+
+    @keyframes processingPulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.3); opacity: 0.8; }
+    }
+
+    .ai-message.typing {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .typing-indicator {
+        display: flex;
+        gap: 4px;
+    }
+
+    .typing-indicator span {
+        width: 8px;
+        height: 8px;
+        background: #888;
+        border-radius: 50%;
+        animation: typingBounce 1.4s ease-in-out infinite;
+    }
+
+    .typing-indicator span:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+
+    .typing-indicator span:nth-child(3) {
+        animation-delay: 0.4s;
+    }
+
+    @keyframes typingBounce {
+        0%, 60%, 100% { transform: translateY(0); }
+        30% { transform: translateY(-6px); }
+    }
+
+    .typing-text {
+        color: #888;
+        font-size: 0.9rem;
+        font-style: italic;
+    }
+
     .chat-menu-btn {
         background: linear-gradient(145deg, #2a2a2a, #252525);
         border: 1px solid #333;
@@ -4609,4 +4660,803 @@
         .tactics-layout {
             grid-template-columns: 1fr;
         }
+    }
+
+    /* Intelligence Center Styles */
+    .intel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 4px 16px 4px;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 16px;
+    }
+
+    .intel-header h2 {
+        margin: 0;
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #fff;
+    }
+
+    .intel-header-stats {
+        display: flex;
+        gap: 20px;
+        font-size: 0.85rem;
+        color: #888;
+    }
+
+    .intel-header-stats span {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .intel-header-stats i {
+        color: #666;
+    }
+
+    .intel-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 4px;
+    }
+
+    .intel-action-bar {
+        display: grid;
+        grid-template-columns: 2fr repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .intel-action-item {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        transition: all 0.2s ease;
+    }
+
+    .intel-action-item:hover {
+        border-color: #333;
+        transform: translateY(-1px);
+    }
+
+    .intel-action-primary {
+        background: linear-gradient(145deg, rgba(35, 35, 35, 0.95), rgba(28, 28, 28, 0.98));
+        border-color: rgba(107, 207, 127, 0.3);
+    }
+
+    .intel-action-primary:hover {
+        border-color: rgba(107, 207, 127, 0.5);
+        box-shadow: 0 4px 20px rgba(107, 207, 127, 0.1);
+    }
+
+    .intel-action-top {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .intel-action-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: rgba(107, 207, 127, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        color: #6bcf7f;
+        flex-shrink: 0;
+    }
+
+    .intel-action-icon.intel-icon-risk {
+        background: rgba(255, 217, 61, 0.15);
+        color: #ffd93d;
+    }
+
+    .intel-action-icon.intel-icon-connection {
+        background: rgba(77, 157, 224, 0.15);
+        color: #4d9de0;
+    }
+
+    .intel-action-icon.intel-icon-hojum {
+        background: rgba(255, 107, 107, 0.15);
+        color: #ff6b6b;
+    }
+
+    .intel-action-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .intel-action-info h3 {
+        margin: 0;
+        font-size: 0.9rem;
+        color: #fff;
+        font-weight: 600;
+    }
+
+    .intel-action-info p {
+        margin: 2px 0 0 0;
+        font-size: 0.8rem;
+        color: #777;
+    }
+
+    .intel-action-info p {
+        margin: 0;
+        font-size: 0.8rem;
+        color: #777;
+    }
+
+    .intel-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .intel-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 16px var(--shadow-color);
+        transition: all 0.3s ease;
+    }
+
+    .intel-card:hover {
+        border-color: #333;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+
+    .intel-card.intel-primary {
+        background: linear-gradient(145deg, rgba(30, 30, 30, 0.9), rgba(25, 25, 25, 0.95));
+        border-color: rgba(107, 207, 127, 0.3);
+        box-shadow: 0 4px 20px rgba(107, 207, 127, 0.1);
+    }
+
+    .intel-card-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .intel-indicator {
+        width: 6px;
+        height: 24px;
+        border-radius: 3px;
+        flex-shrink: 0;
+    }
+
+    .intel-indicator-ai {
+        background: linear-gradient(to bottom, #6bcf7f, #4a9e5c);
+    }
+
+    .intel-indicator-risk {
+        background: linear-gradient(to bottom, #ffd93d, #e6c235);
+    }
+
+    .intel-indicator-connection {
+        background: linear-gradient(to bottom, #4d9de0, #3a7fc4);
+    }
+
+    .intel-indicator-hojum {
+        background: linear-gradient(to bottom, #ff6b6b, #cc5252);
+    }
+
+    .intel-card-header h3 {
+        margin: 0;
+        color: #ffffff;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .intel-card-desc {
+        color: #aaa;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin: 0 0 16px 0;
+    }
+
+    .intel-card-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    .intel-card-hint {
+        margin-top: 12px;
+        padding: 10px 12px;
+        background: rgba(107, 207, 127, 0.1);
+        border: 1px solid rgba(107, 207, 127, 0.2);
+        border-radius: 8px;
+        color: #6bcf7f;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .intel-card-hint i {
+        flex-shrink: 0;
+    }
+
+    .intel-risk-chart {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .intel-risk-row {
+        display: grid;
+        grid-template-columns: 100px 1fr 50px;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .intel-risk-label {
+        color: #aaa;
+        font-size: 0.9rem;
+    }
+
+    .intel-risk-bar {
+        height: 8px;
+        background: rgba(30, 30, 30, 0.5);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .intel-risk-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.5s ease;
+    }
+
+    .intel-risk-high {
+        background: linear-gradient(90deg, #ff6b6b, #ff4757);
+    }
+
+    .intel-risk-medium {
+        background: linear-gradient(90deg, #ffd93d, #ffb142);
+    }
+
+    .intel-risk-low {
+        background: linear-gradient(90deg, #6bcf7f, #4a9e5c);
+    }
+
+    .intel-risk-value {
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-align: right;
+    }
+
+    .intel-hojum-status {
+        padding: 12px;
+        background: rgba(255, 107, 107, 0.1);
+        border: 1px solid rgba(255, 107, 107, 0.2);
+        border-radius: 8px;
+        color: #6bcf7f;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .intel-results {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 16px var(--shadow-color);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 300px;
+    }
+
+    .intel-results-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border-color);
+        flex-shrink: 0;
+    }
+
+    .intel-results-header h3 {
+        margin: 0;
+        color: #ffffff;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .intel-results-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .intel-results-badge {
+        background: rgba(107, 207, 127, 0.15);
+        color: #6bcf7f;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .btn-sm {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+    }
+
+    .intel-results-content {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .intel-empty-state {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #666;
+        text-align: center;
+        padding: 40px;
+    }
+
+    .intel-empty-state i {
+        font-size: 3rem;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+
+    .intel-empty-state p {
+        margin: 0 0 8px 0;
+        font-size: 1.1rem;
+        color: #888;
+    }
+
+    .intel-empty-state small {
+        color: #555;
+    }
+
+    .intel-finding {
+        background: rgba(30, 30, 30, 0.6);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 16px;
+        transition: all 0.2s ease;
+        border-left: 4px solid #666;
+    }
+
+    .intel-finding:hover {
+        background: rgba(35, 35, 35, 0.8);
+        border-color: #444;
+        transform: translateX(4px);
+    }
+
+    .intel-finding.threat {
+        border-left-color: #ff6b6b;
+        background: rgba(255, 107, 107, 0.08);
+    }
+
+    .intel-finding.risk {
+        border-left-color: #ffd93d;
+        background: rgba(255, 217, 61, 0.08);
+    }
+
+    .intel-finding.connection {
+        border-left-color: #4d9de0;
+        background: rgba(77, 157, 224, 0.08);
+    }
+
+    .intel-finding.positive {
+        border-left-color: #6bcf7f;
+        background: rgba(107, 207, 127, 0.08);
+    }
+
+    .intel-finding.info {
+        border-left-color: #aaa;
+        background: rgba(170, 170, 170, 0.05);
+    }
+
+    .intel-finding-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 10px;
+        gap: 12px;
+    }
+
+    .intel-finding-title {
+        font-weight: 600;
+        color: #ffffff;
+        font-size: 1rem;
+        flex: 1;
+    }
+
+    .intel-finding-subject {
+        font-size: 0.9rem;
+        color: #888;
+        margin-top: 4px;
+    }
+
+    .intel-finding-type {
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .intel-finding-type i {
+        font-size: 0.75rem;
+    }
+
+    .intel-finding-type.threat {
+        background: rgba(255, 107, 107, 0.25);
+        color: #ff6b6b;
+    }
+
+    .intel-finding-type.risk {
+        background: rgba(255, 217, 61, 0.25);
+        color: #ffd93d;
+    }
+
+    .intel-finding-type.connection {
+        background: rgba(77, 157, 224, 0.25);
+        color: #4d9de0;
+    }
+
+    .intel-finding-type.positive {
+        background: rgba(107, 207, 127, 0.25);
+        color: #6bcf7f;
+    }
+
+    .intel-finding-type.info {
+        background: rgba(170, 170, 170, 0.2);
+        color: #ccc;
+    }
+
+    .intel-finding-content {
+        color: #bbb;
+        font-size: 0.9rem;
+        line-height: 1.6;
+    }
+
+    .intel-finding-evidence {
+        margin-top: 10px;
+        padding: 10px 12px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+        font-size: 0.85rem;
+    }
+
+    .intel-finding-evidence strong {
+        color: #ddd;
+    }
+
+    .intel-finding-footer {
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .intel-finding-tag {
+        padding: 4px 10px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        font-size: 0.75rem;
+        color: #999;
+    }
+
+    .intel-finding-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 60px;
+        color: #888;
+    }
+
+    .intel-finding-loading i {
+        font-size: 2rem;
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .intel-quick-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .intel-quick-stat {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        background: rgba(30, 30, 30, 0.4);
+        border-radius: 8px;
+    }
+
+    .intel-quick-stat-label {
+        color: #888;
+        font-size: 0.85rem;
+    }
+
+    .intel-quick-stat-value {
+        font-weight: 600;
+        color: #ddd;
+        font-size: 0.9rem;
+    }
+
+    .intel-context-sources {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .intel-context-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        background: rgba(30, 30, 30, 0.4);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.2s ease;
+        font-size: 0.9rem;
+        color: #ccc;
+    }
+
+    .intel-context-item:hover {
+        background: rgba(40, 40, 40, 0.6);
+    }
+
+    .intel-context-item input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: #6bcf7f;
+    }
+
+    @media (max-width: 900px) {
+        .intel-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .intel-card.intel-primary {
+            grid-column: 1;
+        }
+
+        .intel-risk-row {
+            grid-template-columns: 80px 1fr 40px;
+        }
+    }
+
+    /* Credit Evaluation Modal */
+    .credit-eval-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(8px);
+    }
+
+    .credit-eval-modal.active {
+        display: flex;
+        animation: creditEvalFadeIn 0.3s ease;
+    }
+
+    @keyframes creditEvalFadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .credit-eval-content {
+        background: linear-gradient(180deg, #1e1e1e 0%, #151515 100%);
+        border: 1px solid #333;
+        border-radius: 20px;
+        padding: 32px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+        animation: creditEvalSlideIn 0.3s ease;
+    }
+
+    @keyframes creditEvalSlideIn {
+        from { transform: translateY(-20px) scale(0.95); opacity: 0; }
+        to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    .credit-eval-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .credit-eval-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(145deg, #6bcf7f, #4a9e5c);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: #fff;
+    }
+
+    .credit-eval-icon.processing {
+        background: linear-gradient(145deg, #ffd93d, #e6c235);
+    }
+
+    .credit-eval-icon.done {
+        background: linear-gradient(145deg, #6bcf7f, #4a9e5c);
+    }
+
+    .credit-eval-header h2 {
+        margin: 0;
+        font-size: 1.4rem;
+        color: #fff;
+        font-family: 'AllianceNo2', 'Segoe UI', sans-serif;
+    }
+
+    .credit-eval-body {
+        margin-bottom: 24px;
+    }
+
+    .credit-eval-progress-container {
+        background: rgba(30, 30, 30, 0.8);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 16px;
+    }
+
+    .credit-eval-status {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        font-size: 0.9rem;
+    }
+
+    .credit-eval-status-label {
+        color: #aaa;
+    }
+
+    .credit-eval-status-value {
+        color: #fff;
+        font-weight: 600;
+    }
+
+    .credit-eval-progress-bar {
+        height: 12px;
+        background: rgba(50, 50, 50, 0.8);
+        border-radius: 6px;
+        overflow: hidden;
+    }
+
+    .credit-eval-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #6bcf7f, #4a9e5c);
+        border-radius: 6px;
+        transition: width 0.3s ease;
+        position: relative;
+    }
+
+    .credit-eval-progress-fill::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        animation: creditEvalShimmer 1.5s infinite;
+    }
+
+    @keyframes creditEvalShimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+
+    .credit-eval-current {
+        margin-top: 12px;
+        padding: 12px;
+        background: rgba(40, 40, 40, 0.6);
+        border-radius: 8px;
+        font-size: 0.9rem;
+        color: #ccc;
+    }
+
+    .credit-eval-current-name {
+        font-weight: 600;
+        color: #fff;
+    }
+
+    .credit-eval-results {
+        background: rgba(30, 30, 30, 0.8);
+        border-radius: 12px;
+        padding: 20px;
+    }
+
+    .credit-eval-results h3 {
+        margin: 0 0 16px 0;
+        font-size: 1.1rem;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .credit-eval-results h3 i {
+        color: #6bcf7f;
+    }
+
+    .credit-eval-summary {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .credit-eval-stat {
+        text-align: center;
+        padding: 12px;
+        background: rgba(40, 40, 40, 0.6);
+        border-radius: 8px;
+    }
+
+    .credit-eval-stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #fff;
+    }
+
+    .credit-eval-stat-label {
+        font-size: 0.8rem;
+        color: #888;
+        margin-top: 4px;
+    }
+
+    .credit-eval-stat.high .credit-eval-stat-value { color: #ff6b6b; }
+    .credit-eval-stat.medium .credit-eval-stat-value { color: #ffd93d; }
+    .credit-eval-stat.low .credit-eval-stat-value { color: #6bcf7f; }
+
+    .credit-eval-detail {
+        font-size: 0.9rem;
+        color: #aaa;
+        line-height: 1.5;
+    }
+
+    .credit-eval-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
     }

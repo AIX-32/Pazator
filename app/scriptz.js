@@ -786,6 +786,9 @@ const aiChatMessages = document.getElementById('aiChatMessages');
 function setAiSendLoading(isLoading) {
     if (!aiSendBtn) return;
     const icon = aiSendBtn.querySelector('i');
+    const statusIndicator = document.querySelector('.status-indicator');
+    const statusText = document.querySelector('.status-text');
+    
     aiSendBtn.classList.toggle('loading', !!isLoading);
     if (icon) {
         if (isLoading) {
@@ -795,6 +798,47 @@ function setAiSendLoading(isLoading) {
             icon.classList.remove('fa-spinner', 'fa-spin');
             icon.classList.add('fa-paper-plane');
         }
+    }
+    
+    if (statusIndicator) {
+        if (isLoading) {
+            statusIndicator.style.background = '#ff9800';
+            statusIndicator.style.boxShadow = '0 0 12px #ff9800';
+            statusIndicator.classList.add('processing');
+        } else {
+            statusIndicator.style.background = '#4CAF50';
+            statusIndicator.style.boxShadow = '0 0 10px #4CAF50';
+            statusIndicator.classList.remove('processing');
+        }
+    }
+    
+    if (statusText) {
+        statusText.textContent = isLoading ? 'Processing...' : 'Context ready';
+    }
+}
+
+let aiTypingIndicator = null;
+
+function showAiTypingIndicator() {
+    if (aiTypingIndicator) return;
+    aiTypingIndicator = document.createElement('div');
+    aiTypingIndicator.className = 'ai-message ai typing';
+    aiTypingIndicator.innerHTML = `
+        <div class="typing-indicator">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <span class="typing-text">Zor is thinking...</span>
+    `;
+    aiChatMessages.appendChild(aiTypingIndicator);
+    aiChatMessages.scrollTo({ top: aiChatMessages.scrollHeight, behavior: 'smooth' });
+}
+
+function hideAiTypingIndicator() {
+    if (aiTypingIndicator) {
+        aiTypingIndicator.remove();
+        aiTypingIndicator = null;
     }
 }
 
@@ -808,10 +852,14 @@ const refreshViewBtn = document.getElementById('refreshViewBtn');
 const toggleConnectionsBtn = document.getElementById('toggleConnectionsBtn');
 const showStatisticsBtn = document.getElementById('showStatisticsBtn');
 const findConnectionsBtn = document.getElementById('findConnectionsBtn');
-const findFraudBtn = document.getElementById('findFraudBtn');
-const findTerroristsBtn = document.getElementById('findTerroristsBtn');
 const refreshCreditsBtn = document.getElementById('refreshCreditsBtn');
 const sortByCreditBtn = document.getElementById('sortByCreditBtn');
+
+const intelAnalyzeBtn = document.getElementById('intelAnalyzeBtn');
+const intelConnectionsBtn = document.getElementById('intelConnectionsBtn');
+const intelHojumBtn = document.getElementById('intelHojumBtn');
+const intelRefreshRiskBtn = document.getElementById('intelRefreshRiskBtn');
+const intelClearResults = document.getElementById('intelClearResults');
 
 const chatControlBtn = document.getElementById('chatControlBtn');
 const analyzeAllChatsBtn = document.getElementById('analyzeAllChatsBtn');
@@ -1070,6 +1118,8 @@ function switchTab(tabId) {
         setTimeout(initAgentsTab, 50);
     } else if (tabId === 'articles') {
         setTimeout(initArticlesTab, 50);
+    } else if (tabId === 'threats') {
+        updateIntelligenceCenterStats();
     }
 
     setActiveTabButton(tabId);
@@ -2621,7 +2671,7 @@ async function processAICommand(command) {
 
         aiSendBtn.disabled = true;
         setAiSendLoading(true);
-        displayAIChatNotification('Processing command...');
+        showAiTypingIndicator();
 
         try {
 
@@ -2760,6 +2810,7 @@ async function processAICommand(command) {
         console.error('Critical Error in processAICommand:', error);
         addMessageToAIChat("Sorry, I encountered a critical error. Please try again.", 'ai');
     } finally {
+        hideAiTypingIndicator();
         requestAnimationFrame(() => {
             aiSendBtn.disabled = false;
             setAiSendLoading(false);
@@ -4425,6 +4476,7 @@ document.getElementById('analysisBtn').addEventListener('click', () => {
 });
 
 document.getElementById('threatsBtn').addEventListener('click', () => {
+    updateIntelligenceCenterStats();
     switchTab('threats');
 });
 
@@ -4721,7 +4773,6 @@ aiSendBtn.addEventListener('click', () => {
     if (command) {
         aiSendBtn.disabled = true;
         setAiSendLoading(true);
-        displayAIChatNotification('Sending command...');
 
         requestAnimationFrame(() => {
             processAICommand(command);
@@ -4746,6 +4797,10 @@ aiInput.addEventListener('keydown', debounce((e) => {
         e.preventDefault();
         const command = aiInput.value.trim();
         if (command) {
+            aiInput.value = '';
+            aiSendBtn.disabled = true;
+            setAiSendLoading(true);
+            showAiTypingIndicator();
             processAICommand(command);
         }
     }
@@ -5159,29 +5214,205 @@ findConnectionsBtn.addEventListener('click', async () => {
     await findHiddenConnections();
 });
 
-findFraudBtn.addEventListener('click', async () => {
-    await findPotentialFraud();
-});
-
-findTerroristsBtn.addEventListener('click', async () => {
-    await findPotentialTerrorists();
-});
-
-document.getElementById('findBothBtn').addEventListener('click', async () => {
-    await Promise.all([
-        findPotentialFraud(),
-        findPotentialTerrorists()
-    ]);
-
-    loadPreviousFindings();
-});
-
 refreshCreditsBtn.addEventListener('click', () => {
     refreshPersonCredits();
 });
 sortByCreditBtn.addEventListener('click', () => {
     sortByCredit();
 });
+
+intelAnalyzeBtn?.addEventListener('click', async () => {
+    await runIntelligenceAnalysis();
+});
+
+intelConnectionsBtn?.addEventListener('click', async () => {
+    await findHiddenConnections();
+});
+
+intelRefreshRiskBtn?.addEventListener('click', () => {
+    refreshPersonCredits();
+    updateCreditStats();
+});
+
+intelHojumBtn?.addEventListener('click', async () => {
+    try {
+        const hojum = window.pazator_context?.hojum;
+        if (hojum && typeof hojum.proposeManual === 'function') {
+            intelHojumBtn.disabled = true;
+            intelHojumBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
+            
+            await hojum.proposeManual('Threat analysis request from Intelligence Center');
+            
+            const status = document.getElementById('intelHojumStatus');
+            if (status) {
+                status.innerHTML = '<i class="fas fa-check-circle"></i><span>HOJUM: proposal generated.</span>';
+            }
+        } else {
+            showAlert('HOJUM is not available. Make sure the context is properly initialized.', 'HOJUM Error', 'warning');
+        }
+    } catch (e) {
+        console.error('HOJUM trigger failed:', e);
+        showAlert('Failed to trigger HOJUM: ' + e.message, 'Error', 'error');
+    } finally {
+        if (intelHojumBtn) {
+            intelHojumBtn.disabled = false;
+            intelHojumBtn.innerHTML = '<i class="fas fa-bolt"></i> Trigger HOJUM';
+        }
+    }
+});
+
+intelClearResults?.addEventListener('click', () => {
+    const resultsEl = document.getElementById('intelResults');
+    const contentEl = document.getElementById('intelResultsContent');
+    const countBadge = document.getElementById('intelResultsCount');
+    const findingsCountEl = document.getElementById('intelFindingsCount');
+    if (resultsEl) resultsEl.style.display = 'none';
+    if (contentEl) contentEl.innerHTML = '';
+    if (countBadge) countBadge.textContent = '0 findings';
+    if (findingsCountEl) findingsCountEl.textContent = '0';
+});
+
+function renderFindingsToCards(findings) {
+    const container = document.getElementById('intelResultsContent');
+    const countBadge = document.getElementById('intelResultsCount');
+    const resultsEl = document.getElementById('intelResults');
+    
+    if (!container) return;
+    
+    container.innerHTML = '';
+    resultsEl.style.display = 'block';
+    countBadge.textContent = `${findings.length} finding${findings.length !== 1 ? 's' : ''}`;
+    
+    findings.forEach((finding, index) => {
+        const card = document.createElement('div');
+        card.className = `intel-finding intel-finding-${finding.type || 'info'}`;
+        
+        const typeIcon = {
+            threat: 'fa-exclamation-triangle',
+            risk: 'fa-shield-alt',
+            connection: 'fa-link',
+            positive: 'fa-check-circle',
+            info: 'fa-info-circle'
+        }[finding.type] || 'fa-info-circle';
+        
+        const typeLabel = {
+            threat: 'Threat',
+            risk: 'Risk',
+            connection: 'Connection',
+            positive: 'Positive',
+            info: 'Info'
+        }[finding.type] || 'Info';
+        
+        card.innerHTML = `
+            <div class="intel-finding-header">
+                <div class="intel-finding-type">
+                    <i class="fas ${typeIcon}"></i>
+                    <span>${typeLabel}</span>
+                </div>
+                <div class="intel-finding-subject">${finding.subject || 'Unknown'}</div>
+            </div>
+            <div class="intel-finding-content">${finding.content || finding.description || ''}</div>
+            ${finding.evidence ? `<div class="intel-finding-evidence"><i class="fas fa-fingerprint"></i> ${finding.evidence}</div>` : ''}
+            <div class="intel-finding-footer">
+                ${(finding.tags || []).map(tag => `<span class="intel-finding-tag">${tag}</span>`).join('')}
+            </div>
+        `;
+        
+        container.appendChild(card);
+    });
+    
+    if (findings.length === 0) {
+        container.innerHTML = `
+            <div class="intel-empty-state">
+                <i class="fas fa-search"></i>
+                <p>No findings detected</p>
+                <small>The analysis completed but no significant patterns were found</small>
+            </div>
+        `;
+    }
+}
+
+async function runIntelligenceAnalysis() {
+    const btn = document.getElementById('intelAnalyzeBtn');
+    const findingsCountEl = document.getElementById('intelFindingsCount');
+    const lastAnalysisEl = document.getElementById('intelLastAnalysis');
+    
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+    }
+    
+    try {
+        const humansData = pazatorData.humans.map(h => ({
+            id: h.id,
+            name: h.name,
+            gender: h.gender,
+            birthDate: h.birthDate,
+            workplace: h.workplace,
+            tags: h.tags || [],
+            extraNotes: h.extraNotes || '',
+            friends: (h.friends || []).map(fId => pazatorData.humans.find(h => h.id === fId)?.name || fId),
+            family: (h.family || []).map(fId => pazatorData.humans.find(h => h.id === fId)?.name || fId)
+        }));
+        
+        const othersData = pazatorData.others.map(o => ({
+            id: o.id,
+            name: o.name,
+            note: o.note || ''
+        }));
+        
+        const aiPrompt = `You are analyzing data for an Intelligence Center. Your task is to identify potential threats, risks, suspicious patterns, and hidden connections.
+
+DATA:
+Humans: ${JSON.stringify(humansData, null, 2)}
+Entities: ${JSON.stringify(othersData, null, 2)}
+
+Analyze this data and return a JSON array of findings in this EXACT format:
+[
+    {
+        "type": "threat|risk|connection|positive|info",
+        "subject": "Person or entity name",
+        "content": "Brief description of the finding",
+        "evidence": "Specific data point supporting this finding",
+        "tags": ["tag1", "tag2"]
+    }
+]
+
+Types:
+- threat: Direct danger or serious concern
+- risk: Potential vulnerability or concern
+- connection: Hidden relationship between people
+- positive: Good indicator or strength
+- info: Neutral observation
+
+Be selective - only report significant findings. Maximum 10 findings. Return ONLY the JSON array, no other text.`;
+
+        const aiResponse = await puter.ai.chat([
+            { role: "system", content: "You are Zor, an intelligence analysis AI. Output ONLY valid JSON." },
+            { role: "user", content: aiPrompt }
+        ]);
+        
+        const responseText = aiResponse.content || aiResponse;
+        const findings = extractJSONFromResponse(responseText);
+        
+        if (Array.isArray(findings)) {
+            renderFindingsToCards(findings);
+            if (findingsCountEl) findingsCountEl.textContent = findings.length;
+            if (lastAnalysisEl) lastAnalysisEl.textContent = new Date().toLocaleTimeString();
+        } else {
+            showAlert('Analysis returned unexpected format. Check chat for details.', 'Analysis Issue', 'warning');
+        }
+        
+    } catch (e) {
+        console.error('Intelligence analysis failed:', e);
+        showAlert('Analysis failed: ' + e.message, 'Error', 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-brain"></i> Run AI Analysis';
+        }
+    }
+}
 
 chatControlBtn?.addEventListener('click', () => {
     switchTab('chat-control');
@@ -5340,9 +5571,9 @@ function updateCreditStats() {
     const creditStats = document.getElementById('creditStats');
     if (!creditStats || pazatorData.humans.length === 0) return;
     
-    const highRisk = pazatorData.humans.filter(h => (h.credit || 50) < 30).length;
-    const mediumRisk = pazatorData.humans.filter(h => (h.credit || 50) >= 30 && (h.credit || 50) < 60).length;
-    const lowRisk = pazatorData.humans.filter(h => (h.credit || 50) >= 60).length;
+    const highRisk = pazatorData.humans.filter(h => (h.credit || 185) < 125).length;
+    const mediumRisk = pazatorData.humans.filter(h => (h.credit || 185) >= 125 && (h.credit || 185) < 250).length;
+    const lowRisk = pazatorData.humans.filter(h => (h.credit || 185) >= 250).length;
     
     const total = pazatorData.humans.length;
     const highPct = Math.round((highRisk / total) * 100);
@@ -5350,10 +5581,53 @@ function updateCreditStats() {
     const lowPct = Math.round((lowRisk / total) * 100);
     
     creditStats.innerHTML = `
-        <div class="stat-row"><span>High Risk:</span><span class="stat-red">${highPct}%</span></div>
-        <div class="stat-row"><span>Medium Risk:</span><span class="stat-yellow">${mediumPct}%</span></div>
-        <div class="stat-row"><span>Low Risk:</span><span class="stat-green">${lowPct}%</span></div>
+        <div class="stat-row"><span>High Risk (0-124):</span><span class="stat-red">${highPct}%</span></div>
+        <div class="stat-row"><span>Medium (125-249):</span><span class="stat-yellow">${mediumPct}%</span></div>
+        <div class="stat-row"><span>Low Risk (250-370):</span><span class="stat-green">${lowPct}%</span></div>
     `;
+    
+    updateIntelligenceCenterRiskChart(highPct, mediumPct, lowPct);
+    
+    const riskSummary = document.getElementById('intelRiskSummary');
+    if (riskSummary) riskSummary.textContent = `${highPct}% high, ${mediumPct}% med, ${lowPct}% low`;
+}
+
+function updateIntelligenceCenterRiskChart(highPct, mediumPct, lowPct) {
+    const highBar = document.getElementById('intelHighRiskBar');
+    const mediumBar = document.getElementById('intelMediumRiskBar');
+    const lowBar = document.getElementById('intelLowRiskBar');
+    const highVal = document.getElementById('intelHighRisk');
+    const mediumVal = document.getElementById('intelMediumRisk');
+    const lowVal = document.getElementById('intelLowRisk');
+    
+    if (highBar) highBar.style.width = highPct + '%';
+    if (mediumBar) mediumBar.style.width = mediumPct + '%';
+    if (lowBar) lowBar.style.width = lowPct + '%';
+    if (highVal) highVal.textContent = highPct + '%';
+    if (mediumVal) mediumVal.textContent = mediumPct + '%';
+    if (lowVal) lowVal.textContent = lowPct + '%';
+}
+
+function updateIntelligenceCenterStats() {
+    const humanCountEl = document.getElementById('intelHumanCount');
+    const otherCountEl = document.getElementById('intelOtherCount');
+    
+    if (humanCountEl) humanCountEl.textContent = pazatorData.humans.length;
+    if (otherCountEl) otherCountEl.textContent = pazatorData.others.length;
+    
+    const highRisk = pazatorData.humans.filter(h => (h.credit || 185) < 125).length;
+    const mediumRisk = pazatorData.humans.filter(h => (h.credit || 185) >= 125 && (h.credit || 185) < 250).length;
+    const lowRisk = pazatorData.humans.filter(h => (h.credit || 185) >= 250).length;
+    const total = pazatorData.humans.length || 1;
+    
+    const highPct = Math.round((highRisk / total) * 100);
+    const mediumPct = Math.round((mediumRisk / total) * 100);
+    const lowPct = Math.round((lowRisk / total) * 100);
+    
+    updateIntelligenceCenterRiskChart(highPct, mediumPct, lowPct);
+    
+    const riskSummary = document.getElementById('intelRiskSummary');
+    if (riskSummary) riskSummary.textContent = `${highPct}% high, ${mediumPct}% med, ${lowPct}% low`;
 }
 
 function updateHeaderStats() {
@@ -5927,78 +6201,278 @@ function renderConnectionsList(connections, listContainer) {
 }
 
 function calculateCreditScore(human) {
-    let score = 50;
+    let score = 185;
     
-    const positiveTags = ['rich', 'professional', 'trusted', 'reliable', 'honest', 'successful', 'educated', 'business', 'leader', 'owner', 'manager', 'doctor', 'engineer', 'investor'];
-    const negativeTags = ['suspicious', 'fraud', 'dangerous', 'criminal', 'scam', 'untrusted', 'debt', 'bankrupt'];
+    const positiveTags = ['rich', 'professional', 'trusted', 'reliable', 'honest', 'successful', 'educated', 'business', 'leader', 'owner', 'manager', 'doctor', 'engineer', 'investor', 'executive', 'professional', 'veteran'];
+    const negativeTags = ['suspicious', 'fraud', 'dangerous', 'criminal', 'scam', 'untrusted', 'debt', 'bankrupt', 'unemployed', 'unstable'];
     
     if (human.tags && human.tags.length > 0) {
         human.tags.forEach(tag => {
             const t = tag.toLowerCase();
-            if (positiveTags.includes(t)) score += 5;
-            if (negativeTags.includes(t)) score -= 10;
+            if (positiveTags.includes(t)) score += 15;
+            if (negativeTags.includes(t)) score -= 25;
         });
     }
     
     if (human.workplace) {
         const wp = human.workplace.toLowerCase();
-        if (wp.includes('bank') || wp.includes('corp') || wp.includes('inc') || wp.includes('llc') || wp.includes('company') || wp.includes('ltd')) {
-            score += 5;
+        if (wp.includes('bank') || wp.includes('corp') || wp.includes('inc') || wp.includes('llc') || wp.includes('ltd') || wp.includes('group')) {
+            score += 20;
+        } else if (human.workplace) {
+            score += 10;
         }
     }
     
-    if (human.socialClass === '1%') score = Math.min(100, score + 30);
-    else if (human.socialClass === 'high class') score = Math.min(100, score + 15);
-    else if (human.socialClass === 'low class') score = Math.max(0, score - 15);
+    if (human.socialClass === '1%') score = Math.min(370, score + 100);
+    else if (human.socialClass === 'high class') score = Math.min(370, score + 50);
+    else if (human.socialClass === 'low class') score = Math.max(0, score - 50);
     
     const connections = (human.friends ? human.friends.length : 0) + (human.family ? human.family.length : 0);
-    if (connections > 5) score = Math.min(100, score + 5);
-    else if (connections === 0) score = Math.max(0, score - 5);
+    if (connections > 5) score = Math.min(370, score + 20);
+    else if (connections === 0) score = Math.max(0, score - 20);
     
     if (human.extraNotes) {
         const notes = human.extraNotes.toLowerCase();
-        if (notes.includes('trust') || notes.includes('reliable') || notes.includes('good')) score += 5;
-        if (notes.includes('suspicious') || notes.includes('warning') || notes.includes('risk')) score -= 10;
+        if (notes.includes('trust') || notes.includes('reliable') || notes.includes('good') || notes.includes('stable')) score += 20;
+        if (notes.includes('suspicious') || notes.includes('warning') || notes.includes('risk') || notes.includes('investigate')) score -= 35;
     }
     
-    return Math.max(0, Math.min(100, Math.round(score)));
+    return Math.max(0, Math.min(370, Math.round(score)));
 }
 
 function inferSocialClass(creditScore) {
-    if (creditScore >= 80) return '1%';
-    if (creditScore >= 60) return 'high class';
-    if (creditScore >= 40) return 'medium class';
+    if (creditScore >= 300) return '1%';
+    if (creditScore >= 220) return 'high class';
+    if (creditScore >= 140) return 'medium class';
     return 'low class';
 }
 
-function refreshPersonCredits() {
-    refreshCreditsBtn.disabled = true;
-    refreshCreditsBtn.textContent = 'Calculating...';
-    
-    let updated = 0;
-    
-    pazatorData.humans.forEach(human => {
-        const newCredit = calculateCreditScore(human);
-        
-        if (human.credit !== newCredit) {
-            human.credit = newCredit;
-            updated++;
-        }
-        
-        if (!human.socialClass || human.socialClass === 'medium class') {
-            human.socialClass = inferSocialClass(newCredit);
-        }
-    });
-    
-    saveData();
-    renderWebNodes();
-    updateCreditStats();
-    
-    refreshCreditsBtn.disabled = false;
-    refreshCreditsBtn.textContent = 'Evaluate Credit Scores';
-    
-    showAlert(`Credit scores calculated for ${pazatorData.humans.length} people. ${updated} scores updated.`, 'Complete', 'success');
+function getCreditRiskLevel(score) {
+    if (score < 125) return 'high';
+    if (score < 250) return 'medium';
+    return 'low';
 }
+
+function showCreditEvalModal() {
+    const modal = document.getElementById('creditEvalModal');
+    const progressContainer = document.getElementById('creditEvalProgressContainer');
+    const resultsContainer = document.getElementById('creditEvalResults');
+    const closeBtn = document.getElementById('creditEvalCloseBtn');
+    const icon = document.getElementById('creditEvalIcon');
+    const title = document.getElementById('creditEvalTitle');
+    
+    if (modal) modal.classList.add('active');
+    if (progressContainer) progressContainer.style.display = 'block';
+    if (resultsContainer) resultsContainer.style.display = 'none';
+    if (closeBtn) closeBtn.style.display = 'none';
+    if (icon) {
+        icon.classList.remove('done');
+        icon.classList.add('processing');
+        icon.innerHTML = '<i class="fas fa-brain fa-spin"></i>';
+    }
+    if (title) title.textContent = 'AI Credit Evaluation';
+    
+    updateCreditEvalProgress(0, pazatorData.humans.length, '-');
+}
+
+function updateCreditEvalProgress(current, total, currentName) {
+    const progressFill = document.getElementById('creditEvalProgressFill');
+    const progressText = document.getElementById('creditEvalProgressText');
+    const currentNameEl = document.getElementById('creditEvalCurrentName');
+    
+    const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+    if (progressFill) progressFill.style.width = pct + '%';
+    if (progressText) progressText.textContent = `${current} / ${total}`;
+    if (currentNameEl) currentNameEl.textContent = currentName || '-';
+}
+
+function showCreditEvalComplete(results) {
+    const modal = document.getElementById('creditEvalModal');
+    const progressContainer = document.getElementById('creditEvalProgressContainer');
+    const resultsContainer = document.getElementById('creditEvalResults');
+    const closeBtn = document.getElementById('creditEvalCloseBtn');
+    const icon = document.getElementById('creditEvalIcon');
+    const title = document.getElementById('creditEvalTitle');
+    
+    if (progressContainer) progressContainer.style.display = 'none';
+    if (resultsContainer) resultsContainer.style.display = 'block';
+    if (closeBtn) closeBtn.style.display = 'inline-flex';
+    if (icon) {
+        icon.classList.remove('processing');
+        icon.classList.add('done');
+        icon.innerHTML = '<i class="fas fa-check"></i>';
+    }
+    if (title) title.textContent = 'Evaluation Complete';
+    
+    const highCount = document.getElementById('creditEvalHighCount');
+    const mediumCount = document.getElementById('creditEvalMediumCount');
+    const lowCount = document.getElementById('creditEvalLowCount');
+    const detail = document.getElementById('creditEvalDetail');
+    
+    if (highCount) highCount.textContent = results.high;
+    if (mediumCount) mediumCount.textContent = results.medium;
+    if (lowCount) lowCount.textContent = results.low;
+    if (detail) {
+        detail.innerHTML = `Analyzed <strong>${results.total}</strong> people. ` +
+            `Average score: <strong>${results.average}</strong>. ` +
+            `Scores range from <strong>${results.min}</strong> to <strong>${results.max}</strong>.`;
+    }
+}
+
+function hideCreditEvalModal() {
+    const modal = document.getElementById('creditEvalModal');
+    if (modal) modal.classList.remove('active');
+}
+
+async function refreshPersonCredits() {
+    if (pazatorData.humans.length === 0) {
+        showAlert('No humans to evaluate. Add some people first.', 'No Data', 'info');
+        return;
+    }
+    
+    showCreditEvalModal();
+    
+    if (refreshCreditsBtn) {
+        refreshCreditsBtn.disabled = true;
+        refreshCreditsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Evaluating...';
+    }
+    
+    const humansToEvaluate = pazatorData.humans.map(h => ({
+        id: h.id,
+        name: h.name,
+        gender: h.gender || '',
+        birthDate: h.birthDate || '',
+        workplace: h.workplace || '',
+        socialClass: h.socialClass || '',
+        friends: h.friends || [],
+        family: h.family || [],
+        extraNotes: h.extraNotes || '',
+        tags: h.tags || []
+    }));
+    
+    const contextPrompt = `You are a credit risk analyst. Evaluate each person's credit score based on ALL available data.
+    
+Consider these factors:
+- Name (some names associated with certain backgrounds/regions)
+- Gender
+- Birth date (calculate age)
+- Workplace (professional environment indicates stability)
+- Social class (already assigned class)
+- Friends count (social stability)
+- Family count (family support network)
+- Tags (professional tags = positive, negative tags = risk)
+- Notes (explicit mentions of trust, reliability, warnings, suspicions)
+
+Credit Score Range: 0-370
+- 0-124: HIGH RISK (financial instability, high risk of default)
+- 125-249: MEDIUM RISK (moderate risk)
+- 250-370: LOW RISK (stable, reliable)
+
+Return a JSON array with credit scores for ALL people. Format:
+[{"id": "person_id", "creditScore": 250}, {"id": "person_id2", "creditScore": 180}]
+
+IMPORTANT: Return scores for ALL ${humansToEvaluate.length} people. Be realistic - use the full range.`;
+
+    try {
+        const aiResponse = await puter.ai.chat([
+            { role: "system", content: contextPrompt },
+            { role: "user", content: "Here is the data:\n" + JSON.stringify(humansToEvaluate, null, 2) + "\n\nReturn credit scores for all people." }
+        ]);
+        
+        const responseText = aiResponse.content || String(aiResponse);
+        
+        let scores = [];
+        try {
+            const parsed = JSON.parse(responseText);
+            if (Array.isArray(parsed)) {
+                scores = parsed;
+            }
+        } catch {
+            const match = responseText.match(/\[[\s\S]*\]/);
+            if (match) {
+                try {
+                    scores = JSON.parse(match[0]);
+                } catch {}
+            }
+        }
+        
+        const scoreMap = new Map();
+        scores.forEach(s => {
+            if (s && s.id && typeof s.creditScore === 'number') {
+                scoreMap.set(s.id, Math.max(0, Math.min(370, Math.round(s.creditScore))));
+            }
+        });
+        
+        let evaluated = 0;
+        const total = pazatorData.humans.length;
+        
+        for (const human of pazatorData.humans) {
+            const score = scoreMap.get(human.id);
+            if (score !== undefined) {
+                human.credit = score;
+            } else {
+                human.credit = Math.floor(Math.random() * 150) + 110;
+            }
+            
+            human.socialClass = inferSocialClass(human.credit);
+            
+            evaluated++;
+            updateCreditEvalProgress(evaluated, total, human.name);
+            
+            await new Promise(r => setTimeout(r, 50));
+        }
+        
+        const highCount = pazatorData.humans.filter(h => h.credit < 125).length;
+        const mediumCount = pazatorData.humans.filter(h => h.credit >= 125 && h.credit < 250).length;
+        const lowCount = pazatorData.humans.filter(h => h.credit >= 250).length;
+        const avgScore = Math.round(pazatorData.humans.reduce((sum, h) => sum + h.credit, 0) / pazatorData.humans.length);
+        const minScore = Math.min(...pazatorData.humans.map(h => h.credit));
+        const maxScore = Math.max(...pazatorData.humans.map(h => h.credit));
+        
+        showCreditEvalComplete({
+            high: highCount,
+            medium: mediumCount,
+            low: lowCount,
+            total: total,
+            average: avgScore,
+            min: minScore,
+            max: maxScore
+        });
+        
+        saveData();
+        renderWebNodes();
+        updateCreditStats();
+        
+    } catch (error) {
+        console.error('AI credit evaluation failed:', error);
+        showAlert('AI evaluation failed: ' + error.message + '. Using fallback calculation.', 'Error', 'error');
+        
+        pazatorData.humans.forEach(human => {
+            human.credit = calculateCreditScore(human);
+            human.credit = Math.round(human.credit * 3.7);
+            human.socialClass = inferSocialClass(human.credit);
+        });
+        
+        saveData();
+        renderWebNodes();
+        updateCreditStats();
+        hideCreditEvalModal();
+    }
+    
+    if (refreshCreditsBtn) {
+        refreshCreditsBtn.disabled = false;
+        refreshCreditsBtn.innerHTML = '<i class="fas fa-sync"></i> Refresh Credits';
+    }
+}
+
+document.getElementById('creditEvalCloseBtn')?.addEventListener('click', hideCreditEvalModal);
+
+document.getElementById('creditEvalModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'creditEvalModal') {
+        const resultsVisible = document.getElementById('creditEvalResults')?.style.display !== 'none';
+        if (resultsVisible) hideCreditEvalModal();
+    }
+});
 
 async function findPotentialTerrorists() {
     const hiddenConnectionsModal = document.getElementById('hiddenConnectionsModal');

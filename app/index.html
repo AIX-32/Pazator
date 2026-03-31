@@ -383,18 +383,19 @@
                                 </div>
                                 <div style="flex: 1; display: flex; flex-direction: column;">
                                     <div class="form-group" style="margin-bottom: 12px;">
-                                        <button id="refreshCreditsBtn" class="btn btn-secondary btn-full">Evaluate
-                                            Credit Scores</button>
+                                        <button id="refreshCreditsBtn" class="btn btn-secondary btn-full">
+                                            <i class="fas fa-sync"></i> Refresh Credits
+                                        </button>
                                     </div>
                                     <div class="form-group" style="margin-bottom: 16px;">
-                                        <button id="sortByCreditBtn" class="btn btn-secondary btn-full">Rank by Risk
-                                            Level</button>
+                                        <button id="sortByCreditBtn" class="btn btn-secondary btn-full">
+                                            <i class="fas fa-sort-amount-down"></i> Sort by Credit
+                                        </button>
                                     </div>
                                     <div class="analysis-stats">
                                         <h4>Risk Distribution</h4>
                                         <div id="creditStats" style="color: #aaa; line-height: 1.6;">
-                                            <div
-                                                style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                            <div class="stat-row">
                                                 <span>High Risk:</span>
                                                 <span style="color: #ff6b6b;">0%</span>
                                             </div>
@@ -520,119 +521,147 @@
         <div class="tab-content" id="threats-tab">
             <div class="workspace">
                 <div class="main-panel">
-                    <div class="logo">
-                        <h1
-                            style="background: linear-gradient(45deg, #ffffff, #dddddd); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
-                            Security Intelligence Command</h1>
+                    <div class="intel-header">
+                        <h2>Intelligence Center</h2>
+                        <div class="intel-header-stats">
+                            <span><i class="fas fa-users"></i> <span id="intelHumanCount">0</span> people</span>
+                            <span><i class="fas fa-building"></i> <span id="intelOtherCount">0</span> entities</span>
+                        </div>
                     </div>
-                    <div class="threats-content" style="flex: 1; overflow: auto; padding: 20px;">
-                        <div
-                            style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 15px; padding: 25px; margin-bottom: 25px; box-shadow: 0 8px 32px var(--shadow-color);">
-                            <div style="display: flex; align-items: center; margin-bottom: 20px;">
-                                <div
-                                    style="width: 8px; height: 30px; background: linear-gradient(to bottom, #ffffff, #aaaaaa); border-radius: 4px; margin-right: 15px;">
-                                </div>
-                                <h2 style="margin: 0; color: #ffffff; font-size: 1.6rem;">Threat Assessment Center</h2>
-                            </div>
-                            <div class="form-group">
-                                <button id="findBothBtn" class="btn btn-primary"
-                                    style="width: 100%; padding: 15px; font-size: 1.2rem; background: linear-gradient(145deg, #ff4757, #cc3747); border: 1px solid #ff6b6b;">
-                                    <i class="fas fa-radar" style="margin-right: 12px;"></i>
-                                    Execute Full Security Sweep
-                                </button>
-                            </div>
-                            <div
-                                style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 20px;">
-                                <div
-                                    style="text-align: center; padding: 15px; background: rgba(30, 30, 30, 0.5); border-radius: 10px;">
-                                    <i class="fas fa-user-secret"
-                                        style="font-size: 1.8rem; color: #666; margin-bottom: 10px;"></i>
-                                    <div style="color: #aaa; font-size: 0.9rem;">Active Threats</div>
-                                    <div id="activeThreats"
-                                        style="color: #ff6b6b; font-size: 1.4rem; font-weight: bold;">0</div>
-                                </div>
-                                <div
-                                    style="text-align: center; padding: 15px; background: rgba(30, 30, 30, 0.5); border-radius: 10px;">
-                                    <i class="fas fa-fingerprint"
-                                        style="font-size: 1.8rem; color: #666; margin-bottom: 10px;"></i>
-                                    <div style="color: #aaa; font-size: 0.9rem;">Fraud Cases</div>
-                                    <div id="fraudCases" style="color: #ffd93d; font-size: 1.4rem; font-weight: bold;">0
+
+                    <div class="intel-content">
+                        <div class="intel-action-bar">
+                            <div class="intel-action-item intel-action-primary">
+                                <div class="intel-action-top">
+                                    <div class="intel-action-icon">
+                                        <i class="fas fa-brain"></i>
+                                    </div>
+                                    <div class="intel-action-info">
+                                        <h3>AI Analysis</h3>
+                                        <p>Full intelligence scan</p>
                                     </div>
                                 </div>
-                                <div
-                                    style="text-align: center; padding: 15px; background: rgba(30, 30, 30, 0.5); border-radius: 10px;">
-                                    <i class="fas fa-shield-alt"
-                                        style="font-size: 1.8rem; color: #666; margin-bottom: 10px;"></i>
-                                    <div style="color: #aaa; font-size: 0.9rem;">Protection Level</div>
-                                    <div id="protectionLevel"
-                                        style="color: #6bcf7f; font-size: 1.4rem; font-weight: bold;">MAX</div>
+                                <button id="intelAnalyzeBtn" class="btn btn-primary">
+                                    <i class="fas fa-play"></i>
+                                    Run Analysis
+                                </button>
+                            </div>
+                            <div class="intel-action-item">
+                                <div class="intel-action-top">
+                                    <div class="intel-action-icon intel-icon-risk">
+                                        <i class="fas fa-chart-pie"></i>
+                                    </div>
+                                    <div class="intel-action-info">
+                                        <h3>Risk Distribution</h3>
+                                        <p id="intelRiskSummary">0% high, 0% med, 0% low</p>
+                                    </div>
                                 </div>
-                                <div
-                                    style="text-align: center; padding: 15px; background: rgba(30, 30, 30, 0.5); border-radius: 10px;">
-                                    <i class="fas fa-clock"
-                                        style="font-size: 1.8rem; color: #666; margin-bottom: 10px;"></i>
-                                    <div style="color: #aaa; font-size: 0.9rem;">Last Scan</div>
-                                    <div id="lastScan" style="color: #ffffff; font-size: 1.4rem; font-weight: bold;">
-                                        Never</div>
+                                <button id="intelRefreshRiskBtn" class="btn btn-secondary btn-full">
+                                    <i class="fas fa-sync"></i>
+                                    Refresh
+                                </button>
+                            </div>
+                            <div class="intel-action-item">
+                                <div class="intel-action-top">
+                                    <div class="intel-action-icon intel-icon-connection">
+                                        <i class="fas fa-project-diagram"></i>
+                                    </div>
+                                    <div class="intel-action-info">
+                                        <h3>Hidden Connections</h3>
+                                        <p id="intelConnectionsSummary">0 found</p>
+                                    </div>
                                 </div>
+                                <button id="intelConnectionsBtn" class="btn btn-secondary btn-full">
+                                    <i class="fas fa-search"></i>
+                                    Find
+                                </button>
+                            </div>
+                            <div class="intel-action-item">
+                                <div class="intel-action-top">
+                                    <div class="intel-action-icon intel-icon-hojum">
+                                        <i class="fas fa-bolt"></i>
+                                    </div>
+                                    <div class="intel-action-info">
+                                        <h3>HOJUM</h3>
+                                        <p id="intelHojumSummary">0 proposals</p>
+                                    </div>
+                                </div>
+                                <button id="intelHojumBtn" class="btn btn-secondary btn-full">
+                                    <i class="fas fa-fire"></i>
+                                    Trigger
+                                </button>
                             </div>
                         </div>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                            <div class="threats-card">
-                                <div class="threats-card-header">
-                                    <div class="threats-indicator"></div>
-                                    <h3>Terrorism Intelligence</h3>
-                                </div>
-                                <div class="form-group" style="margin: 16px 0;">
-                                    <button id="findTerroristsBtn" class="btn btn-secondary btn-full">
-                                        Identify Security Risks
+                        <div class="intel-results" id="intelResults">
+                            <div class="intel-results-header">
+                                <h3><i class="fas fa-list"></i> Analysis Results</h3>
+                                <div class="intel-results-actions">
+                                    <span id="intelResultsCount" class="intel-results-badge">0 findings</span>
+                                    <button id="intelClearResults" class="btn btn-secondary btn-sm">
+                                        <i class="fas fa-trash"></i>
                                     </button>
-                                </div>
-                                <div id="threatsList" class="threats-list">
-                                    <div class="threats-empty">
-                                        <p>No threats detected</p>
-                                        <small>System status: Secure</small>
-                                    </div>
                                 </div>
                             </div>
-
-                            <div class="threats-card fraud">
-                                <div class="threats-card-header">
-                                    <div class="threats-indicator"></div>
-                                    <h3>Financial Crime Analysis</h3>
-                                </div>
-                                <div class="form-group" style="margin: 16px 0;">
-                                    <button id="findFraudBtn" class="btn btn-secondary btn-full">
-                                        Detect Fraudulent Activity
-                                    </button>
-                                </div>
-                                <div id="fraudList" class="fraud-list">
-                                    <div class="threats-empty">
-                                        <p>No fraud detected</p>
-                                        <small>Financial systems secure</small>
-                                    </div>
+                            <div class="intel-results-content" id="intelResultsContent">
+                                <div class="intel-empty-state">
+                                    <i class="fas fa-search"></i>
+                                    <p>No analysis results yet</p>
+                                    <small>Run AI Analysis to generate findings</small>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+
                 <div class="side-panel">
                     <div class="sidebar-section sidebar-mini">
-                        <h3>Intelligence Operations</h3>
-
-                        <div class="threat-action-card">
-                            <h4>Situation Report</h4>
-                            <p>Current threat assessment overview</p>
-                            <button id="generateThreatReportBtn" class="btn btn-secondary btn-full">Generate
-                                Report</button>
+                        <h3>Quick Stats</h3>
+                        <div class="intel-quick-stats">
+                            <div class="intel-quick-stat">
+                                <span class="intel-quick-stat-label">Last Analysis</span>
+                                <span class="intel-quick-stat-value" id="intelLastAnalysis">Never</span>
+                            </div>
+                            <div class="intel-quick-stat">
+                                <span class="intel-quick-stat-label">Findings</span>
+                                <span class="intel-quick-stat-value stat-yellow" id="intelFindingsCount">0</span>
+                            </div>
+                            <div class="intel-quick-stat">
+                                <span class="intel-quick-stat-label">Connections Found</span>
+                                <span class="intel-quick-stat-value" id="intelConnectionsCount">0</span>
+                            </div>
                         </div>
+                    </div>
 
-                        <div class="threat-action-card">
-                            <h4>Historical Patterns</h4>
-                            <p>Analyze past security incidents</p>
-                            <button id="reviewArchiveBtn" class="btn btn-secondary btn-full">Review Archive</button>
+                    <div class="sidebar-section sidebar-mini">
+                        <h3>Context Sources</h3>
+                        <div class="intel-context-sources">
+                            <label class="intel-context-item">
+                                <input type="checkbox" id="intelCtxHumans" checked>
+                                <span>People data</span>
+                            </label>
+                            <label class="intel-context-item">
+                                <input type="checkbox" id="intelCtxOthers" checked>
+                                <span>Entities</span>
+                            </label>
+                            <label class="intel-context-item">
+                                <input type="checkbox" id="intelCtxChats" checked>
+                                <span>Chat logs</span>
+                            </label>
+                            <label class="intel-context-item">
+                                <input type="checkbox" id="intelCtxArticles" checked>
+                                <span>Knowledge articles</span>
+                            </label>
                         </div>
+                    </div>
+
+                    <div class="sidebar-section sidebar-mini">
+                        <h3>Analysis Mode</h3>
+                        <select id="intelMode" class="form-control">
+                            <option value="comprehensive">Comprehensive</option>
+                            <option value="quick">Quick scan</option>
+                            <option value="deep">Deep investigation</option>
+                        </select>
                     </div>
                 </div>
             </div>
@@ -1027,8 +1056,8 @@
                         <div class="form-section">
                             <h3><i class="fas fa-chart-line"></i> Social Profile</h3>
                             <div class="form-group compact">
-                                <label for="credit">Credit Score (0-100)</label>
-                                <input type="number" id="credit" class="form-control" min="0" max="100"
+                                <label for="credit">Credit Score (0-370)</label>
+                                <input type="number" id="credit" class="form-control" min="0" max="370"
                                     placeholder="Credit score">
                             </div>
                             <div class="form-group compact">
@@ -1551,6 +1580,56 @@
             <p>This section is active development. Expect instability and changes.</p>
             <div class="tactics-alpha-actions">
                 <button id="tadbirAlphaContinue" class="btn btn-primary btn-full">Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Credit Evaluation Modal -->
+    <div id="creditEvalModal" class="credit-eval-modal">
+        <div class="credit-eval-content">
+            <div class="credit-eval-header">
+                <div class="credit-eval-icon" id="creditEvalIcon">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <h2 id="creditEvalTitle">AI Credit Evaluation</h2>
+            </div>
+            <div class="credit-eval-body">
+                <div id="creditEvalProgressContainer" class="credit-eval-progress-container">
+                    <div class="credit-eval-status">
+                        <span class="credit-eval-status-label">Progress</span>
+                        <span class="credit-eval-status-value" id="creditEvalProgressText">0 / 0</span>
+                    </div>
+                    <div class="credit-eval-progress-bar">
+                        <div class="credit-eval-progress-fill" id="creditEvalProgressFill" style="width: 0%"></div>
+                    </div>
+                    <div class="credit-eval-current">
+                        <span>Currently evaluating: </span>
+                        <span class="credit-eval-current-name" id="creditEvalCurrentName">-</span>
+                    </div>
+                </div>
+                <div id="creditEvalResults" class="credit-eval-results" style="display: none;">
+                    <h3><i class="fas fa-check-circle"></i> Evaluation Complete</h3>
+                    <div class="credit-eval-summary">
+                        <div class="credit-eval-stat high">
+                            <div class="credit-eval-stat-value" id="creditEvalHighCount">0</div>
+                            <div class="credit-eval-stat-label">High Risk (0-124)</div>
+                        </div>
+                        <div class="credit-eval-stat medium">
+                            <div class="credit-eval-stat-value" id="creditEvalMediumCount">0</div>
+                            <div class="credit-eval-stat-label">Medium (125-249)</div>
+                        </div>
+                        <div class="credit-eval-stat low">
+                            <div class="credit-eval-stat-value" id="creditEvalLowCount">0</div>
+                            <div class="credit-eval-stat-label">Low Risk (250-370)</div>
+                        </div>
+                    </div>
+                    <div class="credit-eval-detail" id="creditEvalDetail"></div>
+                </div>
+            </div>
+            <div class="credit-eval-footer" id="creditEvalFooter">
+                <button id="creditEvalCloseBtn" class="btn btn-secondary" style="display: none;">
+                    <i class="fas fa-times"></i> Close
+                </button>
             </div>
         </div>
     </div>
