@@ -6,6 +6,8 @@ let pazatorData = {
 
 let tags = [];
 
+let cases = [];
+
 let aiChatHistory = [];
 
 let autoSaveInterval;
@@ -20,6 +22,8 @@ let trackerPersonNames = [];
 let searchTabInitialized = false;
 let agentsTabInitialized = false;
 let articlesTabInitialized = false;
+let casesTabInitialized = false;
+let selectedCaseId = null;
 
 const TRACKER_CONFIG_KEY = 'shahedTrackerConfig';
 const TRACKER_CONFIG_EXAMPLE = {
@@ -1120,6 +1124,8 @@ function switchTab(tabId) {
         setTimeout(initArticlesTab, 50);
     } else if (tabId === 'threats') {
         updateIntelligenceCenterStats();
+    } else if (tabId === 'cases') {
+        setTimeout(initCasesTab, 50);
     }
 
     setActiveTabButton(tabId);
@@ -1210,6 +1216,7 @@ function saveData(immediate = false) {
         const dataToSave = {
             pazatorData: pazatorData,
             tags: tags,
+            cases: cases,
             lastSaved: new Date().toISOString(),
             version: '2.0'
         };
@@ -1786,10 +1793,12 @@ function loadData() {
                     others: Array.isArray(parsedData.pazatorData?.others) ? parsedData.pazatorData.others : []
                 };
                 tags = Array.isArray(parsedData.tags) ? parsedData.tags : [];
+                cases = Array.isArray(parsedData.cases) ? parsedData.cases : [];
 
                 console.log(` Successfully loaded ${pazatorData.humans.length} humans and ${pazatorData.others.length} others`);
                 console.log(' Loaded humans:', pazatorData.humans);
                 console.log(' Loaded others:', pazatorData.others);
+                console.log(' Loaded cases:', cases.length);
             } else {
                 console.warn('️ Invalid data structure in localStorage');
                 throw new Error('Invalid data structure');
@@ -1811,17 +1820,20 @@ function loadData() {
                 const parsedBackup = JSON.parse(backupData);
                 pazatorData = parsedBackup.pazatorData || { humans: [], others: [] };
                 tags = parsedBackup.tags || [];
+                cases = parsedBackup.cases || [];
                 console.log('Loaded data from backup');
                 console.log(`Loaded from backup: ${pazatorData.humans.length} humans, ${pazatorData.others.length} others`);
             } else {
                 console.log('No backup data found, using defaults');
                 pazatorData = { humans: [], others: [] };
                 tags = [];
+                cases = [];
             }
         } catch (backupError) {
             console.error('Could not load from backup:', backupError);
             pazatorData = { humans: [], others: [] };
             tags = [];
+            cases = [];
         }
     }
 
@@ -2386,22 +2398,66 @@ function renderFamilyGraph(human) {
 function renderTags() {
     tagsContainer.innerHTML = '';
 
+    if (tags.length === 0) {
+        tagsContainer.innerHTML = '<span style="color: #666; font-size: 0.85rem;">No tags yet</span>';
+        return;
+    }
+
+    const showBtn = document.createElement('button');
+    showBtn.className = 'tags-more-btn';
+    showBtn.textContent = `Show tags (${tags.length})`;
+    showBtn.addEventListener('click', showAllTagsPopup);
+    tagsContainer.appendChild(showBtn);
+}
+
+function showAllTagsPopup() {
+    let overlay = document.querySelector('.tags-popup-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.className = 'tags-popup-overlay';
+        overlay.innerHTML = `
+            <div class="tags-popup">
+                <h3>
+                    All Tags
+                    <span class="close-popup">&times;</span>
+                </h3>
+                <div class="popup-tags"></div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        overlay.querySelector('.close-popup').addEventListener('click', () => {
+            overlay.classList.remove('active');
+        });
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.classList.remove('active');
+            }
+        });
+    }
+
+    const popupTags = overlay.querySelector('.popup-tags');
+    popupTags.innerHTML = '';
+
     tags.forEach(tag => {
         const tagElement = document.createElement('div');
-        tagElement.className = 'tag';
+        tagElement.className = 'popup-tag';
         tagElement.innerHTML = `
-                    ${tag}
-                    <span class="remove-tag" data-tag="${tag}">&times;</span>
-                `;
+            ${tag}
+            <span class="remove-tag" data-tag="${tag}">&times;</span>
+        `;
 
         const removeBtn = tagElement.querySelector('.remove-tag');
         removeBtn.addEventListener('click', () => {
             tags = tags.filter(t => t !== tag);
             renderTags();
+            showAllTagsPopup();
         });
 
-        tagsContainer.appendChild(tagElement);
+        popupTags.appendChild(tagElement);
     });
+
+    overlay.classList.add('active');
 }
 
 function populateSelectOptions(selectedFriends = [], selectedFamily = []) {
@@ -2689,6 +2745,7 @@ async function processAICommand(command) {
                         Humans: ${JSON.stringify(pazatorData.humans)}
                         Others: ${JSON.stringify(pazatorData.others)}
                         Tags: ${JSON.stringify(tags)}
+                        Cases: ${JSON.stringify(cases)}
 
                         ${adminContext ? `ADMIN CONTEXT (USE THIS FOR ANALYSIS):
                         ${adminContext}
@@ -2705,6 +2762,7 @@ async function processAICommand(command) {
                         5. Answer questions about the data
                         6. Create tags
                         7. Assign tags to humans
+                        8. Create, edit, and close case files
 
                         When the user wants to perform an action that changes data, respond with a JSON object in this format:
                         {"action": "add_human", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "friends": [], "family": [], "extraNotes": "", "tags": ["employee", "manager"], "imagePreview": null}}
@@ -2723,6 +2781,13 @@ async function processAICommand(command) {
 
                         Example response for "Give every person a political view":
                         [{"action": "modify_human", "id": "12345", "data": {"extraNotes": "Political view: Liberal"}}, {"action": "modify_human", "id": "67890", "data": {"extraNotes": "Political view: Conservative"}}, ...]
+
+                        Case file actions:
+                        {"action": "create_case", "title": "Operation Name", "description": "What this case is about", "status": "open"}
+                        {"action": "edit_case", "title": "Operation Name", "description": "Updated description", "status": "in-progress"}
+                        {"action": "add_case_note", "title": "Operation Name", "note": "This is a note"}
+                        {"action": "close_case", "title": "Operation Name"}
+                        {"action": "add_entity_to_case", "case_title": "Operation Name", "entity_name": "John Doe"}
 
                         Other action formats:
                         {"action": "add_other", "data": {"name": "ProjectX", "note": "", "imagePreview": null}}
@@ -3237,6 +3302,135 @@ function handleAIAction(action, isBatch = false) {
                 }
             } else {
                 response = "Couldn't find that human entry to remove a tag from.";
+                success = false;
+            }
+            break;
+
+        case "create_case":
+            try {
+                const newCase = {
+                    id: 'case_' + Date.now(),
+                    title: action.title || 'Untitled Case',
+                    description: action.description || '',
+                    status: action.status || 'open',
+                    entities: [],
+                    timeline: [{
+                        type: 'note',
+                        content: '<strong>Case created</strong>',
+                        timestamp: Date.now()
+                    }],
+                    createdAt: Date.now()
+                };
+                cases.push(newCase);
+                saveCases();
+                renderCasesList();
+                selectCase(newCase.id);
+                response = `Created case: "${newCase.title}"`;
+            } catch (e) {
+                response = `Failed to create case: ${e.message}`;
+                success = false;
+            }
+            break;
+
+        case "edit_case":
+            try {
+                const caseData = cases.find(c => c.id === action.id || c.title.toLowerCase() === action.title?.toLowerCase());
+                if (caseData) {
+                    if (action.title) caseData.title = action.title;
+                    if (action.description !== undefined) caseData.description = action.description;
+                    if (action.status) caseData.status = action.status;
+                    caseData.timeline.push({
+                        type: 'note',
+                        content: `<strong>Case edited</strong>`,
+                        timestamp: Date.now()
+                    });
+                    saveCases();
+                    renderCasesList();
+                    if (selectedCaseId === caseData.id) selectCase(caseData.id);
+                    response = `Updated case: "${caseData.title}"`;
+                } else {
+                    response = "Couldn't find that case.";
+                    success = false;
+                }
+            } catch (e) {
+                response = `Failed to edit case: ${e.message}`;
+                success = false;
+            }
+            break;
+
+        case "add_case_note":
+            try {
+                const caseData = cases.find(c => c.id === action.id || c.title.toLowerCase() === action.title?.toLowerCase());
+                if (caseData) {
+                    caseData.timeline.push({
+                        type: 'note',
+                        content: `<strong>Note</strong>: ${action.note}`,
+                        timestamp: Date.now()
+                    });
+                    saveCases();
+                    if (selectedCaseId === caseData.id) selectCase(caseData.id);
+                    response = `Added note to case "${caseData.title}": "${action.note}"`;
+                } else {
+                    response = "Couldn't find that case.";
+                    success = false;
+                }
+            } catch (e) {
+                response = `Failed to add note: ${e.message}`;
+                success = false;
+            }
+            break;
+
+        case "close_case":
+            try {
+                const caseData = cases.find(c => c.id === action.id || c.title.toLowerCase() === action.title?.toLowerCase());
+                if (caseData) {
+                    caseData.status = 'closed';
+                    caseData.timeline.push({
+                        type: 'status-changed',
+                        content: '<strong>Case closed</strong>',
+                        timestamp: Date.now()
+                    });
+                    saveCases();
+                    renderCasesList();
+                    response = `Closed case: "${caseData.title}"`;
+                } else {
+                    response = "Couldn't find that case.";
+                    success = false;
+                }
+            } catch (e) {
+                response = `Failed to close case: ${e.message}`;
+                success = false;
+            }
+            break;
+
+        case "add_entity_to_case":
+            try {
+                const caseData = cases.find(c => c.id === action.case_id || c.title.toLowerCase() === action.case_title?.toLowerCase());
+                if (caseData) {
+                    const entity = pazatorData.humans.find(h => h.id === action.entity_id || h.name.toLowerCase() === action.entity_name?.toLowerCase())
+                        || pazatorData.others.find(o => o.id === action.entity_id || o.name.toLowerCase() === action.entity_name?.toLowerCase());
+                    if (entity && !caseData.entities.includes(entity.id)) {
+                        caseData.entities.push(entity.id);
+                        caseData.timeline.push({
+                            type: 'entity-added',
+                            content: `<strong>Entity added</strong>: ${entity.name}`,
+                            timestamp: Date.now()
+                        });
+                        saveCases();
+                        if (selectedCaseId === caseData.id) selectCase(caseData.id);
+                        response = `Added ${entity.name} to case "${caseData.title}"`;
+                    } else if (!entity) {
+                        response = "Couldn't find that entity.";
+                        success = false;
+                    } else {
+                        response = `${entity.name} is already in this case.`;
+                    }
+                } else {
+                    response = "Couldn't find that case.";
+                    success = false;
+                }
+            } catch (e) {
+                response = `Failed to add entity to case: ${e.message}`;
                 success = false;
             }
             break;
@@ -5438,6 +5632,10 @@ document.getElementById('tadbirBtn')?.addEventListener('click', () => {
     switchTab('tadbir');
 });
 
+document.getElementById('casesBtn')?.addEventListener('click', () => {
+    switchTab('cases');
+});
+
 trackerConnectBtn?.addEventListener('click', connectTrackerSelection);
 trackerRefreshBtn?.addEventListener('click', () => {
     if (trackerDebug) trackerDebug.innerText = 'Refreshing tracker data...';
@@ -7167,11 +7365,13 @@ function setupLogoDropdownListeners() {
     const refreshNodesOption = document.getElementById('refreshNodesOption');
     const classifyOption = document.getElementById('classifyOption');
     const exportCsvOption = document.getElementById('exportCsvOption');
+    const settingsOption = document.getElementById('settingsOption');
     const aboutOption = document.getElementById('aboutOption');
 
     console.log(' Refresh option exists:', !!refreshNodesOption);
     console.log(' Classify option exists:', !!classifyOption);
     console.log(' Export CSV option exists:', !!exportCsvOption);
+    console.log(' Settings option exists:', !!settingsOption);
     console.log(' About option exists:', !!aboutOption);
 
     const aboutOverlay = document.getElementById('aboutOverlay');
@@ -7215,6 +7415,11 @@ function setupLogoDropdownListeners() {
         aboutOption?.addEventListener('click', (event) => {
             event.stopPropagation();
             setAboutOpen(true);
+        });
+
+        settingsOption?.addEventListener('click', (event) => {
+            event.stopPropagation();
+            openSettingsModal();
         });
     }
 
@@ -8567,3 +8772,483 @@ function renderAgentDetail(agentId) {
         }, 100);
     }
 }
+
+// Case Files Functions
+function initCasesTab() {
+    if (!casesTabInitialized) {
+        const newCaseBtn = document.getElementById('newCaseBtn');
+        const statusFilter = document.getElementById('caseStatusFilter');
+        const editBtn = document.getElementById('caseEditBtn');
+        const closeBtn = document.getElementById('caseCloseBtn');
+        const addEntityBtn = document.getElementById('addEntityToCaseBtn');
+        const addNoteBtn = document.getElementById('caseAddNoteBtn');
+        const noteInput = document.getElementById('caseNoteInput');
+
+        if (newCaseBtn) newCaseBtn.addEventListener('click', showNewCaseModal);
+        if (statusFilter) statusFilter.addEventListener('change', renderCasesList);
+        if (editBtn) editBtn.addEventListener('click', showEditCaseModal);
+        if (closeBtn) closeBtn.addEventListener('click', toggleCaseStatus);
+        if (addEntityBtn) addEntityBtn.addEventListener('click', showEntityPickerModal);
+        if (addNoteBtn) addNoteBtn.addEventListener('click', addCaseNote);
+        if (noteInput) noteInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addCaseNote();
+        });
+
+        casesTabInitialized = true;
+    }
+
+    loadCases();
+    renderCasesList();
+}
+
+function loadCases() {
+    try {
+        const saved = localStorage.getItem('pazatorCases');
+        cases = saved ? JSON.parse(saved) : [];
+    } catch {
+        cases = [];
+    }
+}
+
+function saveCases() {
+    localStorage.setItem('pazatorCases', JSON.stringify(cases));
+}
+
+function renderCasesList() {
+    const container = document.getElementById('casesList');
+    const filter = document.getElementById('caseStatusFilter')?.value || 'all';
+
+    const filteredCases = filter === 'all' 
+        ? cases 
+        : cases.filter(c => c.status === filter);
+
+    if (filteredCases.length === 0) {
+        container.innerHTML = `
+            <div class="cases-empty">
+                <i class="fas fa-folder-open"></i>
+                <p>${filter === 'all' ? 'No cases yet' : 'No ' + filter.replace('-', ' ') + ' cases'}</p>
+                <small>Create a case to track operations</small>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = filteredCases.map(c => `
+        <div class="case-card ${selectedCaseId === c.id ? 'active' : ''}" onclick="selectCase('${c.id}')">
+            <div class="case-card-header">
+                <span class="case-card-title">${escapeHtml(c.title)}</span>
+                <span class="case-card-badge ${c.status}">${c.status.replace('-', ' ')}</span>
+            </div>
+            <div class="case-card-meta">
+                ${c.entities.length} entity ${c.entities.length === 1 ? 'tagged' : 'tagged'} • ${c.timeline.length} activity
+            </div>
+        </div>
+    `).join('');
+}
+
+function selectCase(caseId) {
+    selectedCaseId = caseId;
+    renderCasesList();
+
+    const welcome = document.getElementById('casesWelcome');
+    const detail = document.getElementById('casesDetail');
+
+    welcome.style.display = 'none';
+    detail.style.display = 'flex';
+
+    const caseData = cases.find(c => c.id === caseId);
+    if (!caseData) return;
+
+    document.getElementById('caseTitle').textContent = caseData.title;
+    
+    const statusBadge = document.getElementById('caseStatusBadge');
+    statusBadge.textContent = caseData.status.replace('-', ' ');
+    statusBadge.className = 'case-status-badge ' + caseData.status;
+
+    document.getElementById('caseDescription').textContent = caseData.description || 'No description';
+
+    renderCaseEntities(caseData);
+    renderCaseTimeline(caseData);
+}
+
+function renderCaseEntities(caseData) {
+    const container = document.getElementById('caseEntitiesList');
+
+    if (caseData.entities.length === 0) {
+        container.innerHTML = '<span class="case-empty-entities">No entities tracked yet</span>';
+        return;
+    }
+
+    container.innerHTML = caseData.entities.map(entityId => {
+        const human = pazatorData.humans.find(h => h.id === entityId);
+        const other = pazatorData.others.find(o => o.id === entityId);
+        const entity = human || other;
+
+        if (!entity) return '';
+
+        const icon = human ? 'fa-user' : 'fa-building';
+        const typeLabel = human ? 'human' : 'other';
+        
+        return `
+            <div class="case-entity-card" onclick="viewDetailFromCase('${entityId}', '${typeLabel}')">
+                <i class="fas ${icon}"></i>
+                <span>${escapeHtml(entity.name)}</span>
+                <i class="fas fa-external-link-alt remove-entity" onclick="event.stopPropagation(); removeEntityFromCase('${caseId}', '${entityId}')"></i>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderCaseTimeline(caseData) {
+    const container = document.getElementById('caseTimeline');
+
+    if (caseData.timeline.length === 0) {
+        container.innerHTML = '<div class="case-empty-timeline">No activity logged yet</div>';
+        return;
+    }
+
+    container.innerHTML = [...caseData.timeline].reverse().map(item => `
+        <div class="case-timeline-item ${item.type}">
+            <span class="case-timeline-time">${formatTime(item.timestamp)}</span>
+            <span class="case-timeline-content">${item.content}</span>
+        </div>
+    `).join('');
+}
+
+function showNewCaseModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal case-modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>New Case</h2>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Case Title</label>
+                    <input type="text" id="caseTitleInput" class="form-control" placeholder="Operation name...">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="caseDescInput" class="form-control" rows="3" placeholder="What is this case about?"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="caseStatusInput" class="form-control">
+                        <option value="open">Open</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
+                <button class="btn btn-primary" onclick="createNewCase()">Create Case</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.classList.add('active');
+    document.getElementById('caseTitleInput').focus();
+}
+
+function createNewCase() {
+    const title = document.getElementById('caseTitleInput').value.trim();
+    const description = document.getElementById('caseDescInput').value.trim();
+    const status = document.getElementById('caseStatusInput').value;
+
+    if (!title) {
+        showFloatingNotification('Case title is required', 'error');
+        return;
+    }
+
+    const newCase = {
+        id: 'case_' + Date.now(),
+        title,
+        description,
+        status,
+        entities: [],
+        timeline: [{
+            type: 'note',
+            content: '<strong>Case created</strong>',
+            timestamp: Date.now()
+        }],
+        createdAt: Date.now()
+    };
+
+    cases.push(newCase);
+    saveCases();
+    
+    document.querySelector('.case-modal')?.remove();
+    
+    renderCasesList();
+    selectCase(newCase.id);
+    showFloatingNotification('Case created successfully', 'success');
+}
+
+function showEditCaseModal() {
+    const caseData = cases.find(c => c.id === selectedCaseId);
+    if (!caseData) return;
+
+    const modal = document.createElement('div');
+    modal.className = 'modal case-modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Case</h2>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Case Title</label>
+                    <input type="text" id="caseTitleInput" class="form-control" value="${escapeHtml(caseData.title)}">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="caseDescInput" class="form-control" rows="3">${escapeHtml(caseData.description || '')}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="caseStatusInput" class="form-control">
+                        <option value="open" ${caseData.status === 'open' ? 'selected' : ''}>Open</option>
+                        <option value="in-progress" ${caseData.status === 'in-progress' ? 'selected' : ''}>In Progress</option>
+                        <option value="closed" ${caseData.status === 'closed' ? 'selected' : ''}>Closed</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-danger" onclick="deleteCase()">Delete Case</button>
+                <div style="flex: 1;"></div>
+                <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveCaseEdits()">Save</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.classList.add('active');
+}
+
+function saveCaseEdits() {
+    const caseData = cases.find(c => c.id === selectedCaseId);
+    if (!caseData) return;
+
+    const title = document.getElementById('caseTitleInput').value.trim();
+    const description = document.getElementById('caseDescInput').value.trim();
+    const status = document.getElementById('caseStatusInput').value;
+
+    if (!title) {
+        showFloatingNotification('Case title is required', 'error');
+        return;
+    }
+
+    const oldStatus = caseData.status;
+    
+    caseData.title = title;
+    caseData.description = description;
+    caseData.status = status;
+
+    if (oldStatus !== status) {
+        caseData.timeline.push({
+            type: 'status-changed',
+            content: `<strong>Status changed</strong> from ${oldStatus.replace('-', ' ')} to ${status.replace('-', ' ')}`,
+            timestamp: Date.now()
+        });
+    }
+
+    saveCases();
+    document.querySelector('.case-modal')?.remove();
+    renderCasesList();
+    selectCase(selectedCaseId);
+    showFloatingNotification('Case updated', 'success');
+}
+
+function deleteCase() {
+    if (!confirm('Delete this case? This cannot be undone.')) return;
+
+    cases = cases.filter(c => c.id !== selectedCaseId);
+    saveCases();
+    
+    document.querySelector('.case-modal')?.remove();
+    
+    selectedCaseId = null;
+    document.getElementById('casesDetail').style.display = 'none';
+    document.getElementById('casesWelcome').style.display = 'flex';
+    
+    renderCasesList();
+    showFloatingNotification('Case deleted', 'info');
+}
+
+function toggleCaseStatus() {
+    const caseData = cases.find(c => c.id === selectedCaseId);
+    if (!caseData) return;
+
+    if (caseData.status === 'closed') {
+        caseData.status = 'open';
+    } else {
+        caseData.status = 'closed';
+        caseData.timeline.push({
+            type: 'status-changed',
+            content: '<strong>Case closed</strong>',
+            timestamp: Date.now()
+        });
+    }
+
+    saveCases();
+    renderCasesList();
+    selectCase(selectedCaseId);
+}
+
+function showEntityPickerModal() {
+    const caseData = cases.find(c => c.id === selectedCaseId);
+    if (!caseData) return;
+
+    const allEntities = [
+        ...pazatorData.humans.map(h => ({ ...h, type: 'human' })),
+        ...pazatorData.others.map(o => ({ ...o, type: 'other' }))
+    ];
+
+    const availableEntities = allEntities.filter(e => !caseData.entities.includes(e.id));
+
+    if (availableEntities.length === 0) {
+        showFloatingNotification('All entities are already in this case', 'info');
+        return;
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'modal case-modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Entity</h2>
+            </div>
+            <div class="modal-body">
+                <div class="entity-picker-list">
+                    ${availableEntities.map(e => `
+                        <div class="entity-picker-item ${e.type}" onclick="addEntityToCase('${e.id}', '${e.type}')">
+                            <i class="fas ${e.type === 'human' ? 'fa-user' : 'fa-building'}"></i>
+                            <span>${escapeHtml(e.name)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.classList.add('active');
+}
+
+function addEntityToCase(entityId, type) {
+    const caseData = cases.find(c => c.id === selectedCaseId);
+    if (!caseData || caseData.entities.includes(entityId)) return;
+
+    const entity = type === 'human' 
+        ? pazatorData.humans.find(h => h.id === entityId)
+        : pazatorData.others.find(o => o.id === entityId);
+
+    caseData.entities.push(entityId);
+    caseData.timeline.push({
+        type: 'entity-added',
+        content: `<strong>Entity added</strong>: ${entity?.name || 'Unknown'}`,
+        timestamp: Date.now()
+    });
+
+    saveCases();
+    document.querySelector('.case-modal')?.remove();
+    selectCase(selectedCaseId);
+    showFloatingNotification('Entity added to case', 'success');
+}
+
+function removeEntityFromCase(caseId, entityId) {
+    const caseData = cases.find(c => c.id === caseId);
+    if (!caseData) return;
+
+    caseData.entities = caseData.entities.filter(e => e !== entityId);
+    saveCases();
+    selectCase(caseId);
+}
+
+function addCaseNote() {
+    const caseData = cases.find(c => c.id === selectedCaseId);
+    if (!caseData) return;
+
+    const input = document.getElementById('caseNoteInput');
+    const note = input.value.trim();
+
+    if (!note) return;
+
+    caseData.timeline.push({
+        type: 'note',
+        content: `<strong>Note</strong>: ${escapeHtml(note)}`,
+        timestamp: Date.now()
+    });
+
+    input.value = '';
+    saveCases();
+    selectCase(selectedCaseId);
+}
+
+function viewDetailFromCase(entityId, type) {
+    const human = pazatorData.humans.find(h => h.id === entityId);
+    const other = pazatorData.others.find(o => o.id === entityId);
+    const entity = human || other;
+
+    if (entity) {
+        showDetailView(entity, type);
+    }
+}
+
+function formatTime(timestamp) {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Settings Functions
+function openSettingsModal() {
+    const modal = document.getElementById('settingsModal');
+    const noBlurToggle = document.getElementById('noBlurToggle');
+    const skipIntroToggle = document.getElementById('skipIntroToggle');
+
+    noBlurToggle.checked = localStorage.getItem('noBlur') === 'true';
+    skipIntroToggle.checked = localStorage.getItem('skipIntro') === 'true';
+
+    modal.classList.add('active');
+
+    modal.onclick = function(e) {
+        if (e.target === modal) {
+            closeSettingsModal();
+        }
+    };
+}
+
+function closeSettingsModal() {
+    const modal = document.getElementById('settingsModal');
+    modal.classList.remove('active');
+}
+
+function toggleNoBlur(enabled) {
+    localStorage.setItem('noBlur', enabled ? 'true' : 'false');
+    if (enabled) {
+        document.body.classList.add('no-blur');
+    } else {
+        document.body.classList.remove('no-blur');
+    }
+}
+
+function toggleSkipIntro(enabled) {
+    localStorage.setItem('skipIntro', enabled ? 'true' : 'false');
+}
+
+// Initialize settings on load
+function initSettings() {
+    if (localStorage.getItem('noBlur') === 'true') {
+        document.body.classList.add('no-blur');
+    }
+}
+
+// Call init settings on DOMContentLoaded
+document.addEventListener('DOMContentLoaded', initSettings);

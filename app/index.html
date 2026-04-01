@@ -9,9 +9,43 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.css">
     <link rel="stylesheet" href="stylez.css">
+    <style>
+        #introOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10000;
+            background: #0a0a0a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.8s ease-out;
+        }
+        #introOverlay.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #introOverlay.hidden {
+            display: none;
+        }
+        #introVideo {
+            max-width: 100%;
+            max-height: 100%;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    </style>
 </head>
 
 <body>
+    <div id="introOverlay">
+        <video id="introVideo" autoplay muted playsinline>
+            <source src="intro.mp4" type="video/mp4">
+        </video>
+    </div>
     <div id="classificationBanner" class="classification-banner" aria-live="assertive">
         Classified - Do not share.
     </div>
@@ -169,6 +203,9 @@
         <button class="tab-action" id="tadbirBtn" title="HOJUM + DASTUR (TADBIR)" data-tab-target="tadbir">
             <i class="fas fa-bolt"></i>
         </button>
+        <button class="tab-action" id="casesBtn" title="Case Files / Missions" data-tab-target="cases">
+            <i class="fas fa-folder-open"></i>
+        </button>
         <div class="logo-card" title="Pazator Logo">
             <img src="../logo.png" alt="Pazator Logo" id="logoImage">
             <div class="logo-dropdown-menu" id="logoDropdownMenu">
@@ -184,6 +221,10 @@
                     <i class="fas fa-file-export"></i>
                     <span>Export CSV</span>
                 </div>
+                <div class="logo-dropdown-item" id="settingsOption">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </div>
                 <div class="logo-dropdown-item" id="aboutOption">
                     <i class="fas fa-circle-info"></i>
                     <span>About</span>
@@ -198,7 +239,7 @@
                 <div class="main-panel">
                     <div class="canvas-header">
                         <h1>Pazator<span class="title-sub">SARPARAST</span></h1>
-                        <p class="canvas-version">v0.Mar3126</p>
+                        <p class="canvas-version">v0.Apr0126</p>
                     </div>
                     <div class="web-container" id="webContainer">
                         <div class="web-content" id="webContent">
@@ -989,6 +1030,75 @@
             </div>
         </div>
 
+        <div class="tab-content" id="cases-tab">
+            <div class="cases-layout">
+                <div class="cases-sidebar">
+                    <div class="cases-sidebar-header">
+                        <h2>Case Files</h2>
+                        <button id="newCaseBtn" class="btn btn-secondary">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="cases-filters">
+                        <select id="caseStatusFilter" class="form-control">
+                            <option value="all">All Status</option>
+                            <option value="open">Open</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                    </div>
+                    <div id="casesList" class="cases-list">
+                        <div class="cases-empty">
+                            <i class="fas fa-folder-open"></i>
+                            <p>No cases yet</p>
+                            <small>Create a case to track operations</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="cases-main">
+                    <div id="casesWelcome" class="cases-welcome">
+                        <i class="fas fa-briefcase"></i>
+                        <h3>Select a Case</h3>
+                        <p>Choose a case from the sidebar to view details</p>
+                    </div>
+                    <div id="casesDetail" class="cases-detail" style="display: none;">
+                        <div class="cases-detail-header">
+                            <div class="cases-detail-title">
+                                <h2 id="caseTitle">Case Title</h2>
+                                <span id="caseStatusBadge" class="case-status-badge">Open</span>
+                            </div>
+                            <div class="cases-detail-actions">
+                                <button id="caseEditBtn" class="btn btn-secondary">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button id="caseCloseBtn" class="btn btn-secondary">
+                                    <i class="fas fa-check"></i> Close Case
+                                </button>
+                            </div>
+                        </div>
+                        <div class="cases-detail-body">
+                            <div class="cases-description">
+                                <h3>Description</h3>
+                                <p id="caseDescription">No description</p>
+                            </div>
+                            <div class="cases-entities">
+                                <h3>Tracked Entities <button id="addEntityToCaseBtn" class="btn btn-secondary btn-sm"><i class="fas fa-plus"></i> Add</button></h3>
+                                <div id="caseEntitiesList" class="case-entities-list"></div>
+                            </div>
+                            <div class="cases-timeline">
+                                <h3>Activity Log</h3>
+                                <div id="caseTimeline" class="case-timeline"></div>
+                                <div class="case-add-note">
+                                    <input type="text" id="caseNoteInput" class="form-control" placeholder="Add a note...">
+                                    <button id="caseAddNoteBtn" class="btn btn-primary">Add</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <div id="typeModal" class="modal">
@@ -1647,6 +1757,63 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal settings-modal">
+        <div class="settings-modal-content">
+            <div class="settings-header">
+                <h2>Settings</h2>
+            </div>
+            <div class="settings-body">
+                <div class="settings-group">
+                    <label class="settings-toggle">
+                        <span>No Blur</span>
+                        <input type="checkbox" id="noBlurToggle" onchange="toggleNoBlur(this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <p class="settings-desc">Turn off all blur effects throughout the app</p>
+                </div>
+                <div class="settings-group">
+                    <label class="settings-toggle">
+                        <span>Skip Intro Animation</span>
+                        <input type="checkbox" id="skipIntroToggle" onchange="toggleSkipIntro(this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <p class="settings-desc">Skip the intro video on next load</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var introOverlay = document.getElementById('introOverlay');
+            var introVideo = document.getElementById('introVideo');
+            
+            if (localStorage.getItem('skipIntro') === 'true') {
+                introOverlay.classList.add('hidden');
+            } else {
+                introVideo.addEventListener('ended', function() {
+                    introOverlay.classList.add('fade-out');
+                    setTimeout(function() {
+                        introOverlay.classList.add('hidden');
+                    }, 800);
+                });
+                
+                introVideo.addEventListener('error', function() {
+                    introOverlay.classList.add('hidden');
+                });
+                
+                setTimeout(function() {
+                    if (!introOverlay.classList.contains('hidden')) {
+                        introOverlay.classList.add('fade-out');
+                        setTimeout(function() {
+                            introOverlay.classList.add('hidden');
+                        }, 800);
+                    }
+                }, 30000);
+            }
+        });
+    </script>
     <script src="https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://js.puter.com/v2/"></script>
