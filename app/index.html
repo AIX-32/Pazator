@@ -1035,12 +1035,9 @@
                 <div class="cases-sidebar">
                     <div class="cases-sidebar-header">
                         <h2>Case Files</h2>
-                        <button id="newCaseBtn" class="btn btn-secondary">
-                            <i class="fas fa-plus"></i>
-                        </button>
                     </div>
                     <div class="cases-filters">
-                        <select id="caseStatusFilter" class="form-control">
+                        <select id="caseStatusFilter" class="tactics-input">
                             <option value="all">All Status</option>
                             <option value="open">Open</option>
                             <option value="in-progress">In Progress</option>
@@ -1054,6 +1051,9 @@
                             <small>Create a case to track operations</small>
                         </div>
                     </div>
+                    <button id="newCaseBtn" class="case-new-btn">
+                        <i class="fas fa-plus"></i> New Case
+                    </button>
                 </div>
                 <div class="cases-main">
                     <div id="casesWelcome" class="cases-welcome">
@@ -1062,35 +1062,69 @@
                         <p>Choose a case from the sidebar to view details</p>
                     </div>
                     <div id="casesDetail" class="cases-detail" style="display: none;">
-                        <div class="cases-detail-header">
-                            <div class="cases-detail-title">
-                                <h2 id="caseTitle">Case Title</h2>
-                                <span id="caseStatusBadge" class="case-status-badge">Open</span>
+                        <div class="case-detail-content">
+                            <div class="case-detail-header">
+                                <div class="case-header-left">
+                                    <div class="case-icon">
+                                        <i class="fas fa-briefcase"></i>
+                                    </div>
+                                    <div class="case-header-info">
+                                        <h2 id="caseTitle">Case Title</h2>
+                                        <span id="caseStatusBadge" class="case-status-badge">Open</span>
+                                        <p id="caseCreatedAt" class="case-created-at"></p>
+                                    </div>
+                                </div>
+                                <div class="case-header-actions">
+                                    <button id="caseZorBtn" class="btn btn-secondary">
+                                        Hand off to Zor
+                                    </button>
+                                    <button id="caseEditBtn" class="dastur-mini-btn">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button id="caseCloseBtn" class="dastur-mini-btn">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="cases-detail-actions">
-                                <button id="caseEditBtn" class="btn btn-secondary">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button id="caseCloseBtn" class="btn btn-secondary">
-                                    <i class="fas fa-check"></i> Close Case
-                                </button>
-                            </div>
-                        </div>
-                        <div class="cases-detail-body">
-                            <div class="cases-description">
-                                <h3>Description</h3>
-                                <p id="caseDescription">No description</p>
-                            </div>
-                            <div class="cases-entities">
-                                <h3>Tracked Entities <button id="addEntityToCaseBtn" class="btn btn-secondary btn-sm"><i class="fas fa-plus"></i> Add</button></h3>
-                                <div id="caseEntitiesList" class="case-entities-list"></div>
-                            </div>
-                            <div class="cases-timeline">
-                                <h3>Activity Log</h3>
-                                <div id="caseTimeline" class="case-timeline"></div>
-                                <div class="case-add-note">
-                                    <input type="text" id="caseNoteInput" class="form-control" placeholder="Add a note...">
-                                    <button id="caseAddNoteBtn" class="btn btn-primary">Add</button>
+
+                            <div class="case-body">
+                                <div class="case-sidebar-panel">
+                                    <div class="case-stat-card">
+                                        <div class="case-stat-label">Entities</div>
+                                        <div class="case-stat-value" id="caseEntityCount">0</div>
+                                    </div>
+                                    <div class="case-stat-card">
+                                        <div class="case-stat-label">Activities</div>
+                                        <div class="case-stat-value" id="caseActivityCount">0</div>
+                                    </div>
+                                    <div class="case-stat-card">
+                                        <div class="case-stat-label">Status</div>
+                                        <div class="case-stat-value" id="caseStatusText">Open</div>
+                                    </div>
+
+                                    <div class="case-info-section">
+                                        <h4><i class="fas fa-file-alt"></i> Description</h4>
+                                        <p id="caseDescription" class="case-description">No description</p>
+                                    </div>
+
+                                    <div class="case-entities-section">
+                                        <h4><i class="fas fa-users"></i> Tracked Entities</h4>
+                                        <div id="caseEntitiesList" class="case-entities-list"></div>
+                                        <button id="addEntityToCaseBtn" class="case-add-entity-btn">
+                                            <i class="fas fa-plus"></i> Add Entity
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="case-main-panel">
+                                    <div class="case-timeline-section">
+                                        <h4><i class="fas fa-clock"></i> Activity Log</h4>
+                                        <div id="caseTimeline" class="case-timeline"></div>
+                                        <div class="case-add-note">
+                                            <input type="text" id="caseNoteInput" class="tactics-input" placeholder="Add a note...">
+                                            <button id="caseAddNoteBtn" class="dastur-mini-btn">Add</button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

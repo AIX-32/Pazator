@@ -29,6 +29,33 @@
         --highlight: rgba(255, 255, 255, 0.1);
         --glow: rgba(255, 255, 255, 0.05);
         --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+        
+        --success: #6bcf7f;
+        --success-bg: rgba(107, 207, 127, 0.15);
+        --success-border: rgba(107, 207, 127, 0.4);
+        --warning: #ffd93d;
+        --warning-bg: rgba(255, 217, 61, 0.15);
+        --warning-border: rgba(255, 217, 61, 0.4);
+        --danger: #ff6b6b;
+        --danger-bg: rgba(255, 107, 107, 0.15);
+        --info: #4d9de0;
+        --info-bg: rgba(77, 157, 224, 0.15);
+        
+        --panel-bg: rgba(0, 0, 0, 0.18);
+        --panel-border: rgba(255, 255, 255, 0.1);
+        --panel-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+        --panel-inset: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        
+        --btn-primary-bg: linear-gradient(145deg, #ffffff, #e0e0e0);
+        --btn-secondary-bg: linear-gradient(145deg, #2a2a2a, #252525);
+        --btn-danger-bg: linear-gradient(145deg, #ff4444, #cc0000);
+        
+        --input-bg: rgba(30, 30, 30, 0.8);
+        --input-border: #3a3a3a;
+        
+        --timeline-note: #6bcf7f;
+        --timeline-entity: #4d9de0;
+        --timeline-status: #ffd93d;
     }
 
     * {
@@ -1839,6 +1866,30 @@
         animation: modalFadeIn 0.3s var(--transition-smooth) forwards;
     }
 
+    .modal-content {
+        background: linear-gradient(180deg, #1e1e1e 0%, #1a1a1a 100%);
+        border: 1px solid var(--panel-border);
+        border-radius: 20px;
+        padding: 32px;
+        width: 95%;
+        max-width: 900px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow:
+            0 24px 64px rgba(0, 0, 0, 0.6),
+            0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--panel-border);
+        flex-shrink: 0;
+    }
+
     .modal.context-modal {
         z-index: 1005 !important;
     }
@@ -2030,7 +2081,7 @@
     .modal-header h2 {
         margin: 0;
         font-size: 1.6rem;
-        background: linear-gradient(45deg, #ffffff, #cccccc);
+        background: linear-gradient(45deg, var(--accent-light), var(--accent-dark));
         -webkit-background-clip: text;
         background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -2282,25 +2333,20 @@
     }
 
     .btn-primary {
-        background: linear-gradient(145deg, #ffffff, #e0e0e0) !important;
+        background: var(--btn-primary-bg) !important;
         color: #000;
         box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2);
         border: 1px solid rgb(206, 206, 206);
     }
 
     .btn-secondary {
-        background: linear-gradient(145deg, #2a2a2a, #252525);
+        background: var(--btn-secondary-bg);
         border: 1px solid #3a3a3a;
         color: #e8e8e8;
     }
 
-    .btn-compact {
-        padding: 8px 12px;
-        font-size: 0.9rem;
-    }
-
     .btn-danger {
-        background: linear-gradient(145deg, #ff4444, #cc0000);
+        background: var(--btn-danger-bg);
         color: white;
         box-shadow: 0 4px 16px rgba(255, 68, 68, 0.2);
     }
@@ -4508,7 +4554,7 @@
         gap: 10px;
         padding: 10px 10px;
         border-radius: 8px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--panel-border);
         background: rgba(0, 0, 0, 0.2);
     }
 
@@ -4586,14 +4632,14 @@
     }
 
     .tactics-pane {
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background: rgba(0, 0, 0, 0.18);
+        border: 1px solid var(--panel-border);
+        background: var(--panel-bg);
         border-radius: 12px;
         display: flex;
         flex-direction: column;
         min-height: 0;
         overflow: hidden;
-        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        box-shadow: var(--panel-shadow), var(--panel-inset);
     }
 
     .tactics-pane-head {
@@ -4803,45 +4849,55 @@
 
     /* Case Files Styles */
     .cases-layout {
-        display: flex;
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 12px;
         flex: 1;
         min-height: 0;
         overflow: hidden;
+        padding: 12px;
     }
 
     .cases-sidebar {
-        width: 320px;
-        min-width: 320px;
-        background: rgba(20, 20, 20, 0.8);
-        border-right: 1px solid var(--border-color);
+        grid-column: 1;
         display: flex;
         flex-direction: column;
-        padding: 20px;
+        overflow: hidden;
+        min-height: 0;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: 0 4px 16px var(--shadow-color);
+        padding: 14px;
     }
 
     .cases-sidebar-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 16px;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .cases-sidebar-header h2 {
         margin: 0;
-        font-size: 1.2rem;
-        color: #fff;
-    }
-
-    .cases-sidebar-header #newCaseBtn {
-        padding: 6px 12px !important;
-        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: 0.7px;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.92);
     }
 
     .cases-filters {
-        margin-bottom: 16px;
+        margin-bottom: 12px;
     }
 
-    .cases-filters .form-control {
+    .cases-filters {
+        margin-bottom: 12px;
+    }
+
+    .cases-filters select {
         width: 100%;
     }
 
@@ -4850,218 +4906,357 @@
         overflow-y: auto;
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
+        padding-right: 4px;
+        font-size: 0.82rem;
+    }
+
+    .case-new-btn {
+        width: 100%;
+        padding: 8px 12px;
+        margin-top: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 6px;
+        color: rgba(255, 255, 255, 0.6);
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .case-new-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.3);
+        color: rgba(255, 255, 255, 0.8);
     }
 
     .cases-empty {
         text-align: center;
         padding: 40px 20px;
-        color: #666;
+        color: rgba(255, 255, 255, 0.4);
     }
 
     .cases-empty i {
-        font-size: 3rem;
-        margin-bottom: 16px;
+        font-size: 2.5rem;
+        margin-bottom: 12px;
         opacity: 0.3;
     }
 
     .cases-empty p {
         margin: 0;
-        font-size: 1rem;
+        font-size: 0.9rem;
     }
 
     .cases-empty small {
-        color: #555;
+        color: rgba(255, 255, 255, 0.3);
     }
 
     .case-card {
-        background: rgba(30, 30, 30, 0.6);
-        border: 1px solid var(--border-color);
+        background: rgba(0, 0, 0, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 8px;
-        padding: 14px;
+        padding: 12px;
         cursor: pointer;
         transition: all 0.2s ease;
     }
 
     .case-card:hover {
-        background: rgba(40, 40, 40, 0.8);
-        border-color: #444;
+        background: rgba(0, 0, 0, 0.25);
+        border-color: rgba(255, 255, 255, 0.15);
     }
 
     .case-card.active {
-        border-color: #6bcf7f;
-        background: rgba(107, 207, 127, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+        background: rgba(0, 0, 0, 0.3);
     }
 
     .case-card-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
     }
 
     .case-card-title {
         font-weight: 600;
-        color: #fff;
-        font-size: 0.95rem;
+        color: rgba(255, 255, 255, 0.88);
+        font-size: 0.9rem;
     }
 
     .case-card-badge {
         padding: 3px 8px;
-        border-radius: 12px;
-        font-size: 0.7rem;
+        border-radius: 999px;
+        font-size: 0.68rem;
         font-weight: 600;
         text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border: 1px solid;
     }
 
     .case-card-badge.open {
-        background: rgba(107, 207, 127, 0.2);
-        color: #6bcf7f;
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.7);
     }
 
     .case-card-badge.in-progress {
-        background: rgba(255, 217, 61, 0.2);
-        color: #ffd93d;
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.7);
     }
 
     .case-card-badge.closed {
-        background: rgba(255, 255, 255, 0.1);
-        color: #888;
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.4);
     }
 
     .case-card-meta {
-        font-size: 0.8rem;
-        color: #666;
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.5);
     }
 
     .cases-main {
-        flex: 1;
+        grid-column: 2;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: 0 4px 16px var(--shadow-color);
         padding: 20px;
-        overflow-y: auto;
     }
 
     .cases-welcome {
+        flex: 1;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        height: 100%;
-        color: #555;
+        color: rgba(255, 255, 255, 0.3);
         text-align: center;
     }
 
     .cases-welcome i {
-        font-size: 5rem;
-        margin-bottom: 20px;
+        font-size: 4rem;
+        margin-bottom: 16px;
         opacity: 0.2;
     }
 
     .cases-welcome h3 {
         margin: 0 0 8px 0;
-        color: #888;
+        color: rgba(255, 255, 255, 0.5);
     }
 
     .cases-welcome p {
         margin: 0;
-        color: #555;
+        color: rgba(255, 255, 255, 0.3);
     }
 
     .cases-detail {
-        height: 100%;
+        flex: 1;
+        display: flex;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .case-detail-content {
+        flex: 1;
         display: flex;
         flex-direction: column;
+        overflow: hidden;
     }
 
-    .cases-detail-header {
+    .case-detail-header {
         display: flex;
-        align-items: center;
         justify-content: space-between;
-        padding-bottom: 20px;
-        border-bottom: 1px solid var(--border-color);
-        margin-bottom: 20px;
+        align-items: center;
+        padding: 20px 24px;
+        background: rgba(0, 0, 0, 0.2);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        flex-shrink: 0;
     }
 
-    .cases-detail-title {
+    .case-header-left {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 16px;
     }
 
-    .cases-detail-title h2 {
-        margin: 0;
-        font-size: 1.5rem;
-        color: #fff;
+    .case-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .case-header-info h2 {
+        margin: 0 0 6px 0;
+        font-size: 1.4rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: rgba(255, 255, 255, 0.95);
+    }
+
+    .case-header-info .case-status-badge {
+        margin-left: 0;
+    }
+
+    .case-created-at {
+        margin: 4px 0 0 0;
+        font-size: 0.78rem;
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    .case-header-actions {
+        display: flex;
+        gap: 10px;
     }
 
     .case-status-badge {
-        padding: 4px 12px;
-        border-radius: 15px;
-        font-size: 0.8rem;
+        display: inline-flex;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.72rem;
         font-weight: 600;
         text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border: 1px solid;
     }
 
     .case-status-badge.open {
-        background: rgba(107, 207, 127, 0.2);
-        color: #6bcf7f;
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.7);
     }
 
     .case-status-badge.in-progress {
-        background: rgba(255, 217, 61, 0.2);
-        color: #ffd93d;
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.7);
     }
 
     .case-status-badge.closed {
-        background: rgba(255, 255, 255, 0.1);
-        color: #888;
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.4);
     }
 
-    .cases-detail-actions {
-        display: flex;
-        gap: 10px;
-    }
-
-    .cases-detail-body {
+    .case-body {
         flex: 1;
-        overflow-y: auto;
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 20px;
+        overflow: hidden;
+    }
+
+    .case-sidebar-panel {
         display: flex;
         flex-direction: column;
-        gap: 24px;
+        gap: 16px;
+        overflow-y: auto;
     }
 
-    .cases-description h3,
-    .cases-entities h3,
-    .cases-timeline h3 {
-        margin: 0 0 12px 0;
-        font-size: 1rem;
-        color: #888;
+    .case-stat-card {
+        background: rgba(0, 0, 0, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        padding: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .case-stat-label {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.5);
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 0.5px;
     }
 
-    .cases-description p {
-        margin: 0;
-        color: #ccc;
-        line-height: 1.6;
+    .case-stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.9);
     }
 
-    .cases-entities h3 {
+    .case-info-section,
+    .case-entities-section {
+        background: rgba(0, 0, 0, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 10px;
+        padding: 16px;
+    }
+
+    .case-info-section h4,
+    .case-entities-section h4,
+    .case-timeline-section h4 {
+        margin: 0 0 12px 0;
+        font-size: 0.85rem;
+        font-weight: 700;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.6);
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
+    }
+
+    .case-info-section h4 i,
+    .case-entities-section h4 i,
+    .case-timeline-section h4 i {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.8rem;
+    }
+
+    .case-description {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.75);
+        line-height: 1.6;
+        font-size: 0.9rem;
+    }
+
+    .case-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .case-section-header h4 {
+        margin: 0;
+    }
+
+    .case-section-header .dastur-mini-btn {
+        font-size: 0.7rem;
+        padding: 4px 8px;
     }
 
     .case-entities-list {
         display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 200px;
+        overflow-y: auto;
     }
 
     .case-entity-card {
-        background: rgba(30, 30, 30, 0.6);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        padding: 10px 14px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 6px;
+        padding: 10px 12px;
         display: flex;
         align-items: center;
         gap: 10px;
@@ -5070,25 +5265,27 @@
     }
 
     .case-entity-card:hover {
-        background: rgba(40, 40, 40, 0.8);
-        border-color: #444;
+        background: rgba(0, 0, 0, 0.3);
+        border-color: rgba(255, 255, 255, 0.1);
     }
 
     .case-entity-card i {
-        color: #6bcf7f;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.85rem;
     }
 
     .case-entity-card span {
-        color: #ddd;
-        font-size: 0.9rem;
+        flex: 1;
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 0.85rem;
     }
 
     .case-entity-card .remove-entity {
-        color: #ff6b6b;
+        color: var(--danger);
         cursor: pointer;
-        margin-left: auto;
         opacity: 0;
         transition: opacity 0.2s;
+        font-size: 0.75rem;
     }
 
     .case-entity-card:hover .remove-entity {
@@ -5096,74 +5293,159 @@
     }
 
     .case-empty-entities {
-        color: #555;
+        color: rgba(255, 255, 255, 0.35);
         font-style: italic;
+        font-size: 0.85rem;
+    }
+
+    .case-add-entity-btn {
+        width: 100%;
+        margin-top: 12px;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px dashed rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        color: rgba(255, 255, 255, 0.6);
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .case-add-entity-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.3);
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .case-main-panel {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .case-timeline-section {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: rgba(0, 0, 0, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 10px;
+        padding: 16px;
+        overflow: hidden;
     }
 
     .case-timeline {
+        flex: 1;
         display: flex;
         flex-direction: column;
-        gap: 12px;
-        margin-bottom: 16px;
+        gap: 8px;
+        overflow-y: auto;
+        margin-bottom: 12px;
+        padding-right: 4px;
     }
 
     .case-timeline-item {
         display: flex;
         gap: 12px;
         padding: 12px;
-        background: rgba(25, 25, 25, 0.5);
-        border-radius: 8px;
-        border-left: 3px solid #444;
+        background: rgba(0, 0, 0, 0.15);
+        border-radius: 6px;
+        border-left: 2px solid rgba(255, 255, 255, 0.15);
     }
 
     .case-timeline-item.note {
-        border-left-color: #6bcf7f;
+        border-left-color: rgba(255, 255, 255, 0.25);
     }
 
     .case-timeline-item.entity-added {
-        border-left-color: #4d9de0;
+        border-left-color: rgba(255, 255, 255, 0.2);
     }
 
     .case-timeline-item.status-changed {
-        border-left-color: #ffd93d;
+        border-left-color: rgba(255, 255, 255, 0.2);
     }
 
     .case-timeline-time {
-        font-size: 0.75rem;
-        color: #666;
-        min-width: 60px;
+        font-size: 0.72rem;
+        color: rgba(255, 255, 255, 0.4);
+        min-width: 55px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        padding-top: 2px;
     }
 
     .case-timeline-content {
         flex: 1;
-        color: #ccc;
-        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.75);
+        font-size: 0.85rem;
+        line-height: 1.5;
     }
 
     .case-timeline-content strong {
-        color: #fff;
+        color: rgba(255, 255, 255, 0.92);
     }
 
     .case-add-note {
         display: flex;
         gap: 10px;
+        flex-shrink: 0;
     }
 
-    .case-add-note .form-control {
+    .case-add-note .tactics-input {
         flex: 1;
     }
 
     .case-empty-timeline {
-        color: #555;
+        color: rgba(255, 255, 255, 0.3);
         font-style: italic;
         padding: 20px 0;
         text-align: center;
+        font-size: 0.85rem;
     }
 
     .btn-sm {
         padding: 6px 12px;
         font-size: 0.85rem;
     }
+
+    /* Hojum Card Colors */
+    .hojum-card {
+        pointer-events: auto;
+        background: linear-gradient(145deg, rgba(10, 10, 10, 0.95), rgba(18, 18, 18, 0.92));
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-left: 3px solid var(--danger);
+        border-radius: 10px;
+        box-shadow: var(--panel-shadow), var(--panel-inset);
+        overflow: hidden;
+    }
+
+    .hojum-btn.execute {
+        background: linear-gradient(145deg, rgba(255, 74, 74, 0.9), rgba(190, 40, 40, 0.9));
+        border-color: rgba(255, 74, 74, 0.55);
+        color: #080808;
+    }
+
+    .hojum-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        font-size: 0.72rem;
+    }
+
+    .hojum-btn.execute:hover {
+        background: linear-gradient(145deg, rgba(255, 92, 92, 0.95), rgba(205, 44, 44, 0.95));
+        transform: translateY(-1px);
+    }
+
 
     /* Case Modal Styles */
     .case-modal .modal-content {
@@ -5208,11 +5490,22 @@
     .case-modal .modal-body label {
         display: block;
         margin-bottom: 6px;
-        color: #ddd;
+        color: var(--text-primary);
         font-weight: 500;
     }
 
-    /* Entity Picker Modal */
+    .case-modal .form-actions {
+        display: flex;
+        gap: 10px;
+        padding-top: 16px;
+        border-top: 1px solid var(--panel-border);
+        margin-top: 16px;
+    }
+
+    .case-modal .form-actions .btn {
+        padding: 10px 20px;
+    }
+
     .entity-picker-list {
         max-height: 300px;
         overflow-y: auto;
@@ -5224,7 +5517,7 @@
     .entity-picker-item {
         padding: 12px;
         background: rgba(30, 30, 30, 0.6);
-        border: 1px solid var(--border-color);
+        border: 1px solid var(--panel-border);
         border-radius: 6px;
         cursor: pointer;
         display: flex;
@@ -5235,24 +5528,36 @@
 
     .entity-picker-item:hover {
         background: rgba(50, 50, 50, 0.6);
-        border-color: #444;
+        border-color: rgba(255, 255, 255, 0.2);
     }
 
     .entity-picker-item.selected {
-        border-color: #6bcf7f;
+        border-color: var(--success);
         background: rgba(107, 207, 127, 0.1);
     }
 
     .entity-picker-item i {
-        color: #6bcf7f;
+        color: var(--success);
     }
 
     .entity-picker-item.human i {
-        color: #fff;
+        color: var(--accent-light);
     }
 
     .entity-picker-item.other i {
-        color: #b0b0b0;
+        color: var(--accent-dark);
+    }
+
+    .case-bulk-actions {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .case-bulk-actions .dastur-mini-btn {
+        flex: 1;
+        padding: 8px 12px;
+        font-size: 0.78rem;
     }
 
     /* Settings Modal */
@@ -5274,8 +5579,8 @@
     }
 
     .settings-modal-content {
-        background: #1a1a1a;
-        border: 1px solid #333;
+        background: var(--card-bg);
+        border: 1px solid var(--panel-border);
         border-radius: 12px;
         padding: 24px;
         width: 400px;
@@ -5289,19 +5594,19 @@
         align-items: center;
         margin-bottom: 24px;
         padding-bottom: 16px;
-        border-bottom: 1px solid #333;
+        border-bottom: 1px solid var(--panel-border);
     }
 
     .settings-header h2 {
         margin: 0;
-        color: #fff;
+        color: var(--accent-light);
         font-size: 1.3rem;
     }
 
     .settings-close {
         background: none;
         border: none;
-        color: #888;
+        color: var(--text-muted);
         font-size: 1.5rem;
         cursor: pointer;
         line-height: 1;
@@ -5309,7 +5614,7 @@
     }
 
     .settings-close:hover {
-        color: #fff;
+        color: var(--accent-light);
     }
 
     .settings-body {
@@ -5332,7 +5637,7 @@
     }
 
     .settings-toggle span:first-child {
-        color: #ddd;
+        color: var(--text-primary);
         font-size: 1rem;
         font-weight: 500;
     }
@@ -5355,7 +5660,7 @@
         position: absolute;
         width: 18px;
         height: 18px;
-        background: #888;
+        background: var(--text-muted);
         border-radius: 50%;
         top: 3px;
         left: 3px;
@@ -5363,17 +5668,17 @@
     }
 
     .settings-toggle input:checked + .toggle-slider {
-        background: #6bcf7f;
+        background: var(--success);
     }
 
     .settings-toggle input:checked + .toggle-slider::before {
         left: 27px;
-        background: #fff;
+        background: var(--accent-light);
     }
 
     .settings-desc {
         margin: 0;
-        color: #666;
+        color: var(--text-muted);
         font-size: 0.85rem;
     }
 

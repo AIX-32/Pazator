@@ -8783,6 +8783,7 @@ function initCasesTab() {
         const addEntityBtn = document.getElementById('addEntityToCaseBtn');
         const addNoteBtn = document.getElementById('caseAddNoteBtn');
         const noteInput = document.getElementById('caseNoteInput');
+        const zorBtn = document.getElementById('caseZorBtn');
 
         if (newCaseBtn) newCaseBtn.addEventListener('click', showNewCaseModal);
         if (statusFilter) statusFilter.addEventListener('change', renderCasesList);
@@ -8793,6 +8794,7 @@ function initCasesTab() {
         if (noteInput) noteInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addCaseNote();
         });
+        if (zorBtn) zorBtn.addEventListener('click', handoffCaseToZor);
 
         casesTabInitialized = true;
     }
@@ -8865,7 +8867,16 @@ function selectCase(caseId) {
     statusBadge.textContent = caseData.status.replace('-', ' ');
     statusBadge.className = 'case-status-badge ' + caseData.status;
 
-    document.getElementById('caseDescription').textContent = caseData.description || 'No description';
+    const createdAt = document.getElementById('caseCreatedAt');
+    createdAt.textContent = 'Created ' + new Date(caseData.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    const statusText = document.getElementById('caseStatusText');
+    statusText.textContent = caseData.status.replace('-', ' ');
+
+    document.getElementById('caseEntityCount').textContent = caseData.entities.length;
+    document.getElementById('caseActivityCount').textContent = caseData.timeline.length;
+
+    document.getElementById('caseDescription').textContent = caseData.description || 'No description provided';
 
     renderCaseEntities(caseData);
     renderCaseTimeline(caseData);
@@ -8909,10 +8920,88 @@ function renderCaseTimeline(caseData) {
 
     container.innerHTML = [...caseData.timeline].reverse().map(item => `
         <div class="case-timeline-item ${item.type}">
-            <span class="case-timeline-time">${formatTime(item.timestamp)}</span>
+            <span class="case-timeline-time">${new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             <span class="case-timeline-content">${item.content}</span>
         </div>
     `).join('');
+}
+
+async function handoffCaseToZor() {
+    const caseData = cases.find(c => c.id === selectedCaseId);
+    if (!caseData) return;
+
+    const zorBtn = document.getElementById('caseZorBtn');
+    zorBtn.disabled = true;
+    zorBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+
+    caseData.timeline.push({
+        type: 'note',
+        content: '<strong>Zor analyzing case...</strong>',
+        timestamp: Date.now()
+    });
+    saveCases();
+    selectCase(selectedCaseId);
+
+    const caseEntities = caseData.entities.map(id => {
+        const human = pazatorData.humans.find(h => h.id === id);
+        const other = pazatorData.others.find(o => o.id === id);
+        return human || other;
+    }).filter(Boolean);
+
+    const analysisPrompt = `
+You are analyzing case: "${caseData.title}"
+
+Description: ${caseData.description || 'No description provided'}
+
+Entities in this case:
+${caseEntities.map(e => `- ${e.name} (${e.type || 'unknown'})${e.extraNotes ? ': ' + e.extraNotes : ''}${e.tags?.length ? ' [Tags: ' + e.tags.join(', ') + ']' : ''}`).join('\n')}
+
+Previous activity:
+${caseData.timeline.map(t => `- [${new Date(t.timestamp).toLocaleString()}] ${t.content.replace(/<[^>]*>/g, '')}`).join('\n')}
+
+Based on all this information, provide a brief analysis (2-3 sentences) of:
+1. What this case appears to be about
+2. Any notable patterns or connections you see
+3. Recommended next steps
+
+Be concise and actionable.
+`;
+
+    try {
+        const aiResponse = await puter.ai.chat([
+            { role: "system", content: "You are Zor, a concise intelligence analyst. Give brief, actionable insights." },
+            { role: "user", content: analysisPrompt }
+        ]);
+
+        const analysis = aiResponse.content || 'Analysis complete - no insights generated.';
+
+        caseData.timeline.push({
+            type: 'note',
+            content: `<strong>Zor Analysis</strong>: ${escapeHtml(analysis)}`,
+            timestamp: Date.now()
+        });
+
+        zorBtn.disabled = false;
+        zorBtn.innerHTML = '<i class="fas fa-robot"></i> Hand off to Zor';
+        
+        saveCases();
+        selectCase(selectedCaseId);
+        showFloatingNotification('Zor analysis complete', 'success');
+
+    } catch (error) {
+        caseData.timeline.push({
+            type: 'note',
+            content: `<strong>Zor Error</strong>: Analysis failed`,
+            timestamp: Date.now()
+        });
+        
+        zorBtn.disabled = false;
+        zorBtn.innerHTML = '<i class="fas fa-robot"></i> Hand off to Zor';
+        
+        saveCases();
+        selectCase(selectedCaseId);
+        showFloatingNotification('Zor analysis failed', 'error');
+    }
 }
 
 function showNewCaseModal() {
@@ -9108,8 +9197,8 @@ function showEntityPickerModal() {
 
     const availableEntities = allEntities.filter(e => !caseData.entities.includes(e.id));
 
-    if (availableEntities.length === 0) {
-        showFloatingNotification('All entities are already in this case', 'info');
+    if (availableEntities.length === 0 && caseData.entities.length === 0) {
+        showFloatingNotification('No entities to add', 'info');
         return;
     }
 
@@ -9118,22 +9207,128 @@ function showEntityPickerModal() {
     modal.innerHTML = `
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Add Entity</h2>
+                <h2>Add Entities</h2>
             </div>
             <div class="modal-body">
+                ${caseData.entities.length > 0 ? `
+                    <div class="case-bulk-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="addAllEntitiesToCase()">
+                            <i class="fas fa-plus"></i> Add All (${availableEntities.length})
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="addRelatedEntitiesToCase()">
+                            <i class="fas fa-link"></i> Add Related
+                        </button>
+                    </div>
+                ` : ''}
+                <h4 style="margin: 16px 0 8px; color: #888; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Available Entities</h4>
                 <div class="entity-picker-list">
-                    ${availableEntities.map(e => `
+                    ${availableEntities.length > 0 ? availableEntities.map(e => `
                         <div class="entity-picker-item ${e.type}" onclick="addEntityToCase('${e.id}', '${e.type}')">
                             <i class="fas ${e.type === 'human' ? 'fa-user' : 'fa-building'}"></i>
                             <span>${escapeHtml(e.name)}</span>
+                            <span style="margin-left: auto; color: #666; font-size: 0.8rem;">
+                                ${getRelatedCount(e)}
+                            </span>
                         </div>
-                    `).join('')}
+                    `).join('') : '<p style="color: #666; text-align: center; padding: 20px;">All entities are already in this case</p>'}
                 </div>
             </div>
         </div>
     `;
     document.body.appendChild(modal);
     modal.classList.add('active');
+}
+
+function getRelatedCount(entity) {
+    let count = 0;
+    if (entity.friends) count += entity.friends.length;
+    if (entity.family) count += entity.family.length;
+    if (entity.workplace) {
+        const workplaceEntity = pazatorData.others.find(o => o.name === entity.workplace);
+        if (workplaceEntity && !caseData?.entities?.includes(workplaceEntity.id)) count++;
+    }
+    return count > 0 ? `${count} related` : '';
+}
+
+function addAllEntitiesToCase() {
+    const caseData = cases.find(c => c.id === selectedCaseId);
+    if (!caseData) return;
+
+    const allEntities = [
+        ...pazatorData.humans.map(h => ({ ...h, type: 'human' })),
+        ...pazatorData.others.map(o => ({ ...o, type: 'other' }))
+    ];
+
+    const availableEntities = allEntities.filter(e => !caseData.entities.includes(e.id));
+    let added = 0;
+
+    availableEntities.forEach(e => {
+        if (!caseData.entities.includes(e.id)) {
+            caseData.entities.push(e.id);
+            caseData.timeline.push({
+                type: 'entity-added',
+                content: `<strong>Entity added</strong>: ${e.name}`,
+                timestamp: Date.now()
+            });
+            added++;
+        }
+    });
+
+    saveCases();
+    document.querySelector('.case-modal')?.remove();
+    selectCase(selectedCaseId);
+    showFloatingNotification(`Added ${added} entities to case`, 'success');
+}
+
+function addRelatedEntitiesToCase() {
+    const caseData = cases.find(c => c.id === selectedCaseId);
+    if (!caseData) return;
+
+    const relatedIds = new Set();
+
+    caseData.entities.forEach(entityId => {
+        const entity = pazatorData.humans.find(h => h.id === entityId) 
+            || pazatorData.others.find(o => o.id === entityId);
+        
+        if (entity) {
+            if (entity.friends) {
+                entity.friends.forEach(friendId => relatedIds.add(friendId));
+            }
+            if (entity.family) {
+                entity.family.forEach(familyId => relatedIds.add(familyId));
+            }
+            if (entity.workplace) {
+                const workplace = pazatorData.others.find(o => o.name === entity.workplace);
+                if (workplace) relatedIds.add(workplace.id);
+            }
+        }
+    });
+
+    let added = 0;
+    relatedIds.forEach(id => {
+        if (!caseData.entities.includes(id)) {
+            const entity = pazatorData.humans.find(h => h.id === id) || pazatorData.others.find(o => o.id === id);
+            if (entity) {
+                caseData.entities.push(id);
+                caseData.timeline.push({
+                    type: 'entity-added',
+                    content: `<strong>Related entity added</strong>: ${entity.name}`,
+                    timestamp: Date.now()
+                });
+                added++;
+            }
+        }
+    });
+
+    saveCases();
+    document.querySelector('.case-modal')?.remove();
+    selectCase(selectedCaseId);
+    
+    if (added > 0) {
+        showFloatingNotification(`Added ${added} related entities`, 'success');
+    } else {
+        showFloatingNotification('No new related entities found', 'info');
+    }
 }
 
 function addEntityToCase(entityId, type) {
