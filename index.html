@@ -31,6 +31,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:ital,wght@0,300;0,400;1,300&family=Space+Grotesk:wght@400;500&display=swap"
         rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         *,
         *::before,
@@ -693,6 +694,138 @@
                 display: none
             }
         }
+
+        /* ZOR SECTION */
+        .zor-section {
+            padding: 100px 40px;
+            border-top: 1px solid #1a1a1a;
+            border-bottom: 1px solid #1a1a1a;
+        }
+
+        .zor-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .zor-badge {
+            display: inline-block;
+            border: 1px solid #333;
+            padding: 6px 16px;
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+            color: var(--dim);
+            margin-bottom: 20px;
+        }
+
+        .zor-header h2 {
+            font-family: 'Anton', sans-serif;
+            font-size: 4rem;
+            letter-spacing: 4px;
+            margin-bottom: 16px;
+        }
+
+        .zor-subtitle {
+            font-size: 1.1rem;
+            color: var(--dim);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .zor-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            max-width: 1100px;
+            margin: 0 auto 60px;
+        }
+
+        .zor-card {
+            border: 1px solid #222;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .zor-card-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 20px;
+            border: 1px solid #333;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--dim);
+        }
+
+        .zor-card h3 {
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .zor-card p {
+            font-size: 0.8rem;
+            color: var(--dim);
+            line-height: 1.6;
+        }
+
+        .zor-examples {
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .zor-examples h4 {
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            color: var(--dim);
+            margin-bottom: 20px;
+        }
+
+        .zor-example-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .zor-example {
+            border: 1px solid #222;
+            padding: 16px 12px;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: default;
+            transition: all 0.2s;
+        }
+
+        .zor-example:hover {
+            border-color: #444;
+            color: var(--white);
+        }
+
+        @media (max-width: 900px) {
+            .zor-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .zor-example-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .zor-header h2 {
+                font-size: 2.5rem;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .zor-section {
+                padding: 60px 20px;
+            }
+
+            .zor-example-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 
@@ -718,9 +851,9 @@
         <div class="ticker-wrap">
             <span class="ticker-inner">PAZATOR &nbsp;·&nbsp; MASS DATA INTELLIGENCE &nbsp;·&nbsp; ANOMALY DETECTION
                 &nbsp;·&nbsp; RISK ASSESSMENT &nbsp;·&nbsp; OPERATIONAL SYSTEMS &nbsp;·&nbsp; AIOIP &nbsp;·&nbsp; TIRSUN
-                &nbsp;·&nbsp; VUNDRA &nbsp;·&nbsp; PAZATOR &nbsp;·&nbsp; MASS DATA INTELLIGENCE &nbsp;·&nbsp; ANOMALY
+                &nbsp;·&nbsp; TADBIR &nbsp;·&nbsp; PAZATOR &nbsp;·&nbsp; MASS DATA INTELLIGENCE &nbsp;·&nbsp; ANOMALY
                 DETECTION &nbsp;·&nbsp; RISK ASSESSMENT &nbsp;·&nbsp; OPERATIONAL SYSTEMS &nbsp;·&nbsp; AIOIP
-                &nbsp;·&nbsp; TIRSUN &nbsp;·&nbsp; VUNDRA &nbsp;·&nbsp;</span>
+                &nbsp;·&nbsp; TIRSUN &nbsp;·&nbsp; TADBIR &nbsp;·&nbsp;</span>
         </div>
 
         <div class="hero-grid">
@@ -815,12 +948,58 @@
         <div class="prow">
             <div class="pidx">03</div>
             <div class="pmain">
-                <div class="pname">VUNDRA</div>
+                <div class="pname">TADBIR</div>
             </div>
-            <div class="pdesc">May happen.</div>
+            <div class="pdesc">DASTUR rules + HOJUM proposals. Automate responses to data changes, trigger AI analysis, and act on intelligence in real-time.</div>
             <div class="pstatus">
-                <div class="pill">SOON</div>
+                <div class="pill">LIVE</div>
                 <div class="sdot"></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="zor-section">
+        <div class="zor-header">
+            <div class="zor-badge">AI ASSISTANT</div>
+            <h2>Meet ZOR</h2>
+            <p class="zor-subtitle">Your all-in-one intelligence companion</p>
+        </div>
+        
+        <div class="zor-grid">
+            <div class="zor-card">
+                <div class="zor-card-icon">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <h3>Knows Your Data</h3>
+                <p>Zor has context of all your people, entities, tags, chats, and relationships. Ask about anyone and get instant insights.</p>
+            </div>
+            
+            <div class="zor-card">
+                <div class="zor-card-icon">
+                    <i class="fas fa-link"></i>
+                </div>
+                <h3>Connects Everything</h3>
+                <p>Leans on every Pazator system simultaneously. SHAHED locations, TADBIR rules, chat history, threat intelligence—all connected.</p>
+            </div>
+            
+            <div class="zor-card">
+                <div class="zor-card-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <h3>Takes Action</h3>
+                <p>Don't just ask—delegate. Create entries, tag people, trigger analysis, or launch investigations with a single prompt.</p>
+            </div>
+        </div>
+        
+        <div class="zor-examples">
+            <h4>Example Queries</h4>
+            <div class="zor-example-grid">
+                <div class="zor-example">"Show me everyone with a credit score under 100"</div>
+                <div class="zor-example">"Find connections between these two people"</div>
+                <div class="zor-example">"Run a threat analysis on my WhatsApp chats"</div>
+                <div class="zor-example">"Create a new person: John Smith, works at Acme Corp"</div>
+                <div class="zor-example">"What's the risk distribution in my database?"</div>
+                <div class="zor-example">"Tag all suspicious entries with 'review-needed'"</div>
             </div>
         </div>
     </section>
