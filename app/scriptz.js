@@ -35,6 +35,8 @@ const DEFAULT_TRACKER_CONFIG = {
     key: ''
 };
 
+let logoBase64 = null;
+
 // Clean Modal UI Functions
 const cleanModal = document.getElementById('cleanModal');
 const modalIcon = document.getElementById('modalIcon');
@@ -100,6 +102,530 @@ function showConfirm(message, title = 'Confirm', type = 'question') {
 function hasValidTrackerConfig(config) {
     return Boolean(config && config.url && config.key);
 }
+
+const VALID_CHAT_SOURCES = ['whatsapp', 'telegram', 'discord', 'signal', 'manual'];
+const MAX_CHAT_CONTENT_SIZE = 10 * 1024 * 1024;
+const STORAGE_WARNING_THRESHOLD = 4 * 1024 * 1024;
+
+const ChatValidator = {
+    sanitize(html) {
+        const div = document.createElement('div');
+        div.textContent = html;
+        return div.innerHTML;
+    },
+
+    validateChatData({ source, content, participants, context }) {
+        const errors = [];
+
+        if (!source || !VALID_CHAT_SOURCES.includes(source.toLowerCase())) {
+            errors.push(`Invalid source. Must be one of: ${VALID_CHAT_SOURCES.join(', ')}`);
+        }
+
+        if (!content || typeof content !== 'string') {
+            errors.push('Content is required and must be a string');
+        } else {
+            if (content.length > MAX_CHAT_CONTENT_SIZE) {
+                errors.push(`Content exceeds maximum size of ${MAX_CHAT_CONTENT_SIZE} bytes`);
+            }
+            if (content.trim().length === 0) {
+                errors.push('Content cannot be empty or whitespace only');
+            }
+        }
+
+        if (!Array.isArray(participants) || participants.length === 0) {
+            errors.push('At least one participant is required');
+        } else {
+            participants.forEach((p, i) => {
+                if (!p.id) errors.push(`Participant ${i + 1} is missing an id`);
+                if (!p.name) errors.push(`Participant ${i + 1} is missing a name`);
+            });
+        }
+
+        if (context !== undefined && typeof context !== 'string') {
+            errors.push('Context must be a string');
+        }
+
+        return {
+            isValid: errors.length === 0,
+            errors
+        };
+    },
+
+    sanitizeChatData(chatData) {
+        return {
+            ...chatData,
+            source: chatData.source.toLowerCase(),
+            content: this.sanitize(chatData.content),
+            context: chatData.context ? this.sanitize(chatData.context) : '',
+            participants: chatData.participants.map(p => ({
+                id: String(p.id),
+                name: this.sanitize(p.name),
+                credit: typeof p.credit === 'number' ? p.credit : undefined
+            }))
+        };
+    }
+};
+
+const ChatParser = {
+    parse(content, source) {
+        const parsers = {
+            whatsapp: this.parseWhatsApp,
+            telegram: this.parseTelegram,
+            discord: this.parseDiscord,
+            signal: this.parseSignal
+        };
+
+        const parser = parsers[source] || parsers.discord;
+        return parser.call(this, content);
+    },
+
+    parseWhatsApp(content) {
+        const lines = content.split('\n');
+        const messages = [];
+        const participantSet = new Set();
+
+        const datePattern = /^(\d{1,2}\/\d{1,2}\/\d{2,4}),?\s*(\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AP]M)?)\s*-\s*(.+?):\s*(.+)$/;
+
+        for (const line of lines) {
+            const match = line.match(datePattern);
+            if (match) {
+                const [, date, time, sender, message] = match;
+                participantSet.add(sender.trim());
+                messages.push({
+                    timestamp: this.parseDate(date, time, 'whatsapp'),
+                    sender: sender.trim(),
+                    message: message.trim(),
+                    raw: line
+                });
+            } else if (messages.length > 0) {
+                messages[messages.length - 1].message += '\n' + line;
+            }
+        }
+
+        return {
+            messages,
+            participants: [...participantSet],
+            metadata: this.extractMetadata(messages)
+        };
+    },
+
+    parseTelegram(content) {
+        const lines = content.split('\n');
+        const messages = [];
+        const participantSet = new Set();
+
+        const datePattern = /^(\d{1,2}\s+\w+\s+\d{4}|\d{1,2}-\d{1,2}-\d{4})\s+(\d{1,2}:\d{2}(?::\d{2})?)\s*-\s*(.+?):\s*(.+)$/;
+        const altPattern = /^\[(\d{1,2}\.\d{1,2}\.\d{2,4}\s+\d{1,2}:\d{2}(?::\d{2})?)\]\s*([^:]+):\s*(.+)$/;
+
+        for (const line of lines) {
+            let match = line.match(datePattern);
+            if (!match) match = line.match(altPattern);
+            
+            if (match) {
+                const [, date, time, sender, message] = match;
+                participantSet.add(sender.trim());
+                messages.push({
+                    timestamp: this.parseDate(date, time, 'telegram'),
+                    sender: sender.trim(),
+                    message: message.trim(),
+                    raw: line
+                });
+            } else if (messages.length > 0) {
+                messages[messages.length - 1].message += '\n' + line;
+            }
+        }
+
+        return {
+            messages,
+            participants: [...participantSet],
+            metadata: this.extractMetadata(messages)
+        };
+    },
+
+    parseDiscord(content) {
+        const lines = content.split('\n');
+        const messages = [];
+        const participantSet = new Set();
+
+        const datePattern = /^(\d{4}-\d{2}-\d{2})\s*[T\s](\d{1,2}:\d{2}(?::\d{2})?(?:\.\d{3})?(?:Z|[+-]\d{2}:?\d{2})?)\s*\|\s*(.+?)\s*#(\d{4})\s*:?\s*(.+)$/;
+        const altPattern = /^(\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2})\s*-\s*(.+?)\s*:\s*(.+)$/;
+
+        for (const line of lines) {
+            let match = line.match(datePattern);
+            if (!match) match = line.match(altPattern);
+
+            if (match) {
+                const date = match[1];
+                const time = match[2];
+                const sender = match[3];
+                const message = match[4] || match[match.length - 1];
+                participantSet.add(sender.trim());
+                messages.push({
+                    timestamp: new Date(`${date}T${time}`).toISOString(),
+                    sender: sender.trim(),
+                    message: message.trim(),
+                    raw: line
+                });
+            } else if (messages.length > 0) {
+                messages[messages.length - 1].message += '\n' + line;
+            }
+        }
+
+        return {
+            messages,
+            participants: [...participantSet],
+            metadata: this.extractMetadata(messages)
+        };
+    },
+
+    parseSignal(content) {
+        return this.parseWhatsApp(content);
+    },
+
+    parseDate(dateStr, timeStr, format) {
+        try {
+            let fullDate;
+            if (format === 'whatsapp') {
+                const parts = dateStr.split('/');
+                const year = parts[2]?.length === 2 ? `20${parts[2]}` : parts[2];
+                fullDate = new Date(`${parts[1]}/${parts[0]}/${year} ${timeStr}`);
+            } else if (format === 'telegram') {
+                fullDate = new Date(`${dateStr} ${timeStr}`);
+            } else {
+                fullDate = new Date(`${dateStr} ${timeStr}`);
+            }
+            return isNaN(fullDate.getTime()) ? new Date().toISOString() : fullDate.toISOString();
+        } catch {
+            return new Date().toISOString();
+        }
+    },
+
+    extractMetadata(messages) {
+        if (!messages.length) return { totalMessages: 0, dateRange: null, wordCount: 0 };
+
+        const words = messages.reduce((acc, m) => acc + (m.message.split(/\s+/).length), 0);
+        const timestamps = messages.map(m => new Date(m.timestamp).getTime()).filter(t => !isNaN(t)).sort((a, b) => a - b);
+
+        return {
+            totalMessages: messages.length,
+            dateRange: timestamps.length > 1 ? {
+                start: new Date(timestamps[0]).toISOString(),
+                end: new Date(timestamps[timestamps.length - 1]).toISOString()
+            } : null,
+            wordCount: words
+        };
+    },
+
+    extractEntities(messages) {
+        const entities = {
+            urls: new Set(),
+            emails: new Set(),
+            phones: new Set(),
+            mentions: new Set()
+        };
+
+        const urlPattern = /https?:\/\/[^\s]+/gi;
+        const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+        const phonePattern = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
+        const mentionPattern = /@[a-zA-Z0-9_]+/g;
+
+        for (const msg of messages) {
+            const matches = msg.message.match(urlPattern);
+            if (matches) matches.forEach(m => entities.urls.add(m));
+            
+            const emails = msg.message.match(emailPattern);
+            if (emails) emails.forEach(e => entities.emails.add(e));
+            
+            const phones = msg.message.match(phonePattern);
+            if (phones) phones.forEach(p => entities.phones.add(p));
+            
+            const mentions = msg.message.match(mentionPattern);
+            if (mentions) mentions.forEach(m => entities.mentions.add(m));
+        }
+
+        return {
+            urls: [...entities.urls],
+            emails: [...entities.emails],
+            phones: [...entities.phones],
+            mentions: [...entities.mentions]
+        };
+    }
+};
+
+const ChatStorageManager = {
+    CACHE_TTL: 5000,
+    _cache: new Map(),
+
+    _getCacheKey(key) {
+        return key;
+    },
+
+    _isCacheValid(key) {
+        const cached = this._cache.get(key);
+        if (!cached) return false;
+        return Date.now() - cached.timestamp < this.CACHE_TTL;
+    },
+
+    _setCache(key, data) {
+        this._cache.set(key, { data, timestamp: Date.now() });
+    },
+
+    getChatHistory() {
+        const key = 'chatHistory';
+        if (this._isCacheValid(key)) {
+            return this._cache.get(key).data;
+        }
+        try {
+            const data = JSON.parse(localStorage.getItem(key) || '[]');
+            this._setCache(key, data);
+            return data;
+        } catch (e) {
+            console.error('Error reading chat history:', e);
+            return [];
+        }
+    },
+
+    saveChat(chatData) {
+        this._cache.delete('chatHistory');
+        const history = this.getChatHistory();
+        history.push(chatData);
+        this._saveWithQuotaCheck('chatHistory', history);
+        this._setCache('chatHistory', history);
+    },
+
+    deleteChat(index) {
+        this._cache.delete('chatHistory');
+        const history = this.getChatHistory();
+        if (index < 0 || index >= history.length) return false;
+        history.splice(index, 1);
+        this._saveWithQuotaCheck('chatHistory', history);
+        return true;
+    },
+
+    clearAllChats() {
+        this._cache.clear();
+        localStorage.removeItem('chatHistory');
+    },
+
+    _saveWithQuotaCheck(key, data) {
+        try {
+            const serialized = JSON.stringify(data);
+            const size = new Blob([serialized]).size;
+            
+            if (size > STORAGE_WARNING_THRESHOLD) {
+                console.warn(`Chat storage approaching limit: ${(size / 1024 / 1024).toFixed(2)}MB`);
+            }
+            
+            localStorage.setItem(key, serialized);
+        } catch (e) {
+            if (e.name === 'QuotaExceededError') {
+                console.error('Storage quota exceeded!');
+                this._handleQuotaExceeded(key, data);
+            } else {
+                throw e;
+            }
+        }
+    },
+
+    _handleQuotaExceeded(key, data) {
+        const oldData = data.slice(1);
+        localStorage.setItem(key, JSON.stringify(oldData));
+        console.log('Cleared oldest chat due to quota exceeded');
+    },
+
+    getAIContext() {
+        const key = 'aiChatContext';
+        if (this._isCacheValid(key)) {
+            return this._cache.get(key).data;
+        }
+        try {
+            const data = JSON.parse(localStorage.getItem(key) || '[]');
+            this._setCache(key, data);
+            return data;
+        } catch (e) {
+            console.error('Error reading AI context:', e);
+            return [];
+        }
+    },
+
+    saveAIContext(contextData) {
+        this._cache.delete('aiChatContext');
+        const contexts = this.getAIContext();
+        contexts.push(contextData);
+        localStorage.setItem('aiChatContext', JSON.stringify(contexts));
+        this._setCache('aiChatContext', contexts);
+    },
+
+    invalidateCache() {
+        this._cache.clear();
+    },
+
+    getStorageStats() {
+        const history = this.getChatHistory();
+        const aiContext = this.getAIContext();
+        
+        const historySize = new Blob([JSON.stringify(history)]).size;
+        const aiContextSize = new Blob([JSON.stringify(aiContext)]).size;
+        
+        return {
+            totalChats: history.length,
+            totalAIContexts: aiContext.length,
+            historySize,
+            aiContextSize,
+            totalSize: historySize + aiContextSize,
+            historySizeMB: (historySize / 1024 / 1024).toFixed(2),
+            aiContextSizeMB: (aiContextSize / 1024 / 1024).toFixed(2),
+            totalSizeMB: ((historySize + aiContextSize) / 1024 / 1024).toFixed(2),
+            isNearLimit: historySize > STORAGE_WARNING_THRESHOLD
+        };
+    }
+};
+
+const ChatAnalysisService = {
+    ANALYSIS_TIMEOUT: 30000,
+    MAX_RETRIES: 2,
+    CONTENT_TRUNCATE: 3000,
+
+    async analyze(chatContent, source, options = {}) {
+        const { retries = this.MAX_RETRIES, onProgress } = options;
+        let lastError;
+
+        for (let attempt = 0; attempt <= retries; attempt++) {
+            try {
+                return await this._performAnalysis(chatContent, source, onProgress);
+            } catch (e) {
+                lastError = e;
+                if (attempt < retries) {
+                    await this._delay(1000 * (attempt + 1));
+                }
+            }
+        }
+
+        console.error('Analysis failed after retries:', lastError);
+        return this._getDefaultResult('Analysis failed - please try again');
+    },
+
+    async _performAnalysis(content, source, onProgress) {
+        const truncatedContent = content.substring(0, this.CONTENT_TRUNCATE);
+        const parsed = ChatParser.parse(content, source);
+        const entities = ChatParser.extractEntities(parsed.messages);
+
+        const context = this._buildAnalysisPrompt(source, truncatedContent, entities);
+
+        const response = await Promise.race([
+            puter.ai.chat([
+                { role: "system", content: context },
+                { role: "user", content: "Analyze this chat for suspicious activity and provide your findings in JSON format." }
+            ]),
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Analysis timeout')), this.ANALYSIS_TIMEOUT)
+            )
+        ]);
+
+        const responseText = response.content ? response.content : response;
+        const result = extractJSONFromResponse(responseText);
+
+        if (result && typeof result === 'object') {
+            return {
+                ...this._normalizeResult(result),
+                entities,
+                metadata: parsed.metadata
+            };
+        }
+
+        return this._getDefaultResult('Could not parse analysis response');
+    },
+
+    _buildAnalysisPrompt(source, content, entities) {
+        const entityWarnings = [];
+        if (entities.urls.length > 0) entityWarnings.push(`Contains ${entities.urls.length} URLs`);
+        if (entities.emails.length > 0) entityWarnings.push(`Contains ${entities.emails.length} email addresses`);
+        if (entities.phones.length > 0) entityWarnings.push(`Contains ${entities.phones.length} phone numbers`);
+
+        return `You are a cybersecurity expert analyzing ${source} chat conversations for suspicious or potentially fraudulent activity.
+
+Analyze the following chat content${entityWarnings.length > 0 ? ` (${entityWarnings.join(', ')})` : ''}:
+
+${content}
+
+Look for these red flags:
+- Requests for money, gift cards, or financial information
+- Personal data collection (SSN, bank details, passwords)
+- Urgent or threatening language pressuring the user
+- Unsolicited offers, prizes, or investment schemes
+- Links to unfamiliar or suspicious websites
+- Impersonation or claims of needing secrecy
+- Requests to download attachments or run programs
+- Pressure to abandon official channels
+- Phishing attempts or social engineering
+- Sextortion or inappropriate content with minors
+- Hate speech or harassment
+
+Provide your analysis in this EXACT JSON format:
+{
+    "isSuspicious": boolean,
+    "riskLevel": "low|medium|high",
+    "redFlags": ["flag1", "flag2"],
+    "summary": "Brief summary of findings",
+    "recommendations": ["action1", "action2"]
+}`;
+    },
+
+    _normalizeResult(result) {
+        return {
+            isSuspicious: Boolean(result.isSuspicious),
+            riskLevel: ['low', 'medium', 'high'].includes(result.riskLevel) ? result.riskLevel : 'low',
+            redFlags: Array.isArray(result.redFlags) ? result.redFlags.slice(0, 20) : [],
+            summary: String(result.summary || 'No summary provided'),
+            recommendations: Array.isArray(result.recommendations) ? result.recommendations.slice(0, 10) : []
+        };
+    },
+
+    _getDefaultResult(reason) {
+        return {
+            isSuspicious: false,
+            riskLevel: 'low',
+            redFlags: [],
+            summary: reason,
+            recommendations: [],
+            entities: { urls: [], emails: [], phones: [], mentions: [] },
+            metadata: null
+        };
+    },
+
+    _delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    },
+
+    async batchAnalyze(chats, options = {}) {
+        const { onProgress, concurrency = 2, onChatComplete } = options;
+        const results = [];
+        const total = chats.length;
+
+        for (let i = 0; i < chats.length; i += concurrency) {
+            const batch = chats.slice(i, i + concurrency);
+            const batchResults = await Promise.all(
+                batch.map((chat, idx) => 
+                    this.analyze(chat.content, chat.source, options)
+                        .then(result => {
+                            const chatResult = {
+                                index: i + idx,
+                                source: chat.source,
+                                participants: chat.participants,
+                                result
+                            };
+                            if (onChatComplete) onChatComplete(chatResult);
+                            if (onProgress) onProgress((i + idx + 1) / total * 100);
+                            return chatResult;
+                        })
+                )
+            );
+            results.push(...batchResults);
+        }
+
+        return results;
+    }
+};
 
 let trackerConfig = null;
 let trackerSupabase = null;
@@ -871,6 +1397,21 @@ const refreshChatListBtn = document.getElementById('refreshChatListBtn');
 const exportChatReportBtn = document.getElementById('exportChatReportBtn');
 const clearChatHistoryBtn = document.getElementById('clearChatHistoryBtn');
 const savedChatsList = document.getElementById('savedChatsList');
+const exportChatsJsonBtn = document.getElementById('exportChatsJsonBtn');
+const importChatsBtn = document.getElementById('importChatsBtn');
+const viewChatStatsBtn = document.getElementById('viewChatStatsBtn');
+const findDuplicateChatsBtn = document.getElementById('findDuplicateChatsBtn');
+const chatSearchInput = document.getElementById('chatSearchInput');
+const chatFilterSource = document.getElementById('chatFilterSource');
+const selectAllChatsBtn = document.getElementById('selectAllChatsBtn');
+const bulkDeleteChatsBtn = document.getElementById('bulkDeleteChatsBtn');
+const storageUsedMetric = document.getElementById('storageUsedMetric');
+const lastScanTime = document.getElementById('lastScanTime');
+
+let selectedChatIndices = new Set();
+let chatSearchFilter = '';
+let chatSourceFilter = '';
+let lastAnalysisTimestamp = null;
 
 const classificationBanner = document.getElementById('classificationBanner');
 
@@ -2184,6 +2725,7 @@ function showDetailView(data, type) {
 
     document.getElementById('profileName').textContent = data.name;
     document.getElementById('profileType').textContent = type.charAt(0).toUpperCase() + type.slice(1);
+    document.getElementById('statId').textContent = `ID: ${data.id || '—'}`;
 
     if (type === 'human') {
         const friendsCount = data.friends ? data.friends.length : 0;
@@ -2195,13 +2737,23 @@ function showDetailView(data, type) {
         document.getElementById('statFamily').textContent = familyCount;
         document.getElementById('statTags').textContent = tagsCount;
         document.getElementById('statCredit').textContent = creditValue;
-        document.getElementById('statId').textContent = data.id || '—';
+
+        const threatLevelEl = document.getElementById('statThreatLevel');
+        const statThreatContainer = document.getElementById('statThreatLevelContainer');
+        if (data.threatLevel) {
+            threatLevelEl.textContent = data.threatLevel;
+            threatLevelEl.style.color = getThreatLevelColor(data.threatLevel);
+            statThreatContainer.style.display = 'block';
+        } else {
+            threatLevelEl.textContent = '—';
+            statThreatContainer.style.display = 'none';
+        }
     } else {
         document.getElementById('statFriends').textContent = 'N/A';
         document.getElementById('statFamily').textContent = 'N/A';
         document.getElementById('statTags').textContent = 'N/A';
         document.getElementById('statCredit').textContent = 'N/A';
-        document.getElementById('statId').textContent = '—';
+        document.getElementById('statThreatLevelContainer').style.display = 'none';
     }
 
     const profilePictureContainer = document.getElementById('profilePictureContainer');
@@ -2220,72 +2772,109 @@ function showDetailView(data, type) {
     }
 
     document.getElementById('detailName').textContent = data.name;
-    document.getElementById('detailType').textContent = type.charAt(0).toUpperCase() + type.slice(1);
 
     if (type === 'human') {
-        document.getElementById('detailGenderContainer').style.display = 'block';
+        const setDetail = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value || '—';
+        };
+        const showContainer = (id) => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = '';
+        };
+        const hideContainer = (id) => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        };
+
+        showContainer('detailGenderContainer');
+        showContainer('detailBirthDateContainer');
+        showContainer('detailAgeContainer');
+        showContainer('detailMaritalStatusContainer');
+        showContainer('detailOccupationContainer');
+        showContainer('detailFriendsContainer');
+        showContainer('detailFamilyContainer');
+
         document.getElementById('detailGender').textContent = data.gender || 'Not specified';
+        document.getElementById('detailBirthDate').textContent = data.birthDate ? new Date(data.birthDate).toLocaleDateString() : 'Not specified';
+        const age = data.birthDate ? calculateAge(data.birthDate) : null;
+        document.getElementById('detailAge').textContent = age ? `${age} years old` : 'Unknown';
+        document.getElementById('detailMaritalStatus').textContent = data.maritalStatus || 'Not specified';
+        document.getElementById('detailOccupation').textContent = data.workplace || 'Not specified';
 
-        document.getElementById('detailBirthDateContainer').style.display = 'block';
-        document.getElementById('detailBirthDate').textContent = data.birthDate || 'N/A';
+        showContainer('detailCreditContainer');
+        document.getElementById('detailCredit').textContent = data.credit !== undefined ? Math.round(data.credit) : 'Not recorded';
 
-        const creditContainer = document.getElementById('detailCreditContainer');
-        if (creditContainer) {
-            creditContainer.style.display = 'block';
-            document.getElementById('detailCredit').textContent = data.credit !== undefined ? Math.round(data.credit) : 'N/A';
+        showContainer('detailClassContainer');
+        document.getElementById('detailClass').textContent = data.socialClass || 'Not specified';
+
+        setDetail('detailNationality', data.nationality);
+        setDetail('detailCountryOfOrigin', data.countryOfOrigin);
+        setDetail('detailImmigrationStatus', data.immigrationStatus);
+        setDetail('detailLanguages', data.languages);
+        setDetail('detailEthnicity', data.ethnicity);
+        setDetail('detailReligion', data.religion);
+        setDetail('detailPoliticalViews', data.politicalViews);
+        setDetail('detailEducation', data.educationLevel);
+        setDetail('detailIncomeLevel', data.incomeLevel);
+
+        const threatLevelEl = document.getElementById('detailThreatLevel');
+        if (data.threatLevel) {
+            threatLevelEl.textContent = data.threatLevel;
+            threatLevelEl.style.color = getThreatLevelColor(data.threatLevel);
+        } else {
+            threatLevelEl.textContent = 'Not specified';
+            threatLevelEl.style.color = '';
         }
 
-        const classContainer = document.getElementById('detailClassContainer');
-        if (classContainer) {
-            classContainer.style.display = 'block';
-            document.getElementById('detailClass').textContent = data.socialClass || 'N/A';
-        }
-
-        document.getElementById('detailNotesContainer').style.display = 'block';
-        document.getElementById('detailNotes').textContent = data.extraNotes || 'None';
-
-        document.getElementById('detailFriendsContainer').style.display = 'block';
         const friendsList = data.friends && data.friends.length > 0
             ? data.friends.map(id => getHumanNameById(id)).join(', ')
             : 'None';
         document.getElementById('detailFriends').textContent = friendsList;
 
-        document.getElementById('detailFamilyContainer').style.display = 'block';
         const familyList = data.family && data.family.length > 0
             ? data.family.map(id => getHumanNameById(id)).join(', ')
             : 'None';
         document.getElementById('detailFamily').textContent = familyList;
 
-        const detailTagsContainer = document.getElementById('detailTagsContainer');
-        if (detailTagsContainer) {
-            detailTagsContainer.style.display = 'block';
-            const tagsList = data.tags && data.tags.length > 0
-                ? data.tags.join(', ')
-                : 'None';
-            document.getElementById('detailTags').textContent = tagsList;
+        const tagsSection = document.getElementById('detailTagsSection');
+        const tagsEl = document.getElementById('detailTags');
+        if (data.tags && data.tags.length > 0) {
+            tagsSection.style.display = '';
+            tagsEl.textContent = data.tags.join(', ');
+        } else {
+            tagsSection.style.display = 'none';
         }
 
-        document.getElementById('familyGraphContainer').style.display = 'block';
+        const notesSection = document.getElementById('detailNotesSection');
+        const notesEl = document.getElementById('detailNotes');
+        if (data.extraNotes) {
+            notesSection.style.display = '';
+            notesEl.textContent = data.extraNotes;
+        } else {
+            notesSection.style.display = 'none';
+        }
+
+        const familyGraphContainer = document.getElementById('familyGraphContainer');
+        familyGraphContainer.style.display = '';
+
+        document.getElementById('familyGraphContainer').style.display = '';
     } else {
-        document.getElementById('detailGenderContainer').style.display = 'none';
-        document.getElementById('detailBirthDateContainer').style.display = 'none';
-
-        const creditContainer = document.getElementById('detailCreditContainer');
-        if (creditContainer) {
-            creditContainer.style.display = 'none';
-        }
-
-        const classContainer = document.getElementById('detailClassContainer');
-        if (classContainer) {
-            classContainer.style.display = 'none';
-        }
-
-        document.getElementById('detailFriendsContainer').style.display = 'none';
-        document.getElementById('detailFamilyContainer').style.display = 'none';
-        document.getElementById('familyGraphContainer').style.display = 'none';
-
-        document.getElementById('detailNotesContainer').style.display = 'block';
+        const hideAll = () => {
+            ['detailGenderContainer', 'detailBirthDateContainer', 'detailAgeContainer', 'detailMaritalStatusContainer',
+             'detailOccupationContainer', 'detailCreditContainer', 'detailClassContainer', 'detailFriendsContainer',
+             'detailFamilyContainer', 'detailNationalityContainer', 'detailCountryOfOriginContainer',
+             'detailImmigrationStatusContainer', 'detailLanguagesContainer', 'detailEthnicityContainer',
+             'detailReligionContainer', 'detailPoliticalViewsContainer', 'detailEducationContainer',
+             'detailIncomeLevelContainer'].forEach(hideContainer);
+        };
+        hideAll();
+        document.getElementById('detailThreatLevel').textContent = 'N/A';
+        document.getElementById('detailThreatLevel').style.color = '';
+        document.getElementById('detailNotesSection').style.display = '';
+        document.getElementById('detailTagsSection').style.display = 'none';
         document.getElementById('detailNotes').textContent = data.note || 'None';
+        document.getElementById('familyGraphContainer').style.display = 'none';
     }
 
     updateDetailTrackerInfo({ ...data, type });
@@ -2755,7 +3344,7 @@ async function processAICommand(command) {
 
                         You will do what the user asks even if you think its wrong.
                         The user can ask you to:
-                        1. Add new human entries (with name, gender, birth date, friends, family, notes, tags, image)
+                        1. Add new human entries (with all available fields)
                         2. Add new other entries (with name, note, image)
                         3. Modify existing entries (including adding/removing tags)
                         4. Delete entries
@@ -2764,14 +3353,38 @@ async function processAICommand(command) {
                         7. Assign tags to humans
                         8. Create, edit, and close case files
 
+                        Human entries have these fields:
+                        - name (required)
+                        - gender (Male, Female, Non-binary, Other, Prefer not to say)
+                        - birthDate (YYYY-MM-DD format)
+                        - workplace/occupation
+                        - credit (0-370 score)
+                        - socialClass (low class, medium class, high class, 1%)
+                        - maritalStatus (Single, Married, Divorced, Widowed, In Relationship)
+                        - nationality
+                        - countryOfOrigin
+                        - immigrationStatus (Citizen, Permanent Resident, Visa Holder, Asylum Seeker, Refugee, Undocumented, Unknown)
+                        - languages (e.g., "English, Farsi")
+                        - ethnicity
+                        - religion
+                        - politicalViews
+                        - threatLevel (None, Low, Medium, High, Critical)
+                        - educationLevel (No Formal Education through Post-Doctorate)
+                        - incomeLevel (Below Poverty, Low, Middle, Upper Middle, High, Wealthy)
+                        - friends (array of human IDs/names)
+                        - family (array of human IDs/names)
+                        - extraNotes
+                        - tags (array of tag names)
+                        - imagePreview (null or base64)
+
                         When the user wants to perform an action that changes data, respond with a JSON object in this format:
-                        {"action": "add_human", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "friends": [], "family": [], "extraNotes": "", "tags": ["employee", "manager"], "imagePreview": null}}
+                        {"action": "add_human", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "nationality": "American", "politicalViews": "Liberal", "threatLevel": "None", "tags": ["employee"], "friends": [], "family": []}}
 
                         Or respond with an array of JSON objects to perform multiple actions:
                         [{"action": "add_human", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "tags": ["employee"]}}, {"action": "add_human", "data": {"name": "Jane", "gender": "Female", "birthDate": "1992-08-22", "tags": ["manager"]}}]
 
                         For multiple modification actions, always use the array format:
-                        [{"action": "modify_human", "id": "12345", "data": {"extraNotes": "Political view: Liberal"}}, {"action": "modify_human", "id": "67890", "data": {"extraNotes": "Political view: Conservative"}}]
+                        [{"action": "modify_human", "id": "12345", "data": {"politicalViews": "Liberal", "threatLevel": "Medium"}}, {"action": "modify_human", "id": "67890", "data": {"politicalViews": "Conservative"}}]
 
                         When the user asks to give every person a political view or similar requests, you should:
                         1. Create a unique political view for each human entry
@@ -2780,7 +3393,7 @@ async function processAICommand(command) {
                         4. Always include all humans in the response, not just one
 
                         Example response for "Give every person a political view":
-                        [{"action": "modify_human", "id": "12345", "data": {"extraNotes": "Political view: Liberal"}}, {"action": "modify_human", "id": "67890", "data": {"extraNotes": "Political view: Conservative"}}, ...]
+                        [{"action": "modify_human", "id": "12345", "data": {"politicalViews": "Liberal"}}, {"action": "modify_human", "id": "67890", "data": {"politicalViews": "Conservative"}}, ...]
 
                         Case file actions:
                         {"action": "create_case", "title": "Operation Name", "description": "What this case is about", "status": "open"}
@@ -2813,21 +3426,22 @@ async function processAICommand(command) {
                         IMPORTANT: When creating multiple people with traits, political views, and realistic looking traits, and making families that connect most people, make sure to:
                         1. Create all people first with the add_human action
                         2. Then create the relationships between them using modify_human actions to update their friends and family arrays
-                        3. For immigrants, include that information in their extraNotes
-                        4. Always return a properly formatted JSON array with all actions needed
+                        3. Always return a properly formatted JSON array with all actions needed
 
                         When the user asks to create a specific number of people (e.g., "Make 54 different people"), you MUST create exactly that many people with diverse traits.
                         Each person should have:
                         - A unique name
                         - A gender
                         - A birth date
-                        - Political views (diverse range: Liberal, Conservative, Moderate, Progressive, Libertarian, Socialist, Green, Centrist, etc.)
-                        - Realistic appearance traits (e.g., Tall, Short, Athletic, Slender, Average, etc.)
+                        - nationality, countryOfOrigin, immigrationStatus
+                        - ethnicity, religion, politicalViews
+                        - threatLevel (None, Low, Medium, High, Critical)
+                        - educationLevel, incomeLevel
+                        - maritalStatus
                         - Friends and family connections (most people should be connected)
-                        - 2 of the people should be immigrants with country of origin in their extraNotes
 
-                        Example response for "Make 54 different people with traits political views and realistic looking traits and make families that connect most people, make 2 of the people immigrants":
-                        [{"action": "add_human", "data": {"name": "Person1", "gender": "Male", "birthDate": "1980-01-01", "friends": [], "family": [], "extraNotes": "Political view: Liberal; Looks: Above average", "tags": [], "imagePreview": null}}, {"action": "add_human", "data": {"name": "Person2", "gender": "Female", "birthDate": "1985-02-15", "friends": [], "family": [], "extraNotes": "Political view: Conservative; Looks: Average", "tags": [], "imagePreview": null}}, ...]
+                        Example response for "Make 54 different people with traits political views and realistic looking traits and make families that connect most people":
+                        [{"action": "add_human", "data": {"name": "Person1", "gender": "Male", "birthDate": "1980-01-01", "nationality": "American", "countryOfOrigin": "USA", "immigrationStatus": "Citizen", "ethnicity": "Caucasian", "religion": "Christian", "politicalViews": "Liberal", "threatLevel": "None", "educationLevel": "Bachelor's Degree", "maritalStatus": "Married", "tags": [], "friends": [], "family": []}}, {"action": "add_human", "data": {"name": "Person2", "gender": "Female", "birthDate": "1985-02-15", "nationality": "Iranian", "countryOfOrigin": "Iran", "immigrationStatus": "Asylum Seeker", "ethnicity": "Persian", "religion": "Muslim", "politicalViews": "Progressive", "threatLevel": "None", "educationLevel": "Master's Degree", "maritalStatus": "Single", "tags": [], "friends": [], "family": []}}, ...]
 
                         After creating all people, create relationships between them using modify_human actions.
 
@@ -3574,67 +4188,38 @@ document.getElementById('analyzeDiscordBtn')?.addEventListener('click', async ()
     analyzeBtn.textContent = 'Analyzing... ';
 
     try {
-        const context = `
-                    You are a cybersecurity expert analyzing Discord chat conversations for suspicious or potentially fraudulent activity.
-                    
-                    Analyze the following Discord chat transcript and identify any suspicious elements:
-                    
-                    ${chatContent}
-                    
-                    Look for these red flags:
-                    - Requests for money, gift cards, or financial information
-                    - Personal data collection (SSN, bank details, passwords)
-                    - Urgent or threatening language pressuring the user
-                    - Unsolicited offers, prizes, or investment schemes
-                    - Links to unfamiliar or suspicious websites
-                    - Impersonation or claims of needing secrecy
-                    - Requests to download attachments or run programs
-                    - Pressure to abandon official channels
-                    - Phishing attempts or social engineering
-                    
-                    Provide your analysis in this JSON format:
-                    {
-                        "isSuspicious": boolean,
-                        "riskLevel": "low|medium|high",
-                        "redFlags": ["flag1", "flag2"],
-                        "summary": "Brief summary of findings",
-                        "recommendations": ["action1", "action2"]
-                    }
-                `;
+        const result = await ChatAnalysisService.analyze(chatContent, 'discord');
 
-        const aiResponse = await puter.ai.chat([
-            { role: "system", content: context },
-            { role: "user", content: "Analyze this Discord chat for suspicious activity." }
-        ]);
+        let message = `=== Discord Chat Security Analysis ===\n\n`;
+        message += `Suspicious: ${result.isSuspicious ? 'YES' : 'NO'}\n`;
+        message += `Risk Level: ${result.riskLevel?.toUpperCase() || 'UNKNOWN'}\n\n`;
 
-        const responseText = aiResponse.content ? aiResponse.content : aiResponse;
-
-        try {
-            const analysis = extractJSONFromResponse(responseText);
-
-            if (analysis && typeof analysis === 'object') {
-                let result = `=== Discord Chat Security Analysis ===\n\n`;
-                result += `Suspicious: ${analysis.isSuspicious ? 'YES' : 'NO'}\n`;
-                result += `Risk Level: ${analysis.riskLevel?.toUpperCase() || 'UNKNOWN'}\n\n`;
-
-                if (analysis.redFlags && analysis.redFlags.length > 0) {
-                    result += "Red Flags Found:\n" + analysis.redFlags.map(flag => "• " + flag).join("\n") + "\n\n";
-                }
-
-                result += `Summary: ${analysis.summary || 'No specific concerns identified'}\n\n`;
-
-                if (analysis.recommendations && analysis.recommendations.length > 0) {
-                    result += `Recommendations:\n${analysis.recommendations.map(rec => `• ${rec}`).join('\n')}`;
-                }
-
-                showAlert(result, 'Analysis Result', 'info');
-            } else {
-                showAlert(`Analysis complete!\n\n${responseText}`, 'Analysis Complete', 'success');
-            }
-        } catch (parseError) {
-            console.error('Error parsing analysis response:', parseError);
-            showAlert(`Analysis complete!\n\n${responseText}`, 'Analysis Complete', 'success');
+        if (result.redFlags && result.redFlags.length > 0) {
+            message += "Red Flags Found:\n" + result.redFlags.map(flag => "• " + flag).join("\n") + "\n\n";
         }
+
+        if (result.entities) {
+            if (result.entities.urls?.length > 0) {
+                message += `URLs Found: ${result.entities.urls.length}\n`;
+            }
+            if (result.entities.emails?.length > 0) {
+                message += `Emails Found: ${result.entities.emails.length}\n`;
+            }
+            if (result.entities.phones?.length > 0) {
+                message += `Phone Numbers Found: ${result.entities.phones.length}\n`;
+            }
+            if (result.entities.urls?.length > 0 || result.entities.emails?.length > 0 || result.entities.phones?.length > 0) {
+                message += '\n';
+            }
+        }
+
+        message += `Summary: ${result.summary || 'No specific concerns identified'}\n\n`;
+
+        if (result.recommendations && result.recommendations.length > 0) {
+            message += `Recommendations:\n${result.recommendations.map(rec => `• ${rec}`).join('\n')}`;
+        }
+
+        showAlert(message, 'Analysis Result', 'info');
 
     } catch (error) {
         console.error('Error analyzing Discord chat:', error);
@@ -3734,21 +4319,42 @@ document.getElementById('chatUploadForm').addEventListener('submit', async (e) =
     uploadChatBtn.textContent = 'Processing...';
 
     try {
-        const chatData = {
+        const rawChatData = {
             source: source,
             content: content,
             context: context,
-            participants: selectedParticipants,
-            timestamp: new Date().toISOString()
+            participants: selectedParticipants
         };
 
-        let chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
-        chatHistory.push(chatData);
-        localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+        const validation = ChatValidator.validateChatData(rawChatData);
+        if (!validation.isValid) {
+            showAlert(`Validation failed:\n${validation.errors.join('\n')}`, 'Validation Error', 'error');
+            return;
+        }
 
+        const sanitizedChatData = ChatValidator.sanitizeChatData(rawChatData);
+        const parsedChat = ChatParser.parse(content, source);
+        
+        const chatData = {
+            ...sanitizedChatData,
+            timestamp: new Date().toISOString(),
+            parsed: {
+                messageCount: parsedChat.messages.length,
+                participants: parsedChat.participants,
+                metadata: parsedChat.metadata,
+                entities: ChatParser.extractEntities(parsedChat.messages)
+            }
+        };
+
+        ChatStorageManager.saveChat(chatData);
         addChatContextToAI(chatData);
 
-        showAlert(`Successfully processed chat with ${selectedParticipants.length} participants! This chat data is now available for AI analysis.`, 'Success', 'success');
+        const storageStats = ChatStorageManager.getStorageStats();
+        let message = `Successfully processed chat with ${selectedParticipants.length} participants!`;
+        if (storageStats.isNearLimit) {
+            message += `\n\nWarning: Storage is at ${storageStats.totalSizeMB}MB`;
+        }
+        showAlert(message, 'Success', 'success');
 
         chatUploadModal.style.display = 'none';
         chatUploadModal.style.zIndex = '-1';
@@ -3757,7 +4363,7 @@ document.getElementById('chatUploadForm').addEventListener('submit', async (e) =
 
     } catch (error) {
         console.error('Error processing chat:', error);
-            showAlert('Error processing chat. Please try again.', 'Error', 'error');
+        showAlert('Error processing chat. Please try again.', 'Error', 'error');
     } finally {
         uploadChatBtn.disabled = false;
         uploadChatBtn.textContent = 'Process Chat';
@@ -4215,14 +4821,13 @@ function addChatContextToAI(chatData) {
         type: 'chat_context',
         source: chatData.source,
         participants: chatData.participants.map(p => p.name).join(', '),
+        messageCount: chatData.parsed?.messageCount || null,
         wordCount: chatData.content.split(' ').length,
         context: chatData.context || 'No additional context provided',
         timestamp: chatData.timestamp
     };
 
-    let aiContext = JSON.parse(localStorage.getItem('aiChatContext') || '[]');
-    aiContext.push(chatSummary);
-    localStorage.setItem('aiChatContext', JSON.stringify(aiContext));
+    ChatStorageManager.saveAIContext(chatSummary);
 }
 
 function ensureDataPersistence() {
@@ -4319,8 +4924,7 @@ function loadContextPeople() {
 
 function loadContextChats() {
     const container = document.getElementById('contextChats');
-
-    const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+    const chatHistory = ChatStorageManager.getChatHistory();
 
     if (chatHistory.length === 0) {
         container.innerHTML = '<p style="color: #777; text-align: center;">No chats uploaded yet</p>';
@@ -4342,14 +4946,14 @@ function loadContextChats() {
 
         const date = new Date(chat.timestamp).toLocaleDateString();
         const participants = chat.participants.map(p => p.name).join(', ');
-        const wordCount = chat.content.split(' ').length;
+        const messageCount = chat.parsed?.messageCount || chat.content.split(' ').length;
 
         chatDiv.innerHTML = `
                     <input type="checkbox" id="context_chat_${index}" value="${index}" style="margin-right: 10px;">
                     <label for="context_chat_${index}" style="flex: 1; cursor: pointer;">
                         <strong>${chat.source.toUpperCase()} Chat</strong>
                         <br>
-                        <small style="color: #aaa;">${participants} • ${wordCount} words • ${date}</small>
+                        <small style="color: #aaa;">${participants} • ${messageCount} messages • ${date}</small>
                     </label>
                 `;
 
@@ -4862,6 +5466,28 @@ document.getElementById('deleteEntryBtn').addEventListener('click', () => {
     deleteCurrentEntry();
 });
 
+document.getElementById('exportPdfBtn').addEventListener('click', async () => {
+    console.log('Export PDF button clicked');
+    const data = document.currentDetailData;
+    console.log('Current detail data:', data);
+    if (!data) {
+        showAlert('No entry selected', 'Error', 'error');
+        return;
+    }
+    
+    if (data.type === 'human') {
+        console.log('Calling exportHumanToPDF with id:', data.id);
+        try {
+            await exportHumanToPDF(data.id);
+        } catch (err) {
+            console.error('PDF export error:', err);
+            showAlert('PDF export failed: ' + err.message, 'Error', 'error');
+        }
+    } else {
+        showAlert('PDF export is only available for people entries', 'Notice', 'info');
+    }
+});
+
 function updateSendButtonText(text) {
     const span = aiSendBtn.querySelector('.btn-icon-text');
     if (span) {
@@ -5042,6 +5668,17 @@ document.getElementById('humanForm').addEventListener('submit', (e) => {
     const credit = document.getElementById('credit').value;
     const socialClass = document.getElementById('socialClass').value;
     const extraNotes = document.getElementById('humanExtraNotes').value;
+    const maritalStatus = document.getElementById('maritalStatus').value;
+    const nationality = document.getElementById('nationality').value;
+    const countryOfOrigin = document.getElementById('countryOfOrigin').value;
+    const immigrationStatus = document.getElementById('immigrationStatus').value;
+    const languages = document.getElementById('languages').value;
+    const ethnicity = document.getElementById('ethnicity').value;
+    const religion = document.getElementById('religion').value;
+    const politicalViews = document.getElementById('politicalViews').value;
+    const threatLevel = document.getElementById('threatLevel').value;
+    const incomeLevel = document.getElementById('incomeLevel').value;
+    const educationLevel = document.getElementById('educationLevel').value;
 
     const friendsSelect = document.getElementById('friends');
     const familySelect = document.getElementById('family');
@@ -5072,7 +5709,18 @@ document.getElementById('humanForm').addEventListener('submit', (e) => {
                 family: selectedFamily,
                 extraNotes,
                 tags: selectedTags,
-                imagePreview: existingImage
+                imagePreview: existingImage,
+                maritalStatus: maritalStatus || undefined,
+                nationality: nationality || undefined,
+                countryOfOrigin: countryOfOrigin || undefined,
+                immigrationStatus: immigrationStatus || undefined,
+                languages: languages || undefined,
+                ethnicity: ethnicity || undefined,
+                religion: religion || undefined,
+                politicalViews: politicalViews || undefined,
+                threatLevel: threatLevel || undefined,
+                incomeLevel: incomeLevel || undefined,
+                educationLevel: educationLevel || undefined
             };
             applyTrackerAliasToHuman(pazatorData.humans[humanIndex], trackerAliasValue, existingHuman);
         }
@@ -5090,7 +5738,18 @@ document.getElementById('humanForm').addEventListener('submit', (e) => {
             family: selectedFamily,
             extraNotes,
             tags: selectedTags,
-            imagePreview: null
+            imagePreview: null,
+            maritalStatus: maritalStatus || undefined,
+            nationality: nationality || undefined,
+            countryOfOrigin: countryOfOrigin || undefined,
+            immigrationStatus: immigrationStatus || undefined,
+            languages: languages || undefined,
+            ethnicity: ethnicity || undefined,
+            religion: religion || undefined,
+            politicalViews: politicalViews || undefined,
+            threatLevel: threatLevel || undefined,
+            incomeLevel: incomeLevel || undefined,
+            educationLevel: educationLevel || undefined
         };
 
         applyTrackerAliasToHuman(newHuman, trackerAliasValue);
@@ -5743,6 +6402,241 @@ clearChatHistoryBtn?.addEventListener('click', () => {
     clearChatHistory();
 });
 
+chatSearchInput?.addEventListener('input', (e) => {
+    chatSearchFilter = e.target.value.toLowerCase();
+    loadSavedChats();
+});
+
+chatFilterSource?.addEventListener('change', (e) => {
+    chatSourceFilter = e.target.value;
+    loadSavedChats();
+});
+
+selectAllChatsBtn?.addEventListener('click', () => {
+    const history = ChatStorageManager.getChatHistory();
+    const visibleIndices = getVisibleChatIndices();
+    
+    if (selectedChatIndices.size === visibleIndices.size) {
+        selectedChatIndices.clear();
+        selectAllChatsBtn.innerHTML = '<i class="fas fa-check-square"></i> Select';
+        bulkDeleteChatsBtn.style.display = 'none';
+    } else {
+        visibleIndices.forEach(i => selectedChatIndices.add(i));
+        selectAllChatsBtn.innerHTML = '<i class="fas fa-square"></i> Deselect';
+        bulkDeleteChatsBtn.style.display = 'inline-block';
+    }
+    loadSavedChats();
+});
+
+bulkDeleteChatsBtn?.addEventListener('click', async () => {
+    if (selectedChatIndices.size === 0) return;
+    
+    const confirmed = await showConfirm(
+        `Delete ${selectedChatIndices.size} selected chats? This cannot be undone.`,
+        'Confirm Bulk Delete',
+        'warning'
+    );
+    
+    if (confirmed) {
+        const history = ChatStorageManager.getChatHistory();
+        const sortedIndices = [...selectedChatIndices].sort((a, b) => b - a);
+        
+        sortedIndices.forEach(index => {
+            ChatStorageManager.deleteChat(index);
+        });
+        
+        selectedChatIndices.clear();
+        selectAllChatsBtn.innerHTML = '<i class="fas fa-check-square"></i> Select';
+        bulkDeleteChatsBtn.style.display = 'none';
+        loadSavedChats();
+        showAlert(`Deleted ${sortedIndices.length} chats`, 'Success', 'success');
+    }
+});
+
+function getVisibleChatIndices() {
+    const history = ChatStorageManager.getChatHistory();
+    return history.map((chat, i) => i).filter(i => {
+        if (chatSourceFilter && chat.source !== chatSourceFilter) return false;
+        if (chatSearchFilter) {
+            const searchable = [
+                chat.source,
+                chat.content,
+                chat.context,
+                ...chat.participants.map(p => p.name)
+            ].join(' ').toLowerCase();
+            if (!searchable.includes(chatSearchFilter)) return false;
+        }
+        return true;
+    });
+}
+
+function updateStorageMetrics() {
+    const stats = ChatStorageManager.getStorageStats();
+    if (storageUsedMetric) {
+        storageUsedMetric.textContent = stats.totalSizeMB + 'MB';
+    }
+    
+    const history = ChatStorageManager.getChatHistory();
+    const sourceCounts = { whatsapp: 0, telegram: 0, discord: 0, signal: 0, manual: 0 };
+    history.forEach(chat => {
+        const source = chat.source?.toLowerCase() || 'manual';
+        if (sourceCounts.hasOwnProperty(source)) {
+            sourceCounts[source]++;
+        } else {
+            sourceCounts.manual++;
+        }
+    });
+    
+    const el = {
+        whatsapp: document.getElementById('whatsappCount'),
+        telegram: document.getElementById('telegramCount'),
+        discord: document.getElementById('discordCount'),
+        signal: document.getElementById('signalCount'),
+        manual: document.getElementById('manualCount')
+    };
+    
+    Object.entries(sourceCounts).forEach(([source, count]) => {
+        if (el[source]) el[source].textContent = count;
+    });
+    
+    const totalChatsEl = document.getElementById('totalChatsCount');
+    if (totalChatsEl) totalChatsEl.textContent = stats.totalChats;
+}
+
+function triggerImportChats() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            
+            let chatsToImport = [];
+            if (Array.isArray(data)) {
+                chatsToImport = data;
+            } else if (data.chats && Array.isArray(data.chats)) {
+                chatsToImport = data.chats;
+            } else {
+                showAlert('Invalid chat file format', 'Error', 'error');
+                return;
+            }
+            
+            let imported = 0;
+            const existingHistory = ChatStorageManager.getChatHistory();
+            const existingContent = new Set(existingHistory.map(c => c.content.substring(0, 100)));
+            
+            for (const chat of chatsToImport) {
+                if (!existingContent.has(chat.content?.substring(0, 100))) {
+                    ChatStorageManager.saveChat(chat);
+                    imported++;
+                }
+            }
+            
+            loadSavedChats();
+            showAlert(`Imported ${imported} new chats (${chatsToImport.length - imported} duplicates skipped)`, 'Import Complete', 'success');
+        } catch (err) {
+            console.error('Import error:', err);
+            showAlert('Failed to import chats: ' + err.message, 'Error', 'error');
+        }
+    };
+    input.click();
+}
+
+function triggerExportChatsJson() {
+    exportChatReport('json');
+}
+
+function triggerViewChatStats() {
+    const stats = ChatStorageManager.getStorageStats();
+    const history = ChatStorageManager.getChatHistory();
+    
+    const sourceStats = {};
+    history.forEach(chat => {
+        sourceStats[chat.source] = (sourceStats[chat.source] || 0) + 1;
+    });
+    
+    const avgMessages = history.length > 0 
+        ? Math.round(history.reduce((sum, c) => sum + (c.parsed?.messageCount || c.content.split(' ').length), 0) / history.length)
+        : 0;
+    
+    const dateRange = history.length > 0
+        ? {
+            oldest: new Date(Math.min(...history.map(c => new Date(c.timestamp).getTime()))).toLocaleDateString(),
+            newest: new Date(Math.max(...history.map(c => new Date(c.timestamp).getTime()))).toLocaleDateString()
+        }
+        : null;
+    
+    let report = `=== Chat Storage Statistics ===\n\n`;
+    report += `Total Chats: ${stats.totalChats}\n`;
+    report += `Total Size: ${stats.totalSizeMB}MB\n`;
+    report += `Average Messages per Chat: ${avgMessages}\n\n`;
+    
+    report += `=== By Source ===\n`;
+    Object.entries(sourceStats).forEach(([source, count]) => {
+        report += `${source.toUpperCase()}: ${count} chats\n`;
+    });
+    
+    if (dateRange) {
+        report += `\n=== Date Range ===\n`;
+        report += `Oldest: ${dateRange.oldest}\n`;
+        report += `Newest: ${dateRange.newest}\n`;
+    }
+    
+    showAlert(report, 'Chat Statistics', 'info');
+}
+
+function triggerFindDuplicates() {
+    const history = ChatStorageManager.getChatHistory();
+    
+    const hashMap = new Map();
+    const duplicates = [];
+    
+    history.forEach((chat, index) => {
+        const hash = chat.content.substring(0, 500);
+        if (hashMap.has(hash)) {
+            duplicates.push({
+                original: hashMap.get(hash),
+                duplicate: index
+            });
+        } else {
+            hashMap.set(hash, index);
+        }
+    });
+    
+    if (duplicates.length === 0) {
+        showAlert('No duplicate chats found!', 'Duplicates Check', 'success');
+    } else {
+        let report = `Found ${duplicates.length} potential duplicate(s):\n\n`;
+        duplicates.forEach((dup, i) => {
+            const origChat = history[dup.original];
+            const dupChat = history[dup.duplicate];
+            report += `${i + 1}. Original: [${origChat.source.toUpperCase()}] ${origChat.participants.map(p => p.name).join(', ')} (${new Date(origChat.timestamp).toLocaleDateString()})\n`;
+            report += `   Duplicate: [${dupChat.source.toUpperCase()}] ${dupChat.participants.map(p => p.name).join(', ')} (${new Date(dupChat.timestamp).toLocaleDateString()})\n\n`;
+        });
+        showAlert(report, 'Duplicate Chats Found', 'warning');
+    }
+}
+
+function triggerExportChatReport() {
+    exportChatReport('txt');
+}
+
+function triggerRefreshChatList() {
+    loadSavedChats();
+    updateStorageMetrics();
+    showAlert('Chat list refreshed', 'Refresh', 'success');
+}
+
+function updateLastScanTime() {
+    if (lastScanTime && lastAnalysisTimestamp) {
+        lastScanTime.textContent = new Date(lastAnalysisTimestamp).toLocaleTimeString();
+    }
+}
+
 document.getElementById('generateThreatReportBtn')?.addEventListener('click', () => {
     generateThreatReport();
 });
@@ -5936,7 +6830,8 @@ function reviewHistoricalPatterns() {
 }
 
 function loadSavedChats() {
-    const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+    const chatHistory = ChatStorageManager.getChatHistory();
+    updateStorageMetrics();
 
     if (chatHistory.length === 0) {
         savedChatsList.innerHTML = '<p style="color: #777; text-align: center;">No saved chats found</p>';
@@ -5945,10 +6840,28 @@ function loadSavedChats() {
 
     savedChatsList.innerHTML = '';
 
-    chatHistory.forEach((chat, index) => {
+    const stats = ChatStorageManager.getStorageStats();
+    if (stats.isNearLimit) {
+        const warningDiv = document.createElement('div');
+        warningDiv.style.cssText = 'background: rgba(255, 193, 7, 0.2); border: 1px solid #ffc107; border-radius: 8px; padding: 10px 15px; margin-bottom: 15px; color: #ffc107; font-size: 0.85rem;';
+        warningDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Storage: ${stats.totalSizeMB}MB - Consider exporting and clearing old chats`;
+        savedChatsList.appendChild(warningDiv);
+    }
+
+    const visibleIndices = getVisibleChatIndices();
+    
+    if (visibleIndices.length === 0 && (chatSearchFilter || chatSourceFilter)) {
+        savedChatsList.innerHTML = '<p style="color: #777; text-align: center;">No chats match your search/filter criteria</p>';
+        return;
+    }
+
+    visibleIndices.forEach(index => {
+        const chat = chatHistory[index];
         const chatCard = document.createElement('div');
-        chatCard.style.background = 'rgba(40, 40, 40, 0.7)';
-        chatCard.style.border = '1px solid #333';
+        const isSelected = selectedChatIndices.has(index);
+        
+        chatCard.style.background = isSelected ? 'rgba(60, 100, 140, 0.4)' : 'rgba(40, 40, 40, 0.7)';
+        chatCard.style.border = isSelected ? '1px solid #4a90d9' : '1px solid #333';
         chatCard.style.borderRadius = '8px';
         chatCard.style.padding = '15px';
         chatCard.style.marginBottom = '15px';
@@ -5958,35 +6871,55 @@ function loadSavedChats() {
         const date = new Date(chat.timestamp).toLocaleDateString();
         const participants = chat.participants.map(p => p.name).join(', ');
         const wordCount = chat.content.split(' ').length;
+        const messageCount = chat.parsed?.messageCount || wordCount;
+        const hasEntities = chat.parsed?.entities;
+        const entityCount = hasEntities ? 
+            (hasEntities.urls?.length || 0) + (hasEntities.emails?.length || 0) + (hasEntities.phones?.length || 0) : 0;
 
         chatCard.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                        <div style="flex: 1;">
-                            <h4 style="margin: 0 0 8px 0; color: #ffffff;">${chat.source.toUpperCase()} Chat</h4>
-                            <p style="margin: 0 0 8px 0; color: #aaa; font-size: 0.9rem;">Participants: ${participants}</p>
-                            <p style="margin: 0 0 8px 0; color: #aaa; font-size: 0.9rem;">${wordCount} words • ${date}</p>
-                            ${chat.context ? `<p style="margin: 0; color: #888; font-size: 0.85rem;">Context: ${chat.context}</p>` : ''}
+                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                            <input type="checkbox" ${isSelected ? 'checked' : ''} 
+                                   onclick="event.stopPropagation(); toggleChatSelection(${index})"
+                                   style="margin-top: 4px; width: 18px; height: 18px; cursor: pointer;">
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0 0 8px 0; color: #ffffff;">
+                                    ${chat.source.toUpperCase()} Chat
+                                    ${entityCount > 0 ? `<span style="font-size: 0.75rem; color: #ff9800; margin-left: 8px;">(${entityCount} entities)</span>` : ''}
+                                </h4>
+                                <p style="margin: 0 0 8px 0; color: #aaa; font-size: 0.9rem;">Participants: ${participants}</p>
+                                <p style="margin: 0 0 8px 0; color: #aaa; font-size: 0.9rem;">${messageCount} messages • ${wordCount} words • ${date}</p>
+                                ${chat.context ? `<p style="margin: 0; color: #888; font-size: 0.85rem;">Context: ${chat.context}</p>` : ''}
+                            </div>
                         </div>
                         <div style="display: flex; gap: 8px;">
                             <button class="btn btn-secondary" style="padding: 5px 10px; font-size: 0.8rem;" 
-                                    onclick="analyzeSingleChat(${index})">
+                                    onclick="event.stopPropagation(); previewChat(${index})">
+                                <i class="fas fa-eye"></i> Preview
+                            </button>
+                            <button class="btn btn-secondary" style="padding: 5px 10px; font-size: 0.8rem;" 
+                                    onclick="event.stopPropagation(); analyzeSingleChat(${index})">
                                 <i class="fas fa-search"></i> Analyze
                             </button>
                             <button class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8rem;" 
-                                    onclick="deleteChat(${index})">
+                                    onclick="event.stopPropagation(); deleteChat(${index})">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
                     </div>
                 `;
 
+        chatCard.addEventListener('click', () => toggleChatSelection(index));
+        
         chatCard.addEventListener('mouseenter', () => {
-            chatCard.style.background = 'rgba(60, 60, 60, 0.7)';
+            if (!isSelected) {
+                chatCard.style.background = 'rgba(60, 60, 60, 0.7)';
+            }
             chatCard.style.transform = 'translateY(-2px)';
         });
 
         chatCard.addEventListener('mouseleave', () => {
-            chatCard.style.background = 'rgba(40, 40, 40, 0.7)';
+            chatCard.style.background = isSelected ? 'rgba(60, 100, 140, 0.4)' : 'rgba(40, 40, 40, 0.7)';
             chatCard.style.transform = 'translateY(0)';
         });
 
@@ -5994,8 +6927,63 @@ function loadSavedChats() {
     });
 }
 
+function toggleChatSelection(index) {
+    if (selectedChatIndices.has(index)) {
+        selectedChatIndices.delete(index);
+    } else {
+        selectedChatIndices.add(index);
+    }
+    
+    if (selectedChatIndices.size > 0) {
+        bulkDeleteChatsBtn.style.display = 'inline-block';
+    } else {
+        bulkDeleteChatsBtn.style.display = 'none';
+    }
+    
+    loadSavedChats();
+}
+
+function previewChat(index) {
+    const chatHistory = ChatStorageManager.getChatHistory();
+    const chat = chatHistory[index];
+    
+    if (!chat) {
+        showAlert('Chat not found!', 'Error', 'error');
+        return;
+    }
+    
+    const participants = chat.participants.map(p => p.name).join(', ');
+    const wordCount = chat.content.split(' ').length;
+    const messageCount = chat.parsed?.messageCount || 'N/A';
+    const date = new Date(chat.timestamp).toLocaleString();
+    
+    let entities = '';
+    if (chat.parsed?.entities) {
+        const e = chat.parsed.entities;
+        if (e.urls?.length) entities += `\nURLs: ${e.urls.slice(0, 5).join('\n  ')}${e.urls.length > 5 ? '\n  ...' : ''}`;
+        if (e.emails?.length) entities += `\nEmails: ${e.emails.join(', ')}`;
+        if (e.phones?.length) entities += `\nPhones: ${e.phones.join(', ')}`;
+    }
+    
+    const preview = `
+=== ${chat.source.toUpperCase()} CHAT PREVIEW ===
+
+Participants: ${participants}
+Date: ${date}
+Messages: ${messageCount}
+Words: ${wordCount}
+Context: ${chat.context || 'None'}
+${entities ? '\n--- Detected Entities ---' + entities : ''}
+
+--- Content Preview (first 1500 chars) ---
+${chat.content.substring(0, 1500)}${chat.content.length > 1500 ? '\n\n... (truncated)' : ''}
+    `.trim();
+    
+    showAlert(preview, 'Chat Preview', 'info');
+}
+
 async function analyzeAllChats() {
-    const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+    const chatHistory = ChatStorageManager.getChatHistory();
 
     if (chatHistory.length === 0) {
         showAlert('No chats to analyze!', 'Notice', 'info');
@@ -6003,46 +6991,49 @@ async function analyzeAllChats() {
     }
 
     analyzeAllChatsBtn.disabled = true;
+    const originalText = analyzeAllChatsBtn.innerHTML;
     analyzeAllChatsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
 
     try {
-        let totalSuspicious = 0;
-        let totalChats = chatHistory.length;
-        let analysisResults = [];
-
-        for (let i = 0; i < chatHistory.length; i++) {
-            const chat = chatHistory[i];
-            const result = await analyzeChatContent(chat.content, chat.source);
-
-            if (result.isSuspicious) {
-                totalSuspicious++;
+        const analysisResults = await ChatAnalysisService.batchAnalyze(chatHistory, {
+            onProgress: (progress) => {
+                analyzeAllChatsBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Analyzing... ${Math.round(progress)}%`;
+            },
+            onChatComplete: (result) => {
+                if (result.result.isSuspicious) {
+                    totalChatsBySource[result.source] = (totalChatsBySource[result.source] || 0) + 1;
+                }
             }
+        });
 
-            analysisResults.push({
-                index: i,
-                source: chat.source,
-                participants: chat.participants.map(p => p.name).join(', '),
-                result: result
-            });
-        }
+        const totalSuspicious = analysisResults.filter(r => r.result.isSuspicious).length;
+        const totalChats = chatHistory.length;
+        const securityScore = Math.max(0, 100 - (totalSuspicious / totalChats * 100));
+        const totalChatsBySource = {};
 
         let report = `=== Chat Security Analysis Report ===\n\n`;
         report += `Total Chats Analyzed: ${totalChats}\n`;
         report += `Suspicious Chats Found: ${totalSuspicious}\n`;
-        report += `Security Score: ${Math.max(0, 100 - (totalSuspicious / totalChats * 100)).toFixed(1)}%\n\n`;
+        report += `Security Score: ${securityScore.toFixed(1)}%\n\n`;
+
+        const byRiskLevel = { high: [], medium: [], low: [] };
+        analysisResults.forEach(item => {
+            if (item.result.isSuspicious) {
+                byRiskLevel[item.result.riskLevel || 'low'].push(item);
+            }
+        });
 
         if (totalSuspicious > 0) {
-            report += `=== SUSPICIOUS CHATS DETECTED ===\n`;
-            analysisResults
-                .filter(item => item.result.isSuspicious)
-                .forEach(item => {
-                    report += `\n[${item.source.toUpperCase()}] ${item.participants}\n`;
-                    report += `Risk: ${item.result.riskLevel?.toUpperCase() || 'UNKNOWN'}\n`;
-                    if (item.result.redFlags?.length > 0) {
-                        report += `Flags: ${item.result.redFlags.join(', ')}\n`;
-                    }
-                    report += `Summary: ${item.result.summary || 'No details'}\n`;
-                });
+            report += `=== SUSPICIOUS CHATS BY RISK LEVEL ===\n`;
+            ['high', 'medium', 'low'].forEach(level => {
+                if (byRiskLevel[level].length > 0) {
+                    report += `\n${level.toUpperCase()} RISK (${byRiskLevel[level].length}):\n`;
+                    byRiskLevel[level].forEach(item => {
+                        report += `  • [${item.source.toUpperCase()}] ${item.participants}\n`;
+                        report += `    Flags: ${item.result.redFlags?.slice(0, 3).join(', ') || 'N/A'}\n`;
+                    });
+                }
+            });
         } else {
             report += `No suspicious chats detected. All chats appear secure.`;
         }
@@ -6054,67 +7045,18 @@ async function analyzeAllChats() {
         showAlert('Error analyzing chats. Please try again.', 'Error', 'error');
     } finally {
         analyzeAllChatsBtn.disabled = false;
-        analyzeAllChatsBtn.innerHTML = '<i class="fas fa-search"></i> Analyze All Chats for Suspicious Content';
+        analyzeAllChatsBtn.innerHTML = originalText;
+        lastAnalysisTimestamp = new Date().toISOString();
+        updateLastScanTime();
     }
 }
 
 async function analyzeChatContent(content, source) {
-    try {
-        const context = `
-                    You are a cybersecurity expert analyzing ${source} chat conversations for suspicious or potentially fraudulent activity.
-                    
-                    Analyze the following chat content and identify any suspicious elements:
-                    
-                    ${content.substring(0, 2000)}
-                    
-                    Look for these red flags:
-                    - Requests for money, gift cards, or financial information
-                    - Personal data collection (SSN, bank details, passwords)
-                    - Urgent or threatening language pressuring the user
-                    - Unsolicited offers, prizes, or investment schemes
-                    - Links to unfamiliar or suspicious websites
-                    - Impersonation or claims of needing secrecy
-                    - Requests to download attachments or run programs
-                    - Pressure to abandon official channels
-                    - Phishing attempts or social engineering
-                    
-                    Provide your analysis in this JSON format:
-                    {
-                        "isSuspicious": boolean,
-                        "riskLevel": "low|medium|high",
-                        "redFlags": ["flag1", "flag2"],
-                        "summary": "Brief summary of findings"
-                    }
-                `;
-
-        const aiResponse = await puter.ai.chat([
-            { role: "system", content: context },
-            { role: "user", content: "Analyze this chat for suspicious activity." }
-        ]);
-
-        const responseText = aiResponse.content ? aiResponse.content : aiResponse;
-        const analysis = extractJSONFromResponse(responseText);
-
-        return analysis && typeof analysis === 'object' ? analysis : {
-            isSuspicious: false,
-            riskLevel: 'low',
-            redFlags: [],
-            summary: 'No suspicious content detected'
-        };
-
-    } catch (error) {
-        console.error('Error analyzing chat content:', error);
-        return {
-            isSuspicious: false,
-            riskLevel: 'low',
-            redFlags: [],
-            summary: 'Analysis failed'
-        };
-    }
+    return ChatAnalysisService.analyze(content, source);
 }
 
 async function analyzeSingleChat(index) {
-    const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+    const chatHistory = ChatStorageManager.getChatHistory();
 
     if (!chatHistory[index]) {
         showAlert('Chat not found!', 'Error', 'error');
@@ -6122,11 +7064,12 @@ async function analyzeSingleChat(index) {
     }
 
     const chat = chatHistory[index];
-    const result = await analyzeChatContent(chat.content, chat.source);
+    const result = await ChatAnalysisService.analyze(chat.content, chat.source);
 
     let message = `=== Chat Analysis Result ===\n\n`;
     message += `Source: ${chat.source.toUpperCase()}\n`;
     message += `Participants: ${chat.participants.map(p => p.name).join(', ')}\n`;
+    message += `Messages: ${chat.parsed?.messageCount || chat.content.split(' ').length}\n`;
     message += `Words: ${chat.content.split(' ').length}\n\n`;
     message += `Suspicious: ${result.isSuspicious ? 'YES' : 'NO'}\n`;
     message += `Risk Level: ${result.riskLevel?.toUpperCase() || 'LOW'}\n\n`;
@@ -6135,7 +7078,26 @@ async function analyzeSingleChat(index) {
         message += "Red Flags:\n" + result.redFlags.map(flag => "• " + flag).join("\n") + "\n\n";
     }
 
+    if (result.entities) {
+        if (result.entities.urls?.length > 0) {
+            message += `URLs Found: ${result.entities.urls.length}\n`;
+        }
+        if (result.entities.emails?.length > 0) {
+            message += `Emails Found: ${result.entities.emails.length}\n`;
+        }
+        if (result.entities.phones?.length > 0) {
+            message += `Phone Numbers Found: ${result.entities.phones.length}\n`;
+        }
+        if (result.entities.urls?.length > 0 || result.entities.emails?.length > 0 || result.entities.phones?.length > 0) {
+            message += '\n';
+        }
+    }
+
     message += `Summary: ${result.summary || 'No specific concerns'}`;
+
+    if (result.recommendations?.length > 0) {
+        message += `\n\nRecommendations:\n${result.recommendations.map(r => `• ${r}`).join('\n')}`;
+    }
 
     showAlert(message, 'Single Chat Analysis', 'info');
 }
@@ -6143,34 +7105,264 @@ async function analyzeSingleChat(index) {
 async function deleteChat(index) {
     const confirmed = await showConfirm('Are you sure you want to delete this chat?', 'Confirm Deletion', 'warning');
     if (confirmed) {
-        let chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
-        chatHistory.splice(index, 1);
-        localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
-        loadSavedChats();
+        if (ChatStorageManager.deleteChat(index)) {
+            loadSavedChats();
+        } else {
+            showAlert('Failed to delete chat', 'Error', 'error');
+        }
     }
 }
 
-function exportChatReport() {
-    const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+async function exportHumanToPDF(humanId) {
+    const human = pazatorData.humans.find(h => h.id === humanId);
+    if (!human) {
+        showAlert('Person not found', 'Error', 'error');
+        return;
+    }
+
+    if (!logoBase64) {
+        await loadLogoForPDF();
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+    });
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 20;
+    const contentWidth = pageWidth - (margin * 2);
+    let y = margin;
+
+    doc.setFillColor(0, 0, 0);
+    doc.rect(0, 0, pageWidth, 60, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(52);
+    doc.setFont('helvetica', 'bold');
+    doc.text('PAZATOR', margin, 30);
+
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SARPARAST', margin, 42);
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, margin, 52);
+
+    if (logoBase64) {
+        const logoSize = 30;
+        const logoX = pageWidth - margin - logoSize;
+        doc.addImage(logoBase64, 'PNG', logoX, 15, logoSize, logoSize);
+    }
+
+    y = 75;
+    doc.setTextColor(0, 0, 0);
+
+    doc.setFontSize(28);
+    doc.setFont('helvetica', 'bold');
+    doc.text(human.name, margin, y);
+    y += 12;
+
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+
+    const sections = [
+        { title: 'BASIC INFORMATION', items: [
+            { label: 'ID', value: human.id },
+            { label: 'Gender', value: human.gender || 'Not specified' },
+            { label: 'Birth Date', value: human.birthDate ? new Date(human.birthDate).toLocaleDateString() : 'Not specified' },
+            { label: 'Age', value: human.birthDate ? calculateAge(human.birthDate) + ' years' : 'Not specified' },
+            { label: 'Marital Status', value: human.maritalStatus || 'Not specified' },
+            { label: 'Occupation', value: human.workplace || 'Not specified' }
+        ]},
+        { title: 'BACKGROUND', items: [
+            { label: 'Nationality', value: human.nationality || 'Not specified' },
+            { label: 'Country of Origin', value: human.countryOfOrigin || 'Not specified' },
+            { label: 'Immigration Status', value: human.immigrationStatus || 'Not specified' },
+            { label: 'Languages', value: human.languages || 'Not specified' }
+        ]},
+        { title: 'DEMOGRAPHICS', items: [
+            { label: 'Ethnicity', value: human.ethnicity || 'Not specified' },
+            { label: 'Religion', value: human.religion || 'Not specified' },
+            { label: 'Political Views', value: human.politicalViews || 'Not specified' },
+            { label: 'Threat Level', value: human.threatLevel || 'Not specified' }
+        ]},
+        { title: 'SOCIOECONOMIC', items: [
+            { label: 'Credit Score', value: human.credit !== undefined ? Math.round(human.credit).toString() : 'Not recorded' },
+            { label: 'Social Class', value: human.socialClass || 'Not specified' },
+            { label: 'Income Level', value: human.incomeLevel || 'Not specified' },
+            { label: 'Education', value: human.educationLevel || 'Not specified' }
+        ]},
+        { title: 'RELATIONSHIPS', items: [
+            { label: 'Friends', value: human.friends?.length ? human.friends.join(', ') : 'None recorded' },
+            { label: 'Family', value: human.family?.length ? human.family.join(', ') : 'None recorded' }
+        ]},
+        { title: 'NOTES', items: [
+            { label: 'Notes', value: human.extraNotes || 'No notes' }
+        ]}
+    ];
+
+    sections.forEach(section => {
+        if (y > pageHeight - 60) {
+            doc.addPage();
+            y = margin;
+        }
+
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.5);
+        doc.line(margin, y, margin + 40, y);
+        y += 5;
+
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(60, 60, 60);
+        doc.text(section.title, margin, y);
+        y += 8;
+
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
+
+        section.items.forEach(item => {
+            if (y > pageHeight - 30) {
+                doc.addPage();
+                y = margin;
+            }
+
+            doc.setFont('helvetica', 'bold');
+            doc.text(item.label + ':', margin, y);
+            doc.setFont('helvetica', 'normal');
+
+            const valueLines = doc.splitTextToSize(item.value, contentWidth - 45);
+            doc.text(valueLines, margin + 45, y);
+            y += (valueLines.length * 4) + 4;
+        });
+
+        y += 8;
+    });
+
+    if (human.tags?.length) {
+        if (y > pageHeight - 40) {
+            doc.addPage();
+            y = margin;
+        }
+
+        doc.line(margin, y, margin + 40, y);
+        y += 5;
+
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(60, 60, 60);
+        doc.text('TAGS', margin, y);
+        y += 8;
+
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
+
+        const tagWidth = 30;
+        const tagHeight = 7;
+        let tagX = margin;
+        let tagY = y;
+
+        human.tags.forEach(tag => {
+            const tagText = ' ' + tag + ' ';
+            const textWidth = doc.getTextWidth(tagText);
+
+            if (tagX + textWidth + 4 > pageWidth - margin) {
+                tagX = margin;
+                tagY += tagHeight + 3;
+            }
+
+            doc.setFillColor(240, 240, 240);
+            doc.rect(tagX, tagY - 4, textWidth + 4, tagHeight, 'F');
+            doc.setDrawColor(150, 150, 150);
+            doc.rect(tagX, tagY - 4, textWidth + 4, tagHeight, 'S');
+            doc.text(tagText, tagX + 2, tagY);
+
+            tagX += textWidth + 8;
+        });
+    }
+
+    y = pageHeight - 15;
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.setFont('helvetica', 'italic');
+    doc.text('Pazator Intelligence System - SARPARAST', pageWidth / 2, y, { align: 'center' });
+
+    doc.save(`pazator-${human.name.replace(/\s+/g, '-').toLowerCase()}-report.pdf`);
+    showAlert(`PDF report generated for ${human.name}`, 'Export Complete', 'success');
+}
+
+function calculateAge(birthDate) {
+    const birth = new Date(birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+        age--;
+    }
+    return age;
+}
+
+function getThreatLevelColor(level) {
+    switch (level?.toLowerCase()) {
+        case 'critical': return '#d32f2f';
+        case 'high': return '#f44336';
+        case 'medium': return '#ff9800';
+        case 'low': return '#4caf50';
+        default: return '';
+    }
+}
+
+function exportChatReport(format = 'txt') {
+    const chatHistory = ChatStorageManager.getChatHistory();
+    const stats = ChatStorageManager.getStorageStats();
 
     if (chatHistory.length === 0) {
         showAlert('No chats to export!', 'Notice', 'info');
         return;
     }
 
+    if (format === 'json') {
+        const exportData = {
+            exportDate: new Date().toISOString(),
+            stats: stats,
+            chats: chatHistory
+        };
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `pazator-chat-export-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        return;
+    }
+
     let report = `Pazator Chat Analysis Report\n`;
     report += `Generated: ${new Date().toLocaleString()}\n`;
-    report += `Total Chats: ${chatHistory.length}\n\n`;
+    report += `Total Chats: ${chatHistory.length}\n`;
+    report += `Total Size: ${stats.totalSizeMB}MB\n\n`;
 
     chatHistory.forEach((chat, index) => {
         const date = new Date(chat.timestamp).toLocaleDateString();
         const participants = chat.participants.map(p => p.name).join(', ');
         const wordCount = chat.content.split(' ').length;
+        const messageCount = chat.parsed?.messageCount || 'N/A';
 
         report += `=== Chat ${index + 1} ===\n`;
         report += `Source: ${chat.source.toUpperCase()}\n`;
         report += `Date: ${date}\n`;
         report += `Participants: ${participants}\n`;
+        report += `Messages: ${messageCount}\n`;
         report += `Word Count: ${wordCount}\n`;
         report += `Context: ${chat.context || 'None'}\n`;
         report += `Content Preview: ${chat.content.substring(0, 200)}${chat.content.length > 200 ? '...' : ''}\n\n`;
@@ -6188,9 +7380,14 @@ function exportChatReport() {
 }
 
 async function clearChatHistory() {
-    const confirmed = await showConfirm('Are you sure you want to clear ALL chat history? This cannot be undone.', 'Confirm Deletion', 'warning');
+    const stats = ChatStorageManager.getStorageStats();
+    const confirmed = await showConfirm(
+        `Are you sure you want to clear ALL chat history? This will delete ${stats.totalChats} chats (${stats.totalSizeMB}MB) and cannot be undone.`,
+        'Confirm Deletion',
+        'warning'
+    );
     if (confirmed) {
-        localStorage.removeItem('chatHistory');
+        ChatStorageManager.clearAllChats();
         loadSavedChats();
         showAlert('Chat history cleared successfully!', 'Success', 'success');
     }
@@ -9445,5 +10642,23 @@ function initSettings() {
     }
 }
 
+async function loadLogoForPDF() {
+    try {
+        const response = await fetch('../logo.png');
+        const blob = await response.blob();
+        const reader = new FileReader();
+        return new Promise((resolve) => {
+            reader.onloadend = () => {
+                logoBase64 = reader.result;
+                resolve();
+            };
+            reader.readAsDataURL(blob);
+        });
+    } catch (e) {
+        console.warn('Could not load logo for PDF:', e);
+    }
+}
+
 // Call init settings on DOMContentLoaded
 document.addEventListener('DOMContentLoaded', initSettings);
+document.addEventListener('DOMContentLoaded', loadLogoForPDF);
