@@ -1679,6 +1679,8 @@ function switchTab(tabId) {
         updateIntelligenceCenterStats();
     } else if (tabId === 'cases') {
         setTimeout(initCasesTab, 50);
+    } else if (tabId === 'analysis') {
+        updateAnalysisHubStats();
     }
 
     setActiveTabButton(tabId);
@@ -6045,6 +6047,177 @@ addTagBtn.addEventListener('click', () => {
     }
 });
 
+const aiSuggestTagsBtn = document.getElementById('aiSuggestTagsBtn');
+
+aiSuggestTagsBtn?.addEventListener('click', async () => {
+    if (pazatorData.humans.length === 0 && pazatorData.others.length === 0) {
+        showAlert('No data to analyze. Add some people or entities first.', 'Notice', 'info');
+        return;
+    }
+
+    aiSuggestTagsBtn.disabled = true;
+    aiSuggestTagsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+
+    try {
+        const humansData = pazatorData.humans.map(h => ({
+            name: h.name,
+            workplace: h.workplace || '',
+            tags: h.tags || [],
+            notes: h.extraNotes || ''
+        }));
+
+        const othersData = pazatorData.others.map(o => ({
+            name: o.name,
+            tags: o.tags || [],
+            notes: (o.note || o.extraNotes || '')
+        }));
+
+        const existingTags = tags.slice();
+
+        const prompt = `Analyze this intelligence data and suggest relevant tags. Return a JSON array of suggested tags with reasoning.
+
+Existing tags (don't duplicate): ${existingTags.join(', ') || 'none'}
+
+Humans/People:
+${JSON.stringify(humansData, null, 2)}
+
+Companies/Entities:
+${JSON.stringify(othersData, null, 2)}
+
+Return JSON in this format:
+{
+  "suggestedTags": [
+    {"tag": "tag-name", "reason": "why this tag is useful", "appliesTo": ["person1", "person2"]}
+  ]
+}
+
+Make tags:
+- Lowercase with hyphens (e.g., "tech-company", "former-military")
+- Specific and meaningful
+- Based on workplace, name patterns, or notes
+- Max 20 suggestions, focus on most useful tags`;
+
+        const response = await Promise.race([
+            puter.ai.chat([
+                { role: "system", content: "You are an intelligence analyst. Return ONLY valid JSON." },
+                { role: "user", content: prompt }
+            ]),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('AI timeout')), 30000))
+        ]);
+
+        const responseText = response.content ? response.content : response;
+        const result = extractJSONFromResponse(responseText);
+
+        if (result && result.suggestedTags && Array.isArray(result.suggestedTags)) {
+            showAISuggestTagsModal(result.suggestedTags);
+        } else {
+            showAlert('Could not parse AI response. Try again.', 'Error', 'error');
+        }
+    } catch (error) {
+        console.error('AI tag suggestion error:', error);
+        showAlert('Failed to get AI suggestions. Please try again.', 'Error', 'error');
+    } finally {
+        aiSuggestTagsBtn.disabled = false;
+        aiSuggestTagsBtn.innerHTML = '<i class="fas fa-robot"></i> AI Suggest Tags';
+    }
+});
+
+function showAISuggestTagsModal(suggestions) {
+    let modal = document.getElementById('aiTagSuggestModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'aiTagSuggestModal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 550px; max-height: 80vh; overflow-y: auto;">
+                <div class="modal-header">
+                    <h2>AI Suggested Tags</h2>
+                    <button id="aiTagModalClose" class="close-modal-btn" style="background: none; border: none; color: #888; font-size: 1.5rem; cursor: pointer;">&times;</button>
+                </div>
+                <div class="modal-body" id="aiTagModalBody"></div>
+                <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end; padding: 16px; border-top: 1px solid #333;">
+                    <button id="aiTagCancel" class="btn btn-secondary">Cancel</button>
+                    <button id="aiTagAddAll" class="btn btn-primary">Add All Tags</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        modal.querySelector('#aiTagModalClose').addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+        modal.querySelector('#aiTagCancel').addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.style.display = 'none';
+        });
+    }
+
+    let selectedTags = new Set();
+
+    const renderSuggestions = () => {
+        const body = modal.querySelector('#aiTagModalBody');
+        body.innerHTML = suggestions.map((s, i) => `
+            <div class="ai-tag-suggestion" data-index="${i}" style="padding: 12px; margin-bottom: 10px; background: rgba(30,30,30,0.8); border-radius: 8px; border: 1px solid #333; cursor: pointer; ${selectedTags.has(s.tag) ? 'border-color: #4ade80;' : ''}">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" class="ai-tag-checkbox" data-tag="${s.tag}" ${selectedTags.has(s.tag) ? 'checked' : ''}>
+                    <span style="font-weight: 600; color: #fff;">${s.tag}</span>
+                    ${tags.includes(s.tag) ? '<span style="font-size: 0.7rem; background: #666; padding: 2px 6px; border-radius: 4px; color: #ccc;">exists</span>' : ''}
+                </div>
+                <div style="font-size: 0.85rem; color: #888; margin-top: 6px; margin-left: 26px;">${s.reason}</div>
+                ${s.appliesTo?.length ? `<div style="font-size: 0.75rem; color: #666; margin-top: 4px; margin-left: 26px;">Applies to: ${s.appliesTo.slice(0, 5).join(', ')}${s.appliesTo.length > 5 ? '...' : ''}</div>` : ''}
+            </div>
+        `).join('');
+
+        body.querySelectorAll('.ai-tag-suggestion').forEach(el => {
+            el.addEventListener('click', (e) => {
+                if (e.target.type === 'checkbox') return;
+                const checkbox = el.querySelector('.ai-tag-checkbox');
+                checkbox.checked = !checkbox.checked;
+                const tag = checkbox.dataset.tag;
+                if (checkbox.checked) {
+                    selectedTags.add(tag);
+                } else {
+                    selectedTags.delete(tag);
+                }
+                renderSuggestions();
+            });
+        });
+
+        body.querySelectorAll('.ai-tag-checkbox').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                const tag = e.target.dataset.tag;
+                if (e.target.checked) {
+                    selectedTags.add(tag);
+                } else {
+                    selectedTags.delete(tag);
+                }
+                renderSuggestions();
+            });
+        });
+    };
+
+    renderSuggestions();
+
+    modal.querySelector('#aiTagAddAll').onclick = () => {
+        let added = 0;
+        selectedTags.forEach(tag => {
+            if (!tags.includes(tag)) {
+                tags.push(tag);
+                added++;
+            }
+        });
+        if (added > 0) {
+            renderTags();
+        }
+        modal.style.display = 'none';
+        showAlert(`Added ${added} new tag(s)`, 'Tags Updated', 'success');
+    };
+
+    modal.style.display = 'flex';
+}
+
 refreshViewBtn.addEventListener('click', () => {
     currentScale = 1;
     currentTranslateX = 0;
@@ -6734,6 +6907,32 @@ function updateIntelligenceCenterStats() {
     
     const riskSummary = document.getElementById('intelRiskSummary');
     if (riskSummary) riskSummary.textContent = `${highPct}% high, ${mediumPct}% med, ${lowPct}% low`;
+}
+
+function updateAnalysisHubStats() {
+    const humanCountEl = document.getElementById('analysisHumanCount');
+    const creditAvgEl = document.getElementById('analysisCreditAvg');
+    const metricHumans = document.getElementById('metricHumans');
+    const metricEntities = document.getElementById('metricEntities');
+    const metricTags = document.getElementById('metricTags');
+    const metricHighRisk = document.getElementById('metricHighRisk');
+    const riskSummary = document.getElementById('analysisRiskSummary');
+    
+    if (humanCountEl) humanCountEl.textContent = pazatorData.humans.length;
+    if (metricHumans) metricHumans.textContent = pazatorData.humans.length;
+    if (metricEntities) metricEntities.textContent = pazatorData.others.length;
+    if (metricTags) metricTags.textContent = tags.length;
+    
+    const totalCredit = pazatorData.humans.reduce((sum, h) => sum + (h.credit || 185), 0);
+    const avgCredit = pazatorData.humans.length ? Math.round(totalCredit / pazatorData.humans.length) : 0;
+    if (creditAvgEl) creditAvgEl.textContent = avgCredit;
+    
+    const highRisk = pazatorData.humans.filter(h => (h.credit || 185) < 125).length;
+    const mediumRisk = pazatorData.humans.filter(h => (h.credit || 185) >= 125 && (h.credit || 185) < 250).length;
+    const lowRisk = pazatorData.humans.filter(h => (h.credit || 185) >= 250).length;
+    
+    if (metricHighRisk) metricHighRisk.textContent = highRisk;
+    if (riskSummary) riskSummary.textContent = `${highRisk} high, ${mediumRisk} med, ${lowRisk} low`;
 }
 
 function updateHeaderStats() {

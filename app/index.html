@@ -416,83 +416,126 @@
         <div class="tab-content" id="analysis-tab">
             <div class="workspace">
                 <div class="main-panel">
-                    <div class="logo">
-                        <h1
-                            style="background: linear-gradient(45deg, #ffffff, #dddddd); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
-                            Data Analysis Hub</h1>
+                    <div class="analysis-header">
+                        <div>
+                            <h2>Data Analysis Hub</h2>
+                            <div class="analysis-header-stats">
+                                <span><i class="fas fa-users"></i> <span id="analysisHumanCount">0</span> people</span>
+                                <span><i class="fas fa-chart-bar"></i> <span id="analysisCreditAvg">0</span> avg credit</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="analysis-content" style="flex: 1; overflow: auto;">
-                        <div
-                            style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; height: calc(100% - 60px);">
-                            <div class="analysis-card">
-                                <div class="analysis-card-header">
-                                    <div class="analysis-indicator"></div>
-                                    <h3>Network Intelligence</h3>
+
+                    <div class="analysis-content">
+                        <div class="analysis-action-grid">
+                            <div class="analysis-action-card analysis-primary">
+                                <div class="analysis-action-icon">
+                                    <i class="fas fa-project-diagram"></i>
                                 </div>
-                                <div style="flex: 1; display: flex; flex-direction: column;">
-                                    <div class="form-group" style="margin-bottom: 16px;">
-                                        <button id="findConnectionsBtn" class="btn btn-secondary btn-full">Discover
-                                            Hidden Links</button>
-                                    </div>
-                                    <div class="analysis-placeholder">
-                                        <p>Connection Map Visualization</p>
-                                        <small>Click above to analyze relationships</small>
-                                    </div>
+                                <div class="analysis-action-info">
+                                    <h3>Network Analysis</h3>
+                                    <p>Map relationships between entities</p>
                                 </div>
+                                <button id="findConnectionsBtn" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Discover Links
+                                </button>
                             </div>
 
-                            <div class="analysis-card">
-                                <div class="analysis-card-header">
-                                    <div class="analysis-indicator"></div>
-                                    <h3>Risk Assessment</h3>
+                            <div class="analysis-action-card">
+                                <div class="analysis-action-icon analysis-icon-warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
                                 </div>
-                                <div style="flex: 1; display: flex; flex-direction: column;">
-                                    <div class="form-group" style="margin-bottom: 12px;">
-                                        <button id="refreshCreditsBtn" class="btn btn-secondary btn-full">
-                                            <i class="fas fa-sync"></i> Refresh Credits
-                                        </button>
-                                    </div>
-                                    <div class="form-group" style="margin-bottom: 16px;">
-                                        <button id="sortByCreditBtn" class="btn btn-secondary btn-full">
-                                            <i class="fas fa-sort-amount-down"></i> Sort by Credit
-                                        </button>
-                                    </div>
-                                    <div class="analysis-stats">
-                                        <h4>Risk Distribution</h4>
-                                        <div id="creditStats" style="color: #aaa; line-height: 1.6;">
-                                            <div class="stat-row">
-                                                <span>High Risk:</span>
-                                                <span style="color: #ff6b6b;">0%</span>
-                                            </div>
-                                            <div class="stat-row">
-                                                <span>Medium Risk:</span>
-                                                <span class="stat-yellow">0%</span>
-                                            </div>
-                                            <div class="stat-row">
-                                                <span>Low Risk:</span>
-                                                <span class="stat-green">100%</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div class="analysis-action-info">
+                                    <h3>Risk Assessment</h3>
+                                    <p id="analysisRiskSummary">0 high, 0 med, 0 low</p>
+                                </div>
+                                <button id="refreshCreditsBtn" class="btn btn-secondary btn-full">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                            </div>
+
+                            <div class="analysis-action-card">
+                                <div class="analysis-action-icon analysis-icon-info">
+                                    <i class="fas fa-sort-amount-down"></i>
+                                </div>
+                                <div class="analysis-action-info">
+                                    <h3>Credit Ranking</h3>
+                                    <p>Sort by risk score</p>
+                                </div>
+                                <button id="sortByCreditBtn" class="btn btn-secondary btn-full">
+                                    <i class="fas fa-list"></i> Sort List
+                                </button>
+                            </div>
+
+                            <div class="analysis-action-card">
+                                <div class="analysis-action-icon analysis-icon-purple">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                                <div class="analysis-action-info">
+                                    <h3>AI Suggestions</h3>
+                                    <p>Get tag recommendations</p>
+                                </div>
+                                <button id="aiSuggestTagsBtn" class="btn btn-secondary btn-full">
+                                    <i class="fas fa-magic"></i> Suggest Tags
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="analysis-metrics-grid">
+                            <div class="analysis-metric-card">
+                                <div class="analysis-metric-icon" style="background: rgba(107, 207, 127, 0.15); color: #6bcf7f;">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="analysis-metric-data">
+                                    <span class="analysis-metric-value" id="metricHumans">0</span>
+                                    <span class="analysis-metric-label">Total People</span>
+                                </div>
+                            </div>
+                            <div class="analysis-metric-card">
+                                <div class="analysis-metric-icon" style="background: rgba(77, 157, 224, 0.15); color: #4d9de0;">
+                                    <i class="fas fa-building"></i>
+                                </div>
+                                <div class="analysis-metric-data">
+                                    <span class="analysis-metric-value" id="metricEntities">0</span>
+                                    <span class="analysis-metric-label">Entities</span>
+                                </div>
+                            </div>
+                            <div class="analysis-metric-card">
+                                <div class="analysis-metric-icon" style="background: rgba(255, 217, 61, 0.15); color: #ffd93d;">
+                                    <i class="fas fa-tags"></i>
+                                </div>
+                                <div class="analysis-metric-data">
+                                    <span class="analysis-metric-value" id="metricTags">0</span>
+                                    <span class="analysis-metric-label">Tags</span>
+                                </div>
+                            </div>
+                            <div class="analysis-metric-card">
+                                <div class="analysis-metric-icon" style="background: rgba(255, 107, 107, 0.15); color: #ff6b6b;">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                </div>
+                                <div class="analysis-metric-data">
+                                    <span class="analysis-metric-value" id="metricHighRisk">0</span>
+                                    <span class="analysis-metric-label">High Risk</span>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-                <div class="side-panel">
-                    <div class="sidebar-section sidebar-mini">
-                        <h3>Analytics Suite</h3>
-                        <div class="form-group compact">
-                            <button id="showStatisticsBtn" class="btn btn-secondary btn-full">Statistical
-                                Overview</button>
-                        </div>
-                        <div class="form-group compact">
-                            <button id="toggleConnectionsBtn" class="btn btn-secondary btn-full">Network
-                                Visibility</button>
-                        </div>
-                        <div class="form-group compact">
-                            <button id="refreshViewBtn" class="btn btn-secondary btn-full">Refresh Analytics
-                            </button>
+
+                        <div class="analysis-tools-section">
+                            <h3><i class="fas fa-tools"></i> Quick Tools</h3>
+                            <div class="analysis-tools-grid">
+                                <div class="analysis-tool-item" id="showStatisticsBtn">
+                                    <i class="fas fa-chart-pie"></i>
+                                    <span>Statistics</span>
+                                </div>
+                                <div class="analysis-tool-item" id="toggleConnectionsBtn">
+                                    <i class="fas fa-eye"></i>
+                                    <span>Network View</span>
+                                </div>
+                                <div class="analysis-tool-item" id="refreshViewBtn">
+                                    <i class="fas fa-sync"></i>
+                                    <span>Refresh</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
