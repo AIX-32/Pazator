@@ -17,7 +17,15 @@
         note: document.getElementById('dasturActionNote'),
         addBtn: document.getElementById('dasturAddRuleBtn'),
         manualBtn: document.getElementById('dasturTriggerManualBtn'),
-        list: document.getElementById('dasturRulesList')
+        list: document.getElementById('dasturRulesList'),
+        exportBtn: document.getElementById('dasturExportBtn'),
+        importBtn: document.getElementById('dasturImportBtn'),
+        importInput: document.getElementById('dasturImportInput'),
+        importModal: document.getElementById('dasturImportModal'),
+        importModalClose: document.getElementById('dasturImportModalClose'),
+        importCancel: document.getElementById('dasturImportCancel'),
+        importConfirm: document.getElementById('dasturImportConfirm'),
+        aiPromptBtn: document.getElementById('dasturAiPromptBtn')
     };
 
     function uid() {
@@ -278,6 +286,159 @@
         ui.manualBtn?.addEventListener('click', () => {
             notifyEvent('manual', { source: 'manual_button' });
         });
+
+        ui.exportBtn?.addEventListener('click', () => {
+            const exportData = {
+                version: 1,
+                exportedAt: new Date().toISOString(),
+                rules: rules.map(r => ({
+                    event: r.event,
+                    condition: r.condition,
+                    action: r.action,
+                    note: r.note,
+                    enabled: r.enabled
+                }))
+            };
+            
+            const json = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dastur-rules-${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        ui.importBtn?.addEventListener('click', () => {
+            ui.importModal.style.display = 'flex';
+            ui.importInput.value = '';
+        });
+
+        ui.importModalClose?.addEventListener('click', () => {
+            ui.importModal.style.display = 'none';
+        });
+
+        ui.importCancel?.addEventListener('click', () => {
+            ui.importModal.style.display = 'none';
+        });
+
+        ui.importConfirm?.addEventListener('click', async () => {
+            const text = ui.importInput?.value?.trim();
+            if (!text) {
+                alert('Please paste JSON rules to import');
+                return;
+            }
+            
+            try {
+                const data = JSON.parse(text);
+                
+                let importedRules = [];
+                if (Array.isArray(data)) {
+                    importedRules = data;
+                } else if (data.rules && Array.isArray(data.rules)) {
+                    importedRules = data.rules;
+                } else {
+                    alert('Invalid DASTUR rules format');
+                    return;
+                }
+                
+                let added = 0;
+                for (const ruleLike of importedRules) {
+                    const rule = normalizeRule(ruleLike);
+                    if (rule) {
+                        rule.id = uid();
+                        rule.createdAt = new Date().toISOString();
+                        rules.push(rule);
+                        added++;
+                    }
+                }
+                
+                await saveRules();
+                renderRules();
+                ui.importModal.style.display = 'none';
+                alert(`Imported ${added} rule(s) successfully!`);
+            } catch (err) {
+                alert('Failed to import: ' + err.message);
+            }
+        });
+
+        ui.importModal?.addEventListener('click', (e) => {
+            if (e.target === ui.importModal) {
+                ui.importModal.style.display = 'none';
+            }
+        });
+
+        ui.aiPromptBtn?.addEventListener('click', async () => {
+            const prompt = `You are helping create DASTUR rules for Pazator, an intelligence management system.
+
+=== DASTUR RULE STRUCTURE ===
+Each rule is a JSON object with these fields:
+{
+  "event": "state_changed" | "data_saved" | "tab_switched" | "manual",
+  "condition": "JavaScript expression (returns true/false)",
+  "action": "hojum_propose" | "sarparast_flash",
+  "note": "Human-readable description"
+}
+
+=== AVAILABLE VARIABLES ===
+- state.pazatorData.humans       → array of all humans
+- state.pazatorData.others       → array of companies/entities
+- state.pazatorData.tags         → array of all tags
+- state.tags                     → same as above
+- helpers.countHumans()          → number of humans
+- helpers.countOthers()          → number of companies
+- event.source                   → what triggered the event
+- event.tabId                    → current tab (if tab_switched)
+
+=== EXAMPLE RULES ===
+
+// Alert when database grows large
+[
+  {"event":"state_changed","condition":"state.pazatorData.humans.length > 100","action":"hojum_propose","note":"Database has over 100 people - review for duplicates"},
+  {"event":"state_changed","condition":"state.pazatorData.humans.length > 200","action":"sarparast_flash","note":"Database is very large - verify data quality"}
+]
+
+// Detect new suspicious entries
+[
+  {"event":"data_saved","condition":"state.pazatorData.humans.some(h => h.tags?.includes('suspicious'))","action":"hojum_propose","note":"New suspicious tag added"},
+  {"event":"state_changed","condition":"state.pazatorData.humans.filter(h => h.tags?.includes('verified')).length === 0 && helpers.countHumans() > 10","action":"hojum_propose","note":"No verified humans yet despite having data"}
+]
+
+// Watch for specific tag activity
+[
+  {"event":"data_saved","condition":"state.tags.some(t => t.toLowerCase().includes('target'))","action":"sarparast_flash","note":"Target tag activity detected"},
+  {"event":"state_changed","condition":"helpers.countHumans() > helpers.countOthers() * 10","action":"hojum_propose","note":"Unusual human-to-company ratio"}
+]
+
+=== YOUR TASK ===
+Create DASTUR rules for this use case: [DESCRIBE WHAT YOU WANT TO MONITOR/WATCH FOR]
+
+Rules should be:
+- Specific and actionable
+- Use meaningful conditions
+- Have clear notes explaining the purpose
+
+Return ONLY a valid JSON array of rules, nothing else.`;
+
+            try {
+                await navigator.clipboard.writeText(prompt);
+                const btn = ui.aiPromptBtn;
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                btn.style.background = '#4ade80';
+                btn.style.color = '#000';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '';
+                    btn.style.color = '';
+                }, 1500);
+            } catch (err) {
+                prompt('Copy this prompt:', prompt);
+            }
+        });
     }
 
     async function init() {
@@ -298,11 +459,52 @@
                 renderRules();
                 return rule;
             },
+            addRules: async (rulesArray) => {
+                if (!Array.isArray(rulesArray)) rulesArray = [rulesArray];
+                let added = 0;
+                for (const ruleLike of rulesArray) {
+                    const rule = normalizeRule(ruleLike);
+                    if (rule) {
+                        rule.id = uid();
+                        rule.createdAt = new Date().toISOString();
+                        rules.push(rule);
+                        added++;
+                    }
+                }
+                await saveRules();
+                renderRules();
+                return added;
+            },
             removeRule: async (ruleId) => {
                 rules = rules.filter(r => r.id !== ruleId);
                 firedCooldown.delete(ruleId);
                 await saveRules();
                 renderRules();
+            },
+            exportRules: () => {
+                return rules.map(r => ({
+                    event: r.event,
+                    condition: r.condition,
+                    action: r.action,
+                    note: r.note,
+                    enabled: r.enabled
+                }));
+            },
+            importRules: async (rulesArray) => {
+                if (!Array.isArray(rulesArray)) throw new Error('Expected array');
+                let added = 0;
+                for (const ruleLike of rulesArray) {
+                    const rule = normalizeRule(ruleLike);
+                    if (rule) {
+                        rule.id = uid();
+                        rule.createdAt = new Date().toISOString();
+                        rules.push(rule);
+                        added++;
+                    }
+                }
+                await saveRules();
+                renderRules();
+                return added;
             }
         };
 

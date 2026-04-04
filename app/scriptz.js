@@ -45,7 +45,7 @@ const modalBody = document.getElementById('modalBody');
 const modalActions = document.getElementById('modalActions');
 const modalBackdrop = document.querySelector('.clean-modal-backdrop');
 
-function showModal({ title, message, type = 'info', buttons = [] }) {
+function showModal({ title, message, html, type = 'info', buttons = [] }) {
     const icons = {
         info: 'fa-info-circle',
         success: 'fa-check-circle',
@@ -57,7 +57,14 @@ function showModal({ title, message, type = 'info', buttons = [] }) {
     modalIcon.className = `clean-modal-icon ${type}`;
     modalIcon.innerHTML = `<i class="fas ${icons[type] || 'fa-info-circle'}"></i>`;
     modalTitle.textContent = title;
-    modalBody.textContent = message;
+    
+    if (html) {
+        modalBody.innerHTML = html;
+        modalBody.classList.add('html-content');
+    } else {
+        modalBody.textContent = message || '';
+        modalBody.classList.remove('html-content');
+    }
     
     modalActions.innerHTML = '';
     buttons.forEach(btn => {
@@ -73,6 +80,11 @@ function showModal({ title, message, type = 'info', buttons = [] }) {
     });
     
     cleanModal.classList.add('active');
+    if (html) {
+        cleanModal.classList.add('wide');
+    } else {
+        cleanModal.classList.remove('wide');
+    }
 }
 
 function hideModal() {
@@ -2173,7 +2185,7 @@ function refreshTrackerHumanOptions() {
         const optionValue = human.id ?? human.name;
         option.value = optionValue;
         const alias = human.trackerAlias;
-        option.textContent = alias ? `${human.name} / ${alias}` : human.name;
+        option.textContent = `[${human.id}] ${alias ? `${human.name} / ${alias}` : human.name}`;
         option.dataset.trackerName = alias || human.name;
         trackerHumanSelect.appendChild(option);
     });
@@ -3057,9 +3069,11 @@ function populateSelectOptions(selectedFriends = [], selectedFamily = []) {
     familySelect.innerHTML = '';
 
     pazatorData.humans.forEach(human => {
+        const displayName = `[${human.id}] ${human.name}`;
+        
         const friendOption = document.createElement('option');
         friendOption.value = human.id;
-        friendOption.textContent = human.name;
+        friendOption.textContent = displayName;
         if (selectedFriends.includes(human.id)) {
             friendOption.selected = true;
         }
@@ -3067,7 +3081,7 @@ function populateSelectOptions(selectedFriends = [], selectedFamily = []) {
 
         const familyOption = document.createElement('option');
         familyOption.value = human.id;
-        familyOption.textContent = human.name;
+        familyOption.textContent = displayName;
         if (selectedFamily.includes(human.id)) {
             familyOption.selected = true;
         }
@@ -4265,8 +4279,8 @@ function loadChatParticipants() {
 
         participantDiv.innerHTML = `
                     <input type="checkbox" id="participant_${human.id}" value="${human.id}" style="margin-right: 10px;">
-                    <label for="participant_${human.id}" style="flex: 1; cursor: pointer;">${human.name}</label>
-                    <span style="font-size: 0.8rem; color: #aaa;">${human.credit !== undefined ? Math.round(human.credit) : 'N/A'}</span>
+                    <label for="participant_${human.id}" style="flex: 1; cursor: pointer;">[${human.id}] ${human.name}</label>
+                    <span style="font-size: 0.8rem; color: #666;">${human.credit !== undefined ? Math.round(human.credit) : 'N/A'}</span>
                 `;
 
         participantDiv.addEventListener('mouseenter', () => {
@@ -4904,9 +4918,9 @@ function loadContextPeople() {
         personDiv.innerHTML = `
                     <input type="checkbox" id="context_person_${human.id}" value="${human.id}" style="margin-right: 10px;">
                     <label for="context_person_${human.id}" style="flex: 1; cursor: pointer;">
-                        <strong>${human.name}</strong>
+                        <strong>[${human.id}] ${human.name}</strong>
                         <br>
-                        <small style="color: #aaa;">Credit: ${human.credit !== undefined ? Math.round(human.credit) : 'N/A'}</small>
+                        <small style="color: #666;">Credit: ${human.credit !== undefined ? Math.round(human.credit) : 'N/A'}</small>
                     </label>
                 `;
 
@@ -6995,6 +7009,8 @@ async function analyzeAllChats() {
     analyzeAllChatsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
 
     try {
+        const totalChatsBySource = {};
+
         const analysisResults = await ChatAnalysisService.batchAnalyze(chatHistory, {
             onProgress: (progress) => {
                 analyzeAllChatsBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Analyzing... ${Math.round(progress)}%`;
@@ -7009,12 +7025,6 @@ async function analyzeAllChats() {
         const totalSuspicious = analysisResults.filter(r => r.result.isSuspicious).length;
         const totalChats = chatHistory.length;
         const securityScore = Math.max(0, 100 - (totalSuspicious / totalChats * 100));
-        const totalChatsBySource = {};
-
-        let report = `=== Chat Security Analysis Report ===\n\n`;
-        report += `Total Chats Analyzed: ${totalChats}\n`;
-        report += `Suspicious Chats Found: ${totalSuspicious}\n`;
-        report += `Security Score: ${securityScore.toFixed(1)}%\n\n`;
 
         const byRiskLevel = { high: [], medium: [], low: [] };
         analysisResults.forEach(item => {
@@ -7023,22 +7033,74 @@ async function analyzeAllChats() {
             }
         });
 
-        if (totalSuspicious > 0) {
-            report += `=== SUSPICIOUS CHATS BY RISK LEVEL ===\n`;
-            ['high', 'medium', 'low'].forEach(level => {
-                if (byRiskLevel[level].length > 0) {
-                    report += `\n${level.toUpperCase()} RISK (${byRiskLevel[level].length}):\n`;
-                    byRiskLevel[level].forEach(item => {
-                        report += `  • [${item.source.toUpperCase()}] ${item.participants}\n`;
-                        report += `    Flags: ${item.result.redFlags?.slice(0, 3).join(', ') || 'N/A'}\n`;
-                    });
-                }
+        const scoreClass = securityScore >= 80 ? 'good' : securityScore >= 50 ? 'medium' : 'bad';
+        
+        const allSuspiciousItems = [];
+        ['high', 'medium', 'low'].forEach(level => {
+            byRiskLevel[level].forEach(item => {
+                allSuspiciousItems.push({ ...item, level });
             });
-        } else {
-            report += `No suspicious chats detected. All chats appear secure.`;
-        }
+        });
 
-        showAlert(report, 'Chat Analysis Report', 'info');
+        const modalHtml = `
+            <div class="security-report">
+                <div class="security-report-header">
+                    <div class="security-score-badge ${scoreClass}">
+                        <span class="score">${securityScore.toFixed(0)}%</span>
+                        <span class="label">Score</span>
+                    </div>
+                    <div class="security-meta">
+                        <h4>Security Analysis</h4>
+                        <div class="stats">
+                            <div class="stat">
+                                <span class="val">${totalChats}</span>
+                                <span class="lbl">Chats</span>
+                            </div>
+                            <div class="stat ${totalSuspicious > 0 ? 'warning' : ''}">
+                                <span class="val">${totalSuspicious}</span>
+                                <span class="lbl">Suspicious</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                ${totalSuspicious > 0 ? `
+                    <div class="security-issues">
+                        <h5><i class="fas fa-exclamation-triangle"></i> Suspicious Chats</h5>
+                        ${allSuspiciousItems.slice(0, 10).map(item => {
+                            const participantNames = Array.isArray(item.participants) 
+                                ? item.participants.map(p => typeof p === 'object' ? p.name : p).join(', ')
+                                : 'Unknown';
+                            return `
+                            <div class="security-issue-item ${item.level}">
+                                <div class="item-header">
+                                    <span class="risk-badge ${item.level}">${item.level.toUpperCase()}</span>
+                                    <span class="src">[${item.source?.toUpperCase() || 'UNKNOWN'}]</span>
+                                    <span class="names">${participantNames}</span>
+                                </div>
+                                <div class="flags-list">
+                                    ${item.result.redFlags?.slice(0, 4).map(flag => 
+                                        `<span class="flag-tag">${flag}</span>`
+                                    ).join('') || '<span class="flag-tag">General concern</span>'}
+                                </div>
+                            </div>
+                        `}).join('')}
+                        ${allSuspiciousItems.length > 10 ? `<p style="color: #888; font-size: 0.85rem; text-align: center; margin-top: 10px;">+${allSuspiciousItems.length - 10} more</p>` : ''}
+                    </div>
+                ` : `
+                    <div class="security-ok">
+                        <i class="fas fa-shield-check"></i>
+                        <p>All chats look secure.</p>
+                    </div>
+                `}
+            </div>
+        `;
+
+        showModal({
+            title: 'Chat Security Report',
+            type: securityScore >= 80 ? 'success' : securityScore >= 50 ? 'warning' : 'error',
+            html: modalHtml,
+            buttons: [{ text: 'Close', primary: true }]
+        });
 
     } catch (error) {
         console.error('Error analyzing all chats:', error);
@@ -8983,22 +9045,17 @@ function renderRecentSearches() {
         const safeLabel = escapeHtml(term);
         const encoded = encodeURIComponent(term);
         return `
-            <button type="button" class="recent-search-chip" data-term="${encoded}">
-                <i class="fas fa-history" style="margin-right: 8px; color: #777;"></i>${safeLabel}
+            <button type="button" class="recent-search-item" data-term="${encoded}">
+                <i class="fas fa-history"></i>${safeLabel}
             </button>
         `;
     }).join('');
 
     container.innerHTML = `
-        <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 10px;">
-            <div style="color: #888; font-size: 0.95rem; font-weight: 600; letter-spacing: 0.3px;">
-                Recent searches
-            </div>
-            <button type="button" class="recent-search-clear" style="background: none; border: 1px solid #444; color: #bbb; padding: 6px 10px; border-radius: 10px; cursor: pointer;">
-                Clear
-            </button>
+        <div style="text-align: center; margin-bottom: 8px;">
+            <span style="color: #777; font-size: 0.85rem;">Recent searches</span>
         </div>
-        <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;">
             ${chips}
         </div>
     `;
@@ -9050,12 +9107,12 @@ function performSearch(query) {
     if (!query) {
         renderRecentSearches();
         resultsContainer.innerHTML = `
-                    <div style="text-align: center; padding: 40px;">
-                        <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 20px; color: #444;"></i>
-                        <p style="margin: 0; font-size: 1.2rem;">Enter search terms above to find data</p>
-                        <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666;">Search across all people, their jobs, dates, notes, and relationships</p>
-                    </div>
-                `;
+            <div class="search-empty-state">
+                <i class="fas fa-search search-empty-icon"></i>
+                <p class="search-empty-title">Start typing to search</p>
+                <p class="search-empty-hint">Results will appear here</p>
+            </div>
+        `;
         if (resultsCount) resultsCount.textContent = '';
         return;
     }
@@ -9075,6 +9132,10 @@ function performSearch(query) {
 
     pazatorData.humans.forEach(person => {
         const matches = [];
+
+        if (person.id && String(person.id).toLowerCase().includes(queryLower)) {
+            matches.push({ field: 'ID', value: String(person.id) });
+        }
 
         if (searchNames && person.name && person.name.toLowerCase().includes(queryLower)) {
             matches.push({ field: 'Name', value: person.name });
@@ -9137,6 +9198,10 @@ function performSearch(query) {
     pazatorData.others.forEach(item => {
         const matches = [];
 
+        if (item.id && String(item.id).toLowerCase().includes(queryLower)) {
+            matches.push({ field: 'ID', value: String(item.id) });
+        }
+
         if (searchNames && item.name && item.name.toLowerCase().includes(queryLower)) {
             matches.push({ field: 'Name', value: item.name });
         }
@@ -9170,77 +9235,62 @@ function displaySearchResults(results, query) {
 
     if (results.length === 0) {
         resultsContainer.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #777;">
-                        <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 20px; color: #444;"></i>
-                        <p style="margin: 0; font-size: 1.2rem;">No results found for "${query}"</p>
-                        <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666;">Try different keywords</p>
-                    </div>
-                `;
+            <div class="search-empty-state">
+                <i class="fas fa-frown search-empty-icon"></i>
+                <p class="search-empty-title">No results found for "${query}"</p>
+                <p class="search-empty-hint">Try different keywords</p>
+            </div>
+        `;
         return;
     }
 
-    let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; width: 100%;">';
+    let html = '<div class="search-results-grid">';
 
     results.forEach((result, index) => {
         const item = result.data;
         const isHuman = result.type === 'human';
 
         html += `
-                    <div style="background: rgba(35, 35, 35, 0.8); border: 1px solid #444; border-radius: 12px; padding: 22px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25); height: fit-content;" 
-                         onclick="openDetailView('${item.id}', '${result.type}')"
-                         onmouseover="this.style.background='rgba(45, 45, 45, 0.95)'; this.style.borderColor='#555'; this.style.transform='translateY(-4px)'; this.style.boxShadow='0 10px 25px rgba(0, 0, 0, 0.35)';"
-                         onmouseout="this.style.background='rgba(35, 35, 35, 0.8)'; this.style.borderColor='#444'; this.style.transform='translateY(0)'; this.style.boxShadow='0 6px 16px rgba(0, 0, 0, 0.25)';">
-                        
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px;">
-                            <h3 style="margin: 0; color: #ffffff; font-size: 1.4rem; font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif; flex: 1; padding-right: 15px;">${item.name}</h3>
-                            <span style="background: ${isHuman ? 'linear-gradient(145deg, #2a2a2a, #1f1f1f)' : 'linear-gradient(145deg, #2a2525, #1f1a1a)'}; 
-                                  color: #ddd; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 500; border: 1px solid #555; white-space: nowrap;">
-                                ${isHuman ? ' PERSON' : ' COMPANY'}
-                            </span>
+            <div class="search-result-card" onclick="openDetailView('${item.id}', '${result.type}')">
+                <div class="search-result-header">
+                    <h3 class="search-result-name">[${item.id}] ${item.name}</h3>
+                    <span class="search-result-type">${isHuman ? 'PERSON' : 'COMPANY'}</span>
+                </div>
+                
+                <div class="search-result-meta">
+                    ${isHuman && item.workplace ? `
+                        <div class="search-result-meta-item">
+                            <i class="fas fa-building"></i>
+                            <span>${item.workplace}</span>
                         </div>
-                        
-                        ${isHuman && item.workplace ? `
-                            <div style="display: flex; align-items: center; margin-bottom: 14px; color: #aaa; font-size: 1rem;">
-                                <i class="fas fa-building" style="margin-right: 12px; color: #666; width: 20px; text-align: center;"></i>
-                                <span style="flex: 1;">${item.workplace}</span>
-                            </div>
-                        ` : ''}
-                        
-                        ${isHuman && item.birthDate ? `
-                            <div style="display: flex; align-items: center; margin-bottom: 14px; color: #aaa; font-size: 1rem;">
-                                <i class="fas fa-calendar" style="margin-right: 12px; color: #666; width: 20px; text-align: center;"></i>
-                                <span style="flex: 1;">${item.birthDate}</span>
-                            </div>
-                        ` : ''}
-                        
-                        <div style="margin: 18px 0; padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; border-left: 4px solid #666;">
-                            <div style="font-size: 0.9rem; color: #888; margin-bottom: 12px; display: flex; align-items: center; font-weight: 500;">
-                                <i class="fas fa-search" style="margin-right: 10px; color: #666;"></i>
-                                MATCHES FOUND
-                            </div>
-                            ${result.matches.map(match => `
-                                <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                    <div style="font-weight: 600; color: #ddd; font-size: 1rem; margin-bottom: 6px;">${match.field}</div>
-                                    <div style="color: #bbb; font-size: 0.9rem; padding-left: 16px; border-left: 2px solid #555;">${match.value}</div>
-                                </div>
-                            `).join('').slice(0, -12)} <!-- Remove last border -->
+                    ` : ''}
+                    ${isHuman && item.birthDate ? `
+                        <div class="search-result-meta-item">
+                            <i class="fas fa-calendar"></i>
+                            <span>${item.birthDate}</span>
                         </div>
-                        
-                        ${item.tags && item.tags.length > 0 ? `
-                            <div style="margin-top: 20px; padding-top: 18px; border-top: 1px solid #333;">
-                                <div style="font-size: 0.9rem; color: #888; margin-bottom: 12px; display: flex; align-items: center; font-weight: 500;">
-                                    <i class="fas fa-tags" style="margin-right: 10px; color: #666;"></i>
-                                    TAGS
-                                </div>
-                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                                    ${item.tags.map(tag => `
-                                        <span style="background: linear-gradient(145deg, #2a2a2a, #1f1f1f); color: #ddd; padding: 6px 14px; border-radius: 16px; font-size: 0.85rem; border: 1px solid #444; transition: all 0.2s ease;">${tag}</span>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        ` : ''}
+                    ` : ''}
+                </div>
+                
+                <div class="search-result-matches">
+                    <div class="search-result-matches-title">Matches Found</div>
+                    ${result.matches.slice(0, 3).map(match => `
+                        <div class="search-result-match">
+                            <div class="search-result-match-field">${match.field}</div>
+                            <div class="search-result-match-value">${match.value}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                ${item.tags && item.tags.length > 0 ? `
+                    <div class="search-result-tags">
+                        ${item.tags.slice(0, 5).map(tag => `
+                            <span class="search-result-tag">${tag}</span>
+                        `).join('')}
                     </div>
-                `;
+                ` : ''}
+            </div>
+        `;
     });
 
     html += '</div>';

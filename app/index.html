@@ -357,11 +357,33 @@
                                     <div class="tactics-pane-title">RULESET</div>
                                     <div class="tactics-pane-sub">KV persisted • live triggers</div>
                                 </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <button id="dasturExportBtn" class="dastur-mini-btn" title="Export rules as JSON">Export</button>
+                                    <button id="dasturImportBtn" class="dastur-mini-btn" title="Import rules from JSON">Import</button>
+                                    <button id="dasturAiPromptBtn" class="dastur-mini-btn" title="Copy AI prompt for creating rules">AI Prompt</button>
+                                </div>
                             </div>
                             <div class="tactics-pane-body tactics-pane-scroll">
                                 <div id="dasturRulesList" class="dastur-rules-list" aria-label="DASTUR Rules"></div>
                             </div>
                         </section>
+
+                        <div id="dasturImportModal" class="modal" style="display: none;">
+                            <div class="modal-content" style="max-width: 500px;">
+                                <div class="modal-header">
+                                    <h2>Import DASTUR Rules</h2>
+                                    <button id="dasturImportModalClose" class="dastur-mini-btn">×</button>
+                                </div>
+                                <div class="modal-body">
+                                    <p style="color: #888; margin-bottom: 16px; font-size: 0.9rem;">Paste JSON rules array below:</p>
+                                    <textarea id="dasturImportInput" class="form-control" rows="10" placeholder='[{"event":"manual","condition":"","action":"hojum_propose","note":"My rule"}]'></textarea>
+                                </div>
+                                <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end;">
+                                    <button id="dasturImportCancel" class="btn btn-secondary">Cancel</button>
+                                    <button id="dasturImportConfirm" class="btn btn-primary">Import</button>
+                                </div>
+                            </div>
+                        </div>
 
                         <section class="tactics-pane" aria-label="HOJUM Feed">
                             <div class="tactics-pane-head">
@@ -906,39 +928,27 @@
         </div>
 
         <div class="tab-content" id="search-tab">
-            <div style="display: flex; flex-direction: column; height: 100%; padding: 40px;">
-                <div style="text-align: center; margin-bottom: 40px;">
-                    <h1
-                        style="margin: 0; font-size: 2.5rem; background: linear-gradient(45deg, #ffffff, #dddddd); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;">
-                        Search Database</h1>
-                    <p style="margin: 15px 0 0 0; color: #aaa; font-size: 1.1rem;">Search across all people, jobs,
-                        dates,
-                        notes, and relationships</p>
+            <div class="search-container">
+                <div class="search-header">
+                    <h1 class="search-title">Search Database</h1>
+                    <p class="search-subtitle">Search across all people, jobs, dates, notes, and relationships</p>
                 </div>
 
-                <div
-                    style="max-width: 700px; width: 100%; margin: 0 auto; flex: 1; display: flex; flex-direction: column;">
-                    <div style="position: relative; margin-bottom: 30px;">
-                        <input type="text" id="universalSearchInput" class="form-control"
-                            placeholder="Search the database..."
-                            style="font-size: 1.2rem; padding: 18px 20px; border-radius: 12px; border: 2px solid #333; background: rgba(30, 30, 30, 0.8); width: 100%; text-align: center;">
-                        <i class="fas fa-search"
-                            style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); color: #777; font-size: 1.2rem;"></i>
+                <div class="search-main">
+                    <div class="search-input-wrapper">
+                        <input type="text" id="universalSearchInput" class="search-input" placeholder="Search the database...">
+                        <i class="fas fa-search search-icon"></i>
                     </div>
 
-                    <div id="recentSearchesContainer" style="margin: 0 auto 22px auto; max-width: 700px;"></div>
+                    <div id="recentSearchesContainer" class="recent-searches"></div>
 
-                    <div id="searchResultsCount"
-                        style="text-align: center; color: #888; margin-bottom: 20px; font-size: 1rem; min-height: 24px;">
-                    </div>
+                    <div id="searchResultsCount" class="search-results-count"></div>
 
-                    <div id="searchResultsContainer"
-                        style="flex: 1; overflow-y: auto; background: rgba(20, 20, 20, 0.3); border-radius: 12px; padding: 25px; min-height: 300px; display: flex; align-items: center; justify-content: center; color: #777; transition: all 0.3s ease; border: 1px solid #2a2a2a; max-height: 60vh;">
-                        <div style="text-align: center; padding: 40px;">
-                            <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 20px; color: #444;"></i>
-                            <p style="margin: 0; font-size: 1.2rem; color: #aaa;">Start typing to search the database
-                            </p>
-                            <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666;">Results will appear here</p>
+                    <div id="searchResultsContainer" class="search-results-container">
+                        <div class="search-empty-state">
+                            <i class="fas fa-search search-empty-icon"></i>
+                            <p class="search-empty-title">Start typing to search</p>
+                            <p class="search-empty-hint">Results will appear here</p>
                         </div>
                     </div>
                 </div>
