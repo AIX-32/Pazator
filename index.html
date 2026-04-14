@@ -60,7 +60,6 @@
             cursor: crosshair;
         }
 
-        /* LOADER */
         #loader {
             position: fixed;
             inset: 0;
@@ -92,7 +91,6 @@
             color: var(--dim);
         }
 
-        /* TOPBAR */
         .topbar {
             position: fixed;
             top: 0;
@@ -138,7 +136,6 @@
             color: var(--white);
         }
 
-        /* HERO */
         .hero {
             min-height: 100vh;
             padding-top: 52px;
@@ -335,7 +332,6 @@
             margin-top: 5px;
         }
 
-        /* WHITE MARQUEE */
         .wmarquee {
             overflow: hidden;
             padding: 14px 0;
@@ -369,7 +365,6 @@
             }
         }
 
-        /* PRODUCTS */
         .products-head {
             display: flex;
             justify-content: space-between;
@@ -495,7 +490,6 @@
             }
         }
 
-        /* STATEMENT */
         .statement {
             padding: 100px 48px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -565,7 +559,6 @@
             border-color: var(--white);
         }
 
-        /* FOOTER */
         footer {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -695,7 +688,6 @@
             }
         }
 
-        /* ZOR SECTION */
         .zor-section {
             padding: 100px 40px;
             border-top: 1px solid #1a1a1a;
@@ -858,8 +850,8 @@
 
         <div class="hero-grid">
             <div class="hero-left">
-                <img class="hero-logo" src="./logo.png" alt="Pazator logo" width="176" height="176"
-                    decoding="async" fetchpriority="high">
+                <img class="hero-logo" src="./logo.png" alt="Pazator logo" width="176" height="176" decoding="async"
+                    fetchpriority="high">
                 <div>
                     <div class="hero-wordmark" id="wm">
                         <span class="wm-line">PAZA</span>
@@ -939,7 +931,8 @@
             <div class="pmain">
                 <div class="pname">SHAHED</div>
             </div>
-            <div class="pdesc">A work in progress system thats gives location context to Zor for pattern finding and analysis.</div>
+            <div class="pdesc">A work in progress system thats gives location context to Zor for pattern finding and
+                analysis.</div>
             <div class="pstatus">
                 <div class="pill live">LIVE</div>
                 <div class="sdot live"></div>
@@ -950,7 +943,8 @@
             <div class="pmain">
                 <div class="pname">TADBIR</div>
             </div>
-            <div class="pdesc">DASTUR rules + HOJUM proposals. Automate responses to data changes, trigger AI analysis, and act on intelligence in real-time.</div>
+            <div class="pdesc">DASTUR rules + HOJUM proposals. Automate responses to data changes, trigger AI analysis,
+                and act on intelligence in real-time.</div>
             <div class="pstatus">
                 <div class="pill">LIVE</div>
                 <div class="sdot"></div>
@@ -964,33 +958,36 @@
             <h2>Meet ZOR</h2>
             <p class="zor-subtitle">Your all-in-one intelligence companion</p>
         </div>
-        
+
         <div class="zor-grid">
             <div class="zor-card">
                 <div class="zor-card-icon">
                     <i class="fas fa-brain"></i>
                 </div>
                 <h3>Knows Your Data</h3>
-                <p>Zor has context of all your people, entities, tags, chats, and relationships. Ask about anyone and get instant insights.</p>
+                <p>Zor has context of all your people, entities, tags, chats, and relationships. Ask about anyone and
+                    get instant insights.</p>
             </div>
-            
+
             <div class="zor-card">
                 <div class="zor-card-icon">
                     <i class="fas fa-link"></i>
                 </div>
                 <h3>Connects Everything</h3>
-                <p>Leans on every Pazator system simultaneously. SHAHED locations, TADBIR rules, chat history, threat intelligence—all connected.</p>
+                <p>Leans on every Pazator system simultaneously. SHAHED locations, TADBIR rules, chat history, threat
+                    intelligence—all connected.</p>
             </div>
-            
+
             <div class="zor-card">
                 <div class="zor-card-icon">
                     <i class="fas fa-bolt"></i>
                 </div>
                 <h3>Takes Action</h3>
-                <p>Don't just ask—delegate. Create entries, tag people, trigger analysis, or launch investigations with a single prompt.</p>
+                <p>Don't just ask—delegate. Create entries, tag people, trigger analysis, or launch investigations with
+                    a single prompt.</p>
             </div>
         </div>
-        
+
         <div class="zor-examples">
             <h4>Example Queries</h4>
             <div class="zor-example-grid">
@@ -1030,9 +1027,8 @@
             </div>
         </div>
     </footer>
-   
+
     <script>
-        // Loader counter
         const lc = document.getElementById('lc');
         const loader = document.getElementById('loader');
         let n = 0;
@@ -1049,7 +1045,6 @@
             } else { lc.textContent = n; }
         }, 55);
 
-        // Scroll reveals
         const obs = new IntersectionObserver(entries => {
             entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('vis'); });
         }, { threshold: 0.1 });
