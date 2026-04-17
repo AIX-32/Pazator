@@ -1,0 +1,67 @@
+SAMPLE INTEL FOR AI IMPORT TESTING
+===================================
+
+MEETING NOTES - March 15, 2024
+Attendees: John Smith, Sarah Johnson, Mike Chen
+Location: Tech Corp HQ, Building A, Floor 5
+
+John mentioned he works at Tech Corp as Senior Developer. Born 1985-03-22. He's friends with Mike.
+
+Sarah Johnson is from Canada, speaks English and French. She works at Global Finance Inc. Education: Bachelor's Degree.
+
+Mike Chen - married, threat level medium. Religion: Buddhist. Political views: Moderate.
+
+NOTES FROM INVESTIGATION:
+- Company: Shadow Operations LLC (Organization)
+- Owner: Robert "Bob" Williams
+- Address: 123 Main Street, New York NY
+- Note: Under investigation for fraud
+
+INCIDENT REPORT:
+Names involved: Emily Davis, Tom Wilson, Alex Martinez
+Emily is 32 years old, works at Downtown Cafe.
+Tom has high threat level, low credit score (320).
+Alex is unemployed, lives in Chicago.
+
+RANDOM CHAT LOG EXCERPT:
+[10:30] David Lee: Hey man, can you check on my buddy Mark?
+[10:32] Mark Brown: I'm here
+[10:33] David Lee: Good, Sarah needs to meet you
+[10:35] Sarah: Hi Mark! Nice to meet you
+
+David Lee, age 45, government employee, high security clearance.
+Mark Brown, freelancer, income level middle class.
+
+TAGS: suspect, witness, contact
+FRIENDS: John Smith, Mike Chen
+FAMILY: wife Jane, kids Tom and Lisa
+
+EMAILS INTERCEPTED:
+From: admin@shellcompany.net
+To: contact@offshore.io
+Subject: Payment processing
+
+Contact at shellcompany: Jennifer Adams
+Phone: 555-0123
+Email: j.adams@shellcompany.net
+
+ORGANIZATIONAL CHART SNIPPET:
+CEO: Richard Nixon
+CFO: Patricia Anderson - CPA, works at Nixon Holdings
+COO: Victor Prime
+Security Chief: James Bond
+
+James Bond, MI6, threat level critical, code name 007.
+Patricia Anderson, married to Richard, owns 45% of shares.
+
+LIST FORMAT:
+- Alice Walker, female, 1990-05-15, writer
+- Bob Dylan, male, 1941-05-24, musician
+- Charlie Chaplin, male, 1889-04-16, actor
+
+Tags: celebrity, musician, actor
+Notes: Historical figures for reference
+
+JSON-STYLE DATA:
+{"name": "Test Person", "age": 30, "occupation": "Developer"}
+{"name": "Another Person", "location": "Boston", "credit": 650}

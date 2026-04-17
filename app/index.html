@@ -52,8 +52,17 @@
         Classified - Do not share.
     </div>
     <div id="aiChatModal" class="ai-chat-modal">
-        <button class="close" id="closeAIChat"
-            style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
+        <div class="ai-chat-history-panel">
+            <div class="ai-chat-history-header">Conversations</div>
+            <div class="ai-chat-history-list" id="chatHistoryList">
+                <div class="ai-chat-history-item">No saved conversations</div>
+            </div>
+            <div class="new-chat-wrapper">
+                <button class="new-chat-btn" onclick="startNewChat()" title="New Chat">
+                    <i class="fas fa-plus"></i> New Chat
+                </button>
+            </div>
+        </div>
         <div class="ai-chat-content">
             <div class="ai-chat-header">
                 <div class="header-left">
@@ -64,6 +73,12 @@
                     </div>
                 </div>
                 <div class="header-right">
+                    <button class="save-chat-btn" id="saveChatBtn" title="Save Chat">
+                        <i class="fas fa-bookmark"></i>
+                    </button>
+                    <button class="close-chat-btn" id="closeAIChat" title="Close" style="display: none;">
+                        <i class="fas fa-times"></i>
+                    </button>
                     <button class="chat-menu-btn" id="chatMenuBtn">
                         <i class="fas fa-bars"></i>
                     </button>
@@ -256,12 +271,15 @@
                             <button id="askAIBtn" class="btn btn-primary btn-dual">Zor.</button>
                         </div>
                         <div class="form-group" style="margin-top: 12px;">
-                            <button id="chatUploadBtn" class="btn btn-secondary" style="width: 100%;">Upload
+                            <button id="chatUploadBtn" class="btn glass-btn" style="width: 100%;">Upload
                                 Chat</button>
                         </div>
                         <div class="form-group" style="margin-top: 12px;">
-                            <button id="dataUploadBtn" class="btn btn-secondary" style="width: 100%;">Upload
+                            <button id="dataUploadBtn" class="btn glass-btn" style="width: 100%;">Upload
                                 Data</button>
+                        </div>
+                        <div class="form-group" style="margin-top: 12px;">
+                            <button id="aiImportBtn" class="btn glass-btn" style="width: 100%;">AI Import</button>
                         </div>
                     </div>
 
@@ -285,7 +303,7 @@
                         <div class="form-group compact">
                             <input type="text" id="tagInput" class="form-control" placeholder="New tag name">
                         </div>
-                        <button id="addTagBtn" class="btn btn-secondary" style="width: 100%;">Add Tag</button>
+                        <button id="addTagBtn" class="btn glass-btn" style="width: 100%;">Add Tag</button>
                         <div id="tagsContainer" class="tags-container" style="margin-top: 12px;">
                         </div>
                     </div>
@@ -293,7 +311,7 @@
                     <div class="sidebar-section sidebar-mini">
                         <h3>Account</h3>
                         <div id="accountGreeting" class="account-greeting" style="display:none;"></div>
-                        <button id="signInBtn" class="btn btn-secondary" style="width: 100%;">Sign In</button>
+                        <button id="signInBtn" class="btn glass-btn" style="width: 100%;">Sign In</button>
                     </div>
                 </div>
 
@@ -346,7 +364,7 @@
                                         <input type="text" id="dasturActionNote" class="tactics-input tactics-mono"
                                             placeholder="optional">
                                     </div>
-                                    <button id="dasturAddRuleBtn" class="btn btn-secondary btn-full">Add Rule</button>
+                                    <button id="dasturAddRuleBtn" class="btn glass-btn btn-full">Add Rule</button>
                                 </div>
                             </div>
                         </section>
@@ -379,7 +397,7 @@
                                     <textarea id="dasturImportInput" class="form-control" rows="10" placeholder='[{"event":"manual","condition":"","action":"hojum_propose","note":"My rule"}]'></textarea>
                                 </div>
                                 <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end;">
-                                    <button id="dasturImportCancel" class="btn btn-secondary">Cancel</button>
+                                    <button id="dasturImportCancel" class="btn glass-btn">Cancel</button>
                                     <button id="dasturImportConfirm" class="btn btn-primary">Import</button>
                                 </div>
                             </div>
@@ -393,7 +411,7 @@
                                 </div>
                                 <div class="tactics-hojum-actions">
                                     <button id="hojumManualBtn" class="btn btn-primary btn-dual">Intervene</button>
-                                    <button id="hojumClearBtn" class="btn btn-secondary btn-dual">Clear</button>
+                                    <button id="hojumClearBtn" class="btn glass-btn btn-dual">Clear</button>
                                 </div>
                             </div>
                             <div class="tactics-pane-body tactics-pane-scroll">
@@ -449,7 +467,7 @@
                                     <h3>Risk Assessment</h3>
                                     <p id="analysisRiskSummary">0 high, 0 med, 0 low</p>
                                 </div>
-                                <button id="refreshCreditsBtn" class="btn btn-secondary btn-full">
+                                <button id="refreshCreditsBtn" class="btn glass-btn btn-full">
                                     <i class="fas fa-sync"></i> Refresh
                                 </button>
                             </div>
@@ -462,7 +480,7 @@
                                     <h3>Credit Ranking</h3>
                                     <p>Sort by risk score</p>
                                 </div>
-                                <button id="sortByCreditBtn" class="btn btn-secondary btn-full">
+                                <button id="sortByCreditBtn" class="btn glass-btn btn-full">
                                     <i class="fas fa-list"></i> Sort List
                                 </button>
                             </div>
@@ -475,7 +493,7 @@
                                     <h3>AI Suggestions</h3>
                                     <p>Get tag recommendations</p>
                                 </div>
-                                <button id="aiSuggestTagsBtn" class="btn btn-secondary btn-full">
+                                <button id="aiSuggestTagsBtn" class="btn glass-btn btn-full">
                                     <i class="fas fa-magic"></i> Suggest Tags
                                 </button>
                             </div>
@@ -653,7 +671,7 @@
                                         <option value="signal">Signal</option>
                                         <option value="manual">Manual</option>
                                     </select>
-                                    <button class="btn btn-secondary" id="selectAllChatsBtn" style="padding: 6px 10px; font-size: 0.8rem;">
+                                    <button class="btn glass-btn" id="selectAllChatsBtn" style="padding: 6px 10px; font-size: 0.8rem;">
                                         <i class="fas fa-check-square"></i> Select
                                     </button>
                                     <button class="btn btn-danger" id="bulkDeleteChatsBtn" style="padding: 6px 10px; font-size: 0.8rem; display: none;">
@@ -778,7 +796,7 @@
                                         <p id="intelRiskSummary">0% high, 0% med, 0% low</p>
                                     </div>
                                 </div>
-                                <button id="intelRefreshRiskBtn" class="btn btn-secondary btn-full">
+                                <button id="intelRefreshRiskBtn" class="btn glass-btn btn-full">
                                     <i class="fas fa-sync"></i>
                                     Refresh
                                 </button>
@@ -793,7 +811,7 @@
                                         <p id="intelConnectionsSummary">0 found</p>
                                     </div>
                                 </div>
-                                <button id="intelConnectionsBtn" class="btn btn-secondary btn-full">
+                                <button id="intelConnectionsBtn" class="btn glass-btn btn-full">
                                     <i class="fas fa-search"></i>
                                     Find
                                 </button>
@@ -808,7 +826,7 @@
                                         <p id="intelHojumSummary">0 proposals</p>
                                     </div>
                                 </div>
-                                <button id="intelHojumBtn" class="btn btn-secondary btn-full">
+                                <button id="intelHojumBtn" class="btn glass-btn btn-full">
                                     <i class="fas fa-fire"></i>
                                     Trigger
                                 </button>
@@ -820,7 +838,7 @@
                                 <h3><i class="fas fa-list"></i> Analysis Results</h3>
                                 <div class="intel-results-actions">
                                     <span id="intelResultsCount" class="intel-results-badge">0 findings</span>
-                                    <button id="intelClearResults" class="btn btn-secondary btn-sm">
+                                    <button id="intelClearResults" class="btn glass-btn btn-sm">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -1075,7 +1093,7 @@
                                 <i class="fas fa-file-import" style="color: #6bcf7f;"></i>
                                 Add New Document
                             </h2>
-                            <button id="closeAddPanel" class="btn btn-secondary"
+                            <button id="closeAddPanel" class="btn glass-btn"
                                 style="padding: 8px 15px; background: rgba(60, 60, 60, 0.7); border: 1px solid #555; border-radius: 8px; color: #ddd; cursor: pointer;">
                                 <i class="fas fa-times"></i>
                             </button>
@@ -1111,7 +1129,7 @@
                                     style="flex: 1; padding: 15px; font-size: 1.1rem; background: linear-gradient(145deg, #2a2a2a, #222222); border: 2px solid #444; border-radius: 12px; font-weight: 600; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 10px;">
                                     <i class="fas fa-save"></i> Save Document
                                 </button>
-                                <button id="clearArticleBtn" class="btn btn-secondary"
+                                <button id="clearArticleBtn" class="btn glass-btn"
                                     style="padding: 15px 20px; font-size: 1.1rem; background: rgba(60, 60, 60, 0.7); border: 1px solid #555; border-radius: 12px; transition: all 0.2s ease;">
                                     Clear
                                 </button>
@@ -1129,7 +1147,7 @@
                             <div class="tracker-sidebar-header">
                                 <h3>Shahed Tracker</h3>
                                 <p>Live locations from the secure tracker</p>
-                            <button id="trackerConfigureBtn" class="btn btn-secondary tracker-config-btn">Configure
+                            <button id="trackerConfigureBtn" class="btn glass-btn tracker-config-btn">Configure
                                 tracker server</button>
                             </div>
                             <div class="tracker-sync-actions">
@@ -1140,7 +1158,7 @@
                                     </select>
                                     <button class="btn btn-primary" id="trackerConnectBtn">Show</button>
                                 </div>
-                            <button class="btn btn-secondary" id="trackerRefreshBtn" style="width: 100%;">Refresh
+                            <button class="btn glass-btn" id="trackerRefreshBtn" style="width: 100%;">Refresh
                                 tracker</button>
                             </div>
                             <div class="tracker-search">
@@ -1155,7 +1173,7 @@
                                 Last known position will appear here once you select someone.
                         </div>
                         <div class="tracker-sidebar-footer">
-                            <button class="btn btn-secondary" id="trackerPurgeBtn"><i
+                            <button class="btn glass-btn" id="trackerPurgeBtn"><i
                                     class="fas fa-exclamation-triangle"></i> Purge tracker records</button>
                         </div>
                     </div>
@@ -1244,7 +1262,7 @@
                                     </div>
                                 </div>
                                 <div class="case-header-actions">
-                                    <button id="caseZorBtn" class="btn btn-secondary">
+                                    <button id="caseZorBtn" class="btn glass-btn">
                                         Hand off to Zor
                                     </button>
                                     <button id="caseEditBtn" class="dastur-mini-btn">
@@ -1525,7 +1543,7 @@
                 </form>
             </div>
             <div class="form-actions-horizontal">
-                <button type="button" class="btn-enhanced btn-secondary" id="cancelHumanBtn">
+                <button type="button" class="btn-enhanced glass-btn" id="cancelHumanBtn">
                     <i class="fas fa-times"></i> Cancel
                 </button>
                 <button type="submit" class="btn-enhanced btn-primary" form="humanForm">
@@ -1572,7 +1590,7 @@
                     </div>
                 </form>
                 <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" id="cancelOtherBtn">Cancel</button>
+                    <button type="button" class="btn glass-btn" id="cancelOtherBtn">Cancel</button>
                     <button type="submit" class="btn btn-primary" form="otherForm">Save</button>
                 </div>
             </div>
@@ -1602,7 +1620,7 @@
                     <div class="form-group">
                         <label for="chatFile">Upload TXT File</label>
                         <input type="file" id="chatFile" class="form-control" accept=".txt" style="display: none;">
-                        <button type="button" class="btn btn-secondary" id="browseFileBtn" style="width: 100%;">Browse
+                        <button type="button" class="btn glass-btn" id="browseFileBtn" style="width: 100%;">Browse
                             for TXT file</button>
                         <div id="fileNameDisplay"
                             style="margin-top: 10px; font-size: 0.9rem; color: #aaa; display: none;"></div>
@@ -1612,7 +1630,7 @@
                         <label for="chatContent">Or Paste Chat Content</label>
                         <textarea id="chatContent" class="form-control" rows="8"
                             placeholder="Paste chat content here..."></textarea>
-                        <button type="button" class="btn btn-secondary" id="analyzeDiscordBtn"
+                        <button type="button" class="btn glass-btn" id="analyzeDiscordBtn"
                             style="margin-top: 10px; width: 100%;">Analyze Discord Chat for Suspicious Content</button>
                     </div>
 
@@ -1632,7 +1650,7 @@
                 </form>
             </div>
             <div class="form-actions">
-                <button type="button" class="btn btn-secondary" id="cancelChatUploadBtn">Cancel</button>
+                <button type="button" class="btn glass-btn" id="cancelChatUploadBtn">Cancel</button>
                 <button type="submit" class="btn btn-primary" form="chatUploadForm" id="uploadChatBtn">Process
                     Chat</button>
             </div>
@@ -1672,27 +1690,76 @@
                         <input type="file" id="dataFile" class="form-control" accept=".csv" required>
                     </div>
                 </form>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn glass-btn" id="cancelDataUploadBtn">Cancel</button>
+                <button type="button" class="btn btn-primary" id="uploadDataBtn">Upload Data</button>
+            </div>
+        </div>
+    </div>
 
-                <div class="form-group" style="margin-top: 18px; padding-top: 18px; border-top: 1px solid #2a2a2a;">
-                    <p><strong>AI Paste Import:</strong></p>
-                    <p style="color:#aaa; font-size:0.9rem; line-height:1.5;">
-                        Paste unstructured intel (notes, lists, messages). Zor will convert it into Pazator CSV and import it.
-                    </p>
-                    <label for="aiDataPaste" style="margin-top: 10px;">Paste text</label>
-                    <textarea id="aiDataPaste" class="form-control" rows="8"
-                        placeholder="Paste anything: names, orgs, birthdays, relationships, tags, notes..."></textarea>
+    <div id="aiImportModal" class="modal">
+        <button class="close" style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2>AI Import</h2>
+                <p style="margin: 5px 0 0 0; font-size: 0.9rem; color: #aaa;">Upload files or paste text. Zor will convert everything to CSV.</p>
+            </div>
+            <div class="modal-body">
+                <div class="ai-import-layout">
+                    <div class="ai-import-left">
+                        <div class="form-group">
+                            <label>Drop files here or click to browse</label>
+                            <div id="aiImportDropZone" class="ai-import-dropzone">
+                                <i class="fas fa-cloud-upload-alt" style="font-size: 2.5rem; color: #666; margin-bottom: 15px;"></i>
+                                <p style="color: #888; margin: 0;">Supported: TXT, JSON, CSV, XML, HTML, PDF text</p>
+                                <p style="color: #555; margin: 10px 0 0 0; font-size: 0.85rem;">or paste text below</p>
+                            </div>
+                            <input type="file" id="aiImportFileInput" class="ai-import-file-input" accept=".txt,.json,.csv,.xml,.html,.pdf" multiple>
+                            <div id="aiImportFileList" class="ai-import-file-list"></div>
+                        </div>
 
-                    <details style="margin-top: 10px;">
-                        <summary style="cursor:pointer; color:#ddd;">Show generated CSV preview</summary>
-                        <textarea id="aiDataPreview" class="form-control" rows="6" readonly
-                            style="margin-top: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;"></textarea>
-                    </details>
+                        <div class="form-group">
+                            <label for="aiImportText">Or paste text directly</label>
+                            <textarea id="aiImportText" class="form-control" rows="10" placeholder="Paste any unstructured data:&#10;- Names and descriptions&#10;- Chat logs or message exports&#10;- Business cards&#10;- Event attendee lists&#10;- Any text containing people/org info..."></textarea>
+                        </div>
+
+                        <div class="ai-import-options">
+                            <div class="form-group">
+                                <label for="aiImportType">Import as:</label>
+                                <select id="aiImportType" class="form-control">
+                                    <option value="auto">Auto-detect (Humans + Orgs)</option>
+                                    <option value="humans">Humans only</option>
+                                    <option value="orgs">Organizations only</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ai-import-right">
+                        <div class="form-group">
+                            <label style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>Generated CSV Preview</span>
+                                <span id="aiImportRowCount" style="color: #888; font-size: 0.85rem;">0 rows</span>
+                            </label>
+                            <textarea id="aiImportPreview" class="form-control" rows="20" readonly style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.85rem; background: #111;"></textarea>
+                        </div>
+
+                        <div id="aiImportStatus" class="ai-import-status" style="display: none;">
+                            <i class="fas fa-check-circle" style="color: #6bcf7f;"></i>
+                            <span id="aiImportStatusText"></span>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="form-actions">
-                <button type="button" class="btn btn-secondary" id="cancelDataUploadBtn">Cancel</button>
-                <button type="button" class="btn btn-primary" id="uploadDataBtn">Upload Data</button>
-                <button type="button" class="btn btn-secondary" id="aiFormatDataBtn">AI Format + Import</button>
+                <button type="button" class="btn glass-btn" id="cancelAiImportBtn">Cancel</button>
+                <button type="button" class="btn glass-btn" id="previewAiImportBtn">
+                    <i class="fas fa-eye"></i> Preview
+                </button>
+                <button type="button" class="btn btn-primary" id="runAiImportBtn">
+                    <i class="fas fa-magic"></i> AI Import
+                </button>
             </div>
         </div>
     </div>
@@ -1743,7 +1810,7 @@
                 </div>
             </div>
             <div class="form-actions">
-                <button type="button" class="btn btn-secondary" id="cancelContextBtn">Cancel</button>
+                <button type="button" class="btn glass-btn" id="cancelContextBtn">Cancel</button>
                 <button type="button" class="btn btn-primary" id="applyContextBtn">Apply Context</button>
             </div>
         </div>
@@ -1795,7 +1862,7 @@
                 </div>
             </div>
             <div class="form-actions-horizontal">
-                <button class="btn-enhanced btn-secondary" id="cancelClassifyBtn">
+                <button class="btn-enhanced glass-btn" id="cancelClassifyBtn">
                     <i class="fas fa-times"></i> Close
                 </button>
                 <button class="btn-enhanced btn-primary" id="applyClassifyBtn">
@@ -2023,8 +2090,8 @@
             <div class="ai-chat-messages" id="connectionsContent"
                 style="background: rgba(30, 30, 30, 0.7); border-radius: 15px; padding: 20px; margin: 20px 0; max-height: 60vh;">
                 <div id="connectionsLoading" style="text-align: center; padding: 20px; display: none;">
-                    <p>Analyzing connections...</p>
-                    <div class="connection-loader"></div>
+                    <p style="color:#fff;">Analyzing connections...</p>
+                    <div class="loader" style="--size:45px;color:#fff;display:block;margin:20px auto;"></div>
                 </div>
                 <div id="connectionsResults" style="display: none;">
                     <h3 style="color: #ffffff; margin-bottom: 20px;">Potential Hidden Connections</h3>
@@ -2099,7 +2166,7 @@
                 </div>
             </div>
             <div class="credit-eval-footer" id="creditEvalFooter">
-                <button id="creditEvalCloseBtn" class="btn btn-secondary" style="display: none;">
+                <button id="creditEvalCloseBtn" class="btn glass-btn" style="display: none;">
                     <i class="fas fa-times"></i> Close
                 </button>
             </div>

@@ -1327,18 +1327,19 @@ const aiChatMessages = document.getElementById('aiChatMessages');
 
 function setAiSendLoading(isLoading) {
     if (!aiSendBtn) return;
-    const icon = aiSendBtn.querySelector('i');
+    const icon = aiSendBtn.querySelector('i, .loader');
     const statusIndicator = document.querySelector('.status-indicator');
     const statusText = document.querySelector('.status-text');
     
     aiSendBtn.classList.toggle('loading', !!isLoading);
-    if (icon) {
-        if (isLoading) {
-            icon.classList.remove('fa-paper-plane');
-            icon.classList.add('fa-spinner', 'fa-spin');
-        } else {
-            icon.classList.remove('fa-spinner', 'fa-spin');
-            icon.classList.add('fa-paper-plane');
+    if (isLoading) {
+        if (icon && icon.tagName === 'I') {
+            icon.outerHTML = '<div class="loader" style="--size:1.1rem;display:inline-block;color:#fff;"></div>';
+        }
+    } else {
+        const loader = aiSendBtn.querySelector('.loader');
+        if (loader) {
+            loader.outerHTML = '<i class="fas fa-paper-plane"></i>';
         }
     }
     
@@ -3179,7 +3180,149 @@ function addMessageToAIChat(message, sender) {
         messageDiv.offsetHeight;
     });
 
-    aiChatHistory.push({ role: sender === 'user' ? 'user' : 'assistant', content: message });
+    const role = sender === 'user' ? 'user' : 'assistant';
+    aiChatHistory.push({ role, content: message });
+}
+
+function saveCurrentChat() {
+    console.log('saveCurrentChat called, aiChatHistory:', aiChatHistory);
+    if (aiChatHistory.length === 0) return;
+
+    const existingChats = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+    console.log('Existing chats:', existingChats);
+    
+    const firstUserMsg = aiChatHistory.find(m => m.role === 'user')?.content || 'New Chat';
+    const newChat = { 
+        title: String(firstUserMsg).substring(0, 30), 
+        messages: aiChatHistory.map(m => ({ role: String(m.role), content: String(m.content || '') })),
+        titleGenerated: false
+    };
+    
+    console.log('Saving new chat:', newChat);
+    console.log('JSON string:', JSON.stringify(newChat));
+    existingChats.push(newChat);
+    
+    const finalJson = JSON.stringify(existingChats);
+    console.log('Final JSON to save:', finalJson);
+    
+    try {
+        localStorage.setItem('chatHistory', finalJson);
+        console.log('Saved successfully');
+    } catch (e) {
+        console.error('Error saving chat:', e);
+    }
+
+    updateChatHistoryPanel();
+}
+
+document.getElementById('saveChatBtn').addEventListener('click', saveCurrentChat);
+
+async function generateChatTitle(currentChat, existingChats) {
+    const userMessage = currentChat.messages.find(m => m.role === 'user')?.content;
+    const aiMessage = currentChat.messages.find(m => m.role === 'assistant')?.content;
+
+    if (!userMessage) return;
+
+    try {
+        const shortContext = `Context: ${pazatorData.humans.length} humans, ${pazatorData.chats.length} chats. User asked: "${userMessage.substring(0, 200)}". Response: "${aiMessage?.substring(0, 100) || ''}".`;
+
+        const aiResponse = await puter.ai.chat([
+            { role: "system", content: "Generate a very short 3-5 word title for this conversation. Just respond with the title, nothing else." },
+            { role: "user", content: shortContext }
+        ]);
+
+        currentChat.title = aiResponse.content ? aiResponse.content.trim().substring(0, 30) : userMessage.substring(0, 30);
+        localStorage.setItem('chatHistory', JSON.stringify(existingChats));
+        updateChatHistoryPanel();
+    } catch (e) {
+        currentChat.title = userMessage.substring(0, 30);
+        localStorage.setItem('chatHistory', JSON.stringify(existingChats));
+        updateChatHistoryPanel();
+    }
+}
+
+function startNewChat() {
+    aiChatHistory = [];
+    aiChatMessages.innerHTML = '';
+    updateChatHistoryPanel();
+}
+
+function updateChatHistoryPanel() {
+    const container = document.getElementById('chatHistoryList');
+    const stored = localStorage.getItem('chatHistory') || '[]';
+    let chats = JSON.parse(stored);
+
+    chats = chats.filter(c => c && typeof c === 'object' && c.title);
+
+    if (chats.length === 0) {
+        container.innerHTML = '<div class="ai-chat-history-item">No saved conversations</div>';
+        return;
+    }
+
+    container.innerHTML = chats.map((chat, index) => `
+        <div class="ai-chat-history-item" onclick="loadConversation(${index})" oncontextmenu="showChatContextMenu(event, ${index})">
+            ${String(chat.title).substring(0, 40) || 'Chat ' + (index + 1)}
+        </div>
+    `).join('');
+}
+
+let selectedChatIndex = null;
+
+function showChatContextMenu(e, index) {
+    e.preventDefault();
+    selectedChatIndex = index;
+    const menu = document.getElementById('chatContextMenu');
+    menu.style.left = e.pageX + 'px';
+    menu.style.top = e.pageY + 'px';
+    menu.classList.add('active');
+}
+
+function hideChatContextMenu() {
+    document.getElementById('chatContextMenu').classList.remove('active');
+}
+
+document.addEventListener('click', hideChatContextMenu);
+
+document.getElementById('renameChatOption').addEventListener('click', () => {
+    if (selectedChatIndex === null) return;
+    const chats = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+    const chat = chats[selectedChatIndex];
+    if (!chat) return;
+    const newTitle = prompt('Enter new title:', chat.title);
+    if (newTitle && newTitle.trim()) {
+        chat.title = newTitle.trim().substring(0, 40);
+        localStorage.setItem('chatHistory', JSON.stringify(chats));
+        updateChatHistoryPanel();
+    }
+    hideChatContextMenu();
+});
+
+document.getElementById('deleteChatOption').addEventListener('click', () => {
+    if (selectedChatIndex === null) return;
+    if (!confirm('Delete this conversation?')) return;
+    const chats = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+    chats.splice(selectedChatIndex, 1);
+    localStorage.setItem('chatHistory', JSON.stringify(chats));
+    updateChatHistoryPanel();
+    hideChatContextMenu();
+});
+
+function loadConversation(index) {
+    const chats = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+    const chat = chats[index];
+    if (!chat || !chat.messages) return;
+
+    aiChatHistory = [...chat.messages];
+    aiChatMessages.innerHTML = '';
+
+    chat.messages.forEach(msg => {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `ai-message ${msg.role === 'user' ? 'user' : 'ai'}`;
+        messageDiv.textContent = msg.content;
+        aiChatMessages.appendChild(messageDiv);
+    });
+
+    aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
 }
 
 function generate54PeopleCommand() {
@@ -4124,9 +4267,6 @@ const dataUploadModal = document.getElementById('dataUploadModal');
 const dataFile = document.getElementById('dataFile');
 const cancelDataUploadBtn = document.getElementById('cancelDataUploadBtn');
 const uploadDataBtn = document.getElementById('uploadDataBtn');
-const aiFormatDataBtn = document.getElementById('aiFormatDataBtn');
-const aiDataPaste = document.getElementById('aiDataPaste');
-const aiDataPreview = document.getElementById('aiDataPreview');
 const dataUploadBtn = document.getElementById('dataUploadBtn');
 
 function closeDataUploadModal() {
@@ -4140,15 +4280,9 @@ function closeDataUploadModal() {
 
     document.getElementById('dataUploadForm')?.reset();
     if (dataFile) dataFile.value = '';
-    if (aiDataPaste) aiDataPaste.value = '';
-    if (aiDataPreview) aiDataPreview.value = '';
     if (uploadDataBtn) {
         uploadDataBtn.disabled = false;
         uploadDataBtn.textContent = 'Upload Data';
-    }
-    if (aiFormatDataBtn) {
-        aiFormatDataBtn.disabled = false;
-        aiFormatDataBtn.textContent = 'AI Format + Import';
     }
 }
 
@@ -4180,12 +4314,270 @@ dataUploadBtn.addEventListener('click', () => {
 
     document.getElementById('dataUploadForm').reset();
     dataFile.value = '';
-    if (aiDataPaste) aiDataPaste.value = '';
-    if (aiDataPreview) aiDataPreview.value = '';
 
     dataUploadModal.style.display = 'flex';
     dataUploadModal.style.zIndex = '1000';
 });
+
+const aiImportModal = document.getElementById('aiImportModal');
+const aiImportBtn = document.getElementById('aiImportBtn');
+const aiImportText = document.getElementById('aiImportText');
+const aiImportPreview = document.getElementById('aiImportPreview');
+const aiImportDropZone = document.getElementById('aiImportDropZone');
+const aiImportFileInput = document.getElementById('aiImportFileInput');
+const aiImportFileList = document.getElementById('aiImportFileList');
+const aiImportType = document.getElementById('aiImportType');
+const aiImportRowCount = document.getElementById('aiImportRowCount');
+const aiImportStatus = document.getElementById('aiImportStatus');
+const aiImportStatusText = document.getElementById('aiImportStatusText');
+const cancelAiImportBtn = document.getElementById('cancelAiImportBtn');
+const previewAiImportBtn = document.getElementById('previewAiImportBtn');
+const runAiImportBtn = document.getElementById('runAiImportBtn');
+
+let aiImportFiles = [];
+
+function openAiImportModal() {
+    [humanModal, otherModal, detailViewModal, aiChatModal, typeModal, chatUploadModal, dataUploadModal].forEach(modal => {
+        if (modal) {
+            modal.style.display = 'none';
+            modal.style.zIndex = '-1';
+        }
+    });
+    aiImportModal.style.display = 'flex';
+    aiImportModal.style.zIndex = '1000';
+}
+
+function closeAiImportModal() {
+    if (!aiImportModal) return;
+    aiImportModal.classList.add('hiding');
+    setTimeout(() => {
+        aiImportModal.style.display = 'none';
+        aiImportModal.style.zIndex = '-1';
+        aiImportModal.classList.remove('hiding');
+    }, 300);
+    aiImportFiles = [];
+    aiImportText.value = '';
+    aiImportPreview.value = '';
+    aiImportRowCount.textContent = '0 rows';
+    aiImportStatus.style.display = 'none';
+    if (aiImportFileInput) aiImportFileInput.value = '';
+    if (aiImportFileList) aiImportFileList.innerHTML = '';
+    if (runAiImportBtn) {
+        runAiImportBtn.disabled = false;
+        runAiImportBtn.innerHTML = '<i class="fas fa-magic"></i> AI Import';
+    }
+    if (previewAiImportBtn) {
+        previewAiImportBtn.disabled = false;
+        previewAiImportBtn.innerHTML = '<i class="fas fa-eye"></i> Preview';
+    }
+}
+
+aiImportBtn?.addEventListener('click', openAiImportModal);
+cancelAiImportBtn?.addEventListener('click', closeAiImportModal);
+aiImportModal?.querySelector('.close')?.addEventListener('click', closeAiImportModal);
+
+aiImportDropZone?.addEventListener('click', () => {
+    aiImportFileInput?.click();
+});
+
+aiImportDropZone?.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    aiImportDropZone.classList.add('dragover');
+});
+
+aiImportDropZone?.addEventListener('dragleave', () => {
+    aiImportDropZone.classList.remove('dragover');
+});
+
+aiImportDropZone?.addEventListener('drop', (e) => {
+    e.preventDefault();
+    aiImportDropZone.classList.remove('dragover');
+    const files = Array.from(e.dataTransfer?.files || []);
+    handleAiImportFiles(files);
+});
+
+aiImportFileInput?.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files || []);
+    handleAiImportFiles(files);
+});
+
+function handleAiImportFiles(files) {
+    const validTypes = ['.txt', '.json', '.csv', '.xml', '.html'];
+    files.forEach(file => {
+        const ext = '.' + file.name.split('.').pop().toLowerCase();
+        if (!validTypes.includes(ext) && !file.type.startsWith('text/') && file.type !== 'application/json') {
+            showAlert(`Unsupported file type: ${file.name}`, 'Error', 'error');
+            return;
+        }
+        if (!aiImportFiles.some(f => f.name === file.name)) {
+            aiImportFiles.push(file);
+        }
+    });
+    renderAiImportFileList();
+}
+
+function renderAiImportFileList() {
+    if (!aiImportFileList) return;
+    aiImportFileList.innerHTML = aiImportFiles.map((file, index) => `
+        <div class="ai-import-file-item">
+            <i class="fas fa-file-alt"></i>
+            <span>${file.name}</span>
+            <span class="remove-file" data-index="${index}">&times;</span>
+        </div>
+    `).join('');
+
+    aiImportFileList.querySelectorAll('.remove-file').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const index = parseInt(e.target.dataset.index);
+            aiImportFiles.splice(index, 1);
+            renderAiImportFileList();
+        });
+    });
+}
+
+async function extractTextFromFiles() {
+    let combinedText = '';
+
+    for (const file of aiImportFiles) {
+        try {
+            const text = await file.text();
+            combinedText += `\n--- ${file.name} ---\n` + text;
+        } catch (error) {
+            console.error(`Error reading file ${file.name}:`, error);
+        }
+    }
+
+    return combinedText;
+}
+
+const AI_IMPORT_HEADERS = ['Name', 'Type', 'Gender', 'Birth Date', 'Marital Status', 'Workplace', 'Nationality', 'Country of Origin', 'Immigration Status', 'Languages', 'Ethnicity', 'Religion', 'Political Views', 'Credit Score', 'Social Class', 'Income Level', 'Education Level', 'Threat Level', 'Notes', 'Tags', 'Friends', 'Family'];
+
+function getAiImportSystemPrompt(importType) {
+    let typeInstruction = '';
+    if (importType === 'humans') {
+        typeInstruction = '- Type must always be blank (these are people).';
+    } else if (importType === 'orgs') {
+        typeInstruction = '- Type must always be filled (Company, Organization, Government, etc.).';
+    } else {
+        typeInstruction = '- For humans: Type must be blank. For orgs: Type must be filled (Company, Organization, Government, etc.).';
+    }
+
+    return `You convert unstructured intel text into a CSV that Pazator can import.
+
+OUTPUT RULES:
+- Output ONLY raw CSV text (no markdown, no code fences).
+- Use comma as delimiter.
+- First row MUST be headers EXACTLY:
+Name,Type,Gender,Birth Date,Marital Status,Workplace,Nationality,Country of Origin,Immigration Status,Languages,Ethnicity,Religion,Political Views,Credit Score,Social Class,Income Level,Education Level,Threat Level,Notes,Tags,Friends,Family
+${typeInstruction}
+- Birth Date must be YYYY-MM-DD if known; otherwise blank.
+- Credit Score must be a number 0-370 if known.
+- Social Class options: low class, medium class, high class, 1%.
+- Income Level: Below Poverty, Low, Middle, Upper Middle, High, Wealthy.
+- Education Level: No Formal Education, Primary School, High School, Associate's Degree, Bachelor's Degree, Master's Degree, Doctorate, Post-Doctorate.
+- Threat Level: None, Low, Medium, High, Critical.
+- Tags/Friends/Family must be comma-separated within the cell.
+- Extract as much info as possible. If unsure, leave blank.
+- Escape quotes correctly if needed.
+- Be thorough - extract names, relationships, locations, jobs, and any other relevant info.`;
+}
+
+async function runAiImport(previewOnly = false) {
+    const fileText = await extractTextFromFiles();
+    const pasteText = aiImportText?.value?.trim() || '';
+    const rawInput = (fileText + '\n' + pasteText).trim();
+
+    if (!rawInput) {
+        showAlert('Please upload files or paste text first.', 'Missing Input', 'warning');
+        return null;
+    }
+
+    if (typeof puter === 'undefined' || !puter?.ai?.chat) {
+        showAlert('Puter AI is not available. Cannot run AI import.', 'Error', 'error');
+        return null;
+    }
+
+    if (previewOnly) {
+        previewAiImportBtn.disabled = true;
+        previewAiImportBtn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Processing...';
+    } else {
+        runAiImportBtn.disabled = true;
+        runAiImportBtn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Importing...';
+    }
+
+    try {
+        const system = getAiImportSystemPrompt(aiImportType?.value || 'auto');
+
+        const aiResponse = await puter.ai.chat([
+            { role: "system", content: system },
+            { role: "user", content: rawInput }
+        ]);
+
+        let csvText = aiResponse?.content ? aiResponse.content : aiResponse;
+        csvText = extractCSVFromAIResponse(csvText);
+
+        if (aiImportPreview) aiImportPreview.value = csvText;
+
+        const rows = csvText.split('\n').filter(line => line.trim());
+        if (aiImportRowCount) {
+            aiImportRowCount.textContent = `${Math.max(0, rows.length - 1)} rows`;
+        }
+
+        aiImportStatus.style.display = 'flex';
+        aiImportStatusText.textContent = previewOnly ? 'Preview ready' : 'CSV generated, ready to import';
+
+        if (previewOnly) {
+            previewAiImportBtn.disabled = false;
+            previewAiImportBtn.innerHTML = '<i class="fas fa-eye"></i> Preview';
+            return null;
+        }
+
+        const data = parseCSV(csvText, { expectedHeaders: AI_IMPORT_HEADERS, strictHeaderOrder: true });
+        const result = processCSVData(data);
+
+        closeAiImportModal();
+        showAlert(`AI import complete: ${result.humans} humans, ${result.others} orgs.`, 'Success', 'success');
+
+        markDataChanged();
+        renderWebNodes();
+
+        return result;
+    } catch (error) {
+        console.error('AI import error:', error);
+        const message = error?.message ? error.message : String(error);
+
+        const retryPrompt = await showConfirm(
+            `AI import failed: ${message}\n\nDo you want to retry?`,
+            'AI Import Failed',
+            'question'
+        );
+
+        if (retryPrompt) {
+            if (previewOnly) {
+                previewAiImportBtn.disabled = false;
+                previewAiImportBtn.innerHTML = '<i class="fas fa-eye"></i> Preview';
+            } else {
+                runAiImportBtn.disabled = false;
+                runAiImportBtn.innerHTML = '<i class="fas fa-magic"></i> AI Import';
+            }
+            return await runAiImport(previewOnly);
+        }
+
+        showAlert(`AI import failed: ${message}`, 'Error', 'error');
+        return null;
+    } finally {
+        if (previewOnly) {
+            previewAiImportBtn.disabled = false;
+            previewAiImportBtn.innerHTML = '<i class="fas fa-eye"></i> Preview';
+        } else {
+            runAiImportBtn.disabled = false;
+            runAiImportBtn.innerHTML = '<i class="fas fa-magic"></i> AI Import';
+        }
+    }
+}
+
+previewAiImportBtn?.addEventListener('click', () => runAiImport(true));
+runAiImportBtn?.addEventListener('click', () => runAiImport(false));
 
 browseFileBtn.addEventListener('click', () => {
     chatFile.click();
@@ -4438,148 +4830,6 @@ function extractCSVFromAIResponse(text) {
     }
     return out;
 }
-
-aiFormatDataBtn?.addEventListener('click', async () => {
-    const raw = aiDataPaste?.value?.trim() || '';
-    if (!raw) {
-        showAlert('Paste some text first.', 'Missing Input', 'warning');
-        return;
-    }
-
-    if (typeof puter === 'undefined' || !puter?.ai?.chat) {
-        showAlert('Puter AI is not available. Cannot run AI formatting.', 'Error', 'error');
-        return;
-    }
-
-    aiFormatDataBtn.disabled = true;
-    aiFormatDataBtn.textContent = 'Formatting...';
-
-    try {
-        const REQUIRED_AI_HEADERS = ['Name', 'Type', 'Gender', 'Birth Date', 'Marital Status', 'Workplace', 'Nationality', 'Country of Origin', 'Immigration Status', 'Languages', 'Ethnicity', 'Religion', 'Political Views', 'Credit Score', 'Social Class', 'Income Level', 'Education Level', 'Threat Level', 'Notes', 'Tags', 'Friends', 'Family'];
-
-        const system = `
-You convert unstructured intel text into a CSV that Pazator can import.
-
-OUTPUT RULES:
-- Output ONLY raw CSV text (no markdown, no code fences).
-- Use comma as delimiter.
-- First row MUST be headers EXACTLY:
-Name,Type,Gender,Birth Date,Marital Status,Workplace,Nationality,Country of Origin,Immigration Status,Languages,Ethnicity,Religion,Political Views,Credit Score,Social Class,Income Level,Education Level,Threat Level,Notes,Tags,Friends,Family
-- For humans: Type must be blank. For orgs: Type must be filled (Company, Organization, Government, etc).
-- Birth Date must be YYYY-MM-DD if known; otherwise blank.
-- Credit Score must be a number 0-370 if known.
-- Social Class options: low class, medium class, high class, 1%.
-- Income Level: Below Poverty, Low, Middle, Upper Middle, High, Wealthy.
-- Education Level: No Formal Education, Primary School, High School, Associate's Degree, Bachelor's Degree, Master's Degree, Doctorate, Post-Doctorate.
-- Threat Level: None, Low, Medium, High, Critical.
-- Tags/Friends/Family must be comma-separated within the cell.
-- Escape quotes correctly if needed.
-`;
-
-        let firstResponseText = '';
-        let firstCsvText = '';
-        let firstFailure = null;
-
-        try {
-            const aiResponse = await puter.ai.chat([
-                { role: "system", content: system },
-                { role: "user", content: raw }
-            ]);
-
-            firstResponseText = aiResponse?.content ? aiResponse.content : aiResponse;
-            firstCsvText = extractCSVFromAIResponse(firstResponseText);
-
-            if (aiDataPreview) aiDataPreview.value = firstCsvText;
-
-            const data = parseCSV(firstCsvText, { expectedHeaders: REQUIRED_AI_HEADERS, strictHeaderOrder: true });
-            const result = processCSVData(data);
-
-            closeDataUploadModal();
-            showAlert(`AI import complete: ${result.humans} humans, ${result.others} orgs.`, 'Success', 'success');
-
-            markDataChanged();
-            renderWebNodes();
-            return;
-        } catch (e) {
-            firstFailure = e;
-        }
-
-        const retry = await showConfirm(
-            'AI CSV formatter failed. Do you want it to try harder?',
-            'AI Import Failed',
-            'question'
-        );
-
-        if (!retry) {
-            throw firstFailure || new Error('AI import failed.');
-        }
-
-        aiFormatDataBtn.textContent = 'Trying harder...';
-
-        const repairSystem = `
-You repair and validate CSV for Pazator import.
-
-OUTPUT RULES (STRICT):
-- Output ONLY raw CSV text (no markdown, no code fences, no commentary).
-- Use comma as delimiter.
-- First row MUST be headers EXACTLY:
-Name,Type,Gender,Birth Date,Marital Status,Workplace,Nationality,Country of Origin,Immigration Status,Languages,Ethnicity,Religion,Political Views,Credit Score,Social Class,Income Level,Education Level,Threat Level,Notes,Tags,Friends,Family
-- Every data row MUST have exactly 22 columns.
-- For humans: Type must be blank. For orgs: Type must be filled (Company, Organization, Government, etc).
-- Birth Date must be YYYY-MM-DD if known; otherwise blank.
-- Credit Score must be a number 0-370 if known.
-- Social Class options: low class, medium class, high class, 1%.
-- Income Level: Below Poverty, Low, Middle, Upper Middle, High, Wealthy.
-- Education Level: No Formal Education, Primary School, High School, Associate's Degree, Bachelor's Degree, Master's Degree, Doctorate, Post-Doctorate.
-- Threat Level: None, Low, Medium, High, Critical.
-- Tags/Friends/Family must be comma-separated within the cell.
-- Escape quotes correctly if needed.
-
-DATA RULES:
-- Preserve as much of the original info as possible.
-- Do not invent facts. If unsure, leave cells blank.
-`;
-
-        const repairUser = `
-RAW USER INPUT:
-${raw}
-
-PREVIOUS AI OUTPUT (MAY BE BROKEN):
-${firstCsvText || firstResponseText || '[no output]'}
-
-IMPORT / FORMAT ERRORS:
-${String(firstFailure?.message || firstFailure || 'Unknown error')}
-
-Task: Produce a corrected CSV that obeys the strict output rules.
-`;
-
-        const repairResponse = await puter.ai.chat([
-            { role: "system", content: repairSystem },
-            { role: "user", content: repairUser }
-        ]);
-
-        const repairResponseText = repairResponse?.content ? repairResponse.content : repairResponse;
-        const repairedCsvText = extractCSVFromAIResponse(repairResponseText);
-        if (aiDataPreview) aiDataPreview.value = repairedCsvText;
-
-        const repairedData = parseCSV(repairedCsvText, { expectedHeaders: REQUIRED_AI_HEADERS, strictHeaderOrder: true });
-        const repairedResult = processCSVData(repairedData);
-
-        closeDataUploadModal();
-        showAlert(`AI import complete (retry): ${repairedResult.humans} humans, ${repairedResult.others} orgs.`, 'Success', 'success');
-
-        markDataChanged();
-        renderWebNodes();
-
-    } catch (error) {
-        console.error('AI paste import failed:', error);
-        const message = error?.message ? error.message : String(error);
-        showAlert(`AI import failed: ${message}`, 'Error', 'error');
-    } finally {
-        aiFormatDataBtn.disabled = false;
-        aiFormatDataBtn.textContent = 'AI Format + Import';
-    }
-});
 
 function parseCSV(csvText, options = {}) {
     if (!csvText || !String(csvText).trim()) {
@@ -5275,6 +5525,8 @@ askAIBtn.addEventListener('click', () => {
     aiChatModal.style.opacity = '1';
     aiChatModal.style.pointerEvents = 'auto';
 
+    updateChatHistoryPanel();
+
     console.log('Modal display style:', aiChatModal.style.display);
     console.log('Modal z-index:', aiChatModal.style.zIndex);
 
@@ -5367,6 +5619,7 @@ window.addEventListener('click', (event) => {
         { element: aiChatModal, condition: event.target === aiChatModal },
         { element: chatUploadModal, condition: event.target === chatUploadModal },
         { element: dataUploadModal, condition: event.target === dataUploadModal },
+        { element: aiImportModal, condition: event.target === aiImportModal },
         { element: document.getElementById('hiddenConnectionsModal'), condition: event.target === document.getElementById('hiddenConnectionsModal') }
     ];
 
@@ -5381,7 +5634,7 @@ window.addEventListener('click', (event) => {
         }
     });
 
-    [typeModal, humanModal, otherModal, detailViewModal, classifyModal, aiChatModal, chatUploadModal, dataUploadModal, document.getElementById('hiddenConnectionsModal')].forEach(modal => {
+    [typeModal, humanModal, otherModal, detailViewModal, classifyModal, aiChatModal, chatUploadModal, dataUploadModal, aiImportModal, document.getElementById('hiddenConnectionsModal')].forEach(modal => {
         if (modal && modal.style.display === 'none') {
             modal.style.zIndex = '-1';
         }
@@ -6081,7 +6334,7 @@ aiSuggestTagsBtn?.addEventListener('click', async () => {
     }
 
     aiSuggestTagsBtn.disabled = true;
-    aiSuggestTagsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+    aiSuggestTagsBtn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Analyzing...';
 
     try {
         const humansData = pazatorData.humans.map(h => ({
@@ -6304,7 +6557,7 @@ intelHojumBtn?.addEventListener('click', async () => {
         const hojum = window.pazator_context?.hojum;
         if (hojum && typeof hojum.proposeManual === 'function') {
             intelHojumBtn.disabled = true;
-            intelHojumBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
+            intelHojumBtn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Running...';
             
             await hojum.proposeManual('Threat analysis request from Intelligence Center');
             
@@ -6404,7 +6657,7 @@ async function runIntelligenceAnalysis() {
     
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+        btn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Analyzing...';
     }
     
     try {
@@ -7230,14 +7483,14 @@ async function analyzeAllChats() {
 
     analyzeAllChatsBtn.disabled = true;
     const originalText = analyzeAllChatsBtn.innerHTML;
-    analyzeAllChatsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+    analyzeAllChatsBtn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Analyzing...';
 
     try {
         const totalChatsBySource = {};
 
         const analysisResults = await ChatAnalysisService.batchAnalyze(chatHistory, {
             onProgress: (progress) => {
-                analyzeAllChatsBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Analyzing... ${Math.round(progress)}%`;
+                analyzeAllChatsBtn.innerHTML = `<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Analyzing... ${Math.round(progress)}%`;
             },
             onChatComplete: (result) => {
                 if (result.result.isSuspicious) {
@@ -8015,7 +8268,7 @@ async function refreshPersonCredits() {
     
     if (refreshCreditsBtn) {
         refreshCreditsBtn.disabled = true;
-        refreshCreditsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Evaluating...';
+        refreshCreditsBtn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Evaluating...';
     }
     
     const humansToEvaluate = pazatorData.humans.map(h => ({
@@ -10418,7 +10671,7 @@ async function handoffCaseToZor() {
 
     const zorBtn = document.getElementById('caseZorBtn');
     zorBtn.disabled = true;
-    zorBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+    zorBtn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Analyzing...';
 
     caseData.timeline.push({
         type: 'note',
