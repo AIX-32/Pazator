@@ -3272,18 +3272,21 @@ function showChatContextMenu(e, index) {
     e.preventDefault();
     selectedChatIndex = index;
     const menu = document.getElementById('chatContextMenu');
+    if (!menu) return;
     menu.style.left = e.pageX + 'px';
     menu.style.top = e.pageY + 'px';
     menu.classList.add('active');
 }
 
 function hideChatContextMenu() {
-    document.getElementById('chatContextMenu').classList.remove('active');
+    const menu = document.getElementById('chatContextMenu');
+    if (!menu) return;
+    menu.classList.remove('active');
 }
 
 document.addEventListener('click', hideChatContextMenu);
 
-document.getElementById('renameChatOption').addEventListener('click', () => {
+document.getElementById('renameChatOption')?.addEventListener('click', () => {
     if (selectedChatIndex === null) return;
     const chats = JSON.parse(localStorage.getItem('chatHistory') || '[]');
     const chat = chats[selectedChatIndex];
@@ -3297,7 +3300,7 @@ document.getElementById('renameChatOption').addEventListener('click', () => {
     hideChatContextMenu();
 });
 
-document.getElementById('deleteChatOption').addEventListener('click', () => {
+document.getElementById('deleteChatOption')?.addEventListener('click', () => {
     if (selectedChatIndex === null) return;
     if (!confirm('Delete this conversation?')) return;
     const chats = JSON.parse(localStorage.getItem('chatHistory') || '[]');
