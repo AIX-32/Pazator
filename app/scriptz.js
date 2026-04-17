@@ -4455,7 +4455,7 @@ aiFormatDataBtn?.addEventListener('click', async () => {
     aiFormatDataBtn.textContent = 'Formatting...';
 
     try {
-        const REQUIRED_AI_HEADERS = ['Name', 'Type', 'Birth Date', 'Notes', 'Tags', 'Friends', 'Family'];
+        const REQUIRED_AI_HEADERS = ['Name', 'Type', 'Gender', 'Birth Date', 'Marital Status', 'Workplace', 'Nationality', 'Country of Origin', 'Immigration Status', 'Languages', 'Ethnicity', 'Religion', 'Political Views', 'Credit Score', 'Social Class', 'Income Level', 'Education Level', 'Threat Level', 'Notes', 'Tags', 'Friends', 'Family'];
 
         const system = `
 You convert unstructured intel text into a CSV that Pazator can import.
@@ -4464,9 +4464,14 @@ OUTPUT RULES:
 - Output ONLY raw CSV text (no markdown, no code fences).
 - Use comma as delimiter.
 - First row MUST be headers EXACTLY:
-Name,Type,Birth Date,Notes,Tags,Friends,Family
+Name,Type,Gender,Birth Date,Marital Status,Workplace,Nationality,Country of Origin,Immigration Status,Languages,Ethnicity,Religion,Political Views,Credit Score,Social Class,Income Level,Education Level,Threat Level,Notes,Tags,Friends,Family
 - For humans: Type must be blank. For orgs: Type must be filled (Company, Organization, Government, etc).
 - Birth Date must be YYYY-MM-DD if known; otherwise blank.
+- Credit Score must be a number 0-370 if known.
+- Social Class options: low class, medium class, high class, 1%.
+- Income Level: Below Poverty, Low, Middle, Upper Middle, High, Wealthy.
+- Education Level: No Formal Education, Primary School, High School, Associate's Degree, Bachelor's Degree, Master's Degree, Doctorate, Post-Doctorate.
+- Threat Level: None, Low, Medium, High, Critical.
 - Tags/Friends/Family must be comma-separated within the cell.
 - Escape quotes correctly if needed.
 `;
@@ -4518,10 +4523,15 @@ OUTPUT RULES (STRICT):
 - Output ONLY raw CSV text (no markdown, no code fences, no commentary).
 - Use comma as delimiter.
 - First row MUST be headers EXACTLY:
-Name,Type,Birth Date,Notes,Tags,Friends,Family
-- Every data row MUST have exactly 7 columns.
+Name,Type,Gender,Birth Date,Marital Status,Workplace,Nationality,Country of Origin,Immigration Status,Languages,Ethnicity,Religion,Political Views,Credit Score,Social Class,Income Level,Education Level,Threat Level,Notes,Tags,Friends,Family
+- Every data row MUST have exactly 22 columns.
 - For humans: Type must be blank. For orgs: Type must be filled (Company, Organization, Government, etc).
 - Birth Date must be YYYY-MM-DD if known; otherwise blank.
+- Credit Score must be a number 0-370 if known.
+- Social Class options: low class, medium class, high class, 1%.
+- Income Level: Below Poverty, Low, Middle, Upper Middle, High, Wealthy.
+- Education Level: No Formal Education, Primary School, High School, Associate's Degree, Bachelor's Degree, Master's Degree, Doctorate, Post-Doctorate.
+- Threat Level: None, Low, Medium, High, Critical.
 - Tags/Friends/Family must be comma-separated within the cell.
 - Escape quotes correctly if needed.
 
@@ -4787,7 +4797,22 @@ function processCSVData(data) {
         const human = {
             id: generatePersonId(name, birthDate),
             name,
+            gender: String(row.Gender || '').trim() || undefined,
             birthDate,
+            maritalStatus: String(row['Marital Status'] || '').trim() || undefined,
+            workplace: String(row.Workplace || '').trim() || undefined,
+            nationality: String(row.Nationality || '').trim() || undefined,
+            countryOfOrigin: String(row['Country of Origin'] || '').trim() || undefined,
+            immigrationStatus: String(row['Immigration Status'] || '').trim() || undefined,
+            languages: String(row.Languages || '').trim() || undefined,
+            ethnicity: String(row.Ethnicity || '').trim() || undefined,
+            religion: String(row.Religion || '').trim() || undefined,
+            politicalViews: String(row['Political Views'] || '').trim() || undefined,
+            credit: row['Credit Score'] !== undefined && row['Credit Score'] !== '' ? parseFloat(row['Credit Score']) : undefined,
+            socialClass: String(row['Social Class'] || '').trim() || undefined,
+            incomeLevel: String(row['Income Level'] || '').trim() || undefined,
+            educationLevel: String(row['Education Level'] || '').trim() || undefined,
+            threatLevel: String(row['Threat Level'] || '').trim() || undefined,
             extraNotes: String(row.Notes || '').trim(),
             tags: row.Tags ? parseList(row.Tags) : [],
             friends: [],
@@ -9092,7 +9117,7 @@ function setupLogoDropdownListeners() {
                 return;
             }
 
-            const headers = ['Name', 'Type', 'Birth Date', 'Notes', 'Tags', 'Friends', 'Family'];
+            const headers = ['Name', 'Type', 'Gender', 'Birth Date', 'Marital Status', 'Workplace', 'Nationality', 'Country of Origin', 'Immigration Status', 'Languages', 'Ethnicity', 'Religion', 'Political Views', 'Credit Score', 'Social Class', 'Income Level', 'Education Level', 'Threat Level', 'Notes', 'Tags', 'Friends', 'Family'];
 
             const csvEscape = (value) => {
                 const raw = value == null ? '' : String(value);
@@ -9115,7 +9140,22 @@ function setupLogoDropdownListeners() {
                 rows.push([
                     human?.name || '',
                     '',
+                    human?.gender || '',
                     human?.birthDate || '',
+                    human?.maritalStatus || '',
+                    human?.workplace || '',
+                    human?.nationality || '',
+                    human?.countryOfOrigin || '',
+                    human?.immigrationStatus || '',
+                    human?.languages || '',
+                    human?.ethnicity || '',
+                    human?.religion || '',
+                    human?.politicalViews || '',
+                    human?.credit !== undefined ? String(human.credit) : '',
+                    human?.socialClass || '',
+                    human?.incomeLevel || '',
+                    human?.educationLevel || '',
+                    human?.threatLevel || '',
                     human?.extraNotes || human?.notes || '',
                     joinList(human?.tags),
                     joinList(human?.friends),
