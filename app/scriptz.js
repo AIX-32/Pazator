@@ -1376,12 +1376,140 @@ function showAiTypingIndicator() {
     `;
     aiChatMessages.appendChild(aiTypingIndicator);
     aiChatMessages.scrollTo({ top: aiChatMessages.scrollHeight, behavior: 'smooth' });
+    startZorThinkingTimer();
 }
 
 function hideAiTypingIndicator() {
     if (aiTypingIndicator) {
         aiTypingIndicator.remove();
         aiTypingIndicator = null;
+    }
+    hideZorWaitingGame();
+}
+
+let zorThinkingTimer = null;
+let zorGameInterval = null;
+let zorGameTimeout = null;
+let zorGameScore = 0;
+let zorGameStartTime = 0;
+let zorGameActive = false;
+let zorTargetTimeout = null;
+
+function startZorThinkingTimer() {
+    clearTimeout(zorThinkingTimer);
+    zorThinkingTimer = setTimeout(() => {
+        const gameEl = document.getElementById('zorWaitingGame');
+        if (gameEl && !zorGameActive) {
+            gameEl.style.display = 'block';
+        }
+    }, 10000);
+}
+
+function hideZorWaitingGame() {
+    const gameEl = document.getElementById('zorWaitingGame');
+    if (gameEl) {
+        gameEl.style.display = 'none';
+        stopZorGame();
+    }
+}
+
+function getGameArea() {
+    return document.getElementById('gameArea');
+}
+
+function getGameTarget() {
+    return document.getElementById('gameTarget');
+}
+
+function getGameScore() {
+    return document.getElementById('gameScore');
+}
+
+function getGameTimer() {
+    return document.getElementById('gameTimer');
+}
+
+function getGameStartBtn() {
+    return document.getElementById('gameStartBtn');
+}
+
+function spawnTarget() {
+    const target = getGameTarget();
+    const area = getGameArea();
+    if (!target || !area || !zorGameActive) return;
+
+    const areaRect = area.getBoundingClientRect();
+    const targetSize = 40;
+    const maxX = areaRect.width - targetSize - 8;
+    const maxY = areaRect.height - targetSize - 8;
+
+    const x = Math.random() * maxX + 4;
+    const y = Math.random() * maxY + 4;
+
+    target.style.left = x + 'px';
+    target.style.top = y + 'px';
+    target.style.display = 'block';
+
+    clearTimeout(zorTargetTimeout);
+    zorTargetTimeout = setTimeout(() => {
+        if (target.style.display === 'block' && zorGameActive) {
+            target.style.display = 'none';
+            if (zorGameScore > 0) {
+                zorGameScore--;
+                getGameScore().textContent = zorGameScore;
+            }
+            spawnTarget();
+        }
+    }, 1200);
+}
+
+function updateZorGameTimer() {
+    if (!zorGameActive) return;
+    const elapsed = ((Date.now() - zorGameStartTime) / 1000).toFixed(1);
+    getGameTimer().textContent = elapsed + 's';
+}
+
+function startZorGame() {
+    zorGameScore = 0;
+    zorGameActive = true;
+    zorGameStartTime = Date.now();
+    getGameScore().textContent = '0';
+    getGameTimer().textContent = '0.0s';
+    getGameStartBtn().textContent = 'Playing...';
+    getGameStartBtn().disabled = true;
+    getGameTarget().style.display = 'none';
+
+    zorGameInterval = setInterval(updateZorGameTimer, 100);
+
+    setTimeout(spawnTarget, 300);
+
+    getGameTarget().onclick = () => {
+        if (zorGameActive) {
+            zorGameScore++;
+            getGameScore().textContent = zorGameScore;
+            getGameTarget().style.display = 'none';
+            clearTimeout(zorTargetTimeout);
+            spawnTarget();
+        }
+    };
+}
+
+function stopZorGame() {
+    zorGameActive = false;
+    clearInterval(zorGameInterval);
+    clearTimeout(zorTargetTimeout);
+    clearTimeout(zorThinkingTimer);
+    zorGameInterval = null;
+    zorTargetTimeout = null;
+    const target = getGameTarget();
+    if (target) {
+        target.style.display = 'none';
+        target.onclick = null;
+    }
+    const btn = getGameStartBtn();
+    if (btn) {
+        btn.textContent = 'Start Game';
+        btn.disabled = false;
     }
 }
 
@@ -5710,6 +5838,7 @@ document.getElementById('closeAIChat').addEventListener('click', () => {
         aiChatModal.style.zIndex = '-1';
         aiChatModal.classList.remove('hiding');
         aiChatModal.classList.remove('debug');
+        hideZorWaitingGame();
     }, 300);
 });
 
@@ -5727,6 +5856,7 @@ aiChatModal.addEventListener('click', (event) => {
             aiChatModal.style.zIndex = '-1';
             aiChatModal.classList.remove('hiding');
             aiChatModal.classList.remove('debug');
+            hideZorWaitingGame();
         }, 300);
     }
 });
