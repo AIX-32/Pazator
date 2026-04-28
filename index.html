@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="htmlRoot">
 
 <head>
     <meta charset="UTF-8" />
@@ -32,6 +32,7 @@
         href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:ital,wght@0,300;0,400;1,300&family=Space+Grotesk:wght@400;500&display=swap"
         rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v31.1.0/dist/font-face.css" rel="stylesheet" type="text/css" />
     <style>
         *,
         *::before,
@@ -190,11 +191,27 @@
             opacity: 1;
             transform: none;
             filter: none;
-            transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 0;
+            animation: logoFloat 6s ease-in-out infinite, logoRotate 20s linear infinite;
         }
 
-        .hero-logo:hover {
-            transform: scale(1.02);
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            25% { transform: translateY(-8px) rotate(2deg); }
+            50% { transform: translateY(0px) rotate(0deg); }
+            75% { transform: translateY(8px) rotate(-2deg); }
+        }
+
+        @keyframes logoRotate {
+            from { filter: hue-rotate(0deg); }
+            to { filter: hue-rotate(360deg); }
+        }
+
+        .hero-logo.fixed {
+            position: fixed;
+            top: 48px;
+            right: 48px;
+            z-index: -1;
         }
 
         .hero-wordmark {
@@ -302,34 +319,6 @@
 
         .hbtn.fill .a {
             opacity: 1;
-        }
-
-        .hero-stats {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-        }
-
-        .stat {
-            padding: 22px 32px;
-            border-right: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .stat:last-child {
-            border-right: none;
-        }
-
-        .stat-n {
-            font-family: 'Anton', sans-serif;
-            font-size: 38px;
-            letter-spacing: -0.02em;
-            line-height: 1;
-        }
-
-        .stat-l {
-            font-size: 8px;
-            letter-spacing: 0.4em;
-            color: var(--dim);
-            margin-top: 5px;
         }
 
         .wmarquee {
@@ -653,14 +642,6 @@
                 opacity: 1;
             }
 
-            .hero-stats {
-                grid-template-columns: 1fr 1fr
-            }
-
-            .stat:nth-child(2) {
-                border-right: none
-            }
-
             .prow {
                 grid-template-columns: 44px 1fr
             }
@@ -818,6 +799,162 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        body.rtl {
+            direction: rtl;
+        }
+
+        body.rtl .topbar {
+            flex-direction: row-reverse;
+        }
+
+        body.rtl .hero-grid {
+            direction: rtl;
+        }
+
+        body.rtl .hero-left {
+            border-right: none;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.rtl .hero-logo {
+            right: auto;
+            left: 48px;
+        }
+
+        body.rtl .hbtn {
+            flex-direction: row-reverse;
+        }
+
+        body.rtl .hr-actions {
+            direction: rtl;
+        }
+
+        body.rtl .products-head {
+            flex-direction: row-reverse;
+        }
+
+        body.rtl .prow {
+            direction: rtl;
+        }
+
+        body.rtl .pmain {
+            border-right: none;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.rtl .pdesc {
+            border-right: none;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.rtl .statement {
+            direction: rtl;
+        }
+
+        body.rtl footer {
+            direction: rtl;
+        }
+
+        body.rtl .fl {
+            border-right: none;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        body.rtl .fnav {
+            direction: rtl;
+        }
+
+        body.rtl .fstatus {
+            flex-direction: row-reverse;
+        }
+
+        body.rtl .zor-section {
+            direction: rtl;
+        }
+
+        body.rtl .zor-header {
+            direction: rtl;
+        }
+
+        body.rtl .zor-card {
+            direction: rtl;
+        }
+
+        body.rtl,
+        body.rtl .hero-sub,
+        body.rtl .hr-desc,
+        body.rtl .st-body,
+        body.rtl .pdesc,
+        body.rtl .zor-card p,
+        body.rtl .zor-subtitle,
+        body.rtl .zor-example {
+            font-family: 'Vazir', 'DM Mono', monospace;
+        }
+
+        body.rtl .tb-left,
+        body.rtl .tb-center,
+        body.rtl .tb-right a,
+        body.rtl .llabel,
+        body.rtl .ticker-inner,
+        body.rtl .hr-label,
+        body.rtl .stat-l,
+        body.rtl .stat-n,
+        body.rtl .products-head h2,
+        body.rtl .products-head span,
+        body.rtl .pidx,
+        body.rtl .pname,
+        body.rtl .pill,
+        body.rtl .sdot,
+        body.rtl .zor-badge,
+        body.rtl .zor-header h2,
+        body.rtl .zor-card h3,
+        body.rtl .zor-examples h4,
+        body.rtl .st-left,
+        body.rtl .st-left em,
+        body.rtl .st-link,
+        body.rtl .flogo,
+        body.rtl .fcopy,
+        body.rtl .fnav a,
+        body.rtl .fstatus,
+        body.rtl .hbtn,
+        body.rtl .wmarquee-track {
+            font-family: 'Vazir', 'Anton', sans-serif;
+        }
+
+        .lang-switcher-hero {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 12px;
+        }
+
+        .lang-btn {
+            font-size: 9px;
+            letter-spacing: 0.35em;
+            color: var(--dim);
+            text-decoration: none;
+            text-transform: uppercase;
+            padding: 6px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: color 0.2s, border-color 0.2s;
+            cursor: crosshair;
+        }
+
+        .lang-btn:hover {
+            color: var(--white);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        body.rtl .lang-btn {
+            font-family: 'Vazir', 'DM Mono', monospace;
+        }
+
+        @media (max-width: 860px) {
+            body.rtl .hero-logo {
+                left: 22px;
+                right: auto;
+            }
+        }
     </style>
 </head>
 
@@ -866,31 +1003,17 @@
                     <p class="hr-desc">Mass data infrastructure engineered to identify anomalies, assess risk, and
                         deliver actionable intelligence before disruption occurs.</p>
                 </div>
-                <div class="hr-actions">
-                    <a href="./app" class="hbtn fill"><span>Launch App</span><span class="a">→</span></a>
-                    <a href="https://discord.gg/74c9RBYD4R" target="_blank" class="hbtn"><span>Join Discord</span><span
-                            class="a">↗</span></a>
-                    <a href="./gallery/" class="hbtn"><span>Gallery</span><span class="a">→</span></a>
+                <div>
+                    <div class="lang-switcher-hero">
+                        <a href="#" id="langSwitch" class="lang-btn">فا</a>
+                    </div>
+                    <div class="hr-actions">
+                        <a href="./app" class="hbtn fill"><span>Launch App</span><span class="a">→</span></a>
+                        <a href="https://discord.gg/74c9RBYD4R" target="_blank" class="hbtn"><span>Join Discord</span><span
+                                class="a">↗</span></a>
+                        <a href="./gallery/" class="hbtn"><span>Gallery</span><span class="a">→</span></a>
+                    </div>
                 </div>
-            </div>
-        </div>
-
-        <div class="hero-stats">
-            <div class="stat">
-                <div class="stat-n">TWO.</div>
-                <div class="stat-l">SYSTEMS</div>
-            </div>
-            <div class="stat">
-                <div class="stat-n">ALL THE TIME.</div>
-                <div class="stat-l">UPTIME</div>
-            </div>
-            <div class="stat">
-                <div class="stat-n">FREE</div>
-                <div class="stat-l">PRICE</div>
-            </div>
-            <div class="stat">
-                <div class="stat-n">18200</div>
-                <div class="stat-l">MAX DATA AMOUNT</div>
             </div>
         </div>
     </section>
@@ -1049,6 +1172,278 @@
             entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('vis'); });
         }, { threshold: 0.1 });
         document.querySelectorAll('.prow, .st-left, .st-right').forEach(el => obs.observe(el));
+
+        const translations = {
+            en: {
+                title: "Pazator - Mass Data Intelligence",
+                description: "Pazator delivers AI‑driven operational systems and predictive intelligence to stop threats before they happen.",
+                ogTitle: "Pazator – Mass Data Intelligence",
+                ogDescription: "AI‑powered operational intelligence that helps you stop problems before they start.",
+                twitterTitle: "Pazator – Mass Data Intelligence",
+                twitterDescription: "AI‑powered operational intelligence that helps you stop problems before they start.",
+                loaderLabel: "PAZATOR — INITIALIZING",
+                topbarLeft: "MASS DATA INTELLIGENCE",
+                navApp: "App",
+                navGallery: "Gallery",
+                navDiscord: "Discord",
+                langSwitch: "فا",
+                ticker: "PAZATOR · MASS DATA INTELLIGENCE · ANOMALY DETECTION · RISK ASSESSMENT · OPERATIONAL SYSTEMS · AIOIP · TIRSUN · TADBIR · PAZATOR · MASS DATA INTELLIGENCE · ANOMALY DETECTION · RISK ASSESSMENT · OPERATIONAL SYSTEMS · AIOIP · TIRSUN · TADBIR ·",
+                heroSub: "Stopping problems before they start.",
+                hrLabel: "// PLATFORM",
+                hrDesc: "Mass data infrastructure engineered to identify anomalies, assess risk, and deliver actionable intelligence before disruption occurs.",
+                launchApp: "Launch App",
+                joinDiscord: "Join Discord",
+                gallery: "Gallery",
+                stat1: "TWO.",
+                statL1: "SYSTEMS",
+                stat2: "ALL THE TIME.",
+                statL2: "UPTIME",
+                stat3: "FREE",
+                statL3: "PRICE",
+                stat4: "18200",
+                statL4: "MAX DATA AMOUNT",
+                productsHead: "SYSTEMS",
+                productsCount: "03 PRODUCTS",
+                p1name: "SARPARAST",
+                p1desc: "Mass data infrastructure engineered to identify anomalies, assess risk, and deliver actionable intelligence before disruption occurs.",
+                p1status: "LIVE",
+                p2name: "SHAHED",
+                p2desc: "A work in progress system thats gives location context to Zor for pattern finding and analysis.",
+                p2status: "LIVE",
+                p3name: "TADBIR",
+                p3desc: "DASTUR rules + HOJUM proposals. Automate responses to data changes, trigger AI analysis, and act on intelligence in real-time.",
+                p3status: "LIVE",
+                zorBadge: "AI ASSISTANT",
+                zorTitle: "Meet ZOR",
+                zorSubtitle: "Your all-in-one intelligence companion",
+                zorCard1Title: "Knows Your Data",
+                zorCard1Desc: "Zor has context of all your people, entities, tags, chats, and relationships. Ask about anyone and get instant insights.",
+                zorCard2Title: "Connects Everything",
+                zorCard2Desc: "Leans on every Pazator system simultaneously. SHAHED locations, TADBIR rules, chat history, threat intelligence—all connected.",
+                zorCard3Title: "Takes Action",
+                zorCard3Desc: "Don't just ask—delegate. Create entries, tag people, trigger analysis, or launch investigations with a single prompt.",
+                zorExamplesTitle: "Example Queries",
+                zorExample1: "\"Show me everyone with a credit score under 100\"",
+                zorExample2: "\"Find connections between these two people\"",
+                zorExample3: "\"Run a threat analysis on my WhatsApp chats\"",
+                zorExample4: "\"Create a new person: John Smith, works at Acme Corp\"",
+                zorExample5: "\"What's the risk distribution in my database?\"",
+                zorExample6: "\"Tag all suspicious entries with 'review-needed'\"",
+                stLeft: "Data doesn't wait.<br><em>Neither<br>should you.</em>",
+                stBody: "Pazator is built for operators who need answers before questions form. Our systems process mass data at the edge of what's possible, surfacing the signal in the noise with zero compromise on speed or precision.",
+                getEarlyAccess: "Get Early Access",
+                fLogo: "PAZA<br>TOR",
+                fCopy: "A SOLO PROJECT BY AIX..",
+                fStatus: "Note. This is a real project and is in beta.",
+                wmarquee: "PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR /"
+            },
+            fa: {
+                title: "پازاتور - هوشمندی داده‌های کلان",
+                description: "پازاتور سامانه‌های عملیاتی هوش‌مند و بینش‌های پیش‌بینی‌کننده را برای متوقف کردن تهدیدها پیش از وقوع ارائه می‌دهد.",
+                ogTitle: "پازاتور – هوشمندی داده‌های کلان",
+                ogDescription: "بینش عملیاتی مبتنی بر هوش مصنوعی که به شما کمک می‌کند پیش از بروز مشکلات، آن‌ها را متوقف کنید.",
+                twitterTitle: "پازاتور – هوشمندی داده‌های کلان",
+                twitterDescription: "بینش عملیاتی مبتنی بر هوش مصنوعی که به شما کمک می‌کند پیش از بروز مشکلات، آن‌ها را متوقف کنید.",
+                loaderLabel: "پازاتور — در حال راه‌اندازی",
+                topbarLeft: "هوشمندی داده‌های کلان",
+                navApp: "اپلیکیشن",
+                navGallery: "گالری",
+                navDiscord: "دیسکورد",
+                langSwitch: "EN",
+                ticker: "پازاتور · هوشمندی داده‌های کلان · تشخیص ناهنجاری · ارزیابی ریسک · سامانه‌های عملیاتی · AIOIP · تیرسون · تدبیر · پازاتور · هوشمندی داده‌های کلان · تشخیص ناهنجاری · ارزیابی ریسک · سامانه‌های عملیاتی · AIOIP · تیرسون · تدبیر ·",
+                heroSub: "پیشگیری از بحران، پیش از آغاز.",
+                hrLabel: "// پلتفرم",
+                hrDesc: "زیرساخت داده‌های کلان مهندسی‌شده برای شناسایی ناهنجاری‌ها، ارزیابی ریسک و ارائه بینش عملیاتی پیش از وقوع اختلال.",
+                launchApp: "ورود به اپلیکیشن",
+                joinDiscord: "عضویت در دیسکورد",
+                gallery: "گالری",
+                stat1: "دو.",
+                statL1: "سامانه",
+                stat2: "همیشه.",
+                statL2: "آپ‌تایم",
+                stat3: "رایگان",
+                statL3: "قیمت",
+                stat4: "۱۸۲۰۰",
+                statL4: "حداکثر مقدار داده",
+                productsHead: "سیستم‌ها",
+                productsCount: "۰۳ محصول",
+                p1name: "سپرست",
+                p1desc: "زیرساخت داده‌های کلان مهندسی‌شده برای شناسایی ناهنجاری‌ها، ارزیابی ریسک و ارائه بینش عملیاتی پیش از وقوع اختلال.",
+                p1status: "فعال",
+                p2name: "شاهد",
+                p2desc: "سیستمی در حال توسعه که بستر مکانی را برای زور جهت یافتن الگوها و تحلیل فراهم می‌کند.",
+                p2status: "فعال",
+                p3name: "تدبیر",
+                p3desc: "قوانین «دستور» + پیشنهادات «هجوم». خودکارسازی پاسخ‌ها به تغییرات داده، تحریک تحلیل هوش مصنوعی و اقدام بر اساس بینش در لحظه.",
+                p3status: "فعال",
+                zorBadge: "دستیار هوش مصنوعی",
+                zorTitle: "آشنایی با زور",
+                zorSubtitle: "همراه هوشمند همه‌کاره شما",
+                zorCard1Title: "داده‌های شما را می‌شناسد",
+                zorCard1Desc: "زور بر تمام افراد، موجودیت‌ها، برچسب‌ها، چت‌ها و روابط شما اشراف دارد. درباره هر کسی بپرسید و بینش فوری دریافت کنید.",
+                zorCard2Title: "همه چیز را متصل می‌کند",
+                zorCard2Desc: "بر تمام سامانه‌های پازاتور متکی است. بسترهای مکانی شاهد، قوانین تدبیر، تاریخچه چت، اطلاعات تهدید—همه متصل هستند.",
+                zorCard3Title: "اقدام می‌کند",
+                zorCard3Desc: "فقط نپرسید—واگذار کنید. ایجاد ورودی، برچسب‌گذاری افراد، تحریک تحلیل یا راه‌اندازی تحقیقات با یک دستور ساده.",
+                zorExamplesTitle: "نمونه پرسش‌ها",
+                zorExample1: "\"همه کسانی که امتیاز اعتباری زیر ۱۰۰ دارند را نشان بده\"",
+                zorExample2: "\"ارتباط بین این دو نفر را پیدا کن\"",
+                zorExample3: "\"تحلیل تهدید روی چت‌های واتس‌اپ من انجام بده\"",
+                zorExample4: "\"یک شخص جدید ایجاد کن: جان اسمیت، کارمند شرکت آکمه\"",
+                zorExample5: "\"توزیع ریسک در پایگاه داده من چیست؟\"",
+                zorExample6: "\"همه ورودی‌های مشکوک را با برچسب 'نیاز به بررسی' علامت بزن\"",
+                stLeft: "داده‌ها منتظر نمی‌مانند.<br><em>شما هم<br>نباید منتظر بمانید.</em>",
+                stBody: "پازاتور برای اپراتورهایی ساخته شده که پیش از شکل‌گیری سوالات، به پاسخ نیاز دارند. سیستم‌های ما داده‌های کلان را در مرز توانمندی پردازش می‌کنند و سیگنال را در میان نویز با عدم مصالحه در سرعت و دقت نمایان می‌سازند.",
+                getEarlyAccess: "دسترسی زودهنگام",
+                fLogo: "پازا<br>تور",
+                fCopy: "پروژه‌ای از AIX..",
+                fStatus: "نکته. این یک پروژه واقعی است و در نسخه بتا قرار دارد.",
+                wmarquee: "پازاتور / پازاتور / پازاتور / پازاتور / پازاتور / پازاتور / پازاتور / پازاتور / پازاتور / پازاتور / پازاتور / پازاتور / پازاتور / پازاتور / پازاتور / پازاتور /"
+            }
+        };
+
+        let currentLang = localStorage.getItem('pazator-lang') || 'en';
+
+        function applyTranslations(lang) {
+            const t = translations[lang];
+            const isRTL = lang === 'fa';
+
+            document.getElementById('htmlRoot').setAttribute('lang', lang);
+            document.title = t.title;
+            document.querySelector('meta[name="description"]').setAttribute('content', t.description);
+            document.querySelector('meta[property="og:title"]').setAttribute('content', t.ogTitle);
+            document.querySelector('meta[property="og:description"]').setAttribute('content', t.ogDescription);
+            document.querySelector('meta[name="twitter:title"]').setAttribute('content', t.twitterTitle);
+            document.querySelector('meta[name="twitter:description"]').setAttribute('content', t.twitterDescription);
+
+            document.querySelector('.llabel').textContent = t.loaderLabel;
+            document.querySelector('.tb-left').textContent = t.topbarLeft;
+            document.querySelector('.tb-center').textContent = lang === 'fa' ? 'پازاتور' : 'PAZATOR';
+
+            const navLinks = document.querySelectorAll('.tb-right a');
+            navLinks[0].textContent = t.navApp;
+            navLinks[1].textContent = t.navGallery;
+            navLinks[2].textContent = t.navDiscord;
+            document.getElementById('langSwitch').textContent = t.langSwitch;
+
+            const tickerContent = t.ticker;
+            document.querySelector('.ticker-inner').innerHTML = tickerContent + ' · ' + tickerContent + ' · ';
+
+            document.querySelector('.hero-sub').textContent = t.heroSub;
+            document.querySelector('.hr-label').textContent = t.hrLabel;
+            document.querySelector('.hr-desc').textContent = t.hrDesc;
+
+            const hbtnSpans = document.querySelectorAll('.hbtn span:first-child');
+            hbtnSpans[0].textContent = t.launchApp;
+            hbtnSpans[1].textContent = t.joinDiscord;
+            hbtnSpans[2].textContent = t.gallery;
+
+            document.querySelector('.products-head h2').textContent = t.productsHead;
+            document.querySelector('.products-head span').textContent = t.productsCount;
+
+            const prows = document.querySelectorAll('.prow');
+            prows[0].querySelector('.pname').textContent = t.p1name;
+            prows[0].querySelector('.pdesc').textContent = t.p1desc;
+            prows[0].querySelector('.pill').textContent = t.p1status;
+            prows[1].querySelector('.pname').textContent = t.p2name;
+            prows[1].querySelector('.pdesc').textContent = t.p2desc;
+            prows[1].querySelector('.pill').textContent = t.p2status;
+            prows[2].querySelector('.pname').textContent = t.p3name;
+            prows[2].querySelector('.pdesc').textContent = t.p3desc;
+            prows[2].querySelector('.pill').textContent = t.p3status;
+
+            document.querySelector('.zor-badge').textContent = t.zorBadge;
+            document.querySelector('.zor-header h2').textContent = t.zorTitle;
+            document.querySelector('.zor-subtitle').textContent = t.zorSubtitle;
+
+            const zorCards = document.querySelectorAll('.zor-card');
+            zorCards[0].querySelector('h3').textContent = t.zorCard1Title;
+            zorCards[0].querySelector('p').textContent = t.zorCard1Desc;
+            zorCards[1].querySelector('h3').textContent = t.zorCard2Title;
+            zorCards[1].querySelector('p').textContent = t.zorCard2Desc;
+            zorCards[2].querySelector('h3').textContent = t.zorCard3Title;
+            zorCards[2].querySelector('p').textContent = t.zorCard3Desc;
+
+            document.querySelector('.zor-examples h4').textContent = t.zorExamplesTitle;
+            const zorExamples = document.querySelectorAll('.zor-example');
+            zorExamples[0].textContent = t.zorExample1;
+            zorExamples[1].textContent = t.zorExample2;
+            zorExamples[2].textContent = t.zorExample3;
+            zorExamples[3].textContent = t.zorExample4;
+            zorExamples[4].textContent = t.zorExample5;
+            zorExamples[5].textContent = t.zorExample6;
+
+            document.querySelector('.st-left').innerHTML = t.stLeft;
+            document.querySelector('.st-body').textContent = t.stBody;
+            document.querySelector('.st-link span:first-child').textContent = t.getEarlyAccess;
+
+            document.querySelector('.flogo').innerHTML = t.fLogo;
+            document.querySelector('.fcopy').textContent = t.fCopy;
+            document.querySelector('.fstatus').innerHTML = '<div class="fdot"></div>' + t.fStatus;
+
+            const wmarqueeSpans = document.querySelectorAll('.wmarquee-track span');
+            wmarqueeSpans[0].innerHTML = t.wmarquee + ' / ' + t.wmarquee + ' / ';
+            wmarqueeSpans[1].innerHTML = t.wmarquee + ' / ' + t.wmarquee + ' / ';
+
+            if (isRTL) {
+                document.body.classList.add('rtl');
+            } else {
+                document.body.classList.remove('rtl');
+            }
+
+            localStorage.setItem('pazator-lang', lang);
+        }
+
+        document.getElementById('langSwitch').addEventListener('click', function (e) {
+            e.preventDefault();
+            currentLang = currentLang === 'en' ? 'fa' : 'en';
+            applyTranslations(currentLang);
+        });
+
+        if (currentLang === 'fa') {
+            applyTranslations('fa');
+        }
+
+        // Scroll-driven logo animation
+        const heroLogo = document.querySelector('.hero-logo');
+        const heroLeft = document.querySelector('.hero-left');
+
+        let mouseX = 0, mouseY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+            mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+        });
+
+        function updateLogoOnScroll() {
+            const scrollY = window.scrollY;
+            const heroLeftRect = heroLeft.getBoundingClientRect();
+            const heroLeftTop = heroLeftRect.top + scrollY;
+
+            // Keep logo at its original position (absolute within hero-left)
+            // As user scrolls, the logo scrolls with the page naturally
+            // Add subtle parallax and mouse influence
+
+            const mouseInfluence = 15;
+            const parallax = scrollY * 0.3;
+
+            heroLogo.style.transform = `translate(${mouseX * mouseInfluence}px, ${mouseY * mouseInfluence - parallax}px)`;
+        }
+
+        // Throttled scroll handler
+        let ticking = false;
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                requestAnimationFrame(() => {
+                    updateLogoOnScroll();
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        });
+
+        // Initial call
+        updateLogoOnScroll();
     </script>
 </body>
 
