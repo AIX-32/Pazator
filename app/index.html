@@ -73,27 +73,6 @@
                     </div>
                 </div>
                 <div class="header-right">
-                    <div class="model-selector-wrapper">
-                        <button class="model-selector-btn" id="modelSelectorBtn">
-                            <i class="fas fa-microchip"></i>
-                            <span id="currentModelLabel">DeepSeek V3</span>
-                            <i class="fas fa-chevron-down" style="font-size: 0.6rem; margin-left: 4px;"></i>
-                        </button>
-                        <div class="model-dropdown" id="modelDropdown">
-                            <div class="model-option" data-model="claude-3-5-sonnet-20241022">
-                                <span class="model-option-name">Claude Sonnet</span>
-                                <span class="model-option-tag">Smart</span>
-                            </div>
-                            <div class="model-option" data-model="deepseek-chat">
-                                <span class="model-option-name">DeepSeek V3</span>
-                                <span class="model-option-tag">Fast</span>
-                            </div>
-                            <div class="model-option" data-model="gpt-4o-mini">
-                                <span class="model-option-name">GPT-4o Mini</span>
-                                <span class="model-option-tag">Cheap</span>
-                            </div>
-                        </div>
-                    </div>
                     <button class="save-chat-btn" id="saveChatBtn" title="Save Chat">
                         <i class="fas fa-bookmark"></i>
                     </button>
@@ -221,46 +200,6 @@
             <button class="game-start-btn" id="gameStartBtn" onclick="startZorGame()">Start Game</button>
         </div>
     </div>
-
-    <!-- Threat Scanner UI -->
-    <div id="threatScanner" class="threat-scanner-overlay">
-        <div class="scanner-container">
-            <div class="scanner-radar">
-                <div class="scanner-sweep"></div>
-            </div>
-            <div id="scannerDots"></div>
-            <div class="scanner-center">
-                <div class="scanner-percent" id="scannerPercent">0%</div>
-                <div class="scanner-label">Scanned</div>
-            </div>
-        </div>
-        <div class="scanner-status" id="scannerStatus">Initializing threat scan...</div>
-        <div class="scanner-threats">
-            <span><i class="fas fa-shield-alt"></i> Chats: <span class="val" id="scannerChats">0</span></span>
-            <span><i class="fas fa-exclamation-triangle"></i> Threats: <span class="val" id="scannerThreats">0</span></span>
-        </div>
-    </div>
-
-    <div id="zorWindow" class="zor-window" style="display: none;">
-        <div class="zor-window-header" id="zorWindowHeader">
-        <span>Zor.</span>
-            <div>
-                <button class="zor-window-btn" onclick="minimizeZorWindow()"><i class="fas fa-minus"></i></button>
-                <button class="zor-window-btn" onclick="closeZorWindow()"><i class="fas fa-times"></i></button>
-            </div>
-        </div>
-        <div class="zor-window-body" id="zorWindowBody">
-            <div class="ai-messages" id="zorWindowMessages"></div>
-            <div class="ai-input-bar">
-                <input type="text" class="ai-input" id="zorWindowInput" placeholder="Ask Zor anything...">
-                <button class="zor-pick-btn" id="zorPickBtn"><i class="fas fa-arrow-pointer"></i></button>
-                <div class="ai-input-buttons">
-                    <button class="ai-send-btn" id="zorWindowSendBtn"><i class="fas fa-paper-plane"></i></button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div class="tab-bar" id="tabBar">
         <div class="tab-bar-info">
             <div class="tab-bar-clock">
@@ -308,13 +247,6 @@
         <button class="tab-action" id="casesBtn" title="Case Files / Missions" data-tab-target="cases">
             <i class="fas fa-folder-open"></i>
         </button>
-
-        <div style="flex: 1;"></div>
-
-        <button class="tab-action" id="zorWindowBtn" style="color: white;" title="Zor Window Mode (beta)">
-            <i class="fas fa-window-restore"></i>
-        </button>
-
         <div class="logo-card" title="Pazator Logo">
             <img src="../logo.png" alt="Pazator Logo" id="logoImage">
             <div class="logo-dropdown-menu" id="logoDropdownMenu">
@@ -355,28 +287,30 @@
                         </div>
                     </div>
                 </div>
-                <div class="side-panel" id="sidePanel">
-                    <div class="sidebar-section slide-in" style="animation-delay: 0.1s;">
-                        <h3><i class="fas fa-terminal"></i> Command Deck</h3>
+                <div class="side-panel">
+                    <div class="sidebar-section sidebar-mini">
+                        <h3>Quick Actions</h3>
                         <div class="quick-action-row">
                             <button id="newDataBtn" class="btn btn-primary btn-dual">New Data</button>
                             <button id="askAIBtn" class="btn btn-primary btn-dual">Zor.</button>
                         </div>
                         <div class="form-group" style="margin-top: 12px;">
-                            <button id="chatUploadBtn" class="btn glass-btn" style="width: 100%;">Upload Chat</button>
+                            <button id="chatUploadBtn" class="btn glass-btn" style="width: 100%;">Upload
+                                Chat</button>
                         </div>
-                        <div class="form-group" style="margin-top: 8px;">
-                            <button id="dataUploadBtn" class="btn glass-btn" style="width: 100%;">Upload Data</button>
+                        <div class="form-group" style="margin-top: 12px;">
+                            <button id="dataUploadBtn" class="btn glass-btn" style="width: 100%;">Upload
+                                Data</button>
                         </div>
-                        <div class="form-group" style="margin-top: 8px;">
+                        <div class="form-group" style="margin-top: 12px;">
                             <button id="aiImportBtn" class="btn glass-btn" style="width: 100%;">AI Import</button>
                         </div>
                     </div>
 
-                    <div class="sidebar-section slide-in" style="animation-delay: 0.2s;">
-                        <h3><i class="fas fa-crosshairs"></i> Data Scanner</h3>
+                    <div class="sidebar-section sidebar-mini">
+                        <h3>Search & Filter</h3>
                         <div class="form-group compact">
-                            <input type="text" id="searchInput" class="form-control" placeholder="Search entities...">
+                            <input type="text" id="searchInput" class="form-control" placeholder="Search">
                         </div>
                         <div class="form-group compact">
                             <select id="filterType" class="form-control">
@@ -388,18 +322,18 @@
                         <button id="applyFilterBtn" class="btn btn-primary" style="width: 100%; margin-top: 12px;">Apply Filter</button>
                     </div>
 
-                    <div class="sidebar-section slide-in" style="animation-delay: 0.3s;">
-                        <h3><i class="fas fa-tags"></i> Classifications</h3>
+                    <div class="sidebar-section sidebar-mini">
+                        <h3>Tags</h3>
                         <div class="form-group compact">
-                            <input type="text" id="tagInput" class="form-control" placeholder="New classification...">
+                            <input type="text" id="tagInput" class="form-control" placeholder="New tag name">
                         </div>
                         <button id="addTagBtn" class="btn glass-btn" style="width: 100%;">Add Tag</button>
                         <div id="tagsContainer" class="tags-container" style="margin-top: 12px;">
                         </div>
                     </div>
 
-                    <div class="sidebar-section slide-in" style="animation-delay: 0.4s;">
-                        <h3><i class="fas fa-user-shield"></i> Agent Identity</h3>
+                    <div class="sidebar-section sidebar-mini">
+                        <h3>Account</h3>
                         <div id="accountGreeting" class="account-greeting" style="display:none;"></div>
                         <button id="signInBtn" class="btn glass-btn" style="width: 100%;">Sign In</button>
                     </div>
@@ -871,7 +805,7 @@
                                         <p>Full intelligence scan</p>
                                     </div>
                                 </div>
-                                <button id="intelAnalyzeBtn" class="btn btn-primary btn-full">
+                                <button id="intelAnalyzeBtn" class="btn btn-primary">
                                     <i class="fas fa-play"></i>
                                     Run Analysis
                                 </button>
@@ -883,7 +817,7 @@
                                     </div>
                                     <div class="intel-action-info">
                                         <h3>Risk Distribution</h3>
-                                        <p id="intelRiskSummary" data-preserve="true">A quick risk check</p>
+                                        <p id="intelRiskSummary">0% high, 0% med, 0% low</p>
                                     </div>
                                 </div>
                                 <button id="intelRefreshRiskBtn" class="btn glass-btn btn-full">
@@ -2336,8 +2270,8 @@
     <script src="https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://js.puter.com/v2/"></script>
-    <script src="pazator_context.js"></script>
     <script src="scriptz.js"></script>
+    <script src="pazator_context.js"></script>
     <script src="dastur.js"></script>
     <script src="hojum.js"></script>
 

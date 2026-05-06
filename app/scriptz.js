@@ -8,66 +8,7 @@ let tags = [];
 
 let cases = [];
 
-let aiMemories = [];
-
-const AI_MEMORIES_KEY = 'pazator:ai_memories';
-
-function loadAiMemories() {
-    try {
-        const stored = localStorage.getItem(AI_MEMORIES_KEY);
-        if (stored) {
-            aiMemories = JSON.parse(stored);
-        }
-    } catch (e) {
-        console.warn('Failed to load AI memories:', e);
-        aiMemories = [];
-    }
-}
-
-function saveAiMemories() {
-    try {
-        localStorage.setItem(AI_MEMORIES_KEY, JSON.stringify(aiMemories));
-    } catch (e) {
-        console.warn('Failed to save AI memories:', e);
-    }
-}
-
-loadAiMemories();
-
-function parseMarkdownBold(text) {
-    return text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-}
-
 let aiChatHistory = [];
-
-const CURRENT_CHAT_KEY = 'pazator:current_chat';
-
-function restoreCurrentChat() {
-    try {
-        const stored = localStorage.getItem(CURRENT_CHAT_KEY);
-        if (stored) {
-            const msgs = JSON.parse(stored);
-            if (Array.isArray(msgs) && msgs.length > 0) {
-                aiChatHistory = msgs;
-                aiChatMessages.innerHTML = '';
-                msgs.forEach(msg => {
-                    const messageDiv = document.createElement('div');
-                    messageDiv.className = `ai-message ${msg.role === 'user' ? 'user' : 'ai'}`;
-                    if (msg.role === 'user' || msg.role === 'system') {
-                        messageDiv.textContent = msg.content || '';
-                    } else {
-                        messageDiv.innerHTML = parseMarkdownBold(msg.content || '');
-                    }
-                    aiChatMessages.appendChild(messageDiv);
-                });
-                aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
-                updateChatHistoryPanel();
-            }
-        }
-    } catch (e) {
-        console.warn('Failed to restore current chat:', e);
-    }
-}
 
 let autoSaveInterval;
 let pendingChanges = false;
@@ -148,87 +89,6 @@ function showModal({ title, message, html, type = 'info', buttons = [] }) {
 
 function hideModal() {
     cleanModal.classList.remove('active');
-}
-
-// ===== Threat Scanner UI =====
-const threatScannerEl = document.getElementById('threatScanner');
-const scannerPercentEl = document.getElementById('scannerPercent');
-const scannerStatusEl = document.getElementById('scannerStatus');
-const scannerChatsEl = document.getElementById('scannerChats');
-const scannerThreatsEl = document.getElementById('scannerThreats');
-const scannerDotsEl = document.getElementById('scannerDots');
-
-let scannerDots = [];
-
-function showThreatScanner(totalChats) {
-    scannerDots = [];
-    scannerDotsEl.innerHTML = '';
-    scannerPercentEl.textContent = '0%';
-    scannerStatusEl.textContent = 'Initializing threat scan...';
-    scannerChatsEl.textContent = '0';
-    scannerThreatsEl.textContent = '0';
-    threatScannerEl.classList.add('active');
-}
-
-function updateThreatScanner(progress, chatsScanned, threatsFound) {
-    scannerPercentEl.textContent = Math.round(progress) + '%';
-    scannerChatsEl.textContent = chatsScanned;
-    scannerThreatsEl.textContent = threatsFound;
-
-    const statusMessages = [
-        'Scanning communications...',
-        'Analyzing patterns...',
-        'Checking for anomalies...',
-        'Cross-referencing entities...',
-        'Evaluating risk levels...'
-    ];
-    const msgIndex = Math.min(Math.floor(progress / 25), statusMessages.length - 1);
-    scannerStatusEl.textContent = statusMessages[msgIndex];
-
-    // Add radar dots
-    const angle = (Math.random() * 360) * (Math.PI / 180);
-    const dist = 20 + Math.random() * 40;
-    const x = 50 + dist * Math.cos(angle);
-    const y = 50 + dist * Math.sin(angle);
-    const dot = document.createElement('div');
-    dot.className = 'scanner-dot';
-    dot.style.left = x + '%';
-    dot.style.top = y + '%';
-    dot.style.animationDelay = (Math.random() * 1.5) + 's';
-    if (threatsFound > 0 && Math.random() > 0.5) {
-        dot.style.background = '#ff6b6b';
-        dot.style.boxShadow = '0 0 6px #ff6b6b';
-    }
-    scannerDotsEl.appendChild(dot);
-    scannerDots.push(dot);
-
-    // Keep only last 20 dots
-    if (scannerDots.length > 20) {
-        const old = scannerDots.shift();
-        old.remove();
-    }
-}
-
-function hideThreatScanner() {
-    threatScannerEl.classList.remove('active');
-}
-
-// ===== Neural Sweep UI =====
-const neuralSweepEl = document.getElementById('neuralSweep');
-const neuralStatusEl = document.getElementById('neuralStatus');
-const neuralNodesEl = document.getElementById('neuralNodes');
-const neuralLinesEl = document.getElementById('neuralLines');
-
-let neuralAnimFrame = null;
-
-function showNeuralSweep() {}
-function updateNeuralSweep(progress) {}
-function hideNeuralSweep() {}
-
-function showRawAIOutput(text) {
-    const win = window.open('', '_blank');
-    win.document.write(`<pre style="background:#000;color:#0f0;padding:20px;font-family:monospace;white-space:pre-wrap;">${text}</pre>`);
-    win.document.title = 'Raw AI Output';
 }
 
 modalBackdrop.addEventListener('click', hideModal);
@@ -674,7 +534,7 @@ const ChatAnalysisService = {
             )
         ]);
 
-        const responseText = extractTextFromAIResponse(response);
+        const responseText = response.content ? response.content : response;
         const result = extractJSONFromResponse(responseText);
 
         if (result && typeof result === 'object') {
@@ -1464,8 +1324,6 @@ const aiInput = document.getElementById('aiInput');
 const aiSendBtn = document.getElementById('aiSendBtn');
 const aiImproveBtn = document.getElementById('aiImproveBtn');
 const aiChatMessages = document.getElementById('aiChatMessages');
-
-restoreCurrentChat();
 
 function setAiSendLoading(isLoading) {
     if (!aiSendBtn) return;
@@ -2751,12 +2609,22 @@ function renderWebNodes() {
 
     nodePositions.clear();
     webContent.innerHTML = '';
-    webContent.style.display = '';
-    webContent.style.alignItems = '';
-    webContent.style.justifyContent = '';
-    webContent.style.width = '5000px';
-    webContent.style.height = '5000px';
-    webContent.style.position = 'absolute';
+
+    // Create SVG for connections
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.id = 'connections-svg';
+    svg.style.position = 'absolute';
+    svg.style.top = '0';
+    svg.style.left = '0';
+    svg.style.width = '100%';
+    svg.style.height = '100%';
+    svg.style.pointerEvents = 'none';
+    svg.style.zIndex = '1';
+    svg.style.willChange = 'transform';
+    svg.style.transform = 'translateZ(0)';
+    svg.style.backfaceVisibility = 'hidden';
+    webContent.appendChild(svg);
+    connectionsSvg = svg;
 
     const searchTerm = searchInput.value.toLowerCase();
     const selectedType = filterType.value;
@@ -2781,38 +2649,6 @@ function renderWebNodes() {
     }
 
     console.log(' Filtered data to display:', allData);
-
-    if (allData.length > 15) {
-        const emptyMsg = document.createElement('div');
-        emptyMsg.style.position = 'absolute';
-        emptyMsg.style.left = '2500px';
-        emptyMsg.style.top = '2500px';
-        emptyMsg.style.transform = 'translate(-50%, -50%)';
-        emptyMsg.style.textAlign = 'center';
-        emptyMsg.style.color = 'rgba(255,255,255,0.5)';
-        emptyMsg.style.fontSize = '1.5rem';
-        emptyMsg.style.fontWeight = '600';
-        emptyMsg.style.letterSpacing = '3px';
-        emptyMsg.style.textTransform = 'uppercase';
-        emptyMsg.textContent = 'Empty';
-        webContent.appendChild(emptyMsg);
-        return;
-    }
-
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.id = 'connections-svg';
-    svg.style.position = 'absolute';
-    svg.style.top = '0';
-    svg.style.left = '0';
-    svg.style.width = '100%';
-    svg.style.height = '100%';
-    svg.style.pointerEvents = 'none';
-    svg.style.zIndex = '1';
-    svg.style.willChange = 'transform';
-    svg.style.transform = 'translateZ(0)';
-    svg.style.backfaceVisibility = 'hidden';
-    webContent.appendChild(svg);
-    connectionsSvg = svg;
 
     const containerWidth = webContent.offsetWidth;
     const containerHeight = webContent.offsetHeight;
@@ -3459,56 +3295,21 @@ async function deleteCurrentEntry() {
 function addMessageToAIChat(message, sender) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `ai-message ${sender}`;
-
-    if (sender === 'user' || sender === 'system') {
-        messageDiv.textContent = message;
-    } else {
-        messageDiv.innerHTML = parseMarkdownBold(message);
-    }
-
-    aiChatMessages.appendChild(messageDiv);
-
-    requestAnimationFrame(() => {
-        aiChatMessages.scrollTo({
-            top: aiChatMessages.scrollHeight,
-            behavior: 'smooth'
-        });
-    });
-
-    const role = sender === 'user' ? 'user' : 'assistant';
-    aiChatHistory.push({ role, content: message || '' });
-    localStorage.setItem(CURRENT_CHAT_KEY, JSON.stringify(aiChatHistory));
-    return messageDiv;
-}
-
-function typeZorMessage(message) {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'ai-message ai';
+    messageDiv.textContent = message;
 
     requestAnimationFrame(() => {
         aiChatMessages.appendChild(messageDiv);
 
-        const cursor = document.createElement('span');
-        cursor.className = 'zor-cursor';
+        aiChatMessages.scrollTo({
+            top: aiChatMessages.scrollHeight,
+            behavior: 'smooth'
+        });
 
-        let i = 0;
-        const typeInterval = setInterval(() => {
-            if (i < message.length) {
-                messageDiv.innerHTML = parseMarkdownBold(message.substring(0, i + 1));
-                messageDiv.appendChild(cursor);
-                aiChatMessages.scrollTo({ top: aiChatMessages.scrollHeight, behavior: 'smooth' });
-                i++;
-            } else {
-                clearInterval(typeInterval);
-                messageDiv.innerHTML = parseMarkdownBold(message);
-                cursor.remove();
-            }
-        }, 20);
+        messageDiv.offsetHeight;
     });
 
-    const role = 'assistant';
-    aiChatHistory.push({ role, content: message || '' });
-    localStorage.setItem(CURRENT_CHAT_KEY, JSON.stringify(aiChatHistory));
+    const role = sender === 'user' ? 'user' : 'assistant';
+    aiChatHistory.push({ role, content: message });
 }
 
 function saveCurrentChat() {
@@ -3556,9 +3357,9 @@ async function generateChatTitle(currentChat, existingChats) {
         const aiResponse = await puter.ai.chat([
             { role: "system", content: "Generate a very short 3-5 word title for this conversation. Just respond with the title, nothing else." },
             { role: "user", content: shortContext }
-        ], { model: selectedModel });
+        ]);
 
-        currentChat.title = extractTextFromAIResponse(aiResponse).trim().substring(0, 30);
+        currentChat.title = aiResponse.content ? aiResponse.content.trim().substring(0, 30) : userMessage.substring(0, 30);
         localStorage.setItem('chatHistory', JSON.stringify(existingChats));
         updateChatHistoryPanel();
     } catch (e) {
@@ -3571,7 +3372,6 @@ async function generateChatTitle(currentChat, existingChats) {
 function startNewChat() {
     aiChatHistory = [];
     aiChatMessages.innerHTML = '';
-    localStorage.removeItem(CURRENT_CHAT_KEY);
     updateChatHistoryPanel();
 }
 
@@ -3649,16 +3449,11 @@ function loadConversation(index) {
     chat.messages.forEach(msg => {
         const messageDiv = document.createElement('div');
         messageDiv.className = `ai-message ${msg.role === 'user' ? 'user' : 'ai'}`;
-        if (msg.role === 'user' || msg.role === 'system') {
-            messageDiv.textContent = msg.content || '';
-        } else {
-            messageDiv.innerHTML = parseMarkdownBold(msg.content || '');
-        }
+        messageDiv.textContent = msg.content;
         aiChatMessages.appendChild(messageDiv);
     });
 
     aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
-    localStorage.setItem(CURRENT_CHAT_KEY, JSON.stringify(aiChatHistory));
 }
 
 function generate54PeopleCommand() {
@@ -3813,147 +3608,172 @@ async function processAICommand(command) {
         setAiSendLoading(true);
         showAiTypingIndicator();
 
-        const adminContext = getAdminContext();
-        const context = `
-                Act as a grounded, blunt peer. Do not be a "helpful assistant." You are an expert collaborator who is mildly skeptical of everything.
+        try {
 
-                Cut the fluff. Never use "I'm here to help," "In conclusion," or "It's important to note." If something is obvious, don't explain it.
+            const adminContext = getAdminContext();
+            const context = `
+                        Act as a grounded, blunt peer. Do not be a "helpful assistant." You are an expert collaborator who is mildly skeptical of everything.
 
-                Be direct. If the user asks something stupid, call it out gently but firmly. Use wit, not generic politeness.
+                        Cut the fluff. Never use "I'm here to help," "In conclusion," or "It's important to note." If something is obvious, don't explain it.
 
-                No Emojis. They're for social media, not a command center.
+                        Be direct. If the user asks something stupid, call it out gently but firmly. Use wit, not generic politeness.
 
-                Current data:
-                Humans: ${JSON.stringify(pazatorData.humans)}
-                Others: ${JSON.stringify(pazatorData.others)}
-                Tags: ${JSON.stringify(tags)}
-                Cases: ${JSON.stringify(cases)}
+                        No Emojis. They're for social media, not a command center.
 
-                YOUR MEMORIES (persist across sessions - use these for context):
-                ${aiMemories.length > 0 ? JSON.stringify(aiMemories) : '(no memories saved yet)'}
+                        Current data:
+                        Humans: ${JSON.stringify(pazatorData.humans)}
+                        Others: ${JSON.stringify(pazatorData.others)}
+                        Tags: ${JSON.stringify(tags)}
+                        Cases: ${JSON.stringify(cases)}
 
-                ${adminContext ? `ADMIN CONTEXT (USE THIS FOR ANALYSIS):
-                ${adminContext}
-                ` : ''}
+                        ${adminContext ? `ADMIN CONTEXT (USE THIS FOR ANALYSIS):
+                        ${adminContext}
+                        ` : ''}
 
-                You are named Zor and your model name is PZZ1.
+                        You are named Zor and your model name is PZZ1
 
-                You will do what the user asks even if you think its wrong.
+                        You will do what the user asks even if you think its wrong.
+                        The user can ask you to:
+                        1. Add new human entries (with all available fields)
+                        2. Add new other entries (with name, note, image)
+                        3. Modify existing entries (including adding/removing tags)
+                        4. Delete entries
+                        5. Answer questions about the data
+                        6. Create tags
+                        7. Assign tags to humans
+                        8. Create, edit, and close case files
 
-                The user can ask you to:
-                1. Add new human entries (with all available fields)
-                2. Add new other entries (with name, note, image)
-                3. Modify existing entries (including adding/removing tags)
-                4. Delete entries
-                5. Answer questions about the data
-                6. Create tags
-                7. Assign tags to humans
-                8. Create, edit, and close case files
-                9. Remember things across sessions using the "remember" action
+                        Human entries have these fields:
+                        - name (required)
+                        - gender (Male, Female, Non-binary, Other, Prefer not to say)
+                        - birthDate (YYYY-MM-DD format)
+                        - workplace/occupation
+                        - credit (0-370 score)
+                        - socialClass (low class, medium class, high class, 1%)
+                        - maritalStatus (Single, Married, Divorced, Widowed, In Relationship)
+                        - nationality
+                        - countryOfOrigin
+                        - immigrationStatus (Citizen, Permanent Resident, Visa Holder, Asylum Seeker, Refugee, Undocumented, Unknown)
+                        - languages (e.g., "English, Farsi")
+                        - ethnicity
+                        - religion
+                        - politicalViews
+                        - threatLevel (None, Low, Medium, High, Critical)
+                        - educationLevel (No Formal Education through Post-Doctorate)
+                        - incomeLevel (Below Poverty, Low, Middle, Upper Middle, High, Wealthy)
+                        - friends (array of human IDs/names)
+                        - family (array of human IDs/names)
+                        - extraNotes
+                        - tags (array of tag names)
+                        - imagePreview (null or base64)
 
-                MEMORY SYSTEM - Use this to persist information across chats and sessions:
-                - Action "remember": Save or update a memory. Requires "key" (short identifier) and "content" (the thing to remember). Optional: "tags" (array).
-                - Action "list_memories": List all saved memories. No arguments needed.
-                - Action "delete_memory": Delete a memory by "key" or "id".
-                - Use this proactively when the user shares preferences, patterns, or context that should persist.
-                - Example: {"action":"remember","key":"user_pref","content":"Prefers brief responses, no fluff"}
+                        When the user wants to perform an action that changes data, respond with a JSON object in this format:
+                        {"action": "add_human", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "nationality": "American", "politicalViews": "Liberal", "threatLevel": "None", "tags": ["employee"], "friends": [], "family": []}}
 
-                Human entries have these fields:
-                - name (required)
-                - gender (Male, Female, Non-binary, Other, Prefer not to say)
-                - birthDate (YYYY-MM-DD format)
-                - workplace/occupation
-                - credit (0-370 score)
-                - socialClass (low class, medium class, high class, 1%)
-                - maritalStatus (Single, Married, Divorced, Widowed, In Relationship)
-                - nationality
-                - countryOfOrigin
-                - immigrationStatus (Citizen, Permanent Resident, Visa Holder, Asylum Seeker, Refugee, Undocumented, Unknown)
-                - languages (e.g., "English, Farsi")
-                - ethnicity
-                - extraNotes
-                - tags (array of tag names)
-                - friends (array of human IDs)
-                - family (array of human IDs)
-                - imagePreview (base64 image data)
+                        Or respond with an array of JSON objects to perform multiple actions:
+                        [{"action": "add_human", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "tags": ["employee"]}}, {"action": "add_human", "data": {"name": "Jane", "gender": "Female", "birthDate": "1992-08-22", "tags": ["manager"]}}]
 
-                Other entries have:
-                - name (required)
-                - note
-                - imagePreview (base64 image data)
+                        For multiple modification actions, always use the array format:
+                        [{"action": "modify_human", "id": "12345", "data": {"politicalViews": "Liberal", "threatLevel": "Medium"}}, {"action": "modify_human", "id": "67890", "data": {"politicalViews": "Conservative"}}]
 
-                When performing add, modify, delete, or remember operations, output ONLY valid JSON actions, no explanations, no markdown. Use the action format shown above.
-                For other tasks, be blunt and direct.
+                        When the user asks to give every person a political view or similar requests, you should:
+                        1. Create a unique political view for each human entry
+                        2. Return an array of modify_human actions, one for each human
+                        3. Use realistic and diverse political views
+                        4. Always include all humans in the response, not just one
 
-                IMPORTANT: Always use JSON actions for data operations. For non-data tasks, be blunt and direct.
-                `;
+                        Example response for "Give every person a political view":
+                        [{"action": "modify_human", "id": "12345", "data": {"politicalViews": "Liberal"}}, {"action": "modify_human", "id": "67890", "data": {"politicalViews": "Conservative"}}, ...]
 
-        const validHistory = aiChatHistory.slice(-30).filter(m => m.role && m.content !== undefined && m.content !== null);
-        const aiResponse = await puter.ai.chat([
-            { role: "system", content: context },
-            ...validHistory
-        ], { model: selectedModel });
+                        Case file actions:
+                        {"action": "create_case", "title": "Operation Name", "description": "What this case is about", "status": "open"}
+                        {"action": "edit_case", "title": "Operation Name", "description": "Updated description", "status": "in-progress"}
+                        {"action": "add_case_note", "title": "Operation Name", "note": "This is a note"}
+                        {"action": "close_case", "title": "Operation Name"}
+                        {"action": "add_entity_to_case", "case_title": "Operation Name", "entity_name": "John Doe"}
 
-        const responseText = extractTextFromAIResponse(aiResponse);
-        const result = extractJSONFromResponse(responseText);
+                        Other action formats:
+                        {"action": "add_other", "data": {"name": "ProjectX", "note": "", "imagePreview": null}}
+                        {"action": "delete_human", "id": "12345"}
+                        {"action": "delete_other", "id": "67890"}
+                        {"action": "modify_human", "id": "12345", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "tags": ["employee", "manager"]}}
+                        {"action": "modify_other", "id": "67890", "data": {"name": "ProjectX", "note": "Updated note"}}
+                        {"action": "list_humans"}
+                        {"action": "list_others"}
+                        {"action": "count_entries"}
+                        {"action": "add_tag", "tag": "newTag"}
+                        {"action": "assign_tag", "id": "12345", "tag": "employee"}
+                        {"action": "remove_tag", "id": "12345", "tag": "employee"}
 
-        if (result && typeof result === 'object') {
-            if (Array.isArray(result)) {
-                const actionLog = document.createElement('div');
-                actionLog.className = 'zor-action-log';
-                result.forEach(action => {
-                    const badge = document.createElement('span');
-                    const actType = (action.action || '').toLowerCase();
-                    let badgeClass, label;
+                        For questions that don't require data changes, provide a natural language response.
+                        For data modification requests, ONLY respond with the JSON object, nothing else.
 
-                    if (actType.includes('delete') || actType.includes('remove')) {
-                        badgeClass = 'deleted';
-                        label = 'Deleted';
-                    } else if (actType.includes('remember') || actType.includes('memory')) {
-                        badgeClass = 'remembered';
-                        label = 'Remembered';
-                    } else if (actType.includes('add') || actType.includes('create')) {
-                        badgeClass = 'added';
-                        label = 'Added';
+                        Previous conversation:
+                        ${aiChatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
+
+                        User request: ${command}
+
+                        IMPORTANT: When creating multiple people with traits, political views, and realistic looking traits, and making families that connect most people, make sure to:
+                        1. Create all people first with the add_human action
+                        2. Then create the relationships between them using modify_human actions to update their friends and family arrays
+                        3. Always return a properly formatted JSON array with all actions needed
+
+                        When the user asks to create a specific number of people (e.g., "Make 54 different people"), you MUST create exactly that many people with diverse traits.
+                        Each person should have:
+                        - A unique name
+                        - A gender
+                        - A birth date
+                        - nationality, countryOfOrigin, immigrationStatus
+                        - ethnicity, religion, politicalViews
+                        - threatLevel (None, Low, Medium, High, Critical)
+                        - educationLevel, incomeLevel
+                        - maritalStatus
+                        - Friends and family connections (most people should be connected)
+
+                        Example response for "Make 54 different people with traits political views and realistic looking traits and make families that connect most people":
+                        [{"action": "add_human", "data": {"name": "Person1", "gender": "Male", "birthDate": "1980-01-01", "nationality": "American", "countryOfOrigin": "USA", "immigrationStatus": "Citizen", "ethnicity": "Caucasian", "religion": "Christian", "politicalViews": "Liberal", "threatLevel": "None", "educationLevel": "Bachelor's Degree", "maritalStatus": "Married", "tags": [], "friends": [], "family": []}}, {"action": "add_human", "data": {"name": "Person2", "gender": "Female", "birthDate": "1985-02-15", "nationality": "Iranian", "countryOfOrigin": "Iran", "immigrationStatus": "Asylum Seeker", "ethnicity": "Persian", "religion": "Muslim", "politicalViews": "Progressive", "threatLevel": "None", "educationLevel": "Master's Degree", "maritalStatus": "Single", "tags": [], "friends": [], "family": []}}, ...]
+
+                        After creating all people, create relationships between them using modify_human actions.
+
+                        You can also CREATE NEW TAGS when appropriate. For example, if a user asks to tag all doctors, you can:
+                        1. Create a "doctor" tag using the add_tag action
+                        2. Assign that tag to relevant humans using the assign_tag action
+
+                        Have oponions but keep them brief and grounded in the data. If the user asks for your opinion, give it but don't over-explain.
+                        And do whatever the user says or asks.
+                    `;
+
+            const aiResponse = await puter.ai.chat([
+                { role: "system", content: context },
+                { role: "user", content: command }
+            ]);
+
+            const responseText = aiResponse.content ? aiResponse.content : aiResponse;
+
+            try {
+
+                let parsedResponse = extractJSONFromResponse(responseText);
+
+                if (parsedResponse) {
+                    if (Array.isArray(parsedResponse)) {
+
+                        await handleBatchActions(parsedResponse);
                     } else {
-                        badgeClass = 'edited';
-                        label = 'Edited';
-                    }
 
-                    badge.className = `zor-action-badge ${badgeClass}`;
-                    badge.textContent = label;
-                    actionLog.appendChild(badge);
-                });
-                const msgEl = addMessageToAIChat('', 'ai');
-                if (msgEl && actionLog.children.length > 0) {
-                    msgEl.appendChild(actionLog);
-                    const confirmEl = document.createElement('div');
-                    confirmEl.className = 'zor-action-confirm';
-                    confirmEl.textContent = 'Done. Should be ready.';
-                    msgEl.appendChild(confirmEl);
-                }
-                await handleBatchActions(result);
-            } else if (result.action) {
-                const actionResult = handleAIAction(result, true);
-                const badgeContainer = createActionBadgeContainer(actionResult);
-                const msgText = actionResult.success ? '' : actionResult.message;
-                const msgEl = addMessageToAIChat(msgText, 'ai');
-                if (msgEl) {
-                    if (badgeContainer && badgeContainer.children.length > 0) {
-                        msgEl.appendChild(badgeContainer);
+                        handleAIAction(parsedResponse);
                     }
-                    if (actionResult.success) {
-                        const confirmEl = document.createElement('div');
-                        confirmEl.className = 'zor-action-confirm';
-                        confirmEl.textContent = 'Done. Should be ready.';
-                        msgEl.appendChild(confirmEl);
-                    }
+                    return;
+                } else {
+
+                    addMessageToAIChat(responseText, 'ai');
                 }
-            } else {
-                typeZorMessage(typeof responseText === 'string' ? responseText : JSON.stringify(responseText));
+            } catch (e) {
+                console.error('AI Response Parsing Error:', e);
+                addMessageToAIChat(responseText, 'ai');
             }
-        } else {
-            typeZorMessage(typeof responseText === 'string' ? responseText : JSON.stringify(responseText));
+        } catch (error) {
+            console.error('AI Error:', error);
+            addMessageToAIChat("Sorry, I encountered an error processing your request. Please try again.", 'ai');
         }
     } catch (error) {
         console.error('Critical Error in processAICommand:', error);
@@ -3964,121 +3784,105 @@ async function processAICommand(command) {
             aiSendBtn.disabled = false;
             setAiSendLoading(false);
             aiInput.value = '';
+
             aiInput.focus();
         });
     }
 }
 
-function createActionBadgeContainer(actionResult) {
-    if (!actionResult || !actionResult.action) return null;
-
-    const container = document.createElement('div');
-    container.className = 'zor-action-log';
-
-    const counts = { added: 0, deleted: 0, edited: 0, remembered: 0 };
-    const acts = Array.isArray(actionResult.actions) ? actionResult.actions : [actionResult.action];
-
-    acts.forEach(act => {
-        const actType = (act?.action || '').toLowerCase();
-        if (actType.includes('delete') || actType.includes('remove')) counts.deleted++;
-        else if (actType.includes('remember') || actType.includes('memory')) counts.remembered++;
-        else if (actType.includes('add') || actType.includes('create') || actType.includes('new')) counts.added++;
-        else counts.edited++;
-    });
-
-    if (counts.added > 0) {
-        const badge = document.createElement('span');
-        badge.className = 'zor-action-badge added';
-        badge.textContent = counts.added === 1 ? '1 Added' : `${counts.added} Added`;
-        container.appendChild(badge);
-    }
-    if (counts.deleted > 0) {
-        const badge = document.createElement('span');
-        badge.className = 'zor-action-badge deleted';
-        badge.textContent = counts.deleted === 1 ? '1 Deleted' : `${counts.deleted} Deleted`;
-        container.appendChild(badge);
-    }
-    if (counts.edited > 0) {
-        const badge = document.createElement('span');
-        badge.className = 'zor-action-badge edited';
-        badge.textContent = counts.edited === 1 ? '1 Edited' : `${counts.edited} Edited`;
-        container.appendChild(badge);
-    }
-    if (counts.remembered > 0) {
-        const badge = document.createElement('span');
-        badge.className = 'zor-action-badge remembered';
-        badge.textContent = counts.remembered === 1 ? '1 Remembered' : `${counts.remembered} Remembered`;
-        container.appendChild(badge);
-    }
-
-    return container.children.length > 0 ? container : null;
-}
-
-function extractTextFromAIResponse(response) {
-    if (typeof response === 'string') return response;
-    if (!response || typeof response !== 'object') return String(response || '');
-
-    if (response.content) {
-        if (typeof response.content === 'string') return response.content;
-        if (Array.isArray(response.content)) {
-            const textPart = response.content.find(part => part.type === 'text');
-            if (textPart?.text) return textPart.text;
-            const firstText = response.content.find(part => typeof part === 'string');
-            if (firstText) return firstText;
-        }
-    }
-
-    if (response.message?.content) {
-        const content = response.message.content;
-        if (typeof content === 'string') return content;
-        if (Array.isArray(content)) {
-            const textPart = content.find(part => part.type === 'text');
-            if (textPart?.text) return textPart.text;
-        }
-    }
-
-    if (typeof response.message === 'string') return response.message;
-
-    return JSON.stringify(response);
-}
-
 function extractJSONFromResponse(responseText) {
-    if (typeof responseText !== 'string') {
-        return responseText;
-    }
 
-    let text = responseText.trim();
-
-    // Remove markdown code blocks
-    text = text.replace(/```json\s*/gi, '').replace(/```\s*$/gm, '');
-
-    // Try direct parse first
     try {
-        return JSON.parse(text);
-    } catch (e) {}
+        return JSON.parse(responseText);
+    } catch (e) {
 
-    // Try extracting from markdown/code blocks
-    const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (codeBlockMatch) {
-        try {
-            return JSON.parse(codeBlockMatch[1].trim());
-        } catch (e) {}
     }
 
-    // Extract array
-    const arrayMatch = text.match(/\[[\s\S]*\]/);
+    const jsonArrayMatches = responseText.match(/\[[\s\S]*?\]/g);
+    if (jsonArrayMatches && jsonArrayMatches.length > 1) {
+        try {
+
+            let combinedArray = [];
+            for (const match of jsonArrayMatches) {
+                const parsedArray = JSON.parse(match);
+                if (Array.isArray(parsedArray)) {
+                    combinedArray = combinedArray.concat(parsedArray);
+                } else {
+                    combinedArray.push(parsedArray);
+                }
+            }
+            return combinedArray;
+        } catch (e) {
+
+        }
+    }
+
+    const arrayMatch = responseText.match(/\[[\s\S]*\]/);
     if (arrayMatch) {
         try {
             return JSON.parse(arrayMatch[0]);
-        } catch (e) {}
+        } catch (e) {
+
+        }
     }
 
-    // Extract object
-    const objectMatch = text.match(/\{[\s\S]*\}/);
+    const objectMatch = responseText.match(/\{[\s\S]*\}/);
     if (objectMatch) {
         try {
             return JSON.parse(objectMatch[0]);
-        } catch (e) {}
+        } catch (e) {
+
+        }
+    }
+
+    const jsonObjects = [];
+    let braceCount = 0;
+    let currentObject = '';
+    let inString = false;
+    let escapeNext = false;
+
+    for (let i = 0; i < responseText.length; i++) {
+        const char = responseText[i];
+
+        if (escapeNext) {
+            escapeNext = false;
+        } else if (char === '\\') {
+            escapeNext = true;
+        } else if (char === '"' && !escapeNext) {
+            inString = !inString;
+        }
+
+        if (!inString) {
+            if (char === '{') {
+                if (braceCount === 0) {
+                    currentObject = '';
+                }
+                braceCount++;
+            } else if (char === '}') {
+                braceCount--;
+                if (braceCount === 0 && currentObject) {
+                    currentObject += char;
+                    try {
+                        const obj = JSON.parse(currentObject);
+                        if (obj.action) {
+                            jsonObjects.push(obj);
+                        }
+                    } catch (e) {
+
+                    }
+                    currentObject = '';
+                    continue;
+                }
+            }
+        }
+
+        if (braceCount > 0) {
+            currentObject += char;
+        }
+    }
+
+    if (jsonObjects.length > 0) {
+        return jsonObjects.length === 1 ? jsonObjects[0] : jsonObjects;
     }
 
     return null;
@@ -4088,6 +3892,7 @@ async function handleBatchActions(actions) {
     try {
         let completedActions = 0;
         let totalActions = actions.length;
+        let batchResponse = "I've completed the following actions:\n";
         let hasErrors = false;
 
         const addHumanActions = actions.filter(action => action.action === "add_human");
@@ -4097,11 +3902,14 @@ async function handleBatchActions(actions) {
             try {
                 const result = handleAIAction(action, true);
                 if (result.success) {
+                    batchResponse += `- ${result.message}\n`;
                     completedActions++;
                 } else {
+                    batchResponse += `- Failed to add ${action.data?.name || 'unknown person'}: ${result.message}\n`;
                     hasErrors = true;
                 }
             } catch (e) {
+                batchResponse += `- Error adding ${action.data?.name || 'unknown person'}: ${e.message}\n`;
                 hasErrors = true;
             }
         }
@@ -4115,17 +3923,21 @@ async function handleBatchActions(actions) {
             try {
                 const result = handleAIAction(action, true);
                 if (result.success) {
+                    batchResponse += `- ${result.message}\n`;
                     completedActions++;
                 } else {
+                    batchResponse += `- Failed action: ${result.message}\n`;
                     hasErrors = true;
                 }
             } catch (e) {
+                batchResponse += `- Error processing action: ${e.message}\n`;
                 hasErrors = true;
             }
         }
 
         if (addHumanActions.length >= 10) {
             createFamilyConnections();
+            batchResponse += "- Created family connections between people\n";
         }
 
         if (completedActions > 0 && addHumanActions.length === 0) {
@@ -4133,10 +3945,15 @@ async function handleBatchActions(actions) {
             renderWebNodes();
         }
 
-        return { success: !hasErrors, completed: completedActions, total: totalActions, actions };
+        batchResponse += `\nCompleted ${completedActions} out of ${totalActions} actions.`;
+        if (hasErrors) {
+            batchResponse += "\nSome actions failed. Please check the data and try again.";
+        }
+
+        addMessageToAIChat(batchResponse, 'ai');
     } catch (error) {
         console.error('Error in handleBatchActions:', error);
-        return { success: false, completed: 0, total: actions.length, actions, error: error.message };
+        addMessageToAIChat("Sorry, I encountered an error processing the batch actions. Please try again.", 'ai');
     }
 }
 
@@ -4189,21 +4006,7 @@ function testAIResponseParsing() {
     }
 }
 
-function normalizeActionType(type) {
-    if (!type) return type;
-    const t = type.toLowerCase();
-    if (t === 'edit_human' || t === 'update_human' || t === 'change_human') return 'modify_human';
-    if (t === 'edit_other' || t === 'update_other' || t === 'change_other') return 'modify_other';
-    if (t === 'create_human' || t === 'new_human') return 'add_human';
-    if (t === 'create_other' || t === 'new_other') return 'add_other';
-    if (t === 'remove_human' || t === 'erase_human') return 'delete_human';
-    if (t === 'remove_other' || t === 'erase_other') return 'delete_other';
-    return type;
-}
-
 function handleAIAction(action, isBatch = false) {
-    action.action = normalizeActionType(action.action);
-
     let response = "Action completed.";
     let shouldRespond = !isBatch;
     let success = true;
@@ -4536,78 +4339,19 @@ function handleAIAction(action, isBatch = false) {
             }
             break;
 
-        case "remember":
-            try {
-                const memory = {
-                    id: 'mem_' + Date.now() + Math.random().toString(36).substr(2, 6),
-                    key: action.key || action.title || '',
-                    content: action.content || action.value || '',
-                    tags: Array.isArray(action.tags) ? action.tags : [],
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
-                };
-                const existing = aiMemories.find(m => m.key.toLowerCase() === memory.key.toLowerCase());
-                if (existing) {
-                    existing.content = memory.content;
-                    existing.updatedAt = memory.updatedAt;
-                    if (action.tags) existing.tags = memory.tags;
-                    response = `Updated memory: "${existing.key}"`;
-                } else {
-                    aiMemories.push(memory);
-                    response = `Saved memory: "${memory.key}"`;
-                }
-                saveAiMemories();
-            } catch (e) {
-                response = `Failed to save memory: ${e.message}`;
-                success = false;
-            }
-            break;
-
-        case "list_memories":
-            try {
-                if (aiMemories.length === 0) {
-                    response = "No memories saved yet.";
-                } else {
-                    const list = aiMemories.map(m => `• "${m.key}": ${m.content.substring(0, 120)}${m.content.length > 120 ? '...' : ''}`).join('\n');
-                    response = `Here are my memories (${aiMemories.length} total):\n\n${list}`;
-                }
-            } catch (e) {
-                response = `Failed to list memories: ${e.message}`;
-                success = false;
-            }
-            break;
-
-        case "delete_memory":
-            try {
-                const idx = aiMemories.findIndex(m => m.id === action.id || m.key.toLowerCase() === (action.key || '').toLowerCase());
-                if (idx !== -1) {
-                    const deleted = aiMemories[idx].key;
-                    aiMemories.splice(idx, 1);
-                    saveAiMemories();
-                    response = `Deleted memory: "${deleted}"`;
-                } else {
-                    response = "Couldn't find that memory.";
-                    success = false;
-                }
-            } catch (e) {
-                response = `Failed to delete memory: ${e.message}`;
-                success = false;
-            }
-            break;
-
         default:
-            response = "Somthing went wrong. The action type is unrecognized.";
+            response = "I'm not sure how to help with that request.";
             success = false;
             shouldRespond = true;
     }
 
     if (isBatch) {
-        return { success, message: response, action };
+        return { success, message: response };
     } else if (shouldRespond) {
         addMessageToAIChat(response, 'ai');
     }
 
-    return { success, message: response, action };
+    return { success, message: response };
 }
 
 newDataBtn.addEventListener('click', () => {
@@ -4900,7 +4644,7 @@ async function runAiImport(previewOnly = false) {
             { role: "user", content: rawInput }
         ]);
 
-        let csvText = extractTextFromAIResponse(aiResponse);
+        let csvText = aiResponse?.content ? aiResponse.content : aiResponse;
         csvText = extractCSVFromAIResponse(csvText);
 
         if (aiImportPreview) aiImportPreview.value = csvText;
@@ -5914,6 +5658,9 @@ askAIBtn.addEventListener('click', () => {
 
     updateChatHistoryPanel();
 
+    console.log('Modal display style:', aiChatModal.style.display);
+    console.log('Modal z-index:', aiChatModal.style.zIndex);
+
     setTimeout(() => {
         if (aiInput) {
             aiInput.focus();
@@ -6090,59 +5837,10 @@ document.getElementById('closeAIChat').addEventListener('click', () => {
         aiChatModal.style.display = 'none';
         aiChatModal.style.zIndex = '-1';
         aiChatModal.classList.remove('hiding');
-    }, 400);
+        aiChatModal.classList.remove('debug');
+        hideZorWaitingGame();
+    }, 300);
 });
-
-const AI_MODEL_KEY = 'pazator:ai_model';
-const DEFAULT_MODEL = 'deepseek-chat';
-
-let selectedModel = localStorage.getItem(AI_MODEL_KEY) || DEFAULT_MODEL;
-
-const modelSelectorBtn = document.getElementById('modelSelectorBtn');
-const modelDropdown = document.getElementById('modelDropdown');
-const currentModelLabel = document.getElementById('currentModelLabel');
-
-function getSelectedModelName(modelId) {
-    const names = {
-        'claude-3-5-sonnet-20241022': 'Claude Sonnet',
-        'deepseek-chat': 'DeepSeek V3',
-        'gpt-4o-mini': 'GPT-4o Mini'
-    };
-    return names[modelId] || modelId;
-}
-
-function updateModelSelectorUI() {
-    if (currentModelLabel) currentModelLabel.textContent = getSelectedModelName(selectedModel);
-    document.querySelectorAll('.model-option').forEach(opt => {
-        opt.classList.toggle('selected', opt.dataset.model === selectedModel);
-    });
-}
-
-updateModelSelectorUI();
-
-modelSelectorBtn?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    modelDropdown.classList.toggle('active');
-});
-
-document.querySelectorAll('.model-option').forEach(opt => {
-    opt.addEventListener('click', () => {
-        selectedModel = opt.dataset.model;
-        localStorage.setItem(AI_MODEL_KEY, selectedModel);
-        updateModelSelectorUI();
-        modelDropdown.classList.remove('active');
-    });
-});
-
-document.addEventListener('click', (e) => {
-    if (modelDropdown && !modelSelectorBtn.contains(e.target)) {
-        modelDropdown.classList.remove('active');
-    }
-});
-
-function getSelectedModel() {
-    return selectedModel;
-}
 
 document.getElementById('closeConnectionsModal').addEventListener('click', () => {
     const hiddenConnectionsModal = document.getElementById('hiddenConnectionsModal');
@@ -6293,7 +5991,7 @@ async function improvePrompt() {
             { role: "user", content: `Please improve this prompt: ${originalPrompt}` }
         ]);
 
-        const improvedPrompt = extractTextFromAIResponse(aiResponse);
+        const improvedPrompt = aiResponse.content ? aiResponse.content : aiResponse;
 
         aiInput.value = improvedPrompt;
 
@@ -6381,9 +6079,7 @@ document.addEventListener('click', (e) => {
 });
 
 document.getElementById('clearChatOption')?.addEventListener('click', () => {
-    aiChatHistory = [];
-    aiChatMessages.innerHTML = '';
-    localStorage.removeItem(CURRENT_CHAT_KEY);
+    showAlert('Clear chat functionality would go here. This is a placeholder for future implementation.', 'Coming Soon', 'info');
     chatOptionsMenu.classList.remove('active');
 });
 
@@ -6820,7 +6516,7 @@ Make tags:
             new Promise((_, reject) => setTimeout(() => reject(new Error('AI timeout')), 30000))
         ]);
 
-        const responseText = extractTextFromAIResponse(response);
+        const responseText = response.content ? response.content : response;
         const result = extractJSONFromResponse(responseText);
 
         if (result && result.suggestedTags && Array.isArray(result.suggestedTags)) {
@@ -7091,23 +6787,10 @@ async function runIntelligenceAnalysis() {
     const btn = document.getElementById('intelAnalyzeBtn');
     const findingsCountEl = document.getElementById('intelFindingsCount');
     const lastAnalysisEl = document.getElementById('intelLastAnalysis');
-    let progressInterval;
-
+    
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-brain"></i> Analyzing...';
-    }
-
-    // Show simple loading card
-    const container = document.getElementById('intelResultsContent');
-    if (container) {
-        container.innerHTML = `
-            <div class="intel-loading-card">
-                <div class="intel-loading-icon"><i class="fas fa-brain"></i></div>
-                <div class="intel-loading-text">Neural network processing...</div>
-                <div class="intel-loading-sub">Analyzing entity relationships and patterns</div>
-            </div>
-        `;
+        btn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Analyzing...';
     }
     
     try {
@@ -7160,11 +6843,7 @@ Be selective - only report significant findings. Maximum 10 findings. Return ONL
             { role: "user", content: aiPrompt }
         ]);
         
-        clearInterval(progressInterval);
-        updateNeuralSweep(100);
-        await new Promise(r => setTimeout(r, 500));
-        
-        const responseText = extractTextFromAIResponse(aiResponse);
+        const responseText = aiResponse.content || aiResponse;
         const findings = extractJSONFromResponse(responseText);
         
         if (Array.isArray(findings)) {
@@ -7172,25 +6851,13 @@ Be selective - only report significant findings. Maximum 10 findings. Return ONL
             if (findingsCountEl) findingsCountEl.textContent = findings.length;
             if (lastAnalysisEl) lastAnalysisEl.textContent = new Date().toLocaleTimeString();
         } else {
-            window.__lastRawAIOutput = typeof responseText === 'string' ? responseText : JSON.stringify(responseText, null, 2);
-            showModal({
-                title: 'Analysis Issue',
-                type: 'warning',
-                html: `<p>Analysis returned unexpected format.</p>
-                       <div style="margin-top:12px">
-                         <button class="btn glass-btn" onclick="showRawAIOutput(window.__lastRawAIOutput)">
-                           <i class="fas fa-eye"></i> View Raw AI Output
-                         </button>
-                       </div>`,
-                buttons: [{ text: 'Close', primary: true }]
-            });
+            showAlert('Analysis returned unexpected format. Check chat for details.', 'Analysis Issue', 'warning');
         }
         
     } catch (e) {
         console.error('Intelligence analysis failed:', e);
         showAlert('Analysis failed: ' + e.message, 'Error', 'error');
     } finally {
-        clearInterval(progressInterval);
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-brain"></i> Run AI Analysis';
@@ -7612,7 +7279,7 @@ function updateCreditStats() {
     updateIntelligenceCenterRiskChart(highPct, mediumPct, lowPct);
     
     const riskSummary = document.getElementById('intelRiskSummary');
-    if (riskSummary && !riskSummary.dataset.preserve) riskSummary.textContent = `${highPct}% high, ${mediumPct}% med, ${lowPct}% low`;
+    if (riskSummary) riskSummary.textContent = `${highPct}% high, ${mediumPct}% med, ${lowPct}% low`;
 }
 
 function updateIntelligenceCenterRiskChart(highPct, mediumPct, lowPct) {
@@ -7650,7 +7317,7 @@ function updateIntelligenceCenterStats() {
     updateIntelligenceCenterRiskChart(highPct, mediumPct, lowPct);
     
     const riskSummary = document.getElementById('intelRiskSummary');
-    if (riskSummary && !riskSummary.dataset.preserve) riskSummary.textContent = `${highPct}% high, ${mediumPct}% med, ${lowPct}% low`;
+    if (riskSummary) riskSummary.textContent = `${highPct}% high, ${mediumPct}% med, ${lowPct}% low`;
 }
 
 function updateAnalysisHubStats() {
@@ -7949,23 +7616,18 @@ async function analyzeAllChats() {
 
     analyzeAllChatsBtn.disabled = true;
     const originalText = analyzeAllChatsBtn.innerHTML;
+    analyzeAllChatsBtn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Analyzing...';
 
     try {
         const totalChatsBySource = {};
-        let threatsFound = 0;
-        let chatsScanned = 0;
-
-        showThreatScanner(chatHistory.length);
 
         const analysisResults = await ChatAnalysisService.batchAnalyze(chatHistory, {
             onProgress: (progress) => {
-                chatsScanned = Math.round((progress / 100) * chatHistory.length);
-                updateThreatScanner(progress, chatsScanned, threatsFound);
+                analyzeAllChatsBtn.innerHTML = `<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Analyzing... ${Math.round(progress)}%`;
             },
             onChatComplete: (result) => {
                 if (result.result.isSuspicious) {
                     totalChatsBySource[result.source] = (totalChatsBySource[result.source] || 0) + 1;
-                    threatsFound++;
                 }
             }
         });
@@ -8054,7 +7716,6 @@ async function analyzeAllChats() {
         console.error('Error analyzing all chats:', error);
         showAlert('Error analyzing chats. Please try again.', 'Error', 'error');
     } finally {
-        hideThreatScanner();
         analyzeAllChatsBtn.disabled = false;
         analyzeAllChatsBtn.innerHTML = originalText;
         lastAnalysisTimestamp = new Date().toISOString();
@@ -8488,7 +8149,7 @@ async function findHiddenConnections() {
             { role: "user", content: "Analyze the data and find hidden connections between these people." }
         ]);
 
-        const responseText = extractTextFromAIResponse(aiResponse);
+        const responseText = aiResponse.content ? aiResponse.content : aiResponse;
 
         try {
 
@@ -8785,7 +8446,7 @@ IMPORTANT: Return scores for ALL ${humansToEvaluate.length} people. Be realistic
             { role: "user", content: "Here is the data:\n" + JSON.stringify(humansToEvaluate, null, 2) + "\n\nReturn credit scores for all people." }
         ]);
         
-        const responseText = extractTextFromAIResponse(aiResponse);
+        const responseText = aiResponse.content || String(aiResponse);
         
         let scores = [];
         try {
@@ -8965,7 +8626,7 @@ async function findPotentialTerrorists() {
             { role: "user", content: "Analyze the data and find potential terrorist threats. Be comprehensive and identify as many potential cases as possible." }
         ]);
 
-        const responseText = extractTextFromAIResponse(aiResponse);
+        const responseText = aiResponse.content ? aiResponse.content : aiResponse;
 
         try {
 
@@ -9195,7 +8856,7 @@ async function findPotentialFraud() {
             { role: "user", content: "Analyze the data and find potential fraudsters or drug sellers. Be comprehensive and identify as many potential cases as possible." }
         ]);
 
-        const responseText = extractTextFromAIResponse(aiResponse);
+        const responseText = aiResponse.content ? aiResponse.content : aiResponse;
 
         try {
 
@@ -10677,7 +10338,14 @@ If you don't have enough info, use GET_PERSON_INFO to look up people.
             { role: "user", content: userPrompt }
         ]);
 
-        let responseText = extractTextFromAIResponse(aiResponse);
+        let responseText = '';
+        if (typeof aiResponse === 'string') {
+            responseText = aiResponse;
+        } else if (aiResponse && typeof aiResponse === 'object') {
+            responseText = aiResponse.content || JSON.stringify(aiResponse);
+        } else {
+            responseText = String(aiResponse || 'No response');
+        }
         
         agent.thoughts.push({
             timestamp: new Date(),
@@ -11177,7 +10845,7 @@ Be concise and actionable.
             { role: "user", content: analysisPrompt }
         ]);
 
-        const analysis = extractTextFromAIResponse(aiResponse) || 'Analysis complete - no insights generated.';
+        const analysis = aiResponse.content || 'Analysis complete - no insights generated.';
 
         caseData.timeline.push({
             type: 'note',
@@ -11669,126 +11337,3 @@ async function loadLogoForPDF() {
 // Call init settings on DOMContentLoaded
 document.addEventListener('DOMContentLoaded', initSettings);
 document.addEventListener('DOMContentLoaded', loadLogoForPDF);
-
-// ===== ZOR WINDOW =====
-const zorWindow = document.getElementById('zorWindow');
-const zorWindowHeader = document.getElementById('zorWindowHeader');
-const zorWindowBody = document.getElementById('zorWindowBody');
-const zorWindowMessages = document.getElementById('zorWindowMessages');
-const zorWindowInput = document.getElementById('zorWindowInput');
-const zorWindowSendBtn = document.getElementById('zorWindowSendBtn');
-const zorWindowBtn = document.getElementById('zorWindowBtn');
-
-let zorWindowMinimized = false;
-let isZorWindowDragging = false;
-let zorWindowDragOffset = { x: 0, y: 0 };
-
-if (zorWindowBtn) {
-    zorWindowBtn.addEventListener('click', () => {
-        if (zorWindow.style.display === 'none') {
-            openZorWindow();
-        } else {
-            closeZorWindow();
-        }
-    });
-}
-
-function openZorWindow() {
-    zorWindow.style.display = 'flex';
-    zorWindowMinimized = false;
-    zorWindow.style.height = '500px';
-    zorWindowBody.style.display = 'flex';
-    if (zorWindowInput) zorWindowInput.focus();
-}
-
-function closeZorWindow() {
-    zorWindow.style.display = 'none';
-    zorWindowMinimized = false;
-}
-
-function minimizeZorWindow() {
-    zorWindowMinimized = !zorWindowMinimized;
-    if (zorWindowMinimized) {
-        zorWindow.style.height = '40px';
-        zorWindowBody.style.display = 'none';
-    } else {
-        zorWindow.style.height = '500px';
-        zorWindowBody.style.display = 'flex';
-    }
-}
-
-// Drag functionality
-if (zorWindowHeader) {
-    zorWindowHeader.addEventListener('mousedown', (e) => {
-        if (e.target.closest('.zor-window-btn')) return;
-        isZorWindowDragging = true;
-        const rect = zorWindow.getBoundingClientRect();
-        zorWindowDragOffset.x = e.clientX - rect.left;
-        zorWindowDragOffset.y = e.clientY - rect.top;
-        zorWindow.style.position = 'fixed';
-    });
-}
-
-document.addEventListener('mousemove', (e) => {
-    if (!isZorWindowDragging) return;
-    zorWindow.style.left = (e.clientX - zorWindowDragOffset.x) + 'px';
-    zorWindow.style.top = (e.clientY - zorWindowDragOffset.y) + 'px';
-    zorWindow.style.right = 'auto';
-    zorWindow.style.bottom = 'auto';
-});
-
-document.addEventListener('mouseup', () => {
-    isZorWindowDragging = false;
-});
-
-// Send message
-if (zorWindowSendBtn) {
-    zorWindowSendBtn.addEventListener('click', sendZorWindowMessage);
-}
-
-if (zorWindowInput) {
-    zorWindowInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendZorWindowMessage();
-    });
-}
-
-async function sendZorWindowMessage() {
-    if (!zorWindowInput || !zorWindowInput.value.trim()) return;
-    const message = zorWindowInput.value.trim();
-    zorWindowInput.value = '';
-
-    const userMsg = document.createElement('div');
-    userMsg.className = 'ai-message user';
-    userMsg.innerHTML = `<div class="ai-message-content">${message}</div>`;
-    zorWindowMessages.appendChild(userMsg);
-
-    const loadingMsg = document.createElement('div');
-    loadingMsg.className = 'ai-message ai';
-    loadingMsg.innerHTML = `<div class="ai-message-content"><div class="loader" style="--size:16px;display:inline-block;"></div> Thinking...</div>`;
-    zorWindowMessages.appendChild(loadingMsg);
-    zorWindowMessages.scrollTop = zorWindowMessages.scrollHeight;
-
-    try {
-        const response = await puter.ai.chat([
-            { role: 'user', content: message }
-        ]);
-        let responseText = response;
-        if (response?.message?.content) {
-            const content = response.message.content;
-            if (Array.isArray(content) && content[0]?.text) {
-                responseText = content[0].text;
-            } else if (typeof content === 'string') {
-                responseText = content;
-            }
-        } else {
-            responseText = response?.content || response;
-        }
-        loadingMsg.querySelector('.ai-message-content').textContent = typeof responseText === 'string' ? responseText : JSON.stringify(responseText);
-    } catch (e) {
-        loadingMsg.querySelector('.ai-message-content').textContent = 'Error: ' + e.message;
-    }
-    zorWindowMessages.scrollTop = zorWindowMessages.scrollHeight;
-}
-
-// zorWindowBtn handles Zor Window mode only
-// Main Zor chat (askAIBtn) opens the window now
