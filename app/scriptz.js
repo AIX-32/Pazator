@@ -6094,7 +6094,7 @@ document.getElementById('closeAIChat').addEventListener('click', () => {
 });
 
 const AI_MODEL_KEY = 'pazator:ai_model';
-const DEFAULT_MODEL = 'claude-3-5-haiku-20241022';
+const DEFAULT_MODEL = 'deepseek-chat';
 
 let selectedModel = localStorage.getItem(AI_MODEL_KEY) || DEFAULT_MODEL;
 
@@ -6104,7 +6104,6 @@ const currentModelLabel = document.getElementById('currentModelLabel');
 
 function getSelectedModelName(modelId) {
     const names = {
-        'claude-3-5-haiku-20241022': 'Haiku',
         'claude-3-5-sonnet-20241022': 'Claude Sonnet',
         'deepseek-chat': 'DeepSeek V3',
         'gpt-4o-mini': 'GPT-4o Mini'
