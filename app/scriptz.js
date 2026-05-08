@@ -1528,7 +1528,6 @@ const sortByCreditBtn = document.getElementById('sortByCreditBtn');
 
 const intelAnalyzeBtn = document.getElementById('intelAnalyzeBtn');
 const intelConnectionsBtn = document.getElementById('intelConnectionsBtn');
-const intelHojumBtn = document.getElementById('intelHojumBtn');
 const intelRefreshRiskBtn = document.getElementById('intelRefreshRiskBtn');
 const intelClearResults = document.getElementById('intelClearResults');
 
@@ -1737,7 +1736,6 @@ function createTab(tabId) {
     if (tabId === 'threats') tabLabel = 'Threats & Fraud';
     if (tabId === 'chat-control') tabLabel = 'Chat Security';
     if (tabId === 'tracker') tabLabel = 'Shahed Tracker';
-    if (tabId === 'tadbir') tabLabel = 'Tadbir';
 
     newTab.innerHTML = `
                 ${tabLabel}
@@ -1812,38 +1810,15 @@ function switchTab(tabId) {
         updateAnalysisHubStats();
     }
 
+    if (window.Tastur) {
+        Tastur.emit('tab_switch', { to: tabId });
+    }
+
     setActiveTabButton(tabId);
 
-    try {
-        window.pazator_context?.dastur?.notifyEvent?.('tab_switched', { tabId, source: 'switchTab' });
-    } catch { }
-
-    try {
-        if (tabId === 'tadbir') showTadbirAlphaModal();
-    } catch { }
 }
 
-function showTadbirAlphaModal() {
-    const modal = document.getElementById('tadbirAlphaModal');
-    if (!modal) return;
-    modal.classList.add('active');
-    modal.setAttribute('aria-hidden', 'false');
-    const btn = document.getElementById('tadbirAlphaContinue');
-    btn?.focus?.();
-}
 
-function hideTadbirAlphaModal() {
-    const modal = document.getElementById('tadbirAlphaModal');
-    if (!modal) return;
-    modal.classList.remove('active');
-    modal.setAttribute('aria-hidden', 'true');
-}
-
-document.getElementById('tadbirAlphaContinue')?.addEventListener('click', hideTadbirAlphaModal);
-document.querySelector('#tadbirAlphaModal [data-alpha-close="true"]')?.addEventListener('click', hideTadbirAlphaModal);
-window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') hideTadbirAlphaModal();
-});
 
 function setActiveTabButton(tabId) {
     document.querySelectorAll('.tab[data-tab], .tab-action[data-tab-target]').forEach(btn => {
@@ -1923,9 +1898,11 @@ function saveData(immediate = false) {
         updatePersistenceIndicator('online', `Saved (${totalItems} items)`);
         console.log(` Data persistence confirmed: ${totalItems} items stored`);
 
-        try {
-            window.pazator_context?.dastur?.notifyEvent?.('data_saved', { totalItems, source: 'saveData' });
-        } catch { }
+        if (window.Tastur) {
+            Tastur.emit('data_added', { count: totalItems });
+        }
+
+
     } catch (error) {
         console.error(' Error saving data:', error);
         updatePersistenceIndicator('offline', 'Save Failed');
@@ -2600,11 +2577,22 @@ function fitAllNodesInView() {
 }
 
 function renderWebNodes() {
+    const visOffOverlay = document.getElementById('visOffOverlay');
+    const visEmptyOverlay = document.getElementById('visEmptyOverlay');
+    const totalDataCount = pazatorData.humans.length + pazatorData.others.length;
+
+    if (totalDataCount === 0) {
+        if (visEmptyOverlay) visEmptyOverlay.style.display = 'flex';
+        if (visOffOverlay) visOffOverlay.style.display = 'none';
+        webContent.innerHTML = '';
+        return;
+    }
+
     console.log('Starting renderWebNodes function...');
     console.log('Current data state:', {
         humans: pazatorData.humans.length,
         others: pazatorData.others.length,
-        total: pazatorData.humans.length + pazatorData.others.length
+        total: totalDataCount
     });
 
     nodePositions.clear();
@@ -2634,8 +2622,6 @@ function renderWebNodes() {
         ...pazatorData.others.map(o => ({ ...o, type: 'other' }))
     ];
 
-    console.log(' Raw data to render:', allData);
-
     if (searchTerm) {
         allData = allData.filter(data =>
             data.name.toLowerCase().includes(searchTerm) ||
@@ -2646,6 +2632,16 @@ function renderWebNodes() {
 
     if (selectedType !== 'all') {
         allData = allData.filter(data => data.type === selectedType);
+    }
+
+    // Performance Limiter: Hide visualization if too many nodes
+    if (allData.length > 15) {
+        if (visOffOverlay) visOffOverlay.style.display = 'flex';
+        if (visEmptyOverlay) visEmptyOverlay.style.display = 'none';
+        return;
+    } else {
+        if (visOffOverlay) visOffOverlay.style.display = 'none';
+        if (visEmptyOverlay) visEmptyOverlay.style.display = 'none';
     }
 
     console.log(' Filtered data to display:', allData);
@@ -3580,20 +3576,6 @@ function generate54PeopleCommand() {
 async function processAICommand(command) {
     try {
         command = command.trim();
-
-        const hojumMatch = command.match(/^(\/hojum|!hojum)\b\s*(.*)$/i);
-        if (hojumMatch) {
-            addMessageToAIChat(command, 'user');
-            const note = (hojumMatch[2] || '').trim();
-            try {
-                await window.pazator_context?.hojum?.proposeManual?.(note);
-                addMessageToAIChat('HOJUM: tactical proposal generated (see overlay card).', 'system');
-            } catch (e) {
-                console.error('HOJUM manual intervention failed:', e);
-                addMessageToAIChat('HOJUM: failed to generate proposal.', 'system');
-            }
-            return;
-        }
 
         if (command.toLowerCase().includes("make 54") && command.toLowerCase().includes("people")) {
             addMessageToAIChat(command, 'user');
@@ -6685,33 +6667,6 @@ intelRefreshRiskBtn?.addEventListener('click', () => {
     updateCreditStats();
 });
 
-intelHojumBtn?.addEventListener('click', async () => {
-    try {
-        const hojum = window.pazator_context?.hojum;
-        if (hojum && typeof hojum.proposeManual === 'function') {
-            intelHojumBtn.disabled = true;
-            intelHojumBtn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Running...';
-            
-            await hojum.proposeManual('Threat analysis request from Intelligence Center');
-            
-            const status = document.getElementById('intelHojumStatus');
-            if (status) {
-                status.innerHTML = '<i class="fas fa-check-circle"></i><span>HOJUM: proposal generated.</span>';
-            }
-        } else {
-            showAlert('HOJUM is not available. Make sure the context is properly initialized.', 'HOJUM Error', 'warning');
-        }
-    } catch (e) {
-        console.error('HOJUM trigger failed:', e);
-        showAlert('Failed to trigger HOJUM: ' + e.message, 'Error', 'error');
-    } finally {
-        if (intelHojumBtn) {
-            intelHojumBtn.disabled = false;
-            intelHojumBtn.innerHTML = '<i class="fas fa-bolt"></i> Trigger HOJUM';
-        }
-    }
-});
-
 intelClearResults?.addEventListener('click', () => {
     const resultsEl = document.getElementById('intelResults');
     const contentEl = document.getElementById('intelResultsContent');
@@ -6885,12 +6840,12 @@ document.getElementById('trackerBtn')?.addEventListener('click', () => {
     switchTab('tracker');
 });
 
-document.getElementById('tadbirBtn')?.addEventListener('click', () => {
-    switchTab('tadbir');
-});
-
 document.getElementById('casesBtn')?.addEventListener('click', () => {
     switchTab('cases');
+});
+
+document.getElementById('tasturBtn')?.addEventListener('click', () => {
+    switchTab('tastur');
 });
 
 trackerConnectBtn?.addEventListener('click', connectTrackerSelection);
@@ -7301,25 +7256,28 @@ function updateIntelligenceCenterRiskChart(highPct, mediumPct, lowPct) {
 function updateIntelligenceCenterStats() {
     const humanCountEl = document.getElementById('intelHumanCount');
     const otherCountEl = document.getElementById('intelOtherCount');
-    
+
     if (humanCountEl) humanCountEl.textContent = pazatorData.humans.length;
     if (otherCountEl) otherCountEl.textContent = pazatorData.others.length;
-    
+
     const highRisk = pazatorData.humans.filter(h => (h.credit || 185) < 125).length;
     const mediumRisk = pazatorData.humans.filter(h => (h.credit || 185) >= 125 && (h.credit || 185) < 250).length;
     const lowRisk = pazatorData.humans.filter(h => (h.credit || 185) >= 250).length;
     const total = pazatorData.humans.length || 1;
-    
+
     const highPct = Math.round((highRisk / total) * 100);
     const mediumPct = Math.round((mediumRisk / total) * 100);
     const lowPct = Math.round((lowRisk / total) * 100);
-    
+
     updateIntelligenceCenterRiskChart(highPct, mediumPct, lowPct);
-    
+
     const riskSummary = document.getElementById('intelRiskSummary');
     if (riskSummary) riskSummary.textContent = `${highPct}% high, ${mediumPct}% med, ${lowPct}% low`;
-}
 
+    if (highRisk > 0 && window.Tastur) {
+        Tastur.emit('threat_detected', { count: highRisk });
+    }
+}
 function updateAnalysisHubStats() {
     const humanCountEl = document.getElementById('analysisHumanCount');
     const creditAvgEl = document.getElementById('analysisCreditAvg');
@@ -9744,6 +9702,10 @@ function performSearch(query) {
 
     addRecentSearch(query);
     renderRecentSearches();
+
+    if (window.Tastur) {
+        Tastur.emit('search_performed', { query: query });
+    }
 
     const searchNames = document.getElementById('searchNames')?.checked ?? true;
     const searchJobs = document.getElementById('searchJobs')?.checked ?? true;

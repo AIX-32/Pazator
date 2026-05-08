@@ -241,11 +241,11 @@
         <button class="tab-action" id="trackerBtn" title="Shahed Tracker" data-tab-target="tracker">
             <i class="fas fa-location-crosshairs"></i>
         </button>
-        <button class="tab-action" id="tadbirBtn" title="HOJUM + DASTUR (TADBIR)" data-tab-target="tadbir">
-            <i class="fas fa-bolt"></i>
-        </button>
         <button class="tab-action" id="casesBtn" title="Case Files / Missions" data-tab-target="cases">
             <i class="fas fa-folder-open"></i>
+        </button>
+        <button class="tab-action" id="tasturBtn" title="TASTUR Rule Engine" data-tab-target="tastur">
+            <i class="fas fa-bolt"></i>
         </button>
         <div class="logo-card" title="Pazator Logo">
             <img src="../logo.png" alt="Pazator Logo" id="logoImage">
@@ -284,6 +284,19 @@
                     </div>
                     <div class="web-container" id="webContainer">
                         <div class="web-content" id="webContent">
+                        </div>
+                        <div id="visOffOverlay" class="vis-overlay" style="display: none;">
+                            <div class="vis-overlay-content">
+                                <h2>VISUALIZATION OFF</h2>
+                                <p>You probably don't have a good enough PC to handle it.</p>
+                                <small>Visualization is disabled for more than 15 data nodes to preserve performance.</small>
+                            </div>
+                        </div>
+                        <div id="visEmptyOverlay" class="vis-overlay" style="display: none;">
+                            <div class="vis-overlay-content">
+                                <h2>DATABASE EMPTY</h2>
+                                <p>No data nodes detected in the local intelligence container.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -342,118 +355,7 @@
             </div>
         </div>
 
-        <div class="tab-content" id="tadbir-tab">
-            <div class="workspace">
-                <div class="main-panel">
-                    <div class="canvas-header">
-                        <h1>Pazator<span class="title-sub">TADBIR</span></h1>
-                        <p class="canvas-version">DASTUR (rules) → HOJUM (incursion)</p>
-                    </div>
 
-                    <div class="tactics-layout" aria-label="Intelligence Workspace">
-                        <section class="tactics-pane" aria-label="DASTUR Builder">
-                            <div class="tactics-pane-head">
-                                <div>
-                                    <div class="tactics-pane-title">DASTUR</div>
-                                    <div class="tactics-pane-sub">When / If / Execute</div>
-                                </div>
-                                <button id="dasturTriggerManualBtn" class="dastur-mini-btn" title="Trigger manual event">Trigger</button>
-                            </div>
-                            <div class="tactics-pane-body">
-                                <div class="tactics-form-compact">
-                                    <div class="tactics-field">
-                                        <label class="tactics-label" for="dasturEvent">When</label>
-                                        <select id="dasturEvent" class="tactics-input tactics-mono">
-                                            <option value="state_changed">state_changed</option>
-                                            <option value="data_saved">data_saved</option>
-                                            <option value="tab_switched">tab_switched</option>
-                                            <option value="manual">manual</option>
-                                        </select>
-                                    </div>
-                                    <div class="tactics-field">
-                                        <label class="tactics-label" for="dasturCondition">If</label>
-                                        <input type="text" id="dasturCondition" class="tactics-input tactics-mono"
-                                            placeholder="state.pazatorData.humans.length > 10">
-                                        <div class="tactics-field-hint">Use: <span class="tactics-inline-code">state</span>, <span class="tactics-inline-code">event</span>, <span class="tactics-inline-code">helpers.countHumans()</span></div>
-                                    </div>
-                                    <div class="tactics-field">
-                                        <label class="tactics-label" for="dasturAction">Execute</label>
-                                        <select id="dasturAction" class="tactics-input tactics-mono">
-                                            <option value="hojum_propose">hojum_propose</option>
-                                            <option value="sarparast_flash">sarparast_flash</option>
-                                        </select>
-                                    </div>
-                                    <div class="tactics-field">
-                                        <label class="tactics-label" for="dasturActionNote">Note</label>
-                                        <input type="text" id="dasturActionNote" class="tactics-input tactics-mono"
-                                            placeholder="optional">
-                                    </div>
-                                    <button id="dasturAddRuleBtn" class="btn glass-btn btn-full">Add Rule</button>
-                                </div>
-                            </div>
-                        </section>
-
-                        <section class="tactics-pane tactics-pane-fill" aria-label="DASTUR Ruleset">
-                            <div class="tactics-pane-head">
-                                <div>
-                                    <div class="tactics-pane-title">RULESET</div>
-                                    <div class="tactics-pane-sub">KV persisted • live triggers</div>
-                                </div>
-                                <div style="display: flex; gap: 8px;">
-                                    <button id="dasturExportBtn" class="dastur-mini-btn" title="Export rules as JSON">Export</button>
-                                    <button id="dasturImportBtn" class="dastur-mini-btn" title="Import rules from JSON">Import</button>
-                                    <button id="dasturAiPromptBtn" class="dastur-mini-btn" title="Copy AI prompt for creating rules">AI Prompt</button>
-                                </div>
-                            </div>
-                            <div class="tactics-pane-body tactics-pane-scroll">
-                                <div id="dasturRulesList" class="dastur-rules-list" aria-label="DASTUR Rules"></div>
-                            </div>
-                        </section>
-
-                        <div id="dasturImportModal" class="modal" style="display: none;">
-                            <div class="modal-content" style="max-width: 500px;">
-                                <div class="modal-header">
-                                    <h2>Import DASTUR Rules</h2>
-                                    <button id="dasturImportModalClose" class="dastur-mini-btn">×</button>
-                                </div>
-                                <div class="modal-body">
-                                    <p style="color: #888; margin-bottom: 16px; font-size: 0.9rem;">Paste JSON rules array below:</p>
-                                    <textarea id="dasturImportInput" class="form-control" rows="10" placeholder='[{"event":"manual","condition":"","action":"hojum_propose","note":"My rule"}]'></textarea>
-                                </div>
-                                <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end;">
-                                    <button id="dasturImportCancel" class="btn glass-btn">Cancel</button>
-                                    <button id="dasturImportConfirm" class="btn btn-primary">Import</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <section class="tactics-pane" aria-label="HOJUM Feed">
-                            <div class="tactics-pane-head">
-                                <div>
-                                    <div class="tactics-pane-title">HOJUM</div>
-                                    <div class="tactics-pane-sub">Proposal feed</div>
-                                </div>
-                                <div class="tactics-hojum-actions">
-                                    <button id="hojumManualBtn" class="btn btn-primary btn-dual">Intervene</button>
-                                    <button id="hojumClearBtn" class="btn glass-btn btn-dual">Clear</button>
-                                </div>
-                            </div>
-                            <div class="tactics-pane-body tactics-pane-scroll">
-                                <div id="hojumRecentList" class="hojum-recent-list" aria-label="Recent HOJUM Proposals"></div>
-                                <details class="tactics-notes-box">
-                                    <summary>Notes</summary>
-                                    <div class="tactics-notes">
-                                        - DASTUR fires → beep + SARPARAST flash → HOJUM proposal card.
-                                        <br>- Execute runs tool calls against DOM / SHAHED tracker.
-                                        <br>- In Zor chat: `/hojum scan + intervene`.
-                                    </div>
-                                </details>
-                            </div>
-                        </section>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <div class="tab-content" id="analysis-tab">
             <div class="workspace">
@@ -840,21 +742,7 @@
                                     Find
                                 </button>
                             </div>
-                            <div class="intel-action-item">
-                                <div class="intel-action-top">
-                                    <div class="intel-action-icon intel-icon-hojum">
-                                        <i class="fas fa-bolt"></i>
-                                    </div>
-                                    <div class="intel-action-info">
-                                        <h3>HOJUM</h3>
-                                        <p id="intelHojumSummary">0 proposals</p>
-                                    </div>
-                                </div>
-                                <button id="intelHojumBtn" class="btn glass-btn btn-full">
-                                    <i class="fas fa-fire"></i>
-                                    Trigger
-                                </button>
-                            </div>
+
                         </div>
 
                         <div class="intel-results" id="intelResults">
@@ -1158,6 +1046,54 @@
                                     Clear
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="tastur-tab">
+            <div style="height: 100%; padding: 30px; display: flex; flex-direction: column;">
+                <div style="margin-bottom: 25px; padding: 0 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h1 style="margin: 0; font-size: 2.2rem; background: linear-gradient(45deg, #ffffff, #dddddd); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;">TASTUR Rule Engine</h1>
+                        <p style="margin: 5px 0 0 0; color: #aaa; font-size: 1.1rem;">Automate your workspace with custom triggers and actions.</p>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="tasturCopyPromptBtn" class="btn glass-btn" style="padding: 10px 20px; border-radius: 8px;" title="Copy instructions for AI">
+                            <i class="fas fa-robot"></i> AI Instructions
+                        </button>
+                        <button id="tasturSaveBtn" class="btn btn-primary" style="padding: 10px 20px; border-radius: 8px;">
+                            <i class="fas fa-save"></i> Save Rules
+                        </button>
+                    </div>
+                </div>
+
+                <div style="flex: 1; display: flex; gap: 25px; overflow: hidden;">
+                    <div style="flex: 2; display: flex; flex-direction: column; gap: 20px;">
+                        <div style="flex: 1; background: rgba(25, 25, 25, 0.8); border: 1px solid #333; border-radius: 15px; padding: 20px; display: flex; flex-direction: column;">
+                            <h2 style="margin: 0 0 15px 0; color: #fff; font-size: 1.2rem; display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-edit" style="color: #4d9de0;"></i> Rule Editor
+                            </h2>
+                            <textarea id="tasturEditor" class="form-control" placeholder="WHEN tab_switch IF to='analysis' THEN popup 'Welcome!'" 
+                                style="flex: 1; width: 100%; background: rgba(10, 10, 10, 0.5); color: #00ff00; font-family: 'Courier New', Courier, monospace; font-size: 1rem; padding: 15px; border: 1px solid #444; border-radius: 10px; resize: none;"></textarea>
+                        </div>
+                        
+                        <div style="background: rgba(30, 30, 30, 0.7); border: 1px solid #333; border-radius: 15px; padding: 15px;">
+                            <h3 style="margin: 0 0 10px 0; color: #ddd; font-size: 1rem;">Syntax Guide</h3>
+                            <p style="color: #888; font-size: 0.85rem; margin: 0;">
+                                <code style="color: #6bcf7f;">WHEN [trigger] IF [condition] THEN [action]</code><br>
+                                <code style="color: #888;">Example: WHEN tab_switch IF to="threats" THEN popup "Access Denied"</code>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div style="flex: 1; background: rgba(25, 25, 25, 0.8); border: 1px solid #333; border-radius: 15px; padding: 20px; display: flex; flex-direction: column; overflow: hidden;">
+                        <h2 style="margin: 0 0 15px 0; color: #fff; font-size: 1.2rem; display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-list" style="color: #ffd93d;"></i> Active Rules
+                        </h2>
+                        <div id="tasturRuleList" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+                            <div style="text-align: center; color: #666; padding: 40px;">No rules defined.</div>
                         </div>
                     </div>
                 </div>
@@ -2133,20 +2069,6 @@
         </div>
     </div>
 
-    <div id="hojumStack" class="hojum-stack" aria-label="HOJUM Tactical Proposals" aria-live="polite"></div>
-
-    <div id="tadbirAlphaModal" class="tactics-alpha-modal" aria-hidden="true">
-        <div class="tactics-alpha-backdrop" data-alpha-close="true"></div>
-        <div class="tactics-alpha-content" role="dialog" aria-modal="true" aria-label="TADBIR Alpha Notice">
-            <div class="tactics-alpha-topline">ALPHA</div>
-            <h2>TADBIR is in alpha</h2>
-            <p>This section is active development. Expect instability and changes.</p>
-            <div class="tactics-alpha-actions">
-                <button id="tadbirAlphaContinue" class="btn btn-primary btn-full">Continue</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Credit Evaluation Modal -->
     <div id="creditEvalModal" class="credit-eval-modal">
         <div class="credit-eval-content">
@@ -2271,10 +2193,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://js.puter.com/v2/"></script>
     <script src="scriptz.js"></script>
+    <script src="tastur.js"></script>
     <script src="pazator_context.js"></script>
-    <script src="dastur.js"></script>
-    <script src="hojum.js"></script>
-
 </body>
 
 </html>
