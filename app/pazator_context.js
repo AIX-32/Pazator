@@ -44,19 +44,11 @@
     }
 
     async function aiChat(messages, options) {
-        if (!hasPuter() || !window.puter.ai || typeof window.puter.ai.chat !== 'function') {
-            throw new Error('Puter AI is not available (puter.ai.chat missing).');
+        if (typeof window.geminiChat !== 'function') {
+            throw new Error('Gemini AI is not available (geminiChat missing).');
         }
 
-        if (options && typeof options === 'object') {
-            try {
-                return await window.puter.ai.chat(messages, options);
-            } catch {
-                return await window.puter.ai.chat(messages);
-            }
-        }
-
-        return await window.puter.ai.chat(messages);
+        return await window.geminiChat(messages);
     }
 
     function playAlertBeep(durationMs = 120, frequencyHz = 880) {

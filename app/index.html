@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.css">
     <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="pazator_db.js"></script>
     <link rel="stylesheet" href="stylez.css">
     <style>
         #introOverlay {
@@ -153,20 +154,19 @@
 
             <div class="ai-input-container">
                 <div class="context-display" id="contextDisplay">
-                    <div style="color: #777; font-style: italic; align-self: center;">No context selected - click "Add
-                        Context" to include people, chats, or security logs</div>
+                    <div style="color: #555; font-style: italic; align-self: center; font-size: 0.85rem;">No context selected — click "Add Context" to include people, chats, or security logs</div>
                 </div>
                 <div class="input-row">
-                    <input type="text" class="ai-input" id="aiInput" placeholder="Search for anything.">
-                    <div class="ai-input-buttons">
-                        <button class=" btncube" id="aiImproveBtn" title="Improve your prompt">
-                            <i class="fas fa-magic"></i>
-                            <span class="btn-icon-text"></span>
-                        </button>
-                        <button class="ai-send-btn" id="aiSendBtn">
-                            <i class="fas fa-paper-plane"></i>
-                            <span class="btn-icon-text"></span>
-                        </button>
+                    <div class="input-wrapper">
+                        <input type="text" class="ai-input" id="aiInput" placeholder="Ask or search anything...">
+                        <div class="input-actions">
+                            <button class="improve-btn" id="aiImproveBtn" title="Improve your prompt">
+                                <i class="fas fa-magic"></i>
+                            </button>
+                            <button class="ai-send-btn" id="aiSendBtn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -280,7 +280,7 @@
                 <div class="main-panel">
                     <div class="canvas-header">
                         <h1>Pazator<span class="title-sub">SARPARAST</span></h1>
-                        <p class="canvas-version">v0.Apr1726</p>
+                        <p class="canvas-version">v0.May1126</p>
                     </div>
                     <div class="web-container" id="webContainer">
                         <div class="web-content" id="webContent">
@@ -343,6 +343,17 @@
                         <button id="addTagBtn" class="btn glass-btn" style="width: 100%;">Add Tag</button>
                         <div id="tagsContainer" class="tags-container" style="margin-top: 12px;">
                         </div>
+                    </div>
+
+                    <div class="sidebar-section sidebar-mini">
+                        <h3>AI Configuration</h3>
+                        <div class="form-group compact">
+                            <input type="password" id="geminiApiKeyInput" class="form-control" placeholder="Gemini API Key">
+                        </div>
+                        <div class="form-group compact">
+                            <select id="geminiModelSelect" class="form-control"></select>
+                        </div>
+                        <div id="geminiStatus" class="gemini-status">No API key configured</div>
                     </div>
 
                     <div class="sidebar-section sidebar-mini">
@@ -865,11 +876,14 @@
                                     Agent Capabilities
                                 </h4>
                                 <ul
-                                    style="margin: 0; padding-left: 20px; color: #aaa; font-size: 0.9rem; line-height: 1.6;">
-                                    <li>Access to all person names in database</li>
-                                    <li>Can request detailed information about any person</li>
-                                    <li>Can leave investigation logs</li>
-                                    <li>Can declare mission complete</li>
+                                    style="margin: 0; padding-left: 20px; color: #aaa; font-size: 0.9rem; line-height: 1.8;">
+                                    <li>Search and filter people by any field</li>
+                                    <li>View detailed profiles of any person</li>
+                                    <li>Browse organizations and entities</li>
+                                    <li>Add, modify, and tag people</li>
+                                    <li>Create connections between people</li>
+                                    <li>Create case files and document evidence</li>
+                                    <li>Record investigation logs</li>
                                     <li>Limited to 3 concurrent agents</li>
                                 </ul>
                             </div>
@@ -2132,6 +2146,9 @@
         </div>
     </div>
 
+    <!-- Toast Notification -->
+    <div id="toastContainer" class="toast-container"></div>
+
     <!-- Settings Modal -->
     <div id="settingsModal" class="modal settings-modal">
         <div class="settings-modal-content">
@@ -2163,15 +2180,31 @@
         document.addEventListener('DOMContentLoaded', function() {
             var introOverlay = document.getElementById('introOverlay');
             var introVideo = document.getElementById('introVideo');
+            var lastSpaceTime = 0;
+            
+            function skipIntro() {
+                if (introOverlay.classList.contains('hidden')) return;
+                introOverlay.classList.add('fade-out');
+                setTimeout(function() {
+                    introOverlay.classList.add('hidden');
+                }, 400);
+            }
+            
+            document.addEventListener('keydown', function(e) {
+                if (e.code !== 'Space' || introOverlay.classList.contains('hidden')) return;
+                e.preventDefault();
+                var now = Date.now();
+                if (now - lastSpaceTime < 500) {
+                    skipIntro();
+                }
+                lastSpaceTime = now;
+            });
             
             if (localStorage.getItem('skipIntro') === 'true') {
                 introOverlay.classList.add('hidden');
             } else {
                 introVideo.addEventListener('ended', function() {
-                    introOverlay.classList.add('fade-out');
-                    setTimeout(function() {
-                        introOverlay.classList.add('hidden');
-                    }, 800);
+                    skipIntro();
                 });
                 
                 introVideo.addEventListener('error', function() {
@@ -2180,10 +2213,7 @@
                 
                 setTimeout(function() {
                     if (!introOverlay.classList.contains('hidden')) {
-                        introOverlay.classList.add('fade-out');
-                        setTimeout(function() {
-                            introOverlay.classList.add('hidden');
-                        }, 800);
+                        skipIntro();
                     }
                 }, 30000);
             }
@@ -2191,7 +2221,7 @@
     </script>
     <script src="https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://js.puter.com/v2/"></script>
+    <script src="pazator_gemini.js"></script>
     <script src="scriptz.js"></script>
     <script src="tastur.js"></script>
     <script src="pazator_context.js"></script>

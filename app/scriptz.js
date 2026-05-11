@@ -525,7 +525,7 @@ const ChatAnalysisService = {
         const context = this._buildAnalysisPrompt(source, truncatedContent, entities);
 
         const response = await Promise.race([
-            puter.ai.chat([
+            geminiChat([
                 { role: "system", content: context },
                 { role: "user", content: "Analyze this chat for suspicious activity and provide your findings in JSON format." }
             ]),
@@ -2598,21 +2598,7 @@ function renderWebNodes() {
     nodePositions.clear();
     webContent.innerHTML = '';
 
-    // Create SVG for connections
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.id = 'connections-svg';
-    svg.style.position = 'absolute';
-    svg.style.top = '0';
-    svg.style.left = '0';
-    svg.style.width = '100%';
-    svg.style.height = '100%';
-    svg.style.pointerEvents = 'none';
-    svg.style.zIndex = '1';
-    svg.style.willChange = 'transform';
-    svg.style.transform = 'translateZ(0)';
-    svg.style.backfaceVisibility = 'hidden';
-    webContent.appendChild(svg);
-    connectionsSvg = svg;
+    connectionsSvg = null;
 
     const searchTerm = searchInput.value.toLowerCase();
     const selectedType = filterType.value;
@@ -2652,6 +2638,11 @@ function renderWebNodes() {
     const centerY = containerHeight / 2;
 
     console.log(`️ Creating ${allData.length} nodes...`);
+
+    var floatingLabel = document.createElement('div');
+    floatingLabel.className = 'node-label';
+    floatingLabel.id = 'floatingNodeLabel';
+    document.body.appendChild(floatingLabel);
 
     allData.forEach((data, index) => {
         console.log(` Creating node ${index + 1}:`, data);
@@ -2705,22 +2696,83 @@ function renderWebNodes() {
         const shortenedName = displayText.length > 12 ? displayText.substring(0, 12) + '...' : displayText;
         node.textContent = shortenedName;
 
-        const label = document.createElement('div');
-        label.className = 'node-label';
+        node.addEventListener('mouseenter', function (e) {
+            var el = floatingLabel;
+            el.innerHTML = '';
 
-        if (data.type === 'human') {
-            let labelContent = data.name;
+            var avatar = document.createElement('div');
+            avatar.className = 'node-label-avatar';
+            if (data.imagePreview) {
+                var img = document.createElement('img');
+                img.src = data.imagePreview;
+                img.alt = data.name;
+                img.onerror = function () { avatar.innerHTML = '<div class=\"placeholder\"><i class=\"fas fa-user\"></i></div>'; };
+                avatar.appendChild(img);
+            } else {
+                avatar.innerHTML = '<div class=\"placeholder\"><i class=\"fas fa-user\"></i></div>';
+            }
+            el.appendChild(avatar);
+
+            var info = document.createElement('div');
+            info.className = 'node-label-info';
+
+            var nameEl = document.createElement('div');
+            nameEl.className = 'node-label-name';
+            nameEl.textContent = data.name;
+            info.appendChild(nameEl);
+
+            var details = document.createElement('div');
+            details.className = 'node-label-details';
+
             if (data.credit !== undefined) {
-                labelContent += `<br>Credit: ${Math.round(data.credit)}`;
+                var badge = document.createElement('span');
+                badge.className = 'node-label-badge credit';
+                badge.innerHTML = '<i class=\"fas fa-shield-alt\"></i> ' + Math.round(data.credit);
+                details.appendChild(badge);
             }
+
+            if (data.birthDate) {
+                var age = typeof calculateAge === 'function' ? calculateAge(data.birthDate) : null;
+                if (age !== null) {
+                    var badge = document.createElement('span');
+                    badge.className = 'node-label-badge age';
+                    badge.innerHTML = '<i class=\"fas fa-calendar\"></i> ' + age + 'y';
+                    details.appendChild(badge);
+                }
+            }
+
             if (data.socialClass) {
-                labelContent += `<br>Class: ${data.socialClass}`;
+                var badge = document.createElement('span');
+                badge.className = 'node-label-badge class';
+                badge.textContent = data.socialClass;
+                details.appendChild(badge);
             }
-            label.innerHTML = labelContent;
-        } else {
-            label.textContent = data.name;
-        }
-        node.appendChild(label);
+
+            if (data.gender) {
+                var badge = document.createElement('span');
+                badge.className = 'node-label-badge gender';
+                badge.textContent = data.gender;
+                details.appendChild(badge);
+            }
+
+            info.appendChild(details);
+            el.appendChild(info);
+
+            el.classList.add('visible');
+            el.style.left = (e.clientX + 14) + 'px';
+            el.style.top = (e.clientY + 12) + 'px';
+        });
+
+        node.addEventListener('mousemove', function (e) {
+            if (floatingLabel.classList.contains('visible')) {
+                floatingLabel.style.left = (e.clientX + 14) + 'px';
+                floatingLabel.style.top = (e.clientY + 12) + 'px';
+            }
+        });
+
+        node.addEventListener('mouseleave', function () {
+            floatingLabel.classList.remove('visible');
+        });
 
         node.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -2733,10 +2785,7 @@ function renderWebNodes() {
 
     console.log(`Created ${allData.length} nodes successfully`);
 
-    setTimeout(() => {
-        console.log(' Drawing family connections...');
-        drawFamilyConnections();
-    }, 50);
+
 
     if (currentScale === 1 && currentTranslateX === 0 && currentTranslateY === 0) {
         setTimeout(() => {
@@ -3350,7 +3399,7 @@ async function generateChatTitle(currentChat, existingChats) {
     try {
         const shortContext = `Context: ${pazatorData.humans.length} humans, ${pazatorData.chats.length} chats. User asked: "${userMessage.substring(0, 200)}". Response: "${aiMessage?.substring(0, 100) || ''}".`;
 
-        const aiResponse = await puter.ai.chat([
+        const aiResponse = await geminiChat([
             { role: "system", content: "Generate a very short 3-5 word title for this conversation. Just respond with the title, nothing else." },
             { role: "user", content: shortContext }
         ]);
@@ -3725,7 +3774,7 @@ async function processAICommand(command) {
                         And do whatever the user says or asks.
                     `;
 
-            const aiResponse = await puter.ai.chat([
+            const aiResponse = await geminiChat([
                 { role: "system", content: context },
                 { role: "user", content: command }
             ]);
@@ -4605,8 +4654,8 @@ async function runAiImport(previewOnly = false) {
         return null;
     }
 
-    if (typeof puter === 'undefined' || !puter?.ai?.chat) {
-        showAlert('Puter AI is not available. Cannot run AI import.', 'Error', 'error');
+    if (typeof window.geminiChat !== 'function' || !window.pazatorGemini.getApiKey()) {
+        showAlert('Gemini AI is not configured. Add your API key in the sidebar first.', 'Error', 'error');
         return null;
     }
 
@@ -4621,7 +4670,7 @@ async function runAiImport(previewOnly = false) {
     try {
         const system = getAiImportSystemPrompt(aiImportType?.value || 'auto');
 
-        const aiResponse = await puter.ai.chat([
+        const aiResponse = await geminiChat([
             { role: "system", content: system },
             { role: "user", content: rawInput }
         ]);
@@ -5759,7 +5808,7 @@ window.addEventListener('error', (event) => {
 
     const errorMessage = event.error?.message || event.message || '';
     const isAIError = errorMessage.includes('AI') ||
-        errorMessage.includes('puter.ai') ||
+        errorMessage.includes('geminiChat') ||
         errorMessage.includes('processAICommand') ||
         errorMessage.includes('handleAIAction') ||
         errorMessage.includes('extractJSONFromResponse');
@@ -5968,7 +6017,7 @@ async function improvePrompt() {
                     Return only the improved prompt, nothing else.
                 `;
 
-        const aiResponse = await puter.ai.chat([
+        const aiResponse = await geminiChat([
             { role: "system", content: context },
             { role: "user", content: `Please improve this prompt: ${originalPrompt}` }
         ]);
@@ -6061,8 +6110,13 @@ document.addEventListener('click', (e) => {
 });
 
 document.getElementById('clearChatOption')?.addEventListener('click', () => {
-    showAlert('Clear chat functionality would go here. This is a placeholder for future implementation.', 'Coming Soon', 'info');
+    if (aiChatHistory.length === 0 && aiChatMessages.children.length <= 1) {
+        chatOptionsMenu.classList.remove('active');
+        return;
+    }
+    startNewChat();
     chatOptionsMenu.classList.remove('active');
+    showFloatingNotification('Chat cleared', 'info');
 });
 
 
@@ -6491,7 +6545,7 @@ Make tags:
 - Max 20 suggestions, focus on most useful tags`;
 
         const response = await Promise.race([
-            puter.ai.chat([
+            geminiChat([
                 { role: "system", content: "You are an intelligence analyst. Return ONLY valid JSON." },
                 { role: "user", content: prompt }
             ]),
@@ -6793,7 +6847,7 @@ Types:
 
 Be selective - only report significant findings. Maximum 10 findings. Return ONLY the JSON array, no other text.`;
 
-        const aiResponse = await puter.ai.chat([
+        const aiResponse = await geminiChat([
             { role: "system", content: "You are Zor, an intelligence analysis AI. Output ONLY valid JSON." },
             { role: "user", content: aiPrompt }
         ]);
@@ -8102,7 +8156,7 @@ async function findHiddenConnections() {
                     If no hidden connections are found, return an empty array.
                 `;
 
-        const aiResponse = await puter.ai.chat([
+        const aiResponse = await geminiChat([
             { role: "system", content: context },
             { role: "user", content: "Analyze the data and find hidden connections between these people." }
         ]);
@@ -8399,7 +8453,7 @@ Return a JSON array with credit scores for ALL people. Format:
 IMPORTANT: Return scores for ALL ${humansToEvaluate.length} people. Be realistic - use the full range.`;
 
     try {
-        const aiResponse = await puter.ai.chat([
+        const aiResponse = await geminiChat([
             { role: "system", content: contextPrompt },
             { role: "user", content: "Here is the data:\n" + JSON.stringify(humansToEvaluate, null, 2) + "\n\nReturn credit scores for all people." }
         ]);
@@ -8579,7 +8633,7 @@ async function findPotentialTerrorists() {
             "Aim to identify at least 10-20% of the people if possible. " +
             "If no suspicious individuals are found, return an empty array.";
 
-        const aiResponse = await puter.ai.chat([
+        const aiResponse = await geminiChat([
             { role: "system", content: context },
             { role: "user", content: "Analyze the data and find potential terrorist threats. Be comprehensive and identify as many potential cases as possible." }
         ]);
@@ -8809,7 +8863,7 @@ async function findPotentialFraud() {
             "Aim to identify at least 10-20% of the people if possible. " +
             "If no suspicious individuals are found, return an empty array.";
 
-        const aiResponse = await puter.ai.chat([
+        const aiResponse = await geminiChat([
             { role: "system", content: context },
             { role: "user", content: "Analyze the data and find potential fraudsters or drug sellers. Be comprehensive and identify as many potential cases as possible." }
         ]);
@@ -9145,6 +9199,10 @@ function checkAuthStatus() {
 }
 
 document.getElementById('signInBtn')?.addEventListener('click', async () => {
+    if (typeof puter === 'undefined' || !puter.auth) {
+        showAlert('Sign in is not available without Puter. Use the Gemini API key in AI Configuration instead.', 'Info', 'info');
+        return;
+    }
     try {
         await puter.auth.signIn();
         setTimeout(checkAuthStatus, 1000);
@@ -10004,37 +10062,64 @@ function saveArticle() {
     showFloatingNotification('Document saved successfully!', 'success');
 }
 
-function showFloatingNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 15px 25px;
-                border-radius: 7px;
-                color: white;
-                font-weight: 500;
-                z-index: 10000;
-                transform: translateX(100%);
-                transition: transform 0.3s ease;
-                ${type === 'success' ? 'background: linear-gradient(145deg, #2ecc71, #27ae60);' : 'background: linear-gradient(145deg, #3498db, #2980b9);'}
-            `;
-    notification.textContent = message;
+function showToast(title, message, type, duration) {
+    if (typeof title === 'object') {
+        var opts = title;
+        title = opts.title || '';
+        message = opts.message || '';
+        type = opts.type || 'info';
+        duration = opts.duration;
+    }
+    if (!message && title) {
+        message = title;
+        title = '';
+    }
+    type = type || 'info';
+    duration = duration || 4000;
 
-    document.body.appendChild(notification);
+    var container = document.getElementById('toastContainer');
+    if (!container) return;
 
-    setTimeout(() => {
-        notification.style.transform = 'translateX(0)';
-    }, 100);
+    var icons = {
+        info: 'fa-info-circle',
+        success: 'fa-check-circle',
+        warning: 'fa-exclamation-triangle',
+        error: 'fa-times-circle'
+    };
 
-    setTimeout(() => {
-        notification.style.transform = 'translateX(100%)';
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 300);
-    }, 3000);
+    var toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerHTML =
+        '<div class="toast-icon ' + type + '"><i class="fas ' + (icons[type] || 'fa-info-circle') + '"></i></div>' +
+        '<div class="toast-body">' +
+            (title ? '<div class="toast-title">' + escapeHtml(title) + '</div>' : '') +
+            '<div class="toast-message">' + escapeHtml(message) + '</div>' +
+        '</div>';
+
+    container.appendChild(toast);
+
+    var autoTimer = setTimeout(function () {
+        dismissToast(toast);
+    }, duration);
+
+    toast.addEventListener('click', function () {
+        clearTimeout(autoTimer);
+        dismissToast(toast);
+    });
+}
+
+function dismissToast(toast) {
+    if (toast.classList.contains('removing')) return;
+    toast.classList.add('removing');
+    setTimeout(function () {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 300);
+}
+
+function showFloatingNotification(message, type) {
+    showToast(message, type);
 }
 
 function renderArticlesList() {
@@ -10212,8 +10297,26 @@ function createNewAgent() {
     startAgent(agent.id);
 }
 
+function getAgentDatabaseContext() {
+    var parts = [];
+    parts.push('PEOPLE: ' + pazatorData.humans.length + ' total');
+    if (pazatorData.humans.length > 0) {
+        parts.push('First 50 names: ' + pazatorData.humans.slice(0, 50).map(function(h) { return h.name; }).join(', '));
+    }
+    if (pazatorData.others && pazatorData.others.length > 0) {
+        parts.push('ORGANIZATIONS: ' + pazatorData.others.length + ' total - ' + pazatorData.others.slice(0, 20).map(function(o) { return o.name; }).join(', '));
+    }
+    if (tags && tags.length > 0) {
+        parts.push('AVAILABLE TAGS: ' + tags.join(', '));
+    }
+    if (cases && cases.length > 0) {
+        parts.push('CASES: ' + cases.length + ' open cases');
+    }
+    return parts.join('\n');
+}
+
 async function startAgent(agentId) {
-    const agent = activeAgents.find(a => a.id === agentId);
+    var agent = activeAgents.find(function(a) { return a.id === agentId; });
     if (!agent) return;
 
     if (pazatorData.humans.length === 0) {
@@ -10227,80 +10330,38 @@ async function startAgent(agentId) {
         return;
     }
 
-    const personNames = pazatorData.humans.map(h => h.name);
+    var dbContext = getAgentDatabaseContext();
 
-    const systemPrompt = `
-You are "${agent.name}", an autonomous AI investigator.
-
-GOAL: ${agent.goal}
-
-DATABASE CONTEXT:
-- You have access to a database of ${pazatorData.humans.length} people
-- Each person has: name, workplace, birthDate, tags, friends, family, notes
-- You MUST use GET_PERSON_INFO to find information about specific people
-
-AVAILABLE COMMANDS (respond ONLY with these JSON formats):
-1. GET_PERSON_INFO: {"command": "GET_PERSON_INFO", "person": "Exact person name"}
-   - Use this to get detailed info about anyone in the database
-   - Example: {"command": "GET_PERSON_INFO", "person": "John Smith"}
-   
-2. LOG_FINDING: {"command": "LOG_FINDING", "message": "What you discovered"}
-   - Use this to record important findings
-   
-3. MISSION_COMPLETE: {"command": "MISSION_COMPLETE", "reason": "Summary of what you accomplished"}
-   - Use when your goal is achieved
-
-PEOPLE IN DATABASE: ${personNames.slice(0, 50).join(', ')}${personNames.length > 50 ? '...' : ''}
-
-RULES:
-- Always use GET_PERSON_INFO first to gather facts about people
-- Search by exact name matches - be precise
-- If a person doesn't exist, try variations of their name
-- Once you have enough information, declare MISSION_COMPLETE
-- Be concise - don't overthink, act systematically
-
-Example response format:
-THINKING: I need to find information about this person first.
-ACTION: {"command": "GET_PERSON_INFO", "person": "Person Name"}
-`;
+    var systemPrompt = '\nYou are "' + agent.name + '", an autonomous AI investigator.\n\nGOAL: ' + agent.goal + '\n\nDATABASE CONTEXT:\n' + dbContext + '\n\nEach person has fields: name, gender, birthDate, nationality, workplace, credit, threatLevel, socialClass, maritalStatus, politicalViews, educationLevel, incomeLevel, languages, ethnicity, religion, tags, friends, family, extraNotes\n\nAVAILABLE COMMANDS:\n\n1. GET_PERSON_INFO\n   {"command": "GET_PERSON_INFO", "person": "Exact name"}\n   Get all details about a specific person.\n\n2. SEARCH_PEOPLE\n   {"command": "SEARCH_PEOPLE", "criteria": {"field": "value"}}\n   Search people by any field. Examples:\n   - {"command": "SEARCH_PEOPLE", "criteria": {"workplace": "Company Name"}}\n   - {"command": "SEARCH_PEOPLE", "criteria": {"tags": "employee"}}\n   - {"command": "SEARCH_PEOPLE", "criteria": {"threatLevel": "High"}}\n   - {"command": "SEARCH_PEOPLE", "criteria": {"nationality": "Iranian"}}\n\n3. LIST_ALL_PEOPLE\n   {"command": "LIST_ALL_PEOPLE"}\n   Get names of all people in the database.\n\n4. GET_OTHER_INFO\n   {"command": "GET_OTHER_INFO", "entity": "Entity name"}\n   Get details about an organization or entity.\n\n5. LIST_ALL_OTHERS\n   {"command": "LIST_ALL_OTHERS"}\n   List all organizations/entities.\n\n6. ADD_PERSON\n   {"command": "ADD_PERSON", "data": {"name": "...", "gender": "...", "nationality": "...", "workplace": "...", "tags": [], "extraNotes": "..."}}\n   Add a new person to the database. Only name is required.\n\n7. MODIFY_PERSON\n   {"command": "MODIFY_PERSON", "person": "Exact name", "data": {"field": "value"}}\n   Update a person. Examples:\n   - {"command": "MODIFY_PERSON", "person": "John Smith", "data": {"threatLevel": "High", "extraNotes": "Suspicious activity detected"}}\n   - {"command": "MODIFY_PERSON", "person": "Jane Doe", "data": {"tags": ["employee", "manager"]}}\n\n8. ADD_TAG\n   {"command": "ADD_TAG", "person": "Exact name", "tag": "tag-name"}\n   Add a tag to a person.\n\n9. REMOVE_TAG\n   {"command": "REMOVE_TAG", "person": "Exact name", "tag": "tag-name"}\n   Remove a tag from a person.\n\n10. CONNECT_PEOPLE\n    {"command": "CONNECT_PEOPLE", "person1": "Name", "person2": "Name", "type": "friend"} or "type": "family"\n    Create a connection between two people.\n\n11. CREATE_CASE\n    {"command": "CREATE_CASE", "title": "Case Title", "description": "What this case is about"}\n    Create a new case file.\n\n12. ADD_CASE_NOTE\n    {"command": "ADD_CASE_NOTE", "case": "Case Title", "note": "Note content"}\n    Add a note to an existing case.\n\n13. LOG_FINDING\n    {"command": "LOG_FINDING", "message": "What you discovered"}\n    Record an important finding in your investigation log.\n\n14. MISSION_COMPLETE\n    {"command": "MISSION_COMPLETE", "reason": "Summary of what you accomplished"}\n    Use when your goal is achieved.\n\nRULES:\n- Use GET_PERSON_INFO and SEARCH_PEOPLE to gather facts before acting\n- Search by exact name - if not found try variations\n- You can ADD_TAG, MODIFY_PERSON, and CONNECT_PEOPLE to act on your findings\n- Use CREATE_CASE for formal investigations, ADD_CASE_NOTE to document evidence\n- Use LOG_FINDING to record important discoveries\n- Once your goal is completed, call MISSION_COMPLETE with a summary\n- Be concise and systematic\n\nRESPOND WITH:\nTHINKING: Your analysis\nACTION: <one of the JSON commands above>\n';
 
     agent.thoughts.push({
         timestamp: new Date(),
-        message: `Agent ${agent.name} activated with goal: ${agent.goal}`
+        message: 'Agent ' + agent.name + ' activated with goal: ' + agent.goal
     });
 
     renderAgentDetail(agent.id);
     await runAgentCycle(agent.id, systemPrompt);
 }
 
+var agentCycleTimers = {};
+
 async function runAgentCycle(agentId, systemPrompt) {
-    const agent = activeAgents.find(a => a.id === agentId);
+    var agent = activeAgents.find(function(a) { return a.id === agentId; });
     if (!agent || agent.status !== 'running') return;
 
     try {
-        const recentThoughts = agent.thoughts.slice(-3).map(t =>
-            `[${t.timestamp.toLocaleTimeString()}] ${t.message}`
-        ).join('\n');
+        var recentThoughts = agent.thoughts.slice(-5).map(function(t) {
+            return '[' + t.timestamp.toLocaleTimeString() + '] ' + t.message;
+        }).join('\n');
 
-        const userPrompt = `
-Continue investigating. 
+        var userPrompt = '\nContinue investigating.\n\nRecent activity:\n' + recentThoughts + '\n\nRespond with:\nTHINKING: Your immediate analysis\nACTION: <one of the available JSON commands>\n\nIf you need more information, use GET_PERSON_INFO or SEARCH_PEOPLE.\nIf your goal is complete, use MISSION_COMPLETE.\n';
 
-Recent activity:
-${recentThoughts}
-
-Respond with:
-THINKING: Your immediate analysis
-ACTION: {"command": "...", "person": "Name"} or {"command": "...", "message": "..."} or {"command": "MISSION_COMPLETE", "reason": "..."}
-
-If you don't have enough info, use GET_PERSON_INFO to look up people.
-`;
-
-        const aiResponse = await puter.ai.chat([
+        var aiResponse = await geminiChat([
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt }
         ]);
 
-        let responseText = '';
+        var responseText = '';
         if (typeof aiResponse === 'string') {
             responseText = aiResponse;
         } else if (aiResponse && typeof aiResponse === 'object') {
@@ -10308,13 +10369,13 @@ If you don't have enough info, use GET_PERSON_INFO to look up people.
         } else {
             responseText = String(aiResponse || 'No response');
         }
-        
+
         agent.thoughts.push({
             timestamp: new Date(),
             message: responseText
         });
 
-        const command = parseAgentCommand(responseText);
+        var command = parseAgentCommand(responseText);
         if (command && command.command) {
             await executeAgentCommand(agentId, command);
         } else {
@@ -10324,41 +10385,96 @@ If you don't have enough info, use GET_PERSON_INFO to look up people.
             });
         }
 
-        renderAgentDetail(agentId);
+        updateAgentDetail(agentId);
 
         if (agent.status === 'running') {
-            setTimeout(() => runAgentCycle(agentId, systemPrompt), 3000);
+            if (agentCycleTimers[agentId]) clearTimeout(agentCycleTimers[agentId]);
+            agentCycleTimers[agentId] = setTimeout(function() { runAgentCycle(agentId, systemPrompt); }, 2500);
         }
 
     } catch (error) {
         console.error('Agent error:', error);
         agent.thoughts.push({
             timestamp: new Date(),
-            message: `Error occurred: ${error.message}`
+            message: 'Error occurred: ' + error.message
         });
-        renderAgentDetail(agentId);
+        updateAgentDetail(agentId);
     }
 }
 
 function parseAgentCommand(response) {
-    if (!response || typeof response !== 'string') {
-        console.error('Invalid response type:', typeof response);
-        return null;
-    }
-    
-    const actionMatch = response.match(/ACTION:\s*(\{[^}]+\})/i);
-    if (actionMatch) {
-        try {
-            return JSON.parse(actionMatch[1]);
-        } catch (e) {
-            console.error('Failed to parse command:', actionMatch[1]);
+    if (!response || typeof response !== 'string') return null;
+
+    var actionIdx = response.search(/ACTION:\s*/i);
+    if (actionIdx !== -1) {
+        var jsonStart = response.indexOf('{', actionIdx);
+        if (jsonStart !== -1) {
+            var depth = 0;
+            var inString = false;
+            for (var i = jsonStart; i < response.length; i++) {
+                var ch = response[i];
+                if (inString) {
+                    if (ch === '\\') { i++; continue; }
+                    if (ch === '"') inString = false;
+                    continue;
+                }
+                if (ch === '"') { inString = true; continue; }
+                if (ch === '{') depth++;
+                if (ch === '}') {
+                    depth--;
+                    if (depth === 0) {
+                        var jsonStr = response.substring(jsonStart, i + 1);
+                        try { return JSON.parse(jsonStr); } catch (e) {}
+                        break;
+                    }
+                }
+            }
         }
+    }
+
+    var braceIdx = response.indexOf('{');
+    if (braceIdx !== -1) {
+        var depth = 0;
+        var inString = false;
+        for (var j = braceIdx; j < response.length; j++) {
+            var ch2 = response[j];
+            if (inString) {
+                if (ch2 === '\\') { j++; continue; }
+                if (ch2 === '"') inString = false;
+                continue;
+            }
+            if (ch2 === '"') { inString = true; continue; }
+            if (ch2 === '{') depth++;
+            if (ch2 === '}') {
+                depth--;
+                if (depth === 0) {
+                    var jsonStr2 = response.substring(braceIdx, j + 1);
+                    try {
+                        var parsed = JSON.parse(jsonStr2);
+                        if (parsed && parsed.command) return parsed;
+                    } catch (e) {}
+                    break;
+                }
+            }
+        }
+    }
+
+    return null;
+}
+
+function findPersonByName(name) {
+    var lower = name.toLowerCase();
+    for (var i = 0; i < pazatorData.humans.length; i++) {
+        if (pazatorData.humans[i].name.toLowerCase() === lower) return pazatorData.humans[i];
+    }
+    for (var j = 0; j < pazatorData.humans.length; j++) {
+        if (pazatorData.humans[j].name.toLowerCase().indexOf(lower) !== -1) return pazatorData.humans[j];
     }
     return null;
 }
 
 async function executeAgentCommand(agentId, command) {
-    const agent = activeAgents.find(a => a.id === agentId);
+    var agent = activeAgents.find(function(a) { return a.id === agentId; });
     if (!agent) return;
 
     agent.commandsUsed.push({
@@ -10368,55 +10484,335 @@ async function executeAgentCommand(agentId, command) {
     });
 
     switch (command.command) {
-        case 'GET_PERSON_INFO':
-            const person = pazatorData.humans.find(h =>
-                h.name.toLowerCase() === command.person.toLowerCase()
-            );
+
+        case 'GET_PERSON_INFO': {
+            var person = findPersonByName(command.person);
             if (person) {
-                const info = {
+                var friendNames = [];
+                if (person.friends) {
+                    for (var fi = 0; fi < person.friends.length; fi++) {
+                        var f = pazatorData.humans.find(function(h) { return h.id === person.friends[fi]; });
+                        if (f) friendNames.push(f.name);
+                    }
+                }
+                var familyNames = [];
+                if (person.family) {
+                    for (var fami = 0; fami < person.family.length; fami++) {
+                        var fam = pazatorData.humans.find(function(h) { return h.id === person.family[fami]; });
+                        if (fam) familyNames.push(fam.name);
+                    }
+                }
+                var info = {
                     name: person.name,
-                    workplace: person.workplace,
-                    birthDate: person.birthDate,
-                    tags: person.tags,
-                    friends: person.friends?.map(id =>
-                        pazatorData.humans.find(h => h.id === id)?.name
-                    ).filter(Boolean),
-                    family: person.family?.map(id =>
-                        pazatorData.humans.find(h => h.id === id)?.name
-                    ).filter(Boolean),
-                    notes: person.extraNotes
+                    gender: person.gender || 'N/A',
+                    birthDate: person.birthDate || 'N/A',
+                    nationality: person.nationality || 'N/A',
+                    workplace: person.workplace || 'N/A',
+                    credit: person.credit,
+                    threatLevel: person.threatLevel || 'None',
+                    socialClass: person.socialClass || 'N/A',
+                    maritalStatus: person.maritalStatus || 'N/A',
+                    politicalViews: person.politicalViews || 'N/A',
+                    educationLevel: person.educationLevel || 'N/A',
+                    incomeLevel: person.incomeLevel || 'N/A',
+                    languages: person.languages || 'N/A',
+                    ethnicity: person.ethnicity || 'N/A',
+                    religion: person.religion || 'N/A',
+                    tags: person.tags || [],
+                    friends: friendNames,
+                    family: familyNames,
+                    notes: person.extraNotes || ''
                 };
                 agent.thoughts.push({
                     timestamp: new Date(),
-                    message: `Retrieved info for ${person.name}: ${JSON.stringify(info, null, 2)}`
+                    message: 'Retrieved info for ' + person.name + ': ' + JSON.stringify(info, null, 2)
                 });
             } else {
                 agent.thoughts.push({
                     timestamp: new Date(),
-                    message: `Person not found: ${command.person}`
+                    message: 'Person not found: ' + command.person
                 });
             }
             break;
+        }
 
-        case 'LOG_FINDING':
+        case 'SEARCH_PEOPLE': {
+            var criteria = command.criteria || {};
+            var results = [];
+            for (var si = 0; si < pazatorData.humans.length; si++) {
+                var h = pazatorData.humans[si];
+                var match = true;
+                for (var key in criteria) {
+                    if (criteria.hasOwnProperty(key)) {
+                        var val = String(criteria[key]).toLowerCase();
+                        var field = h[key];
+                        if (Array.isArray(field)) {
+                            var found = false;
+                            for (var ai = 0; ai < field.length; ai++) {
+                                if (String(field[ai]).toLowerCase().indexOf(val) !== -1) { found = true; break; }
+                            }
+                            if (!found) { match = false; break; }
+                        } else {
+                            if (!field || String(field).toLowerCase().indexOf(val) === -1) { match = false; break; }
+                        }
+                    }
+                }
+                if (match) results.push(h.name);
+            }
+            agent.thoughts.push({
+                timestamp: new Date(),
+                message: 'Search results (' + results.length + ' found): ' + (results.length > 0 ? results.join(', ') : 'No matches')
+            });
+            break;
+        }
+
+        case 'LIST_ALL_PEOPLE': {
+            var names = pazatorData.humans.map(function(h) { return h.name; });
+            agent.thoughts.push({
+                timestamp: new Date(),
+                message: 'All people (' + names.length + '): ' + names.join(', ')
+            });
+            break;
+        }
+
+        case 'GET_OTHER_INFO': {
+            var other = null;
+            for (var oi = 0; oi < pazatorData.others.length; oi++) {
+                if (pazatorData.others[oi].name.toLowerCase() === command.entity.toLowerCase()) {
+                    other = pazatorData.others[oi];
+                    break;
+                }
+            }
+            if (other) {
+                agent.thoughts.push({
+                    timestamp: new Date(),
+                    message: 'Entity info for ' + other.name + ': ' + JSON.stringify(other, null, 2)
+                });
+            } else {
+                agent.thoughts.push({
+                    timestamp: new Date(),
+                    message: 'Entity not found: ' + command.entity
+                });
+            }
+            break;
+        }
+
+        case 'LIST_ALL_OTHERS': {
+            var otherNames = pazatorData.others.map(function(o) { return o.name; });
+            agent.thoughts.push({
+                timestamp: new Date(),
+                message: 'Organizations (' + otherNames.length + '): ' + (otherNames.length > 0 ? otherNames.join(', ') : 'None')
+            });
+            break;
+        }
+
+        case 'ADD_TAG': {
+            var tagPerson = findPersonByName(command.person);
+            if (tagPerson) {
+                if (!tagPerson.tags) tagPerson.tags = [];
+                if (tagPerson.tags.indexOf(command.tag) === -1) {
+                    tagPerson.tags.push(command.tag);
+                    markDataChanged();
+                    agent.thoughts.push({
+                        timestamp: new Date(),
+                        message: 'Added tag "' + command.tag + '" to ' + tagPerson.name
+                    });
+                } else {
+                    agent.thoughts.push({
+                        timestamp: new Date(),
+                        message: tagPerson.name + ' already has tag "' + command.tag + '"'
+                    });
+                }
+            } else {
+                agent.thoughts.push({
+                    timestamp: new Date(),
+                    message: 'Person not found: ' + command.person
+                });
+            }
+            break;
+        }
+
+        case 'REMOVE_TAG': {
+            var removePerson = findPersonByName(command.person);
+            if (removePerson) {
+                if (removePerson.tags) {
+                    var idx = removePerson.tags.indexOf(command.tag);
+                    if (idx !== -1) {
+                        removePerson.tags.splice(idx, 1);
+                        markDataChanged();
+                        agent.thoughts.push({
+                            timestamp: new Date(),
+                            message: 'Removed tag "' + command.tag + '" from ' + removePerson.name
+                        });
+                    } else {
+                        agent.thoughts.push({
+                            timestamp: new Date(),
+                            message: removePerson.name + ' does not have tag "' + command.tag + '"'
+                        });
+                    }
+                }
+            } else {
+                agent.thoughts.push({
+                    timestamp: new Date(),
+                    message: 'Person not found: ' + command.person
+                });
+            }
+            break;
+        }
+
+        case 'MODIFY_PERSON': {
+            var modPerson = findPersonByName(command.person);
+            if (modPerson) {
+                var modData = command.data || {};
+                var changes = [];
+                for (var mk in modData) {
+                    if (modData.hasOwnProperty(mk)) {
+                        modPerson[mk] = modData[mk];
+                        changes.push(mk + '=' + JSON.stringify(modData[mk]));
+                    }
+                }
+                markDataChanged();
+                agent.thoughts.push({
+                    timestamp: new Date(),
+                    message: 'Updated ' + modPerson.name + ': ' + changes.join(', ')
+                });
+            } else {
+                agent.thoughts.push({
+                    timestamp: new Date(),
+                    message: 'Person not found: ' + command.person
+                });
+            }
+            break;
+        }
+
+        case 'ADD_PERSON': {
+            var newData = command.data || {};
+            if (!newData.name) {
+                agent.thoughts.push({
+                    timestamp: new Date(),
+                    message: 'Cannot add person: name is required'
+                });
+                break;
+            }
+            var maxId = 0;
+            for (var idi = 0; idi < pazatorData.humans.length; idi++) {
+                if (pazatorData.humans[idi].id > maxId) maxId = pazatorData.humans[idi].id;
+            }
+            newData.id = maxId + 1;
+            pazatorData.humans.push(newData);
+            markDataChanged();
+            agent.thoughts.push({
+                timestamp: new Date(),
+                message: 'Added new person: ' + newData.name + ' (ID: ' + newData.id + ')'
+            });
+            break;
+        }
+
+        case 'CONNECT_PEOPLE': {
+            var p1 = findPersonByName(command.person1);
+            var p2 = findPersonByName(command.person2);
+            if (!p1) {
+                agent.thoughts.push({ timestamp: new Date(), message: 'Person not found: ' + command.person1 });
+                break;
+            }
+            if (!p2) {
+                agent.thoughts.push({ timestamp: new Date(), message: 'Person not found: ' + command.person2 });
+                break;
+            }
+            var connType = command.type === 'family' ? 'family' : 'friends';
+            if (!p1[connType]) p1[connType] = [];
+            if (!p2[connType]) p2[connType] = [];
+            if (p1[connType].indexOf(p2.id) === -1) p1[connType].push(p2.id);
+            if (p2[connType].indexOf(p1.id) === -1) p2[connType].push(p1.id);
+            markDataChanged();
+            agent.thoughts.push({
+                timestamp: new Date(),
+                message: 'Connected ' + p1.name + ' and ' + p2.name + ' as ' + connType
+            });
+            break;
+        }
+
+        case 'CREATE_CASE': {
+            if (!command.title) {
+                agent.thoughts.push({ timestamp: new Date(), message: 'Cannot create case: title is required' });
+                break;
+            }
+            var newCase = {
+                id: Date.now().toString(),
+                title: command.title,
+                description: command.description || '',
+                status: 'open',
+                createdAt: new Date().toISOString(),
+                entities: [],
+                timeline: [{
+                    type: 'note',
+                    content: '<strong>Case created by agent ' + agent.name + '</strong>',
+                    timestamp: Date.now()
+                }],
+                notes: []
+            };
+            cases.push(newCase);
+            localStorage.setItem('pazatorCases', JSON.stringify(cases));
+            agent.thoughts.push({
+                timestamp: new Date(),
+                message: 'Created case: ' + command.title + (command.description ? ' - ' + command.description : '')
+            });
+            break;
+        }
+
+        case 'ADD_CASE_NOTE': {
+            if (!command.case) {
+                agent.thoughts.push({ timestamp: new Date(), message: 'Cannot add note: case title is required' });
+                break;
+            }
+            var foundCase = null;
+            for (var ci = 0; ci < cases.length; ci++) {
+                if (cases[ci].title.toLowerCase() === command.case.toLowerCase()) {
+                    foundCase = cases[ci];
+                    break;
+                }
+            }
+            if (foundCase) {
+                foundCase.timeline.push({
+                    type: 'note',
+                    content: '<strong>Agent ' + agent.name + '</strong>: ' + escapeHtml(command.note || ''),
+                    timestamp: Date.now()
+                });
+                localStorage.setItem('pazatorCases', JSON.stringify(cases));
+                agent.thoughts.push({
+                    timestamp: new Date(),
+                    message: 'Added note to case "' + command.case + '": ' + command.note
+                });
+            } else {
+                agent.thoughts.push({
+                    timestamp: new Date(),
+                    message: 'Case not found: ' + command.case
+                });
+            }
+            break;
+        }
+
+        case 'LOG_FINDING': {
             agent.logs.push({
                 timestamp: new Date(),
                 message: command.message
             });
             agent.thoughts.push({
                 timestamp: new Date(),
-                message: `Logged finding: ${command.message}`
+                message: 'Logged finding: ' + command.message
             });
             break;
+        }
 
-        case 'MISSION_COMPLETE':
+        case 'MISSION_COMPLETE': {
             agent.status = 'completed';
             agent.thoughts.push({
                 timestamp: new Date(),
-                message: `Mission completed: ${command.reason}`
+                message: 'Mission completed: ' + command.reason
             });
-            showAlert(`Agent ${agent.name} has completed its mission!\nReason: ${command.reason}`, 'Agent Complete', 'success');
+            showToast('Agent Complete', 'Agent ' + agent.name + ' completed its mission: ' + command.reason, 'success');
             break;
+        }
     }
 }
 
@@ -10499,111 +10895,141 @@ function renderAgentsList() {
 }
 
 function renderAgentDetail(agentId) {
-    const agent = activeAgents.find(a => a.id === agentId);
+    var agent = activeAgents.find(function(a) { return a.id === agentId; });
     if (!agent) return;
 
-    const existing = document.getElementById('agentDetailModal');
+    var existing = document.getElementById('agentDetailModal');
     if (existing) existing.remove();
 
-    const modal = document.createElement('div');
+    var modal = document.createElement('div');
     modal.id = 'agentDetailModal';
     modal.className = 'modal';
     modal.style.display = 'flex';
     modal.style.zIndex = '1000';
 
-    const duration = Math.floor((new Date() - agent.startTime) / 1000);
-    const minutes = Math.floor(duration / 60);
-    const seconds = duration % 60;
+    var duration = Math.floor((new Date() - agent.startTime) / 1000);
+    var minutes = Math.floor(duration / 60);
+    var seconds = duration % 60;
 
-    modal.innerHTML = `
-                <div class="modal-content" style="max-width: 900px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
-                    <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
-                        <h2 style="margin: 0; font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;">${agent.name}</h2>
-                        <button class="close" onclick="this.closest('.modal').remove()" style="background: none; border: none; color: #ddd; font-size: 1.8rem; cursor: pointer;">&times;</button>
-                    </div>
-                    
-                    <div style="display: flex; gap: 20px; flex: 1; overflow: hidden; padding: 20px 0;">
-                        <!-- Left Panel - Agent Thoughts -->
-                        <div style="flex: 1; display: flex; flex-direction: column; gap: 15px;">
-                            <h3 style="margin: 0; color: #ffffff; display: flex; align-items: center; gap: 10px;">
-                                <i class="fas fa-brain" style="color: #6bcf7f;"></i>
-                                Agent Activity
-                                <span style="margin-left: auto; background: #444; color: #ddd; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem;">${minutes}m ${seconds}s</span>
-                            </h3>
-                            
-                            <div id="agentDetailThoughts" style="flex: 1; overflow-y: auto; background: rgba(20, 20, 20, 0.5); border-radius: 10px; padding: 15px;">
-                                ${agent.thoughts.map(thought => `
-                                    <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #333;">
-                                        <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">${thought.timestamp.toLocaleTimeString()}</div>
-                                        <div style="color: #ddd; line-height: 1.5; white-space: pre-wrap;">${thought.message}</div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                        
-                        <!-- Right Panel - Logs and Commands -->
-                        <div style="flex: 1; display: flex; flex-direction: column; gap: 15px;">
-                            <h3 style="margin: 0; color: #ffffff; display: flex; align-items: center; gap: 10px;">
-                                <i class="fas fa-clipboard-list" style="color: #ffd93d;"></i>
-                                Investigation Logs
-                            </h3>
-                            
-                            <div style="flex: 1; overflow-y: auto; background: rgba(20, 20, 20, 0.5); border-radius: 10px; padding: 15px; margin-bottom: 15px;">
-                                ${agent.logs.length > 0 ? agent.logs.map(log => `
-                                    <div style="margin-bottom: 12px; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; border-left: 3px solid #ffd93d;">
-                                        <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">${log.timestamp.toLocaleTimeString()}</div>
-                                        <div style="color: #ddd;">${log.message}</div>
-                                    </div>
-                                `).join('') : `
-                                    <div style="text-align: center; padding: 30px; color: #777;">
-                                        <i class="fas fa-clipboard" style="font-size: 2rem; margin-bottom: 15px; color: #444;"></i>
-                                        <p style="margin: 0;">No logs recorded yet</p>
-                                    </div>
-                                `}
-                            </div>
-                            
-                            <h3 style="margin: 0; color: #ffffff; display: flex; align-items: center; gap: 10px;">
-                                <i class="fas fa-terminal" style="color: #ff6b6b;"></i>
-                                Commands Used
-                            </h3>
-                            
-                            <div style="flex: 1; overflow-y: auto; background: rgba(20, 20, 20, 0.5); border-radius: 10px; padding: 15px;">
-                                ${agent.commandsUsed.length > 0 ? agent.commandsUsed.map(cmd => `
-                                    <div style="margin-bottom: 12px; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; border-left: 3px solid #ff6b6b;">
-                                        <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">${cmd.timestamp.toLocaleTimeString()}</div>
-                                        <div style="color: #ddd; font-weight: 500; margin-bottom: 5px;">${cmd.command}</div>
-                                        <div style="color: #aaa; font-size: 0.9rem;">${JSON.stringify(cmd.parameters, null, 2)}</div>
-                                    </div>
-                                `).join('') : `
-                                    <div style="text-align: center; padding: 30px; color: #777;">
-                                        <i class="fas fa-terminal" style="font-size: 2rem; margin-bottom: 15px; color: #444;"></i>
-                                        <p style="margin: 0;">No commands executed yet</p>
-                                    </div>
-                                `}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div style="display: flex; gap: 10px; padding-top: 20px; border-top: 1px solid #333;">
-                        <button onclick="this.closest('.modal').remove()" class="btn btn-secondary" style="flex: 1; padding: 12px;">
-                            Close
-                        </button>
-                        ${agent.status === 'running' ? `
-                            <button onclick="stopAgent(${agent.id}); this.closest('.modal').remove()" class="btn btn-danger" style="padding: 12px 20px;">
-                                Stop Agent
-                            </button>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
+    modal.innerHTML =
+        '<div class="modal-content" style="max-width:900px;width:95%;max-height:90vh;display:flex;flex-direction:column;">' +
+            '<div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<h2 style="margin:0;font-family:AllianceNo2,sans-serif;">' + agent.name + '</h2>' +
+                '<button class="close" onclick="this.closest(\'.modal\').remove()" style="background:none;border:none;color:#ddd;font-size:1.8rem;cursor:pointer;">&times;</button>' +
+            '</div>' +
+            '<div style="display:flex;gap:20px;flex:1;overflow:hidden;padding:20px 0;">' +
+                '<div style="flex:1;display:flex;flex-direction:column;gap:15px;">' +
+                    '<h3 style="margin:0;color:#fff;display:flex;align-items:center;gap:10px;">' +
+                        '<i class="fas fa-brain" style="color:#6bcf7f;"></i> Agent Activity' +
+                        '<span class="agent-duration" style="margin-left:auto;background:#444;color:#ddd;padding:3px 10px;border-radius:12px;font-size:0.8rem;">' + minutes + 'm ' + seconds + 's</span>' +
+                    '</h3>' +
+                    '<div id="agentDetailThoughts" style="flex:1;overflow-y:auto;background:rgba(20,20,20,0.5);border-radius:10px;padding:15px;">' +
+                        renderThoughtsHTML(agent.thoughts) +
+                    '</div>' +
+                '</div>' +
+                '<div style="flex:1;display:flex;flex-direction:column;gap:15px;">' +
+                    '<h3 style="margin:0;color:#fff;display:flex;align-items:center;gap:10px;">' +
+                        '<i class="fas fa-clipboard-list" style="color:#ffd93d;"></i> Investigation Logs' +
+                    '</h3>' +
+                    '<div id="agentDetailLogs" style="flex:1;overflow-y:auto;background:rgba(20,20,20,0.5);border-radius:10px;padding:15px;margin-bottom:15px;">' +
+                        renderLogsHTML(agent.logs) +
+                    '</div>' +
+                    '<h3 style="margin:0;color:#fff;display:flex;align-items:center;gap:10px;">' +
+                        '<i class="fas fa-terminal" style="color:#ff6b6b;"></i> Commands Used' +
+                    '</h3>' +
+                    '<div id="agentDetailCommands" style="flex:1;overflow-y:auto;background:rgba(20,20,20,0.5);border-radius:10px;padding:15px;">' +
+                        renderCommandsHTML(agent.commandsUsed) +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+            '<div style="display:flex;gap:10px;padding-top:20px;border-top:1px solid #333;">' +
+                '<button onclick="this.closest(\'.modal\').remove()" class="btn btn-secondary" style="flex:1;padding:12px;">Close</button>' +
+                (agent.status === 'running' ? '<button onclick="stopAgent(' + agent.id + ');this.closest(\'.modal\').remove()" class="btn btn-danger" style="padding:12px 20px;">Stop Agent</button>' : '') +
+            '</div>' +
+        '</div>';
 
     document.body.appendChild(modal);
+    scrollThoughts();
+}
 
-    const thoughtsContainer = modal.querySelector('#agentDetailThoughts');
-    if (thoughtsContainer) {
-        setTimeout(() => {
-            thoughtsContainer.scrollTop = thoughtsContainer.scrollHeight;
-        }, 100);
+function renderThoughtsHTML(thoughts) {
+    if (thoughts.length === 0) {
+        return '<div style="text-align:center;padding:30px;color:#777;"><i class="fas fa-brain" style="font-size:2rem;margin-bottom:15px;color:#444;"></i><p style="margin:0;">No activity yet</p></div>';
+    }
+    var html = '';
+    for (var ti = 0; ti < thoughts.length; ti++) {
+        var t = thoughts[ti];
+        html += '<div style="margin-bottom:15px;padding-bottom:15px;border-bottom:1px solid #333;">' +
+                    '<div style="color:#888;font-size:0.8rem;margin-bottom:5px;">' + t.timestamp.toLocaleTimeString() + '</div>' +
+                    '<div style="color:#ddd;line-height:1.5;white-space:pre-wrap;">' + escapeHtml(t.message) + '</div>' +
+                '</div>';
+    }
+    return html;
+}
+
+function renderLogsHTML(logs) {
+    if (logs.length === 0) {
+        return '<div style="text-align:center;padding:30px;color:#777;"><i class="fas fa-clipboard" style="font-size:2rem;margin-bottom:15px;color:#444;"></i><p style="margin:0;">No logs recorded yet</p></div>';
+    }
+    var html = '';
+    for (var li = 0; li < logs.length; li++) {
+        var l = logs[li];
+        html += '<div style="margin-bottom:12px;padding:12px;background:rgba(255,255,255,0.05);border-radius:8px;border-left:3px solid #ffd93d;">' +
+                    '<div style="color:#888;font-size:0.8rem;margin-bottom:5px;">' + l.timestamp.toLocaleTimeString() + '</div>' +
+                    '<div style="color:#ddd;">' + escapeHtml(l.message) + '</div>' +
+                '</div>';
+    }
+    return html;
+}
+
+function renderCommandsHTML(cmds) {
+    if (cmds.length === 0) {
+        return '<div style="text-align:center;padding:30px;color:#777;"><i class="fas fa-terminal" style="font-size:2rem;margin-bottom:15px;color:#444;"></i><p style="margin:0;">No commands executed yet</p></div>';
+    }
+    var html = '';
+    for (var ci = 0; ci < cmds.length; ci++) {
+        var c = cmds[ci];
+        html += '<div style="margin-bottom:12px;padding:12px;background:rgba(255,255,255,0.05);border-radius:8px;border-left:3px solid #ff6b6b;">' +
+                    '<div style="color:#888;font-size:0.8rem;margin-bottom:5px;">' + c.timestamp.toLocaleTimeString() + '</div>' +
+                    '<div style="color:#ddd;font-weight:500;margin-bottom:5px;">' + escapeHtml(c.command) + '</div>' +
+                    '<div style="color:#aaa;font-size:0.9rem;">' + escapeHtml(JSON.stringify(c.parameters, null, 2)) + '</div>' +
+                '</div>';
+    }
+    return html;
+}
+
+function scrollThoughts() {
+    var container = document.getElementById('agentDetailThoughts');
+    if (container) {
+        setTimeout(function() { container.scrollTop = container.scrollHeight; }, 50);
+    }
+}
+
+function updateAgentDetail(agentId) {
+    var agent = activeAgents.find(function(a) { return a.id === agentId; });
+    if (!agent) return;
+
+    var thoughtsEl = document.getElementById('agentDetailThoughts');
+    var logsEl = document.getElementById('agentDetailLogs');
+    var cmdsEl = document.getElementById('agentDetailCommands');
+    var durationEl = document.querySelector('.agent-duration');
+
+    if (!thoughtsEl || !thoughtsEl.offsetParent) return;
+
+    var duration = Math.floor((new Date() - agent.startTime) / 1000);
+    var minutes = Math.floor(duration / 60);
+    var seconds = duration % 60;
+
+    if (durationEl) durationEl.textContent = minutes + 'm ' + seconds + 's';
+
+    var wasAtBottom = thoughtsEl.scrollHeight - thoughtsEl.scrollTop - thoughtsEl.clientHeight < 60;
+
+    thoughtsEl.innerHTML = renderThoughtsHTML(agent.thoughts);
+    if (logsEl) logsEl.innerHTML = renderLogsHTML(agent.logs);
+    if (cmdsEl) cmdsEl.innerHTML = renderCommandsHTML(agent.commandsUsed);
+
+    if (wasAtBottom || thoughtsEl.dataset.autoScroll !== 'false') {
+        thoughtsEl.scrollTop = thoughtsEl.scrollHeight;
     }
 }
 
@@ -10802,7 +11228,7 @@ Be concise and actionable.
 `;
 
     try {
-        const aiResponse = await puter.ai.chat([
+        const aiResponse = await geminiChat([
             { role: "system", content: "You are Zor, a concise intelligence analyst. Give brief, actionable insights." },
             { role: "user", content: analysisPrompt }
         ]);
@@ -11273,10 +11699,72 @@ function toggleSkipIntro(enabled) {
 }
 
 // Initialize settings on load
+function initGeminiUI() {
+    var apiKeyInput = document.getElementById('geminiApiKeyInput');
+    var modelSelect = document.getElementById('geminiModelSelect');
+    var statusEl = document.getElementById('geminiStatus');
+
+    if (!modelSelect || !apiKeyInput) return;
+
+    if (window.pazatorGemini && window.pazatorGemini.models) {
+        modelSelect.innerHTML = window.pazatorGemini.models.map(function(m) {
+            return '<option value="' + m.id + '">' + m.name + '</option>';
+        }).join('');
+    }
+
+    var savedKey = window.pazatorGemini ? window.pazatorGemini.getApiKey() : '';
+    var savedModel = window.pazatorGemini ? window.pazatorGemini.getModel() : '';
+
+    apiKeyInput.value = savedKey;
+    modelSelect.value = savedModel;
+
+    updateGeminiStatus();
+
+    apiKeyInput.addEventListener('input', function() {
+        if (window.pazatorGemini) {
+            window.pazatorGemini.setApiKey(this.value);
+        }
+        updateGeminiStatus();
+    });
+
+    modelSelect.addEventListener('change', function() {
+        if (window.pazatorGemini) {
+            window.pazatorGemini.setModel(this.value);
+        }
+    });
+}
+
+function updateGeminiStatus() {
+    var statusEl = document.getElementById('geminiStatus');
+    if (!statusEl) return;
+    var key = window.pazatorGemini ? window.pazatorGemini.getApiKey() : '';
+    var model = window.pazatorGemini ? window.pazatorGemini.getModel() : '';
+
+    statusEl.className = 'gemini-status';
+
+    if (!key) {
+        statusEl.textContent = 'No API key configured';
+    } else {
+        statusEl.classList.add('configured');
+        var modelName = model || 'gemini-3.1-flash-lite';
+        var displayName = modelName;
+        if (window.pazatorGemini && window.pazatorGemini.models) {
+            for (var j = 0; j < window.pazatorGemini.models.length; j++) {
+                if (window.pazatorGemini.models[j].id === modelName) {
+                    displayName = window.pazatorGemini.models[j].name;
+                    break;
+                }
+            }
+        }
+        statusEl.textContent = 'Using ' + displayName;
+    }
+}
+
 function initSettings() {
     if (localStorage.getItem('noBlur') === 'true') {
         document.body.classList.add('no-blur');
     }
+    initGeminiUI();
 }
 
 async function loadLogoForPDF() {
