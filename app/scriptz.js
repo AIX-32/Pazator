@@ -3635,6 +3635,58 @@ async function processAICommand(command) {
 
         addMessageToAIChat(command, 'user');
 
+        if (isBlackBox()) {
+            aiSendBtn.disabled = true;
+            setAiSendLoading(true);
+            showAiTypingIndicator();
+            try {
+                var bbData = getBlackBoxData();
+                var bbAdminContext = getAdminContext();
+                var bbSystem = 'You are Zor (model PZZ1). You are locked to the following compressed database blackbox.\n' +
+                    'You CANNOT access the live database. All your knowledge about the data comes from this snapshot:\n\n' +
+                    bbData + '\n\n' +
+                    (bbAdminContext ? 'ADDITIONAL CONTEXT:\n' + bbAdminContext + '\n\n' : '') +
+                    'You are direct, grounded, and mildly skeptical. Cut the fluff. No emojis. Be blunt.\n' +
+                    'You CANNOT modify data or use tools. You can only discuss the information in the blackbox above.\n' +
+                    'If asked about data not in the blackbox, say you dont have that information.\n\n' +
+                    'Previous conversation:\n' +
+                    aiChatHistory.map(function(m) { return m.role + ': ' + m.content; }).join('\n');
+                var bbResponse = await geminiChat([
+                    { role: 'system', content: bbSystem },
+                    { role: 'user', content: command }
+                ]);
+                var bbText = bbResponse.content ? bbResponse.content : bbResponse;
+                addMessageToAIChat(bbText, 'ai');
+            } catch (e) {
+                console.error('Blackbox mode error:', e);
+                addMessageToAIChat('Blackbox error: ' + e.message, 'ai');
+            }
+            hideAiTypingIndicator();
+            aiSendBtn.disabled = false;
+            setAiSendLoading(false);
+            aiInput.value = '';
+            aiInput.focus();
+            return;
+        }
+
+        if (isZorToolMode()) {
+            aiSendBtn.disabled = true;
+            setAiSendLoading(true);
+            showAiTypingIndicator();
+            try {
+                await processToolBasedCommand(command);
+            } catch (e) {
+                console.error('Tool-based mode error:', e);
+                addMessageToAIChat('Tool mode error: ' + e.message, 'ai');
+            }
+            hideAiTypingIndicator();
+            aiSendBtn.disabled = false;
+            setAiSendLoading(false);
+            aiInput.value = '';
+            aiInput.focus();
+            return;
+        }
+
         aiSendBtn.disabled = true;
         setAiSendLoading(true);
         showAiTypingIndicator();
@@ -9682,26 +9734,13 @@ function renderRecentSearches() {
         return;
     }
 
-    const chips = items.map(term => {
+    container.innerHTML = items.map(term => {
         const safeLabel = escapeHtml(term);
         const encoded = encodeURIComponent(term);
-        return `
-            <button type="button" class="recent-search-item" data-term="${encoded}">
-                <i class="fas fa-history"></i>${safeLabel}
-            </button>
-        `;
-    }).join('');
+        return `<button type="button" class="recent-chip" data-term="${encoded}"><i class="fas fa-history"></i>${safeLabel}</button>`;
+    }).join('') + `<button type="button" class="recent-clear-btn" title="Clear recent searches"><i class="fas fa-times"></i></button>`;
 
-    container.innerHTML = `
-        <div style="text-align: center; margin-bottom: 8px;">
-            <span style="color: #777; font-size: 0.85rem;">Recent searches</span>
-        </div>
-        <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;">
-            ${chips}
-        </div>
-    `;
-
-    container.querySelectorAll('.recent-search-chip').forEach(btn => {
+    container.querySelectorAll('.recent-chip').forEach(btn => {
         btn.addEventListener('click', () => {
             const encoded = btn.getAttribute('data-term') || '';
             let term = encoded;
@@ -9716,13 +9755,13 @@ function renderRecentSearches() {
         });
     });
 
-    container.querySelector('.recent-search-clear')?.addEventListener('click', clearRecentSearches);
+    container.querySelector('.recent-clear-btn')?.addEventListener('click', clearRecentSearches);
 }
 
 function initializeSearch() {
     const searchInput = document.getElementById('universalSearchInput');
     const resultsContainer = document.getElementById('searchResultsContainer');
-    const resultsCount = document.getElementById('searchResultsCount');
+    const clearBtn = document.getElementById('searchClearBtn');
 
     if (!searchInput || !resultsContainer) return;
 
@@ -9732,12 +9771,31 @@ function initializeSearch() {
         searchTimeout = setTimeout(() => {
             performSearch(searchInput.value.trim());
         }, 300);
+        if (clearBtn) clearBtn.classList.toggle('visible', searchInput.value.length > 0);
     });
 
     searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             performSearch(searchInput.value.trim());
         }
+    });
+
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            searchInput.focus();
+            clearBtn.classList.remove('visible');
+            performSearch('');
+        });
+    }
+
+    document.querySelectorAll('.search-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+            document.querySelectorAll('.search-pill').forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+            const query = searchInput.value.trim();
+            if (query) performSearch(query);
+        });
     });
 }
 
@@ -9772,104 +9830,111 @@ function performSearch(query) {
     const searchTags = document.getElementById('searchTags')?.checked ?? true;
     const searchRelationships = document.getElementById('searchRelationships')?.checked ?? true;
 
+    const activePill = document.querySelector('.search-pill.active');
+    const typeFilter = activePill ? activePill.getAttribute('data-type') : 'all';
+
     const results = [];
     const queryLower = query.toLowerCase();
 
-    pazatorData.humans.forEach(person => {
-        const matches = [];
+    if (typeFilter === 'all' || typeFilter === 'human') {
+        pazatorData.humans.forEach(person => {
+            const matches = [];
 
-        if (person.id && String(person.id).toLowerCase().includes(queryLower)) {
-            matches.push({ field: 'ID', value: String(person.id) });
-        }
-
-        if (searchNames && person.name && person.name.toLowerCase().includes(queryLower)) {
-            matches.push({ field: 'Name', value: person.name });
-        }
-
-        if (searchJobs && person.workplace && person.workplace.toLowerCase().includes(queryLower)) {
-            matches.push({ field: 'Workplace', value: person.workplace });
-        }
-
-        if (searchDates) {
-            if (person.birthDate && person.birthDate.toLowerCase().includes(queryLower)) {
-                matches.push({ field: 'Birth Date', value: person.birthDate });
+            if (person.id && String(person.id).toLowerCase().includes(queryLower)) {
+                matches.push({ field: 'ID', value: String(person.id) });
             }
-        }
 
-        if (searchNotes && person.extraNotes && person.extraNotes.toLowerCase().includes(queryLower)) {
-            matches.push({ field: 'Notes', value: person.extraNotes.substring(0, 100) + (person.extraNotes.length > 100 ? '...' : '') });
-        }
+            if (searchNames && person.name && person.name.toLowerCase().includes(queryLower)) {
+                matches.push({ field: 'Name', value: person.name });
+            }
 
-        if (searchTags && person.tags && person.tags.some(tag => tag.toLowerCase().includes(queryLower))) {
-            const matchingTags = person.tags.filter(tag => tag.toLowerCase().includes(queryLower));
-            matches.push({ field: 'Tags', value: matchingTags.join(', ') });
-        }
+            if (searchJobs && person.workplace && person.workplace.toLowerCase().includes(queryLower)) {
+                matches.push({ field: 'Workplace', value: person.workplace });
+            }
 
-        if (searchRelationships) {
-            if (person.friends && person.friends.some(friendId => {
-                const friend = pazatorData.humans.find(h => h.id === friendId);
-                return friend && friend.name.toLowerCase().includes(queryLower);
-            })) {
-                const matchingFriends = person.friends
-                    .map(id => pazatorData.humans.find(h => h.id === id)?.name)
-                    .filter(name => name && name.toLowerCase().includes(queryLower));
-                if (matchingFriends.length > 0) {
-                    matches.push({ field: 'Friends', value: matchingFriends.join(', ') });
+            if (searchDates) {
+                if (person.birthDate && person.birthDate.toLowerCase().includes(queryLower)) {
+                    matches.push({ field: 'Birth Date', value: person.birthDate });
                 }
             }
 
-            if (person.family && person.family.some(familyId => {
-                const familyMember = pazatorData.humans.find(h => h.id === familyId);
-                return familyMember && familyMember.name.toLowerCase().includes(queryLower);
-            })) {
-                const matchingFamily = person.family
-                    .map(id => pazatorData.humans.find(h => h.id === id)?.name)
-                    .filter(name => name && name.toLowerCase().includes(queryLower));
-                if (matchingFamily.length > 0) {
-                    matches.push({ field: 'Family', value: matchingFamily.join(', ') });
+            if (searchNotes && person.extraNotes && person.extraNotes.toLowerCase().includes(queryLower)) {
+                matches.push({ field: 'Notes', value: person.extraNotes.substring(0, 100) + (person.extraNotes.length > 100 ? '...' : '') });
+            }
+
+            if (searchTags && person.tags && person.tags.some(tag => tag.toLowerCase().includes(queryLower))) {
+                const matchingTags = person.tags.filter(tag => tag.toLowerCase().includes(queryLower));
+                matches.push({ field: 'Tags', value: matchingTags.join(', ') });
+            }
+
+            if (searchRelationships) {
+                if (person.friends && person.friends.some(friendId => {
+                    const friend = pazatorData.humans.find(h => h.id === friendId);
+                    return friend && friend.name.toLowerCase().includes(queryLower);
+                })) {
+                    const matchingFriends = person.friends
+                        .map(id => pazatorData.humans.find(h => h.id === id)?.name)
+                        .filter(name => name && name.toLowerCase().includes(queryLower));
+                    if (matchingFriends.length > 0) {
+                        matches.push({ field: 'Friends', value: matchingFriends.join(', ') });
+                    }
+                }
+
+                if (person.family && person.family.some(familyId => {
+                    const familyMember = pazatorData.humans.find(h => h.id === familyId);
+                    return familyMember && familyMember.name.toLowerCase().includes(queryLower);
+                })) {
+                    const matchingFamily = person.family
+                        .map(id => pazatorData.humans.find(h => h.id === id)?.name)
+                        .filter(name => name && name.toLowerCase().includes(queryLower));
+                    if (matchingFamily.length > 0) {
+                        matches.push({ field: 'Family', value: matchingFamily.join(', ') });
+                    }
                 }
             }
-        }
 
-        if (matches.length > 0) {
-            results.push({
-                type: 'human',
-                data: person,
-                matches: matches
-            });
-        }
-    });
+            if (matches.length > 0) {
+                results.push({
+                    type: 'human',
+                    data: person,
+                    matches: matches
+                });
+            }
+        });
+    }
 
-    pazatorData.others.forEach(item => {
-        const matches = [];
+    if (typeFilter === 'all' || typeFilter === 'other') {
+        pazatorData.others.forEach(item => {
+            const matches = [];
 
-        if (item.id && String(item.id).toLowerCase().includes(queryLower)) {
-            matches.push({ field: 'ID', value: String(item.id) });
-        }
+            if (item.id && String(item.id).toLowerCase().includes(queryLower)) {
+                matches.push({ field: 'ID', value: String(item.id) });
+            }
 
-        if (searchNames && item.name && item.name.toLowerCase().includes(queryLower)) {
-            matches.push({ field: 'Name', value: item.name });
-        }
+            if (searchNames && item.name && item.name.toLowerCase().includes(queryLower)) {
+                matches.push({ field: 'Name', value: item.name });
+            }
 
-        const otherNotes = (item.note || item.extraNotes || '').toLowerCase();
-        if (searchNotes && otherNotes.includes(queryLower)) {
-            const originalNote = item.note || item.extraNotes || '';
-            matches.push({ field: 'Notes', value: originalNote.substring(0, 100) + (originalNote.length > 100 ? '...' : '') });
-        }
+            const otherNotes = (item.note || item.extraNotes || '').toLowerCase();
+            if (searchNotes && otherNotes.includes(queryLower)) {
+                const originalNote = item.note || item.extraNotes || '';
+                matches.push({ field: 'Notes', value: originalNote.substring(0, 100) + (originalNote.length > 100 ? '...' : '') });
+            }
 
-        if (searchTags && item.tags && item.tags.some(tag => tag.toLowerCase().includes(queryLower))) {
-            const matchingTags = item.tags.filter(tag => tag.toLowerCase().includes(queryLower));
-            matches.push({ field: 'Tags', value: matchingTags.join(', ') });
-        }
+            if (searchTags && item.tags && item.tags.some(tag => tag.toLowerCase().includes(queryLower))) {
+                const matchingTags = item.tags.filter(tag => tag.toLowerCase().includes(queryLower));
+                matches.push({ field: 'Tags', value: matchingTags.join(', ') });
+            }
 
-        if (matches.length > 0) {
-            results.push({
-                type: 'other',
-                data: item,
-                matches: matches
-            });
-        }
-    });
+            if (matches.length > 0) {
+                results.push({
+                    type: 'other',
+                    data: item,
+                    matches: matches
+                });
+            }
+        });
+    }
 
     displaySearchResults(results, query);
     if (resultsCount) resultsCount.textContent = `${results.length} result${results.length !== 1 ? 's' : ''} found`;
@@ -9883,62 +9948,85 @@ function displaySearchResults(results, query) {
             <div class="search-empty-state">
                 <i class="fas fa-frown search-empty-icon"></i>
                 <p class="search-empty-title">No results found for "${query}"</p>
-                <p class="search-empty-hint">Try different keywords</p>
+                <p class="search-empty-hint">Try different keywords or check the field filters above</p>
             </div>
         `;
         return;
     }
 
-    let html = '<div class="search-results-grid">';
+    const humans = results.filter(r => r.type === 'human');
+    const entities = results.filter(r => r.type === 'other');
 
-    results.forEach((result, index) => {
-        const item = result.data;
-        const isHuman = result.type === 'human';
+    let html = '';
 
-        html += `
-            <div class="search-result-card" onclick="openDetailView('${item.id}', '${result.type}')">
-                <div class="search-result-header">
-                    <h3 class="search-result-name">[${item.id}] ${item.name}</h3>
-                    <span class="search-result-type">${isHuman ? 'PERSON' : 'COMPANY'}</span>
-                </div>
-                
-                <div class="search-result-meta">
-                    ${isHuman && item.workplace ? `
-                        <div class="search-result-meta-item">
-                            <i class="fas fa-building"></i>
-                            <span>${item.workplace}</span>
-                        </div>
-                    ` : ''}
-                    ${isHuman && item.birthDate ? `
-                        <div class="search-result-meta-item">
-                            <i class="fas fa-calendar"></i>
-                            <span>${item.birthDate}</span>
-                        </div>
-                    ` : ''}
-                </div>
-                
-                <div class="search-result-matches">
-                    <div class="search-result-matches-title">Matches Found</div>
-                    ${result.matches.slice(0, 3).map(match => `
-                        <div class="search-result-match">
-                            <div class="search-result-match-field">${match.field}</div>
-                            <div class="search-result-match-value">${match.value}</div>
-                        </div>
-                    `).join('')}
-                </div>
-                
-                ${item.tags && item.tags.length > 0 ? `
-                    <div class="search-result-tags">
-                        ${item.tags.slice(0, 5).map(tag => `
-                            <span class="search-result-tag">${tag}</span>
-                        `).join('')}
+    const renderGroup = (group, groupType) => {
+        if (groupType === 'human') {
+            html += `<div class="search-group-header"><i class="fas fa-user"></i> People <span>(${group.length})</span></div>`;
+        } else {
+            html += `<div class="search-group-header"><i class="fas fa-building"></i> Entities <span>(${group.length})</span></div>`;
+        }
+
+        group.forEach(result => {
+            const item = result.data;
+            const isHuman = groupType === 'human';
+
+            let threatBadge = '';
+            if (isHuman && item.threatLevel && item.threatLevel !== 'None') {
+                threatBadge = `<span class="search-badge threat-${item.threatLevel}">${item.threatLevel}</span>`;
+            }
+
+            let creditBadge = '';
+            if (isHuman && item.credit !== undefined) {
+                let cls = 'credit-low';
+                if (item.credit > 150) cls = 'credit-mid';
+                if (item.credit > 250) cls = 'credit-high';
+                creditBadge = `<span class="search-badge ${cls}">${Math.round(item.credit)}</span>`;
+            }
+
+            let detailHtml = '';
+            if (isHuman && item.workplace) {
+                detailHtml += `<span><i class="fas fa-building"></i>${item.workplace}</span>`;
+            }
+            if (isHuman && item.birthDate) {
+                detailHtml += `<span><i class="fas fa-calendar"></i>${item.birthDate}</span>`;
+            }
+            if (!isHuman) {
+                const note = item.note || item.extraNotes || '';
+                if (note) {
+                    detailHtml += `<span><i class="fas fa-file-alt"></i>${note.substring(0, 80)}${note.length > 80 ? '...' : ''}</span>`;
+                }
+            }
+
+            const matchTags = result.matches.slice(0, 4).map(m =>
+                `<span class="search-match-tag">${m.field}: ${m.value.substring(0, 30)}${m.value.length > 30 ? '...' : ''}</span>`
+            ).join('');
+
+            const tags = (item.tags || []).slice(0, 8).map(t =>
+                `<span class="search-card-tag">${t}</span>`
+            ).join('');
+
+            const typeLabel = isHuman ? 'P' : 'E';
+            const typeClass = isHuman ? 'person' : 'entity';
+
+            html += `
+            <div class="search-card" onclick="openDetailView('${item.id}', '${groupType}')">
+                <div class="search-card-type ${typeClass}">${typeLabel}</div>
+                <div class="search-card-body">
+                    <div class="search-card-top">
+                        <span class="search-card-name">[${item.id}] ${item.name}</span>
+                        <div class="search-card-badges">${threatBadge}${creditBadge}</div>
                     </div>
-                ` : ''}
-            </div>
-        `;
-    });
+                    ${detailHtml ? `<div class="search-card-detail">${detailHtml}</div>` : ''}
+                    <div class="search-card-matches">${matchTags}</div>
+                    ${tags ? `<div class="search-card-tags">${tags}</div>` : ''}
+                </div>
+            </div>`;
+        });
+    };
 
-    html += '</div>';
+    if (humans.length > 0) renderGroup(humans, 'human');
+    if (entities.length > 0) renderGroup(entities, 'other');
+
     resultsContainer.innerHTML = html;
 }
 
@@ -11765,6 +11853,7 @@ function initSettings() {
         document.body.classList.add('no-blur');
     }
     initGeminiUI();
+    updateZorToolModeUI();
 }
 
 async function loadLogoForPDF() {
@@ -11783,6 +11872,490 @@ async function loadLogoForPDF() {
         console.warn('Could not load logo for PDF:', e);
     }
 }
+
+// ============================================================
+// Zor Tool-Calling System (opt-in alternative to full-context)
+// ============================================================
+
+const ZOR_TOOL_MODE_KEY = 'pazator_zor_tool_mode';
+const ZOR_BLACKBOX_KEY = 'pazator_zor_blackbox';
+const ZOR_BLACKBOX_DATA_KEY = 'pazator_zor_blackbox_data';
+
+function isZorToolMode() {
+    if (isBlackBox()) return false;
+    return localStorage.getItem(ZOR_TOOL_MODE_KEY) === 'true';
+}
+
+function setZorToolMode(enabled) {
+    localStorage.setItem(ZOR_TOOL_MODE_KEY, enabled ? 'true' : 'false');
+    updateZorToolModeUI();
+    if (enabled) {
+        showFloatingNotification('Tool mode ON — Zor will fetch data via tools instead of full context dump', 'info');
+    } else {
+        showFloatingNotification('Full context mode — all data will be fed to Zor', 'info');
+    }
+}
+
+function isBlackBox() {
+    return localStorage.getItem(ZOR_BLACKBOX_KEY) === 'true';
+}
+
+function setBlackBox(enabled) {
+    localStorage.setItem(ZOR_BLACKBOX_KEY, enabled ? 'true' : 'false');
+    updateZorToolModeUI();
+    if (enabled) {
+        showFloatingNotification('Blackbox locked — Zor can only see the compressed snapshot. Click Blackbox again to unlock.', 'info');
+    } else {
+        showFloatingNotification('Blackbox unlocked — Zor can access live data again', 'info');
+    }
+}
+
+function getBlackBoxData() {
+    return localStorage.getItem(ZOR_BLACKBOX_DATA_KEY) || '';
+}
+
+function setBlackBoxData(data) {
+    localStorage.setItem(ZOR_BLACKBOX_DATA_KEY, data);
+}
+
+function updateZorToolModeUI() {
+    const bb = isBlackBox();
+    const toggle = document.getElementById('zorToolModeToggle');
+    if (toggle) {
+        if (bb) {
+            toggle.classList.remove('active');
+            toggle.style.display = 'none';
+        } else {
+            toggle.style.display = 'flex';
+            toggle.classList.toggle('active', isZorToolMode());
+            if (isZorToolMode()) {
+                toggle.title = 'ON: Zor fetches specific data via tools instead of getting all context dumped. Click to switch back to full context.';
+                toggle.querySelector('.toggle-label').textContent = 'Tools';
+            } else {
+                toggle.title = 'OFF: all data is fed to Zor in the prompt. Click to switch to tool-based mode (saves tokens).';
+                toggle.querySelector('.toggle-label').textContent = 'Full Ctx';
+            }
+        }
+    }
+    const bbBtn = document.getElementById('blackboxBtn');
+    if (bbBtn) {
+        bbBtn.classList.toggle('active', bb);
+        if (bb) {
+            bbBtn.title = 'Blackbox is ON — Zor is locked to the compressed .PZBB snapshot. Click to unlock and restore live data access.';
+            bbBtn.querySelector('.toggle-label').textContent = 'Unlock';
+        } else {
+            bbBtn.title = 'Compress all data into a .PZBB snapshot and lock Zor to it — he becomes a read-only bot with only the compressed summary. Click again to unlock.';
+            bbBtn.querySelector('.toggle-label').textContent = 'Blackbox';
+        }
+    }
+    const statusText = document.querySelector('.status-text');
+    if (statusText) {
+        if (bb) {
+            statusText.textContent = 'Black box on';
+        } else {
+            statusText.textContent = isZorToolMode() ? 'Tool mode' : 'Context ready';
+        }
+    }
+    const statusIndicator = document.querySelector('.status-indicator');
+    if (statusIndicator) {
+        if (bb) {
+            statusIndicator.style.background = '#4d9de0';
+            statusIndicator.style.boxShadow = '0 0 10px #4d9de0';
+        } else {
+            statusIndicator.style.background = isZorToolMode() ? '#ffd93d' : '#4CAF50';
+            statusIndicator.style.boxShadow = isZorToolMode() ? '0 0 10px #ffd93d' : '0 0 10px #4CAF50';
+        }
+    }
+}
+
+async function compressToBlackbox() {
+    if (isBlackBox()) {
+        setBlackBox(false);
+        showFloatingNotification('Blackbox deactivated – Zor can access data again', 'info');
+        return;
+    }
+    var overlay = document.getElementById('compressOverlay');
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    overlay.style.opacity = '1';
+
+    try {
+        var totalHumans = pazatorData.humans.length;
+        var totalOthers = pazatorData.others.length;
+        var totalTags = (tags || []).length;
+        var totalCases = cases.length;
+
+        var dataPackage = {
+            humans: pazatorData.humans.map(function(h) {
+                var clean = {};
+                var fields = ['id','name','gender','birthDate','workplace','occupation','credit','socialClass','maritalStatus','nationality','countryOfOrigin','immigrationStatus','languages','ethnicity','religion','politicalViews','threatLevel','educationLevel','incomeLevel','extraNotes','tags','friends','family'];
+                for (var fi = 0; fi < fields.length; fi++) {
+                    var f = fields[fi];
+                    if (h[f] !== undefined && h[f] !== null && h[f] !== '') clean[f] = h[f];
+                }
+                return clean;
+            }),
+            others: pazatorData.others,
+            tags: tags || [],
+            cases: cases.map(function(c) {
+                return { id: c.id, title: c.title, status: c.status, severity: c.severity, description: c.description, notes: c.notes };
+            })
+        };
+
+        var compressPrompt = 'You are a data compression engine. Compress the following intelligence database into a highly compact but readable text summary (.PZBB format). ' +
+            'Keep all important facts, relationships, threats, and patterns. Use abbreviations and concise formatting. ' +
+            'The output must be pure text, no markdown, no JSON wrapper. Start with "PZBB v1" on the first line.\n\n' +
+            'DATA:\n' + JSON.stringify(dataPackage);
+
+        var response = await geminiChat([
+            { role: 'system', content: 'You are a lossless text compression engine. Output ONLY the compressed data, nothing else.' },
+            { role: 'user', content: compressPrompt }
+        ]);
+
+        var compressed = response.content ? response.content.trim() : '';
+        if (!compressed || compressed.length < 10) {
+            compressed = 'PZBB v1\nERROR: Compression failed. Data preserved raw.\n' + JSON.stringify(dataPackage).substring(0, 5000);
+        }
+
+        setBlackBoxData(compressed);
+
+        var blob = new Blob([compressed], { type: 'text/plain' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'pazator_blackbox_' + new Date().toISOString().slice(0, 10) + '.PZBB';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        addMessageToAIChat('=== BLACKBOX COMPRESSED DATA (.PZBB) ===\n' + compressed.substring(0, 3000) + (compressed.length > 3000 ? '\n...[truncated]...' : ''), 'system');
+
+        setBlackBox(true);
+
+        showFloatingNotification('Blackbox active – Zor is now locked to compressed data', 'info');
+    } catch (e) {
+        console.error('Compression error:', e);
+        showAlert('Blackbox compression failed: ' + e.message, 'Error', 'error');
+    } finally {
+        overlay.style.opacity = '0';
+        setTimeout(function() {
+            overlay.style.display = 'none';
+            overlay.style.opacity = '1';
+        }, 400);
+    }
+}
+
+const ZorTools = {
+    tools: {
+        search_people: {
+            description: 'Search for people by name or any field (gender, nationality, workplace, threatLevel, tags, etc.). Returns matching people with basic info.',
+            parameters: { query: 'Search term - matches against name and all fields' },
+            handler: function(params) {
+                const query = (params.query || '').toLowerCase();
+                if (!query) return { count: 0, people: [] };
+                const results = pazatorData.humans.filter(function(h) {
+                    return JSON.stringify(h).toLowerCase().includes(query);
+                });
+                return {
+                    count: results.length,
+                    people: results.map(function(h) {
+                        return {
+                            id: h.id, name: h.name, gender: h.gender,
+                            nationality: h.nationality, workplace: h.workplace,
+                            threatLevel: h.threatLevel || 'None', credit: h.credit,
+                            tags: h.tags || []
+                        };
+                    })
+                };
+            }
+        },
+        get_person: {
+            description: 'Get full details of a specific person by ID or exact name.',
+            parameters: { id: 'Person ID (optional if name provided)', name: 'Exact person name (optional if id provided)' },
+            handler: function(params) {
+                var person = params.id
+                    ? pazatorData.humans.find(function(h) { return String(h.id) === String(params.id); })
+                    : pazatorData.humans.find(function(h) { return h.name.toLowerCase() === (params.name || '').toLowerCase(); });
+                if (!person) return { found: false, message: 'Person not found' };
+                return { found: true, person: person };
+            }
+        },
+        list_all_people: {
+            description: 'Get a lightweight list of all people (names and basic info only, not full details).',
+            parameters: {},
+            handler: function() {
+                return {
+                    count: pazatorData.humans.length,
+                    people: pazatorData.humans.map(function(h) {
+                        return { id: h.id, name: h.name, gender: h.gender, threatLevel: h.threatLevel || 'None', credit: h.credit };
+                    })
+                };
+            }
+        },
+        list_all_entities: {
+            description: 'Get a list of all organizations and non-person entities.',
+            parameters: {},
+            handler: function() {
+                return {
+                    count: pazatorData.others.length,
+                    entities: pazatorData.others.map(function(o) {
+                        return { id: o.id, name: o.name, note: o.note };
+                    })
+                };
+            }
+        },
+        get_tags: {
+            description: 'List all available tags in the system.',
+            parameters: {},
+            handler: function() {
+                return { tags: tags || [] };
+            }
+        },
+        search_by_tag: {
+            description: 'Find all people who have a specific tag assigned.',
+            parameters: { tag: 'The exact tag name to search for' },
+            handler: function(params) {
+                var tag = (params.tag || '').toLowerCase();
+                if (!tag) return { count: 0, people: [] };
+                var results = pazatorData.humans.filter(function(h) {
+                    return (h.tags || []).some(function(t) { return t.toLowerCase() === tag; });
+                });
+                return {
+                    count: results.length,
+                    people: results.map(function(h) {
+                        return { id: h.id, name: h.name, gender: h.gender, threatLevel: h.threatLevel || 'None', credit: h.credit };
+                    })
+                };
+            }
+        },
+        get_stats: {
+            description: 'Get overall database statistics (counts, averages, risk summary).',
+            parameters: {},
+            handler: function() {
+                var totalHumans = pazatorData.humans.length;
+                var totalOthers = pazatorData.others.length;
+                var highRisk = pazatorData.humans.filter(function(h) {
+                    var t = h.threatLevel || 'None';
+                    return t === 'High' || t === 'Critical';
+                }).length;
+                var avgCredit = totalHumans > 0
+                    ? pazatorData.humans.reduce(function(s, h) { return s + (h.credit || 0); }, 0) / totalHumans
+                    : 0;
+                return {
+                    totalHumans: totalHumans,
+                    totalEntities: totalOthers,
+                    totalItems: totalHumans + totalOthers,
+                    highRiskCount: highRisk,
+                    averageCredit: Math.round(avgCredit * 10) / 10,
+                    tagCount: (tags || []).length,
+                    casesCount: cases.length
+                };
+            }
+        },
+        get_risk_summary: {
+            description: 'Get the distribution of threat levels across all people.',
+            parameters: {},
+            handler: function() {
+                var levels = { None: 0, Low: 0, Medium: 0, High: 0, Critical: 0 };
+                pazatorData.humans.forEach(function(h) {
+                    var level = h.threatLevel || 'None';
+                    if (levels[level] !== undefined) levels[level]++;
+                    else levels[level] = 1;
+                });
+                var total = pazatorData.humans.length || 1;
+                return {
+                    distribution: levels,
+                    highRiskPercent: Math.round(((levels.High + levels.Critical) / total) * 100)
+                };
+            }
+        },
+        list_cases: {
+            description: 'List all open case files and missions.',
+            parameters: {},
+            handler: function() {
+                return {
+                    count: cases.length,
+                    cases: cases.map(function(c) {
+                        return { id: c.id, title: c.title, status: c.status, severity: c.severity, description: (c.description || '').substring(0, 100) };
+                    })
+                };
+            }
+        },
+        search_chats: {
+            description: 'Search through archived chat message content for keywords.',
+            parameters: { query: 'Search term' },
+            handler: function(params) {
+                var query = (params.query || '').toLowerCase();
+                if (!query) return { count: 0, matches: [] };
+                var allChats = pazatorData && pazatorData.chats ? pazatorData.chats : [];
+                var results = [];
+                for (var ci = 0; ci < allChats.length; ci++) {
+                    var chat = allChats[ci];
+                    if ((chat.content || '').toLowerCase().includes(query)) {
+                        results.push({
+                            source: chat.source,
+                            participants: chat.participants,
+                            snippet: (chat.content || '').substring(0, 200)
+                        });
+                        if (results.length >= 10) break;
+                    }
+                }
+                return { count: results.length, matches: results };
+            }
+        },
+        find_connections: {
+            description: 'Find potential connections between people based on shared workplaces, tags, family, or other common fields.',
+            parameters: { person_name: 'Name of a specific person to find connections for (optional)' },
+            handler: function(params) {
+                var name = (params.person_name || '').toLowerCase();
+                var people = name
+                    ? pazatorData.humans.filter(function(h) { return h.name.toLowerCase().includes(name); })
+                    : pazatorData.humans;
+                var connections = [];
+                for (var i = 0; i < Math.min(people.length, 20); i++) {
+                    for (var j = i + 1; j < Math.min(people.length, 20); j++) {
+                        var a = people[i], b = people[j];
+                        var reasons = [];
+                        if (a.workplace && b.workplace && a.workplace.toLowerCase() === b.workplace.toLowerCase()) {
+                            reasons.push('same workplace: ' + a.workplace);
+                        }
+                        if (a.nationality && b.nationality && a.nationality.toLowerCase() === b.nationality.toLowerCase()) {
+                            reasons.push('same nationality: ' + a.nationality);
+                        }
+                        if (a.tags && b.tags) {
+                            var shared = a.tags.filter(function(t) { return b.tags.indexOf(t) !== -1; });
+                            if (shared.length > 0) reasons.push('shared tags: ' + shared.join(', '));
+                        }
+                        if (reasons.length > 0) {
+                            connections.push({ person_a: a.name, person_b: b.name, reasons: reasons, strength: reasons.length });
+                        }
+                    }
+                }
+                connections.sort(function(x, y) { return y.strength - x.strength; });
+                return { count: connections.length, connections: connections.slice(0, 20) };
+            }
+        }
+    },
+
+    getToolDescriptions: function() {
+        var desc = 'AVAILABLE TOOLS (use these to fetch specific data instead of asking for full context):\n\n';
+        for (var name in this.tools) {
+            if (!this.tools.hasOwnProperty(name)) continue;
+            var tool = this.tools[name];
+            desc += 'TOOL: ' + name + '\n';
+            desc += '  Description: ' + tool.description + '\n';
+            var pEntries = Object.entries(tool.parameters);
+            if (pEntries.length > 0) {
+                desc += '  Parameters:\n';
+                for (var pi = 0; pi < pEntries.length; pi++) {
+                    desc += '    ' + pEntries[pi][0] + ': ' + pEntries[pi][1] + '\n';
+                }
+            }
+            desc += '\n';
+        }
+        desc += 'HOW TO USE TOOLS:\n';
+        desc += 'Respond with ONLY this JSON format:\n';
+        desc += '{"tool": "tool_name", "params": {"param1": "value1"}}\n\n';
+        desc += 'After getting tool results, use them to answer the user.\n';
+        desc += 'You can call multiple tools sequentially by responding with one tool call at a time.\n\n';
+        desc += 'For data modification (add/edit/delete entries), use the action JSON format:\n';
+        desc += '{"action": "add_human", "data": {...}} or {"action": "modify_human", "id": "...", "data": {...}}\n\n';
+        desc += 'For simple chat or questions that dont need tools, just respond naturally.\n';
+        desc += 'IMPORTANT: Do NOT request all data at once. Use specific targeted tools.';
+        return desc;
+    },
+
+    executeTool: function(toolName, params) {
+        var tool = this.tools[toolName];
+        if (!tool) return { error: 'Unknown tool: ' + toolName };
+        try {
+            return tool.handler(params || {});
+        } catch (e) {
+            return { error: 'Tool execution error: ' + e.message };
+        }
+    }
+};
+
+async function processToolBasedCommand(command) {
+    var maxRounds = 8;
+    var conversation = [
+        { role: 'system', content: getZorToolSystemPrompt() },
+        { role: 'user', content: command }
+    ];
+
+    for (var round = 0; round < maxRounds; round++) {
+        var aiResponse;
+        try {
+            aiResponse = await geminiChat(conversation);
+        } catch (e) {
+            addMessageToAIChat('Zor encountered an error: ' + e.message, 'ai');
+            return;
+        }
+
+        var responseText = aiResponse.content ? aiResponse.content : aiResponse;
+        if (!responseText || responseText.trim().length === 0) {
+            addMessageToAIChat('Zor did not respond. Please try again.', 'ai');
+            return;
+        }
+
+        var parsed = extractJSONFromResponse(responseText);
+
+        if (parsed && parsed.tool) {
+            displayAIChatNotification('Zor is using tool: ' + parsed.tool);
+            var result = ZorTools.executeTool(parsed.tool, parsed.params || {});
+            conversation.push({ role: 'assistant', content: responseText });
+            conversation.push({
+                role: 'user',
+                content: 'Tool "' + parsed.tool + '" returned:\n' + JSON.stringify(result, null, 2) + '\n\nUse this data to answer my original request. If you need more data, call another tool.'
+            });
+        } else if (parsed && (parsed.action || (Array.isArray(parsed) && parsed.length > 0 && parsed[0].action))) {
+            conversation.push({ role: 'assistant', content: responseText });
+            if (Array.isArray(parsed)) {
+                await handleBatchActions(parsed);
+            } else {
+                handleAIAction(parsed);
+            }
+            return;
+        } else {
+            addMessageToAIChat(responseText, 'ai');
+            return;
+        }
+    }
+
+    addMessageToAIChat('Zor needed more steps than expected. Please try a more specific question.', 'ai');
+}
+
+function getZorToolSystemPrompt() {
+    var adminContext = getAdminContext();
+    var prompt = 'You are Zor (model PZZ1), an AI assistant for the Pazator intelligence platform.\n\n';
+    prompt += 'You are direct, grounded, and mildly skeptical. Cut the fluff. No emojis. Be blunt.\n\n';
+    prompt += 'You have access to TOOLS that let you fetch data on demand. ';
+    prompt += 'Use these tools to get specific information rather than asking for all data at once.\n\n';
+    prompt += ZorTools.getToolDescriptions();
+    prompt += '\n\nHuman entries have fields: name, gender, birthDate, workplace/occupation, credit (0-370), socialClass, maritalStatus, nationality, countryOfOrigin, immigrationStatus, languages, ethnicity, religion, politicalViews, threatLevel (None/Low/Medium/High/Critical), educationLevel, incomeLevel, friends, family, extraNotes, tags.\n\n';
+    prompt += 'Case file actions: {"action": "create_case", "title": "...", "description": "...", "status": "open"}\n';
+    prompt += '  {"action": "edit_case", "title": "...", "description": "..."}\n';
+    prompt += '  {"action": "add_case_note", "title": "...", "note": "..."}\n';
+    prompt += '  {"action": "close_case", "title": "..."}\n';
+    prompt += '  {"action": "add_entity_to_case", "case_title": "...", "entity_name": "..."}\n\n';
+    prompt += 'Other action formats:\n';
+    prompt += '  {"action": "add_human", "data": {"name": "John", "gender": "Male", ...}}\n';
+    prompt += '  {"action": "add_other", "data": {"name": "OrgName", "note": "..."}}\n';
+    prompt += '  {"action": "delete_human", "id": "12345"}\n';
+    prompt += '  {"action": "modify_human", "id": "12345", "data": {"field": "value"}}\n';
+    prompt += '  {"action": "list_humans"}\n  {"action": "list_others"}\n  {"action": "count_entries"}\n';
+    prompt += '  {"action": "add_tag", "tag": "newTag"}\n';
+    prompt += '  {"action": "assign_tag", "id": "12345", "tag": "employee"}\n';
+    prompt += '  {"action": "remove_tag", "id": "12345", "tag": "employee"}\n\n';
+    prompt += 'Previous conversation:\n';
+    prompt += aiChatHistory.map(function(m) { return m.role + ': ' + m.content; }).join('\n') + '\n\n';
+    if (adminContext) {
+        prompt += 'ADMIN CONTEXT:\n' + adminContext + '\n\n';
+    }
+    return prompt;
+}
+// ============================================================
 
 // Call init settings on DOMContentLoaded
 document.addEventListener('DOMContentLoaded', initSettings);

@@ -74,6 +74,14 @@
                     </div>
                 </div>
                 <div class="header-right">
+                    <button class="tool-mode-toggle" id="zorToolModeToggle" title="ON: Zor fetches specific data via tools instead of getting all context dumped. Saves tokens and keeps your data off the wire." onclick="setZorToolMode(!isZorToolMode())">
+                        <i class="fas fa-microchip"></i>
+                        <span class="toggle-label">Full Ctx</span>
+                    </button>
+                    <button class="blackbox-btn" id="blackboxBtn" title="Compress all data into a .PZBB snapshot and lock Zor to it — he becomes a read-only bot with only the compressed summary. Click again to unlock." onclick="compressToBlackbox()">
+                        <i class="fas fa-box"></i>
+                        <span class="toggle-label">Blackbox</span>
+                    </button>
                     <button class="save-chat-btn" id="saveChatBtn" title="Save Chat">
                         <i class="fas fa-bookmark"></i>
                     </button>
@@ -148,7 +156,7 @@
             <div class="ai-chat-messages" id="aiChatMessages">
                 <div class="ai-message system">
                     <h3>Im Zor,</h3>
-                    <p>I can help you manage your data. Click the menu button for extra things.</p>
+                    <p>Intelligence assistant. Use the menu for available operations.</p>
                 </div>
             </div>
 
@@ -938,27 +946,47 @@
 
         <div class="tab-content" id="search-tab">
             <div class="search-container">
-                <div class="search-header">
-                    <h1 class="search-title">Search Database</h1>
-                    <p class="search-subtitle">Search across all people, jobs, dates, notes, and relationships</p>
+                <div class="search-bar-row">
+                    <div class="search-input-wrap">
+                        <i class="fas fa-search search-bar-icon"></i>
+                        <input type="text" id="universalSearchInput" class="search-bar-input" placeholder="Search people, entities, tags, notes..." autofocus>
+                        <button class="search-bar-clear" id="searchClearBtn" title="Clear search"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="search-bar-hint"><kbd>/</kbd> or <kbd>Ctrl+K</kbd></div>
                 </div>
 
-                <div class="search-main">
-                    <div class="search-input-wrapper">
-                        <input type="text" id="universalSearchInput" class="search-input" placeholder="Search the database...">
-                        <i class="fas fa-search search-icon"></i>
-                    </div>
-
-                    <div id="recentSearchesContainer" class="recent-searches"></div>
-
-                    <div id="searchResultsCount" class="search-results-count"></div>
-
-                    <div id="searchResultsContainer" class="search-results-container">
-                        <div class="search-empty-state">
-                            <i class="fas fa-search search-empty-icon"></i>
-                            <p class="search-empty-title">Start typing to search</p>
-                            <p class="search-empty-hint">Results will appear here</p>
+                <div class="search-filters">
+                    <div class="search-filter-group">
+                        <span class="search-filter-label">Type</span>
+                        <div class="search-type-pills">
+                            <button class="search-pill active" data-type="all">All</button>
+                            <button class="search-pill" data-type="human">People</button>
+                            <button class="search-pill" data-type="other">Entities</button>
                         </div>
+                    </div>
+                    <div class="search-filter-group">
+                        <span class="search-filter-label">Fields</span>
+                        <div class="search-field-chips">
+                            <label class="search-chip"><input type="checkbox" id="searchNames" checked><span>Name</span></label>
+                            <label class="search-chip"><input type="checkbox" id="searchJobs" checked><span>Workplace</span></label>
+                            <label class="search-chip"><input type="checkbox" id="searchDates" checked><span>Dates</span></label>
+                            <label class="search-chip"><input type="checkbox" id="searchNotes" checked><span>Notes</span></label>
+                            <label class="search-chip"><input type="checkbox" id="searchTags" checked><span>Tags</span></label>
+                            <label class="search-chip"><input type="checkbox" id="searchRelationships" checked><span>Relations</span></label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="search-results-bar">
+                    <div id="searchResultsCount" class="search-results-count-text"></div>
+                    <div id="recentSearchesContainer" class="recent-searches"></div>
+                </div>
+
+                <div id="searchResultsContainer" class="search-results-container">
+                    <div class="search-empty-state">
+                        <i class="fas fa-search search-empty-icon"></i>
+                        <p class="search-empty-title">Search the database</p>
+                        <p class="search-empty-hint">Type a query to search across all data fields</p>
                     </div>
                 </div>
             </div>
@@ -2165,6 +2193,15 @@
             </div>
             <div class="clean-modal-body" id="modalBody"></div>
             <div class="clean-modal-actions" id="modalActions"></div>
+        </div>
+    </div>
+
+    <!-- Fullscreen Compression Overlay -->
+    <div id="compressOverlay" class="compress-overlay" style="display: none;">
+        <div class="compress-stage">
+            <div class="compress-block" id="compressLeft"></div>
+            <div class="compress-block" id="compressRight"></div>
+            <div class="compress-label">COMPRESSING TO BLACKBOX</div>
         </div>
     </div>
 

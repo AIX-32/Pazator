@@ -42,7 +42,9 @@ TRIGGERS:
 
 ACTIONS:
 - popup "Message" (Shows a modal alert)
-- notify "Message" (Shows a smaller notification)
+- notify "Message" (Shows a floating toast notification, type: info)
+- toast "Message" (Shows a floating toast notification, defaults to info)
+- toast "Message" error (Shows a toast with type: info/success/warning/error)
 - tab "tab-id" (Switches to a specific tab)
 
 TAB IDs: dashboard, analysis, threats, chat-control, search, agents, articles, tracker, cases, tastur
@@ -51,6 +53,8 @@ EXAMPLE RULES:
 - WHEN tab_switch IF to="threats" THEN popup "Security Clearance Required"
 - WHEN threat_detected IF count > 5 THEN notify "High threat volume detected!"
 - WHEN search_performed IF query="classified" THEN alert "Restricted Search Logged"
+- WHEN data_added THEN toast "Data saved successfully" success
+- WHEN threat_detected IF count > 10 THEN toast "Critical threat level" error
 
 Please provide the rules in plain text, one per line.`;
 
@@ -214,12 +218,13 @@ Please provide the rules in plain text, one per line.`;
     performAction(actionStr, data) {
         console.log('TASTUR: Performing action:', actionStr);
         
-        // Parse action format: type "argument"
-        const match = actionStr.match(/^(\w+)\s+['"](.+?)['"]$/i) || actionStr.match(/^(\w+)$/i);
+        // Parse action format: type "argument" [type2]
+        const match = actionStr.match(/^(\w+)\s+['"](.+?)['"]\s*(\w+)?$/i) || actionStr.match(/^(\w+)$/i);
         if (!match) return;
 
         const actionType = match[1].toLowerCase();
         const arg = match[2] || '';
+        const arg2 = match[3] || '';
 
         switch (actionType) {
             case 'popup':
@@ -227,10 +232,19 @@ Please provide the rules in plain text, one per line.`;
                 showAlert(arg, 'TASTUR Automation');
                 break;
             case 'notify':
-                if (window.showNotification) {
-                    showNotification(arg);
+                if (typeof showFloatingNotification === 'function') {
+                    showFloatingNotification(arg, 'info');
                 } else {
                     showAlert(arg, 'TASTUR Notification');
+                }
+                break;
+            case 'toast':
+                if (typeof showFloatingNotification === 'function') {
+                    const types = ['info', 'success', 'warning', 'error'];
+                    const type = types.includes(arg2) ? arg2 : 'info';
+                    showFloatingNotification(arg, type);
+                } else {
+                    showAlert(arg, 'TASTUR Toast');
                 }
                 break;
             case 'tab':
