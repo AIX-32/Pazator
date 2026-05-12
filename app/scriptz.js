@@ -119,6 +119,67 @@ const VALID_CHAT_SOURCES = ['whatsapp', 'telegram', 'discord', 'signal', 'manual
 const MAX_CHAT_CONTENT_SIZE = 10 * 1024 * 1024;
 const STORAGE_WARNING_THRESHOLD = 4 * 1024 * 1024;
 
+var PazatorCompress = {
+    _prefix: 'PZC1:',
+
+    compress: function(text) {
+        if (!text || text.length < 200) return text;
+        try {
+            var encoded = btoa(unescape(encodeURIComponent(text)));
+            if (encoded.length < text.length * 0.8) {
+                return this._prefix + encoded;
+            }
+            return text;
+        } catch (e) {
+            return text;
+        }
+    },
+
+    decompress: function(text) {
+        if (!text || typeof text !== 'string') return text;
+        if (text.substring(0, 5) === this._prefix) {
+            try {
+                return decodeURIComponent(escape(atob(text.substring(5))));
+            } catch (e) {
+                return text;
+            }
+        }
+        return text;
+    },
+
+    compressObject: function(obj) {
+        if (!obj || typeof obj !== 'object') return obj;
+        var result = Array.isArray(obj) ? [] : {};
+        for (var key in obj) {
+            var val = obj[key];
+            if (typeof val === 'string' && val.length > 500) {
+                result[key] = this.compress(val);
+            } else if (typeof val === 'object' && val !== null) {
+                result[key] = this.compressObject(val);
+            } else {
+                result[key] = val;
+            }
+        }
+        return result;
+    },
+
+    decompressObject: function(obj) {
+        if (!obj || typeof obj !== 'object') return obj;
+        var result = Array.isArray(obj) ? [] : {};
+        for (var key in obj) {
+            var val = obj[key];
+            if (typeof val === 'string') {
+                result[key] = this.decompress(val);
+            } else if (typeof val === 'object' && val !== null) {
+                result[key] = this.decompressObject(val);
+            } else {
+                result[key] = val;
+            }
+        }
+        return result;
+    }
+};
+
 const ChatValidator = {
     sanitize(html) {
         const div = document.createElement('div');
@@ -388,7 +449,9 @@ const ChatStorageManager = {
             return this._cache.get(key).data;
         }
         try {
-            const data = JSON.parse(localStorage.getItem(key) || '[]');
+            var raw = localStorage.getItem(key) || '[]';
+            var data = JSON.parse(raw);
+            data = PazatorCompress.decompressObject(data);
             this._setCache(key, data);
             return data;
         } catch (e) {
@@ -421,7 +484,8 @@ const ChatStorageManager = {
 
     _saveWithQuotaCheck(key, data) {
         try {
-            const serialized = JSON.stringify(data);
+            var compressed = PazatorCompress.compressObject(data);
+            const serialized = JSON.stringify(compressed);
             const size = new Blob([serialized]).size;
             
             if (size > STORAGE_WARNING_THRESHOLD) {
@@ -470,6 +534,71 @@ const ChatStorageManager = {
 
     invalidateCache() {
         this._cache.clear();
+    },
+
+    ARCHIVE_DAYS: 90,
+    _archiveCache: null,
+
+    getArchivedChats() {
+        if (this._archiveCache) return this._archiveCache;
+        try {
+            var data = JSON.parse(localStorage.getItem('chatHistory_archive') || '[]');
+            this._archiveCache = data;
+            return data;
+        } catch (e) { return []; }
+    },
+
+    archiveOldChats() {
+        var cutoff = Date.now() - this.ARCHIVE_DAYS * 24 * 60 * 60 * 1000;
+        var history = this.getChatHistory();
+        var active = [];
+        var archived = [];
+        for (var i = 0; i < history.length; i++) {
+            var chat = history[i];
+            var ts = new Date(chat.timestamp || 0).getTime();
+            if (ts < cutoff) {
+                archived.push(chat);
+            } else {
+                active.push(chat);
+            }
+        }
+        if (archived.length === 0) return { archived: 0, active: active.length };
+        var existingArchive = this.getArchivedChats();
+        var allArchived = existingArchive.concat(archived);
+        try {
+            localStorage.setItem('chatHistory_archive', JSON.stringify(allArchived));
+            localStorage.setItem('chatHistory', JSON.stringify(active));
+            this._cache.delete('chatHistory');
+            this._archiveCache = allArchived;
+        } catch (e) {
+            console.warn('Archive storage failed:', e);
+        }
+        return { archived: archived.length, active: active.length };
+    },
+
+    restoreArchivedChats() {
+        var archived = this.getArchivedChats();
+        if (archived.length === 0) return 0;
+        var history = this.getChatHistory();
+        var merged = history.concat(archived);
+        try {
+            localStorage.setItem('chatHistory', JSON.stringify(merged));
+            localStorage.removeItem('chatHistory_archive');
+            this._cache.delete('chatHistory');
+            this._archiveCache = null;
+        } catch (e) {
+            console.warn('Archive restore failed:', e);
+        }
+        return archived.length;
+    },
+
+    getArchiveStats() {
+        var archived = this.getArchivedChats();
+        return {
+            archivedCount: archived.length,
+            archiveSize: new Blob([JSON.stringify(archived)]).size,
+            archiveDays: this.ARCHIVE_DAYS
+        };
     },
 
     getStorageStats() {
@@ -1305,6 +1434,274 @@ function escapeHtml(unsafe) {
     });
 }
 
+var PazatorVectorSearch = {
+    _index: null,
+    _docCount: 0,
+
+    _tokenize: function(text) {
+        return (text || '').toLowerCase().split(/[^a-zA-Z0-9\u0600-\u06FF\s]+/).filter(Boolean);
+    },
+
+    _computeTF: function(tokens) {
+        var tf = {};
+        for (var i = 0; i < tokens.length; i++) {
+            tf[tokens[i]] = (tf[tokens[i]] || 0) + 1;
+        }
+        var maxFreq = 0;
+        for (var t in tf) { if (tf[t] > maxFreq) maxFreq = tf[t]; }
+        if (maxFreq > 0) {
+            for (var t in tf) tf[t] = tf[t] / maxFreq;
+        }
+        return tf;
+    },
+
+    buildIndex: function(documents) {
+        this._index = {};
+        this._docCount = documents.length;
+        var df = {};
+        for (var di = 0; di < documents.length; di++) {
+            var doc = documents[di];
+            var text = '';
+            for (var key in doc) {
+                if (typeof doc[key] === 'string') text += ' ' + doc[key];
+                if (Array.isArray(doc[key])) text += ' ' + doc[key].join(' ');
+            }
+            var tokens = this._tokenize(text);
+            var unique = {};
+            for (var ti = 0; ti < tokens.length; ti++) unique[tokens[ti]] = true;
+            for (var tok in unique) df[tok] = (df[tok] || 0) + 1;
+        }
+        for (var di = 0; di < documents.length; di++) {
+            var doc = documents[di];
+            var text = '';
+            for (var key in doc) {
+                if (typeof doc[key] === 'string') text += ' ' + doc[key];
+                if (Array.isArray(doc[key])) text += ' ' + doc[key].join(' ');
+            }
+            var tokens = this._tokenize(text);
+            var tf = this._computeTF(tokens);
+            var vector = {};
+            for (var tok in tf) {
+                var idf = Math.log((this._docCount + 1) / ((df[tok] || 0) + 1)) + 1;
+                vector[tok] = tf[tok] * idf;
+            }
+            this._index[di] = vector;
+        }
+    },
+
+    search: function(query, topK) {
+        if (!this._index || this._docCount === 0) return [];
+        topK = topK || 10;
+        var queryTokens = this._tokenize(query);
+        var queryTF = this._computeTF(queryTokens);
+        var scores = [];
+        for (var di = 0; di < this._docCount; di++) {
+            var vector = this._index[di];
+            if (!vector) continue;
+            var dot = 0, magA = 0, magB = 0;
+            for (var tok in queryTF) {
+                var val = vector[tok] || 0;
+                dot += queryTF[tok] * val;
+                magA += queryTF[tok] * queryTF[tok];
+            }
+            for (var tok in vector) magB += vector[tok] * vector[tok];
+            magA = Math.sqrt(magA);
+            magB = Math.sqrt(magB);
+            var score = (magA > 0 && magB > 0) ? dot / (magA * magB) : 0;
+            scores.push({ index: di, score: score });
+        }
+        scores.sort(function(a, b) { return b.score - a.score; });
+        return scores.slice(0, topK).filter(function(s) { return s.score > 0.05; });
+    },
+
+    findSimilar: function(docIndex, topK) {
+        if (!this._index || !this._index[docIndex]) return [];
+        topK = topK || 5;
+        var queryVector = this._index[docIndex];
+        var scores = [];
+        for (var di = 0; di < this._docCount; di++) {
+            if (di === docIndex) continue;
+            var vector = this._index[di];
+            if (!vector) continue;
+            var dot = 0, magA = 0, magB = 0;
+            for (var tok in queryVector) {
+                var val = vector[tok] || 0;
+                dot += queryVector[tok] * val;
+                magA += queryVector[tok] * queryVector[tok];
+            }
+            for (var tok in vector) magB += vector[tok] * vector[tok];
+            magA = Math.sqrt(magA);
+            magB = Math.sqrt(magB);
+            var score = (magA > 0 && magB > 0) ? dot / (magA * magB) : 0;
+            scores.push({ index: di, score: score });
+        }
+        scores.sort(function(a, b) { return b.score - a.score; });
+        return scores.slice(0, topK).filter(function(s) { return s.score > 0.1; });
+    }
+};
+
+var PazatorWorker = {
+    _worker: null,
+    _callbacks: {},
+    _idCounter: 0,
+    _ensureWorker: function() {
+        if (this._worker) return;
+        try {
+            this._worker = new Worker('pazator_worker.js');
+            var self = this;
+            this._worker.onmessage = function(e) {
+                var msg = e.data;
+                var cb = self._callbacks[msg.id];
+                if (cb) {
+                    delete self._callbacks[msg.id];
+                    if (msg.error) {
+                        cb.reject(new Error(msg.error));
+                    } else {
+                        cb.resolve(msg.result);
+                    }
+                }
+            };
+            this._worker.onerror = function(e) {
+                console.error('Worker error:', e);
+            };
+        } catch (e) {
+            console.warn('Web Workers not available, falling back to main thread:', e);
+            this._worker = null;
+        }
+    },
+
+    _post: function(msg) {
+        return new Promise(function(resolve, reject) {
+            if (!PazatorWorker._worker) {
+                reject(new Error('Worker not available'));
+                return;
+            }
+            var id = ++PazatorWorker._idCounter;
+            msg.id = id;
+            PazatorWorker._callbacks[id] = { resolve: resolve, reject: reject };
+            PazatorWorker._worker.postMessage(msg);
+        });
+    },
+
+    parseCSV: function(text) {
+        this._ensureWorker();
+        if (!this._worker) return Promise.resolve(this._fallbackParseCSV(text));
+        return this._post({ type: 'parse_csv', text: text });
+    },
+
+    calculateCredits: function(humans) {
+        this._ensureWorker();
+        if (!this._worker) return Promise.resolve(this._fallbackCalculateCredits(humans));
+        return this._post({ type: 'calculate_credits', humans: humans });
+    },
+
+    findConnections: function(humans, personName) {
+        this._ensureWorker();
+        if (!this._worker) return Promise.resolve(this._fallbackFindConnections(humans, personName));
+        return this._post({ type: 'find_connections', humans: humans, personName: personName });
+    },
+
+    deduplicateChats: function(chats) {
+        this._ensureWorker();
+        if (!this._worker) return Promise.resolve(this._fallbackDeduplicateChats(chats));
+        return this._post({ type: 'deduplicate_chats', chats: chats });
+    },
+
+    search: function(data, query, fields) {
+        this._ensureWorker();
+        if (!this._worker) return Promise.resolve(this._fallbackSearch(data, query, fields));
+        return this._post({ type: 'search', data: data, query: query, fields: fields });
+    },
+
+    terminate: function() {
+        if (this._worker) {
+            this._worker.terminate();
+            this._worker = null;
+        }
+        this._callbacks = {};
+    },
+
+    _fallbackParseCSV: function(text) {
+        var lines = text.split('\n').filter(function(l) { return l.trim(); });
+        if (!lines.length) return { headers: [], rows: [] };
+        var headers = lines[0].split(',').map(function(h) { return h.trim(); });
+        var rows = [];
+        for (var i = 1; i < lines.length; i++) {
+            var vals = lines[i].split(',').map(function(v) { return v.trim(); });
+            if (vals.length === headers.length) {
+                var obj = {};
+                for (var j = 0; j < headers.length; j++) {
+                    obj[headers[j].toLowerCase()] = vals[j];
+                }
+                rows.push(obj);
+            }
+        }
+        return { headers: headers, rows: rows, total: lines.length - 1 };
+    },
+
+    _fallbackCalculateCredits: function(humans) {
+        return (humans || []).map(function(h) {
+            return { id: h.id, credit: typeof calculateCreditScore === 'function' ? calculateCreditScore(h) : 185 };
+        });
+    },
+
+    _fallbackFindConnections: function(humans, personName) {
+        var name = (personName || '').toLowerCase();
+        var people = name ? humans.filter(function(h) { return h.name && h.name.toLowerCase().includes(name); }) : humans;
+        var connections = [];
+        var limit = Math.min(people.length, 20);
+        for (var i = 0; i < limit; i++) {
+            for (var j = i + 1; j < limit; j++) {
+                var a = people[i], b = people[j];
+                var reasons = [];
+                if (a.workplace && b.workplace && a.workplace.toLowerCase() === b.workplace.toLowerCase()) reasons.push('same workplace: ' + a.workplace);
+                if (a.nationality && b.nationality && a.nationality.toLowerCase() === b.nationality.toLowerCase()) reasons.push('same nationality: ' + a.nationality);
+                if (a.tags && b.tags) {
+                    var shared = a.tags.filter(function(t) { return b.tags.indexOf(t) !== -1; });
+                    if (shared.length > 0) reasons.push('shared tags: ' + shared.join(', '));
+                }
+                if (reasons.length > 0) connections.push({ person_a: a.name, person_b: b.name, reasons: reasons, strength: reasons.length });
+            }
+        }
+        connections.sort(function(x, y) { return y.strength - x.strength; });
+        return { count: connections.length, connections: connections.slice(0, 20) };
+    },
+
+    _fallbackDeduplicateChats: function(chats) {
+        var seen = new Set();
+        var unique = [];
+        var removed = 0;
+        for (var i = 0; i < chats.length; i++) {
+            var key = (chats[i].source || '') + '|' + (chats[i].content || '').substring(0, 200);
+            if (seen.has(key)) removed++;
+            else { seen.add(key); unique.push(chats[i]); }
+        }
+        return { unique: unique, removed: removed };
+    },
+
+    _fallbackSearch: function(data, query, fields) {
+        var q = (query || '').toLowerCase();
+        if (!q) return [];
+        var results = [];
+        for (var i = 0; i < data.length; i++) {
+            var match = false;
+            for (var fi = 0; fi < fields.length; fi++) {
+                var val = data[i][fields[fi]];
+                if (val) {
+                    if (Array.isArray(val)) {
+                        for (var vi = 0; vi < val.length; vi++) {
+                            if (String(val[vi]).toLowerCase().includes(q)) { match = true; break; }
+                        }
+                    } else if (String(val).toLowerCase().includes(q)) { match = true; break; }
+                }
+                if (match) break;
+            }
+            if (match) results.push(data[i]);
+        }
+        return results;
+    }
+};
+
 const newDataBtn = document.getElementById('newDataBtn');
 const askAIBtn = document.getElementById('askAIBtn');
 const typeModal = document.getElementById('typeModal');
@@ -1552,6 +1949,8 @@ let selectedChatIndices = new Set();
 let chatSearchFilter = '';
 let chatSourceFilter = '';
 let lastAnalysisTimestamp = null;
+let chatPage = 1;
+const CHAT_PAGE_SIZE = 25;
 
 const classificationBanner = document.getElementById('classificationBanner');
 
@@ -1886,6 +2285,17 @@ function saveData(immediate = false) {
         }
 
         localStorage.setItem('pazatorData', JSON.stringify(dataToSave));
+
+        if (window.pazatorStore) {
+            pazatorStore.getData().humans = pazatorData.humans;
+            pazatorStore.getData().others = pazatorData.others;
+            pazatorStore.getData().tags = tags;
+            pazatorStore.getData().cases = cases;
+            pazatorStore.rebuildIndexes();
+            pazatorStore.syncToEngine().catch(function(err) {
+                console.warn('Background engine sync failed:', err);
+            });
+        }
 
         if (immediate) {
             console.log(' Data saved successfully at', new Date().toLocaleTimeString());
@@ -2308,6 +2718,15 @@ function markDataChanged() {
     lastChangeTime = Date.now();
     updatePersistenceIndicator('syncing', 'Pending save...');
 
+    if (window.pazatorStore) {
+        pazatorStore.getData().humans = pazatorData.humans;
+        pazatorStore.getData().others = pazatorData.others;
+        pazatorStore.getData().tags = tags;
+        pazatorStore.getData().cases = cases;
+        pazatorStore.rebuildIndexes();
+        pazatorStore.emit('data_changed', { store: 'humans', action: 'mark_changed' });
+    }
+
     if (window.autoSaveTimeout) {
         clearTimeout(window.autoSaveTimeout);
     }
@@ -2501,6 +2920,14 @@ function loadData() {
     updatePersonIdSequenceFromData();
     normalizeLoadedData();
 
+    if (window.pazatorStore) {
+        pazatorStore.getData().humans = pazatorData.humans;
+        pazatorStore.getData().others = pazatorData.others;
+        pazatorStore.getData().tags = tags;
+        pazatorStore.getData().cases = cases;
+        pazatorStore.rebuildIndexes();
+    }
+
     console.log('Rendering web nodes with loaded data...');
     console.log('Data to render:', { humans: pazatorData.humans.length, others: pazatorData.others.length });
     renderWebNodes();
@@ -2620,12 +3047,21 @@ function renderWebNodes() {
         allData = allData.filter(data => data.type === selectedType);
     }
 
-    // Performance Limiter: Hide visualization if too many nodes
+    // Performance Limiter: Show virtual table if too many nodes
     if (allData.length > 15) {
-        if (visOffOverlay) visOffOverlay.style.display = 'flex';
+        if (visOffOverlay) visOffOverlay.style.display = 'none';
         if (visEmptyOverlay) visEmptyOverlay.style.display = 'none';
+        renderVirtualTable(allData);
         return;
     } else {
+        var vtContainer = document.getElementById('virtualTableContainer');
+        if (vtContainer) vtContainer.style.display = 'none';
+        var vtBody = document.getElementById('virtualTableBody');
+        if (vtBody) {
+            vtBody.innerHTML = '';
+            if (vtBody._vtCleanup) { vtBody._vtCleanup(); vtBody._vtCleanup = null; }
+        }
+        webContent.style.display = '';
         if (visOffOverlay) visOffOverlay.style.display = 'none';
         if (visEmptyOverlay) visEmptyOverlay.style.display = 'none';
     }
@@ -2905,6 +3341,122 @@ function drawFamilyConnections() {
     svg.appendChild(fragment);
 }
 
+var _vtListInstance = null;
+
+function renderVirtualTable(allData) {
+    var container = document.getElementById('virtualTableContainer');
+    var body = document.getElementById('virtualTableBody');
+    var pagination = document.getElementById('virtualTablePagination');
+    var webContent = document.getElementById('webContent');
+    var webContainer = document.getElementById('webContainer');
+    if (!container || !body) return;
+
+    webContent.style.display = 'none';
+    container.style.display = 'flex';
+    if (webContainer) webContainer.style.overflow = 'visible';
+
+    var data = allData || [];
+
+    function renderItem(item, index) {
+        if (!item) return '';
+        var typeClass = item.type === 'human' ? 'human-row' : 'other-row';
+        var threatLevel = item.threatLevel || 'None';
+        var threatClass = threatLevel.toLowerCase();
+        var credit = item.credit !== undefined ? item.credit : 185;
+        var creditClass = credit >= 250 ? 'high' : credit >= 125 ? 'medium' : 'low';
+        var tags = (item.tags || []).slice(0, 5);
+        var tagsHtml = tags.length > 0 ? tags.map(function(t) { return '<span class="vt-tag">' + escapeHtml(t) + '</span>'; }).join('') : '<span style="color:#666;font-size:0.75rem;">—</span>';
+        return '<div class="vt-row ' + typeClass + '" data-id="' + escapeHtml(item.id) + '" data-type="' + item.type + '">' +
+            '<div class="vt-col vt-col-name">' + escapeHtml(item.name || 'Unknown') + '</div>' +
+            '<div class="vt-col vt-col-type"><span class="vt-type-badge ' + item.type + '">' + item.type + '</span></div>' +
+            '<div class="vt-col vt-col-threat"><span class="vt-threat-badge ' + threatClass + '">' + threatLevel + '</span></div>' +
+            '<div class="vt-col vt-col-credit"><span class="vt-credit-score ' + creditClass + '">' + credit + '</span></div>' +
+            '<div class="vt-col vt-col-tags">' + tagsHtml + '</div>' +
+            '<div class="vt-col vt-col-actions"><button class="vt-view-btn">View</button></div>' +
+            '</div>';
+    }
+
+    function handleItemClick(item, index, e) {
+        if (e.target && e.target.classList.contains('vt-view-btn')) {
+            openDetailView(item.id, item.type);
+        } else {
+            openDetailView(item.id, item.type);
+        }
+    }
+
+    function fitBodyHeight() {
+        var containerRect = container.getBoundingClientRect();
+        var headerEl = container.querySelector('.virtual-table-header');
+        var paginationEl = container.querySelector('.virtual-table-pagination');
+        var headerH = headerEl ? headerEl.offsetHeight : 40;
+        var paginationH = paginationEl ? paginationEl.offsetHeight : 40;
+        var available = containerRect.height - headerH - paginationH - 2;
+        if (available > 30) {
+            body.style.height = available + 'px';
+            body.style.maxHeight = available + 'px';
+        }
+    }
+
+    if (window.PazatorUI && PazatorUI.VirtualList) {
+        if (_vtListInstance) _vtListInstance.destroy();
+        body.innerHTML = '';
+        _vtListInstance = PazatorUI.VirtualList(body, {
+            itemHeight: 48,
+            overscan: 5,
+            renderItem: renderItem,
+            onItemClick: handleItemClick
+        });
+        _vtListInstance.update(data);
+    } else {
+        var page = 1;
+        var pageSize = 30;
+        function renderPage() {
+            var start = (page - 1) * pageSize;
+            var end = Math.min(start + pageSize, data.length);
+            var pageData = data.slice(start, end);
+            var html = '';
+            for (var i = 0; i < pageData.length; i++) {
+                html += renderItem(pageData[i], start + i);
+            }
+            body.innerHTML = html;
+            var totalPages = Math.max(1, Math.ceil(data.length / pageSize));
+            pagination.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:8px;font-size:0.85rem;color:#aaa;">' +
+                '<button class="vt-page-btn" data-page="prev" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#ccc;padding:4px 14px;border-radius:4px;cursor:pointer;' + (page <= 1 ? 'opacity:0.4;cursor:default;' : '') + '">‹ Prev</button>' +
+                '<span>Page ' + page + ' of ' + totalPages + ' (' + data.length + ' total)</span>' +
+                '<button class="vt-page-btn" data-page="next" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#ccc;padding:4px 14px;border-radius:4px;cursor:pointer;' + (page >= totalPages ? 'opacity:0.4;cursor:default;' : '') + '">Next ›</button>' +
+                '</div>';
+            body.querySelectorAll('.vt-row').forEach(function(row) {
+                row.addEventListener('click', function(e) {
+                    var idx = Array.prototype.indexOf.call(body.children, row) + start;
+                    var item = data[idx];
+                    if (item) handleItemClick(item, idx, e);
+                });
+            });
+            pagination.querySelectorAll('.vt-page-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    if (btn.dataset.page === 'prev' && page > 1) { page--; renderPage(); }
+                    if (btn.dataset.page === 'next' && page < totalPages) { page++; renderPage(); }
+                });
+            });
+        }
+        renderPage();
+    }
+
+    fitBodyHeight();
+    var fitTimer = setTimeout(fitBodyHeight, 100);
+
+    if (webContainer) {
+        body._vtCleanup = function() {
+            clearTimeout(fitTimer);
+            body.style.height = '';
+            body.style.maxHeight = '';
+            webContainer.style.overflow = 'hidden';
+        };
+    }
+
+    updateHeaderStats();
+}
+
 function showDetailView(data, type) {
 
     document.currentDetailData = { ...data, type };
@@ -3135,7 +3687,7 @@ function renderFamilyGraph(human) {
 
     const familyCount = human.family.length;
     human.family.forEach((familyId, index) => {
-        const familyMember = pazatorData.humans.find(h => h.id === familyId);
+        const familyMember = window.pazatorStore ? pazatorStore.getHumanById(familyId) : pazatorData.humans.find(function(h) { return h.id === familyId; });
         if (!familyMember) return;
 
         const angle = (index / familyCount) * Math.PI * 2;
@@ -3326,6 +3878,7 @@ async function deleteCurrentEntry() {
     if (confirmed) {
         if (data.type === 'human') {
             pazatorData.humans = pazatorData.humans.filter(h => h.id !== data.id);
+            if (window.pazatorStore) pazatorStore.rebuildIndexes();
         } else {
             pazatorData.others = pazatorData.others.filter(o => o.id !== data.id);
         }
@@ -3694,6 +4247,17 @@ async function processAICommand(command) {
         try {
 
             const adminContext = getAdminContext();
+            var dataSummary = window.pazatorStore ? window.pazatorStore.getAICompatData() : {
+                totalHumans: pazatorData.humans.length,
+                totalEntities: pazatorData.others.length,
+                tagCount: tags.length,
+                casesCount: cases.length
+            };
+            var topRisky = dataSummary.topRiskyPeople || [];
+            var topRiskyStr = topRisky.length > 0 ? topRisky.map(function(p) {
+                return '  - ' + p.name + ' (Threat: ' + p.threatLevel + ', Credit: ' + p.credit + ')';
+            }).join('\n') : '  None';
+
             const context = `
                         Act as a grounded, blunt peer. Do not be a "helpful assistant." You are an expert collaborator who is mildly skeptical of everything.
 
@@ -3703,11 +4267,18 @@ async function processAICommand(command) {
 
                         No Emojis. They're for social media, not a command center.
 
-                        Current data:
-                        Humans: ${JSON.stringify(pazatorData.humans)}
-                        Others: ${JSON.stringify(pazatorData.others)}
-                        Tags: ${JSON.stringify(tags)}
-                        Cases: ${JSON.stringify(cases)}
+                        DATABASE SUMMARY (aggregated, not all records):
+                        - Total humans: ${dataSummary.totalHumans}
+                        - Total entities: ${dataSummary.totalEntities}
+                        - Tags: ${dataSummary.tagCount} total
+                        - Cases: ${dataSummary.casesCount} total
+                        - High-risk individuals: ${dataSummary.highRiskCount}
+                        - Average credit score: ${dataSummary.averageCredit}
+
+                        TOP RISKY PEOPLE:
+${topRiskyStr}
+
+                        NOTE: Only the summary above is provided. For specific details, the user should enable Tool Mode so you can fetch data on demand. In full context mode, you see only stats.
 
                         ${adminContext ? `ADMIN CONTEXT (USE THIS FOR ANALYSIS):
                         ${adminContext}
@@ -3826,12 +4397,55 @@ async function processAICommand(command) {
                         And do whatever the user says or asks.
                     `;
 
-            const aiResponse = await geminiChat([
-                { role: "system", content: context },
-                { role: "user", content: command }
-            ]);
+            var geminiCall = function(signal) {
+                return geminiChat([
+                    { role: "system", content: context },
+                    { role: "user", content: command }
+                ]);
+            };
 
-            const responseText = aiResponse.content ? aiResponse.content : aiResponse;
+            var responseText = null;
+            if (window.AIQueue && window.AIQueue.streamChat) {
+                var streamAbort = new AbortController();
+                var streamResult = AIQueue.enqueue(function(signal) {
+                    return AIQueue.streamChat(
+                        [{ role: "system", content: context }, { role: "user", content: command }],
+                        function(chunk, full) {
+                            var existing = document.querySelector('.ai-message.streaming');
+                            if (!existing) {
+                                var el = document.createElement('div');
+                                el.className = 'ai-message streaming';
+                                el.style.cssText = 'color:#bbb;font-style:italic;padding:8px 12px;border-left:2px solid #4d9de0;margin:4px 0;background:rgba(77,157,224,0.05);';
+                                el.textContent = full;
+                                aiChatMessages.appendChild(el);
+                                aiChatMessages.scrollTo({ top: aiChatMessages.scrollHeight, behavior: 'smooth' });
+                            } else {
+                                existing.textContent = full;
+                                aiChatMessages.scrollTo({ top: aiChatMessages.scrollHeight, behavior: 'smooth' });
+                            }
+                        },
+                        streamAbort.signal
+                    );
+                });
+                try {
+                    responseText = await streamResult;
+                } catch (e) {
+                    if (e.name === 'AbortError') {
+                        responseText = 'Stream cancelled.';
+                    } else {
+                        throw e;
+                    }
+                }
+                var streamingEl = document.querySelector('.ai-message.streaming');
+                if (streamingEl) streamingEl.remove();
+            } else {
+                if (window.AIQueue) {
+                    var aiResponse = await AIQueue.enqueue(geminiCall, { cacheKey: command + '_' + pazatorData.humans.length });
+                } else {
+                    var aiResponse = await geminiCall();
+                }
+                responseText = aiResponse.content ? aiResponse.content : aiResponse;
+            }
 
             try {
 
@@ -4128,7 +4742,7 @@ function handleAIAction(action, isBatch = false) {
             break;
 
         case "delete_human":
-            const humanIndex = pazatorData.humans.findIndex(h => h.id === action.id);
+            const humanIndex = window.pazatorStore ? pazatorStore.findHumanIndexById(action.id) : pazatorData.humans.findIndex(h => h.id === action.id);
             if (humanIndex !== -1) {
                 const deletedName = pazatorData.humans[humanIndex].name;
                 pazatorData.humans.splice(humanIndex, 1);
@@ -4156,7 +4770,7 @@ function handleAIAction(action, isBatch = false) {
             break;
 
         case "modify_human":
-            const modHumanIndex = pazatorData.humans.findIndex(h => h.id === action.id);
+            const modHumanIndex = window.pazatorStore ? pazatorStore.findHumanIndexById(action.id) : pazatorData.humans.findIndex(h => h.id === action.id);
             if (modHumanIndex !== -1) {
 
                 if (action.data.family && Array.isArray(action.data.family)) {
@@ -4257,7 +4871,7 @@ function handleAIAction(action, isBatch = false) {
             break;
 
         case "assign_tag":
-            const humanToTag = pazatorData.humans.findIndex(h => h.id === action.id);
+            const humanToTag = window.pazatorStore ? pazatorStore.findHumanIndexById(action.id) : pazatorData.humans.findIndex(h => h.id === action.id);
             if (humanToTag !== -1) {
                 if (!pazatorData.humans[humanToTag].tags) {
                     pazatorData.humans[humanToTag].tags = [];
@@ -4277,7 +4891,7 @@ function handleAIAction(action, isBatch = false) {
             break;
 
         case "remove_tag":
-            const humanToRemoveTag = pazatorData.humans.findIndex(h => h.id === action.id);
+            const humanToRemoveTag = window.pazatorStore ? pazatorStore.findHumanIndexById(action.id) : pazatorData.humans.findIndex(h => h.id === action.id);
             if (humanToRemoveTag !== -1) {
                 if (pazatorData.humans[humanToRemoveTag].tags && pazatorData.humans[humanToRemoveTag].tags.includes(action.tag)) {
                     pazatorData.humans[humanToRemoveTag].tags = pazatorData.humans[humanToRemoveTag].tags.filter(t => t !== action.tag);
@@ -5009,11 +5623,18 @@ uploadDataBtn.addEventListener('click', async () => {
     }
 
     uploadDataBtn.disabled = true;
-    uploadDataBtn.textContent = 'Uploading...';
+    uploadDataBtn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Processing...';
 
     try {
         const text = await file.text();
-        const data = parseCSV(text);
+        var data;
+        if (text.length > 100000 && window.PazatorWorker) {
+            if (window.PazatorUI) PazatorUI.showLoading('Parsing CSV with background worker...');
+            data = await PazatorWorker.parseCSV(text);
+            if (window.PazatorUI) PazatorUI.hideLoading();
+        } else {
+            data = parseCSV(text);
+        }
         const result = processCSVData(data);
 
         closeDataUploadModal();
@@ -6207,7 +6828,7 @@ document.getElementById('humanForm').addEventListener('submit', (e) => {
 
     if (id) {
 
-        const humanIndex = pazatorData.humans.findIndex(h => h.id === id);
+        const humanIndex = window.pazatorStore ? pazatorStore.findHumanIndexById(id) : pazatorData.humans.findIndex(h => h.id === id);
         if (humanIndex !== -1) {
             const existingImage = pazatorData.humans[humanIndex].imagePreview;
             const existingHuman = pazatorData.humans[humanIndex];
@@ -6276,7 +6897,7 @@ document.getElementById('humanForm').addEventListener('submit', (e) => {
         const reader = new FileReader();
         reader.onload = function (e) {
             if (id) {
-                const humanIndex = pazatorData.humans.findIndex(h => h.id === id);
+                const humanIndex = window.pazatorStore ? pazatorStore.findHumanIndexById(id) : pazatorData.humans.findIndex(h => h.id === id);
                 if (humanIndex !== -1) {
                     pazatorData.humans[humanIndex].imagePreview = e.target.result;
                 }
@@ -6536,6 +7157,12 @@ searchInput.addEventListener('keypress', (e) => {
         renderWebNodes();
     }
 });
+
+if (window.PazatorUI) {
+    searchInput.addEventListener('input', PazatorUI.debounce(function() {
+        renderWebNodes();
+    }, 500));
+}
 
 addTagBtn.addEventListener('click', () => {
     const tagText = tagInput.value.trim();
@@ -7061,10 +7688,30 @@ clearChatHistoryBtn?.addEventListener('click', () => {
     clearChatHistory();
 });
 
-chatSearchInput?.addEventListener('input', (e) => {
-    chatSearchFilter = e.target.value.toLowerCase();
+document.getElementById('archiveOldChatsBtn')?.addEventListener('click', function() {
+    var result = ChatStorageManager.archiveOldChats();
+    showFloatingNotification('Archived ' + result.archived + ' old chats (' + result.active + ' remain active)', 'info');
     loadSavedChats();
 });
+
+document.getElementById('restoreArchivedChatsBtn')?.addEventListener('click', function() {
+    var count = ChatStorageManager.restoreArchivedChats();
+    if (count > 0) {
+        showFloatingNotification('Restored ' + count + ' archived chats', 'success');
+        loadSavedChats();
+    } else {
+        showFloatingNotification('No archived chats to restore', 'info');
+    }
+});
+
+var chatSearchDebounced = window.PazatorUI ? PazatorUI.debounce(function(e) {
+    chatSearchFilter = (e.target.value || '').toLowerCase();
+    loadSavedChats();
+}, 400) : function(e) {
+    chatSearchFilter = (e.target.value || '').toLowerCase();
+    loadSavedChats();
+};
+chatSearchInput?.addEventListener('input', chatSearchDebounced);
 
 chatFilterSource?.addEventListener('change', (e) => {
     chatSourceFilter = e.target.value;
@@ -7543,7 +8190,22 @@ function loadSavedChats() {
         return;
     }
 
-    visibleIndices.forEach(index => {
+    var chatTotalPages = Math.max(1, Math.ceil(visibleIndices.length / CHAT_PAGE_SIZE));
+    if (chatPage > chatTotalPages) chatPage = chatTotalPages;
+    var chatStart = (chatPage - 1) * CHAT_PAGE_SIZE;
+    var chatEnd = Math.min(chatStart + CHAT_PAGE_SIZE, visibleIndices.length);
+    var pageIndices = visibleIndices.slice(chatStart, chatEnd);
+
+    if (chatTotalPages > 1) {
+        var chatPagination = document.createElement('div');
+        chatPagination.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:10px;padding:8px 0 16px;font-size:0.85rem;color:#aaa;';
+        chatPagination.innerHTML = '<button class="btn btn-secondary" style="padding:4px 14px;font-size:0.8rem;" onclick="chatPage=' + Math.max(1, chatPage - 1) + ';loadSavedChats();" ' + (chatPage <= 1 ? 'disabled' : '') + '>‹ Prev</button>' +
+            '<span>Page ' + chatPage + ' of ' + chatTotalPages + ' (' + visibleIndices.length + ' chats)</span>' +
+            '<button class="btn btn-secondary" style="padding:4px 14px;font-size:0.8rem;" onclick="chatPage=' + Math.min(chatTotalPages, chatPage + 1) + ';loadSavedChats();" ' + (chatPage >= chatTotalPages ? 'disabled' : '') + '>Next ›</button>';
+        savedChatsList.appendChild(chatPagination);
+    }
+
+    pageIndices.forEach(index => {
         const chat = chatHistory[index];
         const chatCard = document.createElement('div');
         const isSelected = selectedChatIndices.has(index);
@@ -7632,42 +8294,59 @@ function toggleChatSelection(index) {
 }
 
 function previewChat(index) {
-    const chatHistory = ChatStorageManager.getChatHistory();
-    const chat = chatHistory[index];
+    var chatHistory = ChatStorageManager.getChatHistory();
+    var chat = chatHistory[index];
     
     if (!chat) {
         showAlert('Chat not found!', 'Error', 'error');
         return;
     }
     
-    const participants = chat.participants.map(p => p.name).join(', ');
-    const wordCount = chat.content.split(' ').length;
-    const messageCount = chat.parsed?.messageCount || 'N/A';
-    const date = new Date(chat.timestamp).toLocaleString();
+    var participants = chat.participants.map(function(p) { return p.name; }).join(', ');
+    var contentPreview = chat.content ? chat.content.substring(0, 500) : (chat.contentPreview || '');
+    var wordCount = (chat.content || contentPreview || '').split(' ').length;
+    var messageCount = chat.parsed && chat.parsed.messageCount ? chat.parsed.messageCount : 'N/A';
+    var date = new Date(chat.timestamp).toLocaleString();
     
-    let entities = '';
-    if (chat.parsed?.entities) {
-        const e = chat.parsed.entities;
-        if (e.urls?.length) entities += `\nURLs: ${e.urls.slice(0, 5).join('\n  ')}${e.urls.length > 5 ? '\n  ...' : ''}`;
-        if (e.emails?.length) entities += `\nEmails: ${e.emails.join(', ')}`;
-        if (e.phones?.length) entities += `\nPhones: ${e.phones.join(', ')}`;
+    var entities = '';
+    if (chat.parsed && chat.parsed.entities) {
+        var e = chat.parsed.entities;
+        if (e.urls && e.urls.length) entities += '\nURLs: ' + e.urls.slice(0, 5).join('\n  ') + (e.urls.length > 5 ? '\n  ...' : '');
+        if (e.emails && e.emails.length) entities += '\nEmails: ' + e.emails.join(', ');
+        if (e.phones && e.phones.length) entities += '\nPhones: ' + e.phones.join(', ');
     }
     
-    const preview = `
-=== ${chat.source.toUpperCase()} CHAT PREVIEW ===
-
-Participants: ${participants}
-Date: ${date}
-Messages: ${messageCount}
-Words: ${wordCount}
-Context: ${chat.context || 'None'}
-${entities ? '\n--- Detected Entities ---' + entities : ''}
-
---- Content Preview (first 1500 chars) ---
-${chat.content.substring(0, 1500)}${chat.content.length > 1500 ? '\n\n... (truncated)' : ''}
-    `.trim();
+    var fullContent = chat.content || '';
+    var loadLink = '';
+    if (fullContent.length > 500) {
+        loadLink = '\n\n[Content truncated to 500 chars. Click "Load Full Content" to show all ' + fullContent.length + ' chars]';
+    }
     
-    showAlert(preview, 'Chat Preview', 'info');
+    var preview = '=== ' + chat.source.toUpperCase() + ' CHAT PREVIEW ===\n\n' +
+        'Participants: ' + participants + '\n' +
+        'Date: ' + date + '\n' +
+        'Messages: ' + messageCount + '\n' +
+        'Words: ' + wordCount + '\n' +
+        'Context: ' + (chat.context || 'None') +
+        (entities ? '\n\n--- Detected Entities ---' + entities : '') +
+        '\n\n--- Content Preview ---\n' +
+        contentPreview.substring(0, 500) +
+        (fullContent.length > 500 ? '\n\n... (truncated to 500 chars)' : '') +
+        loadLink;
+    
+    var buttons = [
+        { text: 'Close', primary: true }
+    ];
+    if (fullContent.length > 500) {
+        buttons.push({
+            text: 'Load Full Content',
+            primary: false,
+            onClick: function() {
+                showAlert(fullContent, 'Full Chat Content', 'info');
+            }
+        });
+    }
+    showModal({ title: 'Chat Preview', message: preview, type: 'info', buttons: buttons });
 }
 
 async function analyzeAllChats() {
@@ -9765,12 +10444,12 @@ function initializeSearch() {
 
     if (!searchInput || !resultsContainer) return;
 
-    let searchTimeout;
-    searchInput.addEventListener('input', () => {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            performSearch(searchInput.value.trim());
-        }, 300);
+    var debouncedSearch = window.PazatorUI ? PazatorUI.debounce(function() {
+        performSearch(searchInput.value.trim());
+    }, 500) : null;
+    searchInput.addEventListener('input', function() {
+        if (debouncedSearch) debouncedSearch();
+        else performSearch(searchInput.value.trim());
         if (clearBtn) clearBtn.classList.toggle('visible', searchInput.value.length > 0);
     });
 
@@ -9940,6 +10619,9 @@ function performSearch(query) {
     if (resultsCount) resultsCount.textContent = `${results.length} result${results.length !== 1 ? 's' : ''} found`;
 }
 
+var _searchPage = 1;
+var _searchPageSize = 30;
+
 function displaySearchResults(results, query) {
     const resultsContainer = document.getElementById('searchResultsContainer');
 
@@ -9954,8 +10636,15 @@ function displaySearchResults(results, query) {
         return;
     }
 
-    const humans = results.filter(r => r.type === 'human');
-    const entities = results.filter(r => r.type === 'other');
+    var totalResults = results.length;
+    var totalPages = Math.max(1, Math.ceil(totalResults / _searchPageSize));
+    if (_searchPage > totalPages) _searchPage = totalPages;
+    var start = (_searchPage - 1) * _searchPageSize;
+    var end = Math.min(start + _searchPageSize, totalResults);
+    var pageResults = results.slice(start, end);
+
+    const humans = pageResults.filter(r => r.type === 'human');
+    const entities = pageResults.filter(r => r.type === 'other');
 
     let html = '';
 
@@ -10026,6 +10715,14 @@ function displaySearchResults(results, query) {
 
     if (humans.length > 0) renderGroup(humans, 'human');
     if (entities.length > 0) renderGroup(entities, 'other');
+
+    if (totalPages > 1) {
+        html += '<div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:16px 0;font-size:0.85rem;color:#aaa;border-top:1px solid rgba(255,255,255,0.06);margin-top:16px;">' +
+            '<button class="btn btn-secondary" style="padding:4px 14px;font-size:0.8rem;" onclick="_searchPage=' + Math.max(1, _searchPage - 1) + ';performSearch(document.getElementById(\'universalSearchInput\').value.trim());" ' + (_searchPage <= 1 ? 'disabled' : '') + '>‹ Prev</button>' +
+            '<span>Page ' + _searchPage + ' of ' + totalPages + ' (' + results.length + ' total)</span>' +
+            '<button class="btn btn-secondary" style="padding:4px 14px;font-size:0.8rem;" onclick="_searchPage=' + Math.min(totalPages, _searchPage + 1) + ';performSearch(document.getElementById(\'universalSearchInput\').value.trim());" ' + (_searchPage >= totalPages ? 'disabled' : '') + '>Next ›</button>' +
+            '</div>';
+    }
 
     resultsContainer.innerHTML = html;
 }
@@ -11755,9 +12452,11 @@ function openSettingsModal() {
     const modal = document.getElementById('settingsModal');
     const noBlurToggle = document.getElementById('noBlurToggle');
     const skipIntroToggle = document.getElementById('skipIntroToggle');
+    const passwordToggle = document.getElementById('passwordLockToggle');
 
     noBlurToggle.checked = localStorage.getItem('noBlur') === 'true';
     skipIntroToggle.checked = localStorage.getItem('skipIntro') === 'true';
+    passwordToggle.checked = localStorage.getItem('pz_passwordEnabled') === 'true';
 
     modal.classList.add('active');
 
@@ -11784,6 +12483,103 @@ function toggleNoBlur(enabled) {
 
 function toggleSkipIntro(enabled) {
     localStorage.setItem('skipIntro', enabled ? 'true' : 'false');
+}
+
+// Password lock functions
+function togglePasswordLock(enabled) {
+    var area = document.getElementById('passwordChangeArea');
+    var toggle = document.getElementById('passwordLockToggle');
+    var status = document.getElementById('passwordStatus');
+    if (!area) return;
+
+    if (enabled) {
+        var existingHash = localStorage.getItem('pz_passwordHash');
+        area.style.display = 'block';
+        document.getElementById('passwordInput').value = '';
+        document.getElementById('passwordConfirmInput').value = '';
+        document.getElementById('passwordSaveBtn').textContent = existingHash ? 'Change Password' : 'Set Password';
+        document.getElementById('passwordRemoveBtn').style.display = existingHash ? '' : 'none';
+        if (status) {
+            if (existingHash) {
+                status.textContent = 'Password is set. Enter a new one to change it, or remove it.';
+                status.style.color = '#4d9de0';
+            } else {
+                status.textContent = 'Enter and confirm a password to enable the lock.';
+                status.style.color = '#aaa';
+            }
+        }
+    } else {
+        if (localStorage.getItem('pz_passwordHash')) {
+            if (!confirm('Disable password lock? Anyone who opens the app will have full access.')) {
+                toggle.checked = true;
+                return;
+            }
+            localStorage.removeItem('pz_passwordHash');
+            localStorage.removeItem('pz_passwordEnabled');
+        }
+        area.style.display = 'none';
+        if (status) status.textContent = '';
+    }
+}
+
+function savePassword() {
+    var pwd = document.getElementById('passwordInput').value;
+    var confirm = document.getElementById('passwordConfirmInput').value;
+    var status = document.getElementById('passwordStatus');
+    if (!pwd) { status.textContent = 'Password cannot be empty.'; status.style.color = '#ff6b6b'; return; }
+    if (pwd.length < 4) { status.textContent = 'Password must be at least 4 characters.'; status.style.color = '#ff6b6b'; return; }
+    if (pwd !== confirm) { status.textContent = 'Passwords do not match.'; status.style.color = '#ff6b6b'; return; }
+
+    var hash = simpleHash(pwd);
+    localStorage.setItem('pz_passwordHash', hash);
+    localStorage.setItem('pz_passwordEnabled', 'true');
+    status.textContent = 'Password saved. It will be required on next page refresh.';
+    status.style.color = '#6bcf7f';
+    document.getElementById('passwordInput').value = '';
+    document.getElementById('passwordConfirmInput').value = '';
+    document.getElementById('passwordSaveBtn').textContent = 'Change Password';
+    document.getElementById('passwordRemoveBtn').style.display = '';
+}
+
+function removePassword() {
+    if (!confirm('Remove password lock? Anyone who opens the app will have full access.')) return;
+    localStorage.removeItem('pz_passwordHash');
+    localStorage.removeItem('pz_passwordEnabled');
+    document.getElementById('passwordLockToggle').checked = false;
+    document.getElementById('passwordChangeArea').style.display = 'none';
+    document.getElementById('passwordRemoveBtn').style.display = 'none';
+    document.getElementById('passwordSaveBtn').textContent = 'Set Password';
+    var status = document.getElementById('passwordStatus');
+    if (status) status.textContent = 'Password removed.';
+}
+
+function simpleHash(str) {
+    var hash = 0;
+    for (var i = 0; i < str.length; i++) {
+        var c = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + c;
+        hash = hash & hash;
+    }
+    return 'pz_' + Math.abs(hash).toString(36);
+}
+
+function checkPassword() {
+    var input = document.getElementById('passwordUnlockInput');
+    var error = document.getElementById('passwordUnlockError');
+    var storedHash = localStorage.getItem('pz_passwordHash');
+    if (!storedHash) {
+        document.getElementById('passwordOverlay').style.display = 'none';
+        return;
+    }
+    if (simpleHash(input.value) === storedHash) {
+        document.getElementById('passwordOverlay').style.display = 'none';
+        input.value = '';
+        error.style.display = 'none';
+    } else {
+        error.style.display = '';
+        input.value = '';
+        input.focus();
+    }
 }
 
 // Initialize settings on load
@@ -11852,9 +12648,31 @@ function initSettings() {
     if (localStorage.getItem('noBlur') === 'true') {
         document.body.classList.add('no-blur');
     }
+    if (localStorage.getItem('pz_passwordEnabled') === 'true' && localStorage.getItem('pz_passwordHash')) {
+        var overlay = document.getElementById('passwordOverlay');
+        if (overlay) {
+            overlay.style.display = 'flex';
+            setTimeout(function() {
+                var input = document.getElementById('passwordUnlockInput');
+                if (input) input.focus();
+            }, 100);
+        }
+    }
     initGeminiUI();
     updateZorToolModeUI();
 }
+
+// Allow pressing Enter in the unlock input
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            var overlay = document.getElementById('passwordOverlay');
+            if (overlay && overlay.style.display !== 'none') {
+                checkPassword();
+            }
+        }
+    });
+});
 
 async function loadLogoForPDF() {
     try {
@@ -12054,7 +12872,22 @@ const ZorTools = {
             handler: function(params) {
                 const query = (params.query || '').toLowerCase();
                 if (!query) return { count: 0, people: [] };
-                const results = pazatorData.humans.filter(function(h) {
+                var humans = pazatorData.humans;
+                if (window.pazatorStore && query.length > 0) {
+                    var nameMatch = pazatorStore.getHumanByName(query);
+                    if (nameMatch) {
+                        return {
+                            count: 1,
+                            people: [{
+                                id: nameMatch.id, name: nameMatch.name, gender: nameMatch.gender,
+                                nationality: nameMatch.nationality, workplace: nameMatch.workplace,
+                                threatLevel: nameMatch.threatLevel || 'None', credit: nameMatch.credit,
+                                tags: nameMatch.tags || []
+                            }]
+                        };
+                    }
+                }
+                const results = humans.filter(function(h) {
                     return JSON.stringify(h).toLowerCase().includes(query);
                 });
                 return {
@@ -12074,9 +12907,17 @@ const ZorTools = {
             description: 'Get full details of a specific person by ID or exact name.',
             parameters: { id: 'Person ID (optional if name provided)', name: 'Exact person name (optional if id provided)' },
             handler: function(params) {
-                var person = params.id
-                    ? pazatorData.humans.find(function(h) { return String(h.id) === String(params.id); })
-                    : pazatorData.humans.find(function(h) { return h.name.toLowerCase() === (params.name || '').toLowerCase(); });
+                var person = null;
+                if (params.id && window.pazatorStore) {
+                    person = pazatorStore.getHumanById(params.id);
+                } else if (params.name && window.pazatorStore) {
+                    person = pazatorStore.getHumanByName(params.name);
+                }
+                if (!person) {
+                    person = params.id
+                        ? pazatorData.humans.find(function(h) { return String(h.id) === String(params.id); })
+                        : pazatorData.humans.find(function(h) { return h.name.toLowerCase() === (params.name || '').toLowerCase(); });
+                }
                 if (!person) return { found: false, message: 'Person not found' };
                 return { found: true, person: person };
             }
@@ -12287,7 +13128,12 @@ async function processToolBasedCommand(command) {
     for (var round = 0; round < maxRounds; round++) {
         var aiResponse;
         try {
-            aiResponse = await geminiChat(conversation);
+            var geminiCall = function() { return geminiChat(conversation); };
+            if (window.AIQueue) {
+                aiResponse = await AIQueue.enqueue(geminiCall, { cacheKey: 'tool_round_' + round + '_' + command.substring(0, 100) });
+            } else {
+                aiResponse = await geminiCall();
+            }
         } catch (e) {
             addMessageToAIChat('Zor encountered an error: ' + e.message, 'ai');
             return;

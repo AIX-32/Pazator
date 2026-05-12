@@ -61,7 +61,6 @@
     * {
         margin: 0;
         padding: 0;
-        border-radius: 7px !important;
         box-sizing: border-box;
         transition:
             background-color 0.3s var(--transition-smooth),
@@ -70,6 +69,62 @@
             box-shadow 0.3s var(--transition-smooth),
             opacity 0.3s var(--transition-smooth),
             filter 0.3s var(--transition-smooth);
+    }
+
+    /* Standard 7px rounding for UI containers */
+    .panel, .main-panel, .side-panel, .bottom-panel,
+    .btn, .btn-enhanced, .btn-action, .btn-primary, .btn-secondary, button,
+    input:not([type="range"]):not([type="radio"]):not([type="checkbox"]), select, textarea, .form-control,
+    .modal-content, .settings-modal-content, .clean-modal-content,
+    .sidebar-section, .sidebar-section-header, .sidebar-action-item, .sidebar-secondary-actions, .quick-action-row,
+    .dropdown-menu, .dropdown-item,
+    .search-card, .search-result-card, .quick-action-card,
+    .chat-card, .ai-message, .context-card,
+    .detail-section, .profile-section, .stat-item,
+    .data-node, .node-label, .connection-item,
+    .tracker-people-list, .tracker-person-item, .tracker-settings-menu,
+    .intel-card, .intel-finding, .intel-action-item,
+    .case-card, .cases-sidebar, .cases-main,
+    .analysis-card, .analysis-action-card,
+    .finding-item, .security-issue-item,
+    .ai-chat-history-panel, .ai-chat-content,
+    .virtual-table-container,
+    .canvas-stats, .canvas-controls, .control-btn,
+    .family-graph-container,
+    .credit-eval-content,
+    .password-overlay-input-row input,
+    .zor-waiting-game,
+    .settings-group, .settings-header,
+    .tastur-rule-item, .dastur-mini-btn,
+    .tool-card, .chat-stat, .chat-metrics,
+    .threats-card, .threat-action-card,
+    .intel-results,
+    .credit-eval-results, .credit-eval-current, .credit-eval-stat,
+    .analysis-tools-section, .analysis-tool-item,
+    .about-card, .classification-preview,
+    .sidebar-input, .sidebar-select, .sidebar-apply-btn,
+    .tag-input, .ai-config-input, .ai-config-select,
+    .input-wrapper,
+    .tracker-location-info, .tracker-map-controls,
+    .case-timeline-section, .case-entities-section,
+    .entity-picker-item,
+    .ai-import-dropzone, .ai-import-file-item, .ai-import-options,
+    .web-container,
+    .account-greeting,
+    .gemini-status,
+    .logo-dropdown-menu, .logo-dropdown-item,
+    .search-input-wrap, .search-bar-input,
+    .connection-label,
+    .graph-node {
+        border-radius: 7px;
+    }
+
+    /* No rounding for media, maps, and sliders */
+    img, canvas, svg,
+    input[type="range"], progress,
+    .tracker-crosshair::before, .tracker-crosshair::after,
+    ::-webkit-scrollbar {
+        border-radius: 0 !important;
     }
 
     body {
@@ -123,7 +178,7 @@
         overflow: hidden;
         width: 100vw;
         min-height: 0;
-        height: 100%;
+        position: relative;
     }
 
     .container.threats-split {
@@ -750,20 +805,20 @@
     }
 
     .tab-content {
-        flex: 1;
         display: none;
         padding: 0;
         overflow: hidden;
-        height: 100%;
         min-height: 0;
     }
 
     .tab-content.active {
+        position: absolute;
+        inset: 0;
         display: flex;
         flex-direction: column;
-        animation: fadeIn 0.4s ease;
+        overflow: hidden;
         min-height: 0;
-        height: 100%;
+        animation: fadeIn 0.4s ease;
     }
 
     /* === SEARCH TAB REDESIGN === */
@@ -6103,11 +6158,14 @@
     .cases-layout {
         display: grid;
         grid-template-columns: 320px 1fr;
+        grid-template-rows: 1fr;
         gap: 12px;
         flex: 1;
         min-height: 0;
         overflow: hidden;
         padding: 12px;
+        height: 100%;
+        max-height: 100%;
     }
 
     .cases-sidebar {
@@ -6278,6 +6336,7 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        min-height: 0;
         background: var(--card-bg);
         border: 1px solid var(--border-color);
         border-radius: 12px;
@@ -6410,6 +6469,7 @@
         flex: 1;
         display: grid;
         grid-template-columns: 320px 1fr;
+        grid-template-rows: 1fr;
         gap: 20px;
         overflow: hidden;
     }
@@ -6905,6 +6965,131 @@
     body.no-blur .ai-chat-modal,
     body.no-blur .introOverlay,
     body.no-blur * {
+        backdrop-filter: none !important;
+    }
+
+    /* Password Lock Overlay */
+    .password-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 99999;
+        background: #0a0a0a;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-end;
+        padding: 0 0 120px 80px;
+        box-sizing: border-box;
+    }
+
+    .password-overlay::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(ellipse at 20% 80%, rgba(77, 157, 224, 0.06) 0%, transparent 60%);
+        pointer-events: none;
+    }
+
+    .password-overlay-content {
+        position: relative;
+        z-index: 1;
+        text-align: left;
+        max-width: 420px;
+    }
+
+    .password-overlay-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        color: #555;
+        margin-bottom: 8px;
+    }
+
+    .password-overlay h2 {
+        font-size: 2rem;
+        font-weight: 300;
+        color: #fff;
+        margin: 0 0 6px;
+        letter-spacing: 0.5px;
+    }
+
+    .password-overlay-sub {
+        color: #666;
+        font-size: 0.9rem;
+        margin: 0 0 28px;
+    }
+
+    .password-overlay-input-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .password-overlay-input-row input {
+        width: 260px;
+        padding: 12px 16px;
+        background: #141414;
+        border: 1px solid #333;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 1.2rem;
+        letter-spacing: 4px;
+        outline: none;
+        transition: border-color 0.15s;
+    }
+
+    .password-overlay-input-row input:focus {
+        border-color: #4d9de0;
+    }
+
+    .password-overlay-input-row input::placeholder {
+        letter-spacing: 0;
+        font-size: 0.9rem;
+        color: #444;
+    }
+
+    .password-overlay-input-row button {
+        padding: 12px 28px;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 8px;
+        color: #ccc;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .password-overlay-input-row button:hover {
+        background: rgba(255,255,255,0.12);
+        color: #fff;
+    }
+
+    .password-overlay-error {
+        color: #ff6b6b;
+        font-size: 0.85rem;
+        margin-top: 12px;
+        display: none;
+    }
+
+    .password-overlay-footer {
+        position: absolute;
+        bottom: 24px;
+        left: 80px;
+        z-index: 1;
+    }
+
+    .password-overlay-footer small {
+        color: #333;
+        font-size: 0.7rem;
+    }
+
+    body.no-blur .password-overlay {
         backdrop-filter: none !important;
     }
 
@@ -8051,4 +8236,174 @@
 
     .zor-waiting-game .game-start-btn:active {
         transform: scale(0.98);
+    }
+
+    .virtual-table-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+        background: rgba(0,0,0,0.15);
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .virtual-table-header {
+        display: flex;
+        align-items: center;
+        padding: 10px 16px;
+        background: rgba(255,255,255,0.04);
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #999;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        flex-shrink: 0;
+    }
+
+    .virtual-table-body {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .vt-row {
+        display: flex;
+        align-items: center;
+        padding: 8px 16px;
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+        cursor: pointer;
+        transition: background 0.15s;
+        font-size: 0.9rem;
+        min-height: 40px;
+    }
+
+    .vt-row:hover {
+        background: rgba(255,255,255,0.06);
+    }
+
+    .vt-row.human-row {
+        border-left: 3px solid #4d9de0;
+    }
+
+    .vt-row.other-row {
+        border-left: 3px solid #6bcf7f;
+    }
+
+    .vt-col {
+        padding: 0 8px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .vt-col-name { flex: 2; }
+    .vt-col-type { flex: 1; }
+    .vt-col-threat { flex: 1; }
+    .vt-col-credit { flex: 0.8; }
+    .vt-col-tags { flex: 2; }
+    .vt-col-actions { flex: 1; text-align: right; }
+
+    .vt-threat-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .vt-threat-badge.critical { background: rgba(255,0,0,0.25); color: #ff4444; }
+    .vt-threat-badge.high { background: rgba(255,107,107,0.2); color: #ff6b6b; }
+    .vt-threat-badge.medium { background: rgba(255,217,61,0.2); color: #ffd93d; }
+    .vt-threat-badge.low { background: rgba(77,157,224,0.2); color: #4d9de0; }
+    .vt-threat-badge.none { background: rgba(107,207,127,0.15); color: #6bcf7f; }
+
+    .vt-credit-score {
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .vt-credit-score.high { color: #6bcf7f; }
+    .vt-credit-score.medium { color: #ffd93d; }
+    .vt-credit-score.low { color: #ff6b6b; }
+
+    .vt-tag {
+        display: inline-block;
+        padding: 1px 6px;
+        margin: 1px 2px;
+        background: rgba(255,255,255,0.08);
+        border-radius: 4px;
+        font-size: 0.75rem;
+        color: #bbb;
+    }
+
+    .vt-type-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .vt-type-badge.human { background: rgba(77,157,224,0.2); color: #4d9de0; }
+    .vt-type-badge.other { background: rgba(107,207,127,0.2); color: #6bcf7f; }
+
+    .vt-view-btn {
+        background: rgba(255,255,255,0.08);
+        border: none;
+        color: #ccc;
+        padding: 4px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: background 0.15s;
+    }
+
+    .vt-view-btn:hover {
+        background: rgba(255,255,255,0.15);
+        color: #fff;
+    }
+
+    .virtual-table-pagination {
+        flex-shrink: 0;
+        border-top: 1px solid rgba(255,255,255,0.06);
+        background: rgba(0,0,0,0.1);
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255,255,255,0.1);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .pagination-bar {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        padding: 15px;
+    }
+
+    .pagination-bar button {
+        padding: 6px 12px;
+        background: #2a2a2a;
+        border: 1px solid #444;
+        border-radius: 6px;
+        color: #ddd;
+        cursor: pointer;
+    }
+
+    .pagination-bar button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
     }

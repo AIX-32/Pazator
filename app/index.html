@@ -11,6 +11,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="pazator_db.js"></script>
+    <script src="pazator_engine.js"></script>
+    <script src="pazator_store.js"></script>
+    <script src="pazator_ui.js"></script>
     <link rel="stylesheet" href="stylez.css">
     <style>
         #introOverlay {
@@ -296,6 +299,18 @@
                     </div>
                     <div class="web-container" id="webContainer">
                         <div class="web-content" id="webContent">
+                        </div>
+                        <div id="virtualTableContainer" class="virtual-table-container" style="display:none;">
+                            <div class="virtual-table-header">
+                                <div class="vt-col vt-col-name">Name</div>
+                                <div class="vt-col vt-col-type">Type</div>
+                                <div class="vt-col vt-col-threat">Threat</div>
+                                <div class="vt-col vt-col-credit">Credit</div>
+                                <div class="vt-col vt-col-tags">Tags</div>
+                                <div class="vt-col vt-col-actions">Actions</div>
+                            </div>
+                            <div id="virtualTableBody" class="virtual-table-body" style="flex:1;overflow-y:auto;"></div>
+                            <div id="virtualTablePagination" class="virtual-table-pagination"></div>
                         </div>
                         <div id="visOffOverlay" class="vis-overlay" style="display: none;">
                             <div class="vis-overlay-content">
@@ -659,6 +674,22 @@
                                     <p>No conversations archived yet</p>
                                     <small>Upload chat data to begin monitoring</small>
                                 </div>
+                            </div>
+                        </div>
+
+                        <div class="chat-card" style="border-color: rgba(77, 157, 224, 0.3);">
+                            <div class="chat-card-header">
+                                <div class="chat-indicator" style="background: #4d9de0;"></div>
+                                <h3 style="color: #4d9de0;">Archive</h3>
+                            </div>
+                            <p style="color: #888; margin-bottom: 15px; font-size: 0.9rem;">Old chats (90+ days) can be archived to save memory</p>
+                            <div style="display:flex;gap:10px;">
+                                <button id="archiveOldChatsBtn" class="btn btn-secondary" style="flex:1;">
+                                    <i class="fas fa-archive"></i> Archive Old
+                                </button>
+                                <button id="restoreArchivedChatsBtn" class="btn btn-secondary" style="flex:1;">
+                                    <i class="fas fa-undo"></i> Restore
+                                </button>
                             </div>
                         </div>
 
@@ -2261,7 +2292,44 @@
                         <i class="fas fa-question-circle"></i> Show Walkthrough
                     </button>
                 </div>
+                <div class="settings-group" style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;margin-top:4px;">
+                    <label class="settings-toggle">
+                        <span>Password Lock</span>
+                        <input type="checkbox" id="passwordLockToggle" onchange="togglePasswordLock(this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <p class="settings-desc" style="color:#ff6b6b;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Not truly secure.</strong> The password is stored in your browser's localStorage — it's a simple client-side lock that stops casual snooping. Anyone with access to your computer can bypass it by clearing site data or inspecting the source. Do not rely on this for sensitive data.
+                    </p>
+                    <div id="passwordChangeArea" style="display:none;margin-top:8px;padding:8px;background:rgba(0,0,0,0.2);border-radius:6px;">
+                        <input type="password" id="passwordInput" placeholder="Enter new password" style="width:100%;padding:8px 10px;background:#1a1a1a;border:1px solid #444;border-radius:4px;color:#fff;font-size:0.85rem;margin-bottom:6px;box-sizing:border-box;">
+                        <input type="password" id="passwordConfirmInput" placeholder="Confirm new password" style="width:100%;padding:8px 10px;background:#1a1a1a;border:1px solid #444;border-radius:4px;color:#fff;font-size:0.85rem;margin-bottom:6px;box-sizing:border-box;">
+                        <div style="display:flex;gap:6px;">
+                            <button id="passwordSaveBtn" class="btn btn-primary" style="flex:1;padding:8px;font-size:0.8rem;" onclick="savePassword()">Set Password</button>
+                            <button id="passwordRemoveBtn" class="btn btn-secondary" style="flex:1;padding:8px;font-size:0.8rem;display:none;" onclick="removePassword()">Remove Password</button>
+                        </div>
+                        <div id="passwordStatus" style="font-size:0.75rem;margin-top:4px;color:#aaa;"></div>
+                    </div>
+                </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Password Lock Overlay -->
+    <div id="passwordOverlay" class="password-overlay" style="display:none;">
+        <div class="password-overlay-content">
+            <div class="password-overlay-label">Protected</div>
+            <h2>Pazator is locked</h2>
+            <p class="password-overlay-sub">Enter your password to access the app</p>
+            <div class="password-overlay-input-row">
+                <input type="password" id="passwordUnlockInput" placeholder="Password" autocomplete="off">
+                <button onclick="checkPassword()">Unlock</button>
+            </div>
+            <div id="passwordUnlockError" class="password-overlay-error">Incorrect password</div>
+        </div>
+        <div class="password-overlay-footer">
+            <small>Check settings.</small>
         </div>
     </div>
 
@@ -2319,6 +2387,7 @@
     <script src="https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="pazator_gemini.js"></script>
+    <script src="pazator_ai.js"></script>
     <script src="scriptz.js"></script>
     <script src="tastur.js"></script>
     <script src="pazator_context.js"></script>
