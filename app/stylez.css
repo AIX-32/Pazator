@@ -1459,144 +1459,46 @@
         flex: 1;
         display: flex;
         min-height: 0;
-        padding: 0;
+        padding: 12px;
         align-items: stretch;
-    }
-
-    #tracker-tab .tracker-panel {
-        flex: 1;
-        display: flex;
-        min-height: 0;
-        border-radius: 0;
-        overflow: hidden;
-        border: none;
-        background: #000;
-        box-shadow: none;
-    }
-
-    .tracker-sidebar {
-        width: 300px;
-        max-width: 300px;
-        background: linear-gradient(180deg, rgba(26, 26, 26, 0.92) 0%, rgba(21, 21, 21, 0.92) 100%);
-        border-right: 1px solid rgba(255, 255, 255, 0.08);
-        display: flex;
-        flex-direction: column;
-        padding: 16px;
         gap: 12px;
+    }
+
+    .tracker-sidebar.side-panel {
+        border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-left: none !important;
         transition: width 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    }
-
-    .tracker-sidebar-header {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .tracker-config-btn {
-        align-self: flex-start;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        background: rgba(255, 255, 255, 0.04);
-        color: rgba(255, 255, 255, 0.78);
-        padding: 8px 12px;
-        border-radius: 10px;
-        font-size: 0.78rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        font-weight: 800;
-        letter-spacing: 0.7px;
-        text-transform: uppercase;
-    }
-
-    .tracker-config-btn:hover {
-        border-color: #3a3a3a;
-        color: var(--text-primary);
-        background: rgba(255, 255, 255, 0.08);
     }
 
     .tracker-sidebar.collapsed {
-        width: 0;
-        padding: 0;
+        width: 0 !important;
+        min-width: 0 !important;
+        padding: 0 !important;
         opacity: 0;
         pointer-events: none;
-        border: none;
+        border: none !important;
+        overflow: hidden;
     }
 
-    .tracker-sidebar-header h3 {
-        margin: 0;
-        font-size: 0.95rem;
-        color: rgba(255, 255, 255, 0.92);
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        font-weight: 900;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-    }
-
-    .tracker-sidebar-header p {
-        margin: 4px 0 0;
-        color: rgba(255, 255, 255, 0.55);
-        font-size: 0.78rem;
-    }
-
-    .tracker-sync-actions {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .tracker-sync-actions label {
-        font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.62);
-        font-weight: 800;
-        letter-spacing: 0.8px;
-        text-transform: uppercase;
-    }
-
-    .tracker-select-row {
-        display: flex;
-        gap: 10px;
-    }
-
-    .tracker-select-row select {
+    #tracker-tab .tracker-map-area {
         flex: 1;
-        background: transparent;
-        border: none;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.14);
-        border-radius: 0;
-        color: rgba(255, 255, 255, 0.9);
-        padding: 10px 0;
-        font-size: 0.9rem;
+        position: relative;
+        min-height: 0;
+        background: #000;
+        border-radius: 7px;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 8px 32px var(--shadow-color);
     }
 
-    .tracker-select-row .btn {
-        padding: 9px 12px;
-        border-radius: 10px;
-        font-size: 0.85rem;
-    }
-
-    .tracker-search label {
-        display: block;
-        font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.62);
-        font-weight: 800;
-        letter-spacing: 0.8px;
-        text-transform: uppercase;
-        margin-bottom: 6px;
-    }
-
-    .tracker-search input.form-control {
-        background: transparent;
-        border: none;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.14);
-        border-radius: 0;
-        padding: 10px 0;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    }
-
-    .tracker-search input.form-control:focus {
-        border-bottom-color: rgba(255, 255, 255, 0.28);
+    .tracker-sidebar.collapsed {
+        width: 0 !important;
+        min-width: 0 !important;
+        padding: 0 !important;
+        opacity: 0;
+        pointer-events: none;
+        border: none !important;
+        overflow: hidden;
     }
 
     .tracker-people-list {
@@ -1703,14 +1605,6 @@
         background: rgba(31, 58, 130, 0.4);
     }
 
-    .tracker-sidebar-footer {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        padding-top: 10px;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
     .tracker-map-area {
         flex: 1;
         position: relative;
@@ -1761,9 +1655,31 @@
         z-index: 2;
     }
 
+    .tracker-map-controls {
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        display: flex;
+        gap: 4px;
+        z-index: 20;
+        pointer-events: none;
+        background: rgba(20, 20, 20, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 7px;
+        padding: 4px 6px;
+        backdrop-filter: blur(6px);
+    }
+
+    .tracker-map-controls > * {
+        pointer-events: auto;
+    }
+
     .tracker-crosshair {
         position: absolute;
-        inset: 0;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 10;
         pointer-events: none;
         display: flex;
         justify-content: center;
@@ -1813,21 +1729,37 @@
 
     .tracker-map-overlay {
         position: absolute;
-        top: 10px;
-        left: 10px;
-        right: 10px;
+        top: 12px;
+        left: 12px;
+        right: 12px;
         display: flex;
         justify-content: space-between;
+        align-items: center;
         z-index: 20;
         gap: 10px;
         pointer-events: none;
+        background: rgba(20, 20, 20, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 7px;
+        padding: 6px 12px;
+        backdrop-filter: blur(6px);
+    }
+
+    .tracker-overlay-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: rgba(255, 255, 255, 0.35);
+        pointer-events: auto;
+        text-transform: uppercase;
     }
 
     .tracker-map-overlay-right {
         display: flex;
         justify-content: flex-end;
-        gap: 10px;
+        gap: 4px;
         pointer-events: auto;
+        align-items: center;
     }
 
     .tracker-map-overlay > * {
@@ -1898,38 +1830,34 @@
     }
 
     .tracker-map-button {
-        border-radius: 999px;
-        font-size: 0.78rem;
-        padding: 8px 12px;
-        min-width: 0;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        gap: 6px;
-        box-shadow: none;
-        letter-spacing: 0.8px;
-        text-transform: uppercase;
-        font-weight: 800;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    }
-
-    .tracker-map-button.active {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+        padding: 6px 14px;
+        border-radius: 6px;
+        transition: all 0.15s ease;
+        font-family: inherit;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.6);
+        cursor: pointer;
+        font-size: 0.8rem;
+        white-space: nowrap;
     }
 
     .tracker-map-button:hover {
-        transform: translateY(-1px);
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: #fff;
     }
 
-    .tracker-label-toggle {
-        border-color: #3a3a3a !important;
-        background: linear-gradient(145deg, #2a2a2a, #252525) !important;
-        color: var(--text-secondary);
+    .tracker-map-button.active,
+    .tracker-label-toggle.active {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.25);
     }
 
     .tracker-label-toggle.active {
-        border-color: #ffd93d !important;
-        background: linear-gradient(145deg, #3a3a3a, #2b2b2b) !important;
-        color: #ffd93d;
+        color: #ffd93d !important;
+        background: rgba(255, 217, 61, 0.1) !important;
     }
 
     /* Cleaner, less "UI app" map controls */

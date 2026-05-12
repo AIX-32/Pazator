@@ -278,6 +278,10 @@
                     <i class="fas fa-circle-info"></i>
                     <span>About</span>
                 </div>
+                <div class="logo-dropdown-item" id="walkthroughOption">
+                    <i class="fas fa-question-circle"></i>
+                    <span>Walkthrough</span>
+                </div>
             </div>
         </div>
     </div>
@@ -1166,54 +1170,70 @@
 
         <div class="tab-content" id="tracker-tab">
             <div class="tracker-tab">
-                <div class="tracker-panel">
-                        <div class="tracker-sidebar" id="trackerSidebar">
-                            <div class="tracker-sidebar-header">
-                                <h3>Shahed Tracker</h3>
-                                <p>Live locations from the secure tracker</p>
-                            <button id="trackerConfigureBtn" class="btn glass-btn tracker-config-btn">Configure
-                                tracker server</button>
+                <div class="side-panel tracker-sidebar" id="trackerSidebar">
+                        <div class="sidebar-section sidebar-mini">
+                            <div class="sidebar-section-header">
+                                <i class="fas fa-location-crosshairs"></i>
+                                <h3>SHAHED Tracker</h3>
                             </div>
-                            <div class="tracker-sync-actions">
-                                <label for="trackerHumanSelect">Connect Pazator person</label>
-                                <div class="tracker-select-row">
-                                    <select id="trackerHumanSelect">
-                                        <option value="">Select a human</option>
-                                    </select>
-                                    <button class="btn btn-primary" id="trackerConnectBtn">Show</button>
-                                </div>
-                            <button class="btn glass-btn" id="trackerRefreshBtn" style="width: 100%;">Refresh
-                                tracker</button>
-                            </div>
-                            <div class="tracker-search">
-                                <label for="trackerPeopleSearch">Search tracker people</label>
-                                <input id="trackerPeopleSearch" class="form-control" type="search"
-                                    placeholder="Search…" autocomplete="off" spellcheck="false">
-                            </div>
-                            <div class="tracker-people-list" id="trackerPeopleList">
-                                <div class="tracker-placeholder">Tracker data will appear here.</div>
-                            </div>
-                            <div class="tracker-location-info" id="trackerLocationInfo">
-                                Last known position will appear here once you select someone.
+                            <p style="margin: 0 0 10px 0; color: #888; font-size: 0.8rem;">Live locations from the secure tracker</p>
+                            <button id="trackerConfigureBtn" class="btn glass-btn" style="width: 100%; padding: 10px; font-size: 0.8rem;">Configure tracker server</button>
                         </div>
-                        <div class="tracker-sidebar-footer">
-                            <button class="btn glass-btn" id="trackerPurgeBtn"><i
-                                    class="fas fa-exclamation-triangle"></i> Purge tracker records</button>
+
+                        <div class="sidebar-section sidebar-mini">
+                            <div class="sidebar-section-header">
+                                <i class="fas fa-link"></i>
+                                <h3>Connect Person</h3>
+                            </div>
+                            <label for="trackerHumanSelect" style="font-size: 0.75rem; color: #888; display: block; margin-bottom: 6px;">Link a tracker profile to a Pazator person</label>
+                            <div style="display: flex; gap: 8px;">
+                                <select id="trackerHumanSelect" style="flex: 1; background: rgba(20,20,20,0.6); border: 1px solid #333; color: #ddd; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
+                                    <option value="">Select a human</option>
+                                </select>
+                                <button class="btn btn-primary" id="trackerConnectBtn" style="padding: 8px 12px; font-size: 0.8rem;">Show</button>
+                            </div>
+                            <button class="btn glass-btn" id="trackerRefreshBtn" style="width: 100%; margin-top: 8px; padding: 8px; font-size: 0.8rem;"><i class="fas fa-sync"></i> Refresh tracker</button>
+                        </div>
+
+                        <div class="sidebar-section sidebar-mini">
+                            <div class="sidebar-section-header">
+                                <i class="fas fa-search"></i>
+                                <h3>Search</h3>
+                            </div>
+                            <input id="trackerPeopleSearch" class="form-control" type="search"
+                                placeholder="Search people…" autocomplete="off" spellcheck="false" style="background: rgba(20,20,20,0.6); border: 1px solid #333; color: #ddd; padding: 8px 10px; border-radius: 6px; font-size: 0.85rem; width: 100%;">
+                        </div>
+
+                        <div class="sidebar-section sidebar-mini" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                            <div class="sidebar-section-header">
+                                <i class="fas fa-users"></i>
+                                <h3>People</h3>
+                            </div>
+                            <div class="tracker-people-list" id="trackerPeopleList" style="flex: 1; overflow-y: auto; background: rgba(20,20,20,0.35); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
+                                <div style="text-align: center; color: #666; padding: 30px 0; font-size: 0.85rem;">Tracker data will appear here.</div>
+                            </div>
+                            <div class="tracker-location-info" id="trackerLocationInfo" style="margin-top: 8px; background: rgba(20,20,20,0.35); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 10px; font-size: 0.85rem; color: #888; min-height: 60px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;">
+                                Last known position will appear here once you select someone.
+                            </div>
+                        </div>
+
+                        <div class="sidebar-section sidebar-mini">
+                            <button class="btn glass-btn" id="trackerSetupGuideBtn" style="width: 100%; margin-bottom: 8px; padding: 9px; font-size: 0.8rem;"><i class="fas fa-book"></i> How to setup server</button>
+                            <button class="btn glass-btn" id="trackerPurgeBtn" style="width: 100%; padding: 9px; font-size: 0.8rem;"><i class="fas fa-exclamation-triangle"></i> Purge tracker records</button>
                         </div>
                     </div>
                     <div class="tracker-map-area">
                         <div class="tracker-map-overlay">
-                            <button id="trackerToggleSidebarBtn" class="tracker-map-button">hide sidebar</button>
-                            <button id="trackerSpinToggleBtn" class="tracker-map-button active">Pause spin</button>
+                            <span class="tracker-overlay-title">SHAHED</span>
                             <div class="tracker-map-overlay-right">
-                                <button id="streetLabelToggle" class="tracker-map-button tracker-label-toggle">Show
-                                    street names</button>
-                                <button id="trackerFilterToggle" class="tracker-map-button tracker-label-toggle">Show
-                                    filter</button>
+                                <button id="trackerToggleSidebarBtn" class="tracker-map-button">Hide sidebar</button>
+                                <button id="trackerSpinToggleBtn" class="tracker-map-button active">Pause spin</button>
+                                <button id="streetLabelToggle" class="tracker-map-button tracker-label-toggle">Show street names</button>
+                                <button id="trackerFilterToggle" class="tracker-map-button tracker-label-toggle">Show filter</button>
                                 <div class="tracker-settings-wrapper">
-                                    <button id="trackerSettingsBtn" class="tracker-map-button tracker-label-toggle"
+                                    <button id="trackerSettingsBtn" class="tracker-map-button"
                                         title="Settings" aria-haspopup="true" aria-expanded="false">
-                                        <i class="fas fa-cog"></i>
+                                        Settings
                                     </button>
                                     <div id="trackerSettingsMenu" class="tracker-settings-menu" role="menu"
                                         aria-label="Tracker settings">
@@ -1234,6 +1254,11 @@
                         <div id="trackerMap" class="tracker-map"></div>
                         <div class="tracker-crosshair" aria-hidden="true">
                             <span></span>
+                        </div>
+                        <div class="tracker-map-controls">
+                            <button id="trackerAngleBtn" class="tracker-map-button">Angle</button>
+                            <button id="trackerTopDownBtn" class="tracker-map-button">Top Down</button>
+                            <button id="trackerResetViewBtn" class="tracker-map-button">Reset</button>
                         </div>
                         <div class="tracker-debug" id="trackerDebug">ready</div>
                     </div>
@@ -2231,6 +2256,11 @@
                     </label>
                     <p class="settings-desc">Skip the intro video on next load</p>
                 </div>
+                <div class="settings-group">
+                    <button id="settingsWalkthroughBtn" class="btn btn-primary btn-full" style="margin-top: 10px; padding: 12px; font-size: 0.9rem;">
+                        <i class="fas fa-question-circle"></i> Show Walkthrough
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -2246,6 +2276,9 @@
                 introOverlay.classList.add('fade-out');
                 setTimeout(function() {
                     introOverlay.classList.add('hidden');
+                    if (window.tryAutoStartWalkthrough) {
+                        window.tryAutoStartWalkthrough();
+                    }
                 }, 400);
             }
             
@@ -2261,6 +2294,11 @@
             
             if (localStorage.getItem('skipIntro') === 'true') {
                 introOverlay.classList.add('hidden');
+                setTimeout(function() {
+                    if (window.tryAutoStartWalkthrough) {
+                        window.tryAutoStartWalkthrough();
+                    }
+                }, 200);
             } else {
                 introVideo.addEventListener('ended', function() {
                     skipIntro();
@@ -2284,6 +2322,111 @@
     <script src="scriptz.js"></script>
     <script src="tastur.js"></script>
     <script src="pazator_context.js"></script>
+    <script src="walkthrough.js"></script>
+    <script>
+        (function() {
+            var wtOption = document.getElementById('walkthroughOption');
+            if (wtOption) {
+                wtOption.addEventListener('click', function() {
+                    if (window.startPazatorWalkthrough) {
+                        window.startPazatorWalkthrough();
+                    }
+                    var menu = document.getElementById('logoDropdownMenu');
+                    if (menu) menu.classList.remove('active');
+                });
+            }
+            var settingsBtn = document.getElementById('settingsWalkthroughBtn');
+            if (settingsBtn) {
+                settingsBtn.addEventListener('click', function() {
+                    var modal = document.getElementById('settingsModal');
+                    if (modal) modal.classList.remove('active');
+                    if (window.startPazatorWalkthrough) {
+                        window.startPazatorWalkthrough();
+                    }
+                });
+            }
+            var setupGuideBtn = document.getElementById('trackerSetupGuideBtn');
+            if (setupGuideBtn) {
+                setupGuideBtn.addEventListener('click', function() {
+                    if (window.showModal) {
+                        window.showModal({
+                            title: 'SHAHED Server Setup',
+                            type: 'info',
+                            html:
+                                '<div style="text-align: left; line-height: 1.8;">' +
+                                '<p style="margin-bottom: 16px; color: #ccc;">SHAHED requires a <strong>Supabase</strong> backend with a <code>locations</code> table. Below is the exact schema you need to create:</p>' +
+                                '<div style="background: #111; border: 1px solid #333; border-radius: 8px; padding: 16px; margin-bottom: 16px; font-family: monospace; font-size: 13px; color: #6bcf7f; overflow-x: auto;">' +
+                                'CREATE TABLE locations (<br>' +
+                                '&nbsp;&nbsp;id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,<br>' +
+                                '&nbsp;&nbsp;name TEXT NOT NULL,<br>' +
+                                '&nbsp;&nbsp;latitude DOUBLE PRECISION NOT NULL,<br>' +
+                                '&nbsp;&nbsp;longitude DOUBLE PRECISION NOT NULL,<br>' +
+                                '&nbsp;&nbsp;ip TEXT,<br>' +
+                                '&nbsp;&nbsp;user_agent TEXT,<br>' +
+                                '&nbsp;&nbsp;created_at TIMESTAMPTZ DEFAULT NOW()<br>' +
+                                ');' +
+                                '</div>' +
+                                '<p style="margin-bottom: 12px; color: #ccc;">Required columns: <strong>name</strong>, <strong>latitude</strong>, <strong>longitude</strong>. Optional: <strong>ip</strong>, <strong>user_agent</strong>, <strong>timestamp</strong>.</p>' +
+                                '<p style="margin-bottom: 12px; color: #ccc;">The mobile sender at <code style="color: #4d9de0;">/mobile/</code> sends GPS coordinates + IP + user agent. You can also insert data manually or via your own system.</p>' +
+                                '<p style="margin-bottom: 12px; color: #ccc;">After creating the table, enter your Supabase URL and anon key in the <strong>Configure tracker server</strong> dialog.</p>' +
+                                '<p style="color: #888; font-size: 12px; border-top: 1px solid #333; padding-top: 12px;">The app can also read optional fields from tracker records: <code>ip_address</code>, <code>server</code>, <code>region</code>, <code>country</code>, <code>device</code>, <code>platform</code>, <code>speed</code>, <code>heading</code>.</p>' +
+                                '</div>',
+                            buttons: [
+                                { text: 'Got it', primary: true }
+                            ]
+                        });
+                    } else {
+                        alert('SHAHED requires a Supabase backend with a "locations" table containing: name, latitude, longitude, ip, user_agent, created_at.');
+                    }
+                });
+            }
+
+            var angleBtn = document.getElementById('trackerAngleBtn');
+            var topDownBtn = document.getElementById('trackerTopDownBtn');
+            var resetBtn = document.getElementById('trackerResetViewBtn');
+
+            if (angleBtn) {
+                angleBtn.addEventListener('click', function() {
+                    var map = typeof trackerMap !== 'undefined' ? trackerMap : null;
+                    if (!map) return;
+                    var currentPitch = map.getPitch();
+                    var newPitch = currentPitch > 30 ? 0 : 60;
+                    map.easeTo({ pitch: newPitch, duration: 600 });
+                    angleBtn.classList.toggle('active', newPitch > 30);
+                });
+            }
+
+            if (topDownBtn) {
+                topDownBtn.addEventListener('click', function() {
+                    var map = typeof trackerMap !== 'undefined' ? trackerMap : null;
+                    if (!map) return;
+                    map.easeTo({ pitch: 0, bearing: 0, duration: 600 });
+                    if (typeof stopTrackerSpin === 'function') stopTrackerSpin();
+                    var spinBtn = document.getElementById('trackerSpinToggleBtn');
+                    if (spinBtn) {
+                        spinBtn.classList.remove('active');
+                        spinBtn.textContent = 'Resume spin';
+                    }
+                    if (angleBtn) angleBtn.classList.remove('active');
+                });
+            }
+
+            if (resetBtn) {
+                resetBtn.addEventListener('click', function() {
+                    var map = typeof trackerMap !== 'undefined' ? trackerMap : null;
+                    if (!map) return;
+                    map.easeTo({ pitch: 60, bearing: 0, duration: 600 });
+                    if (typeof startTrackerSpin === 'function') startTrackerSpin();
+                    var spinBtn = document.getElementById('trackerSpinToggleBtn');
+                    if (spinBtn) {
+                        spinBtn.classList.add('active');
+                        spinBtn.textContent = 'Pause spin';
+                    }
+                    if (angleBtn) angleBtn.classList.add('active');
+                });
+            }
+        })();
+    </script>
 </body>
 
 </html>
