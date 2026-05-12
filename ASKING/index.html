@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASKING</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'Alliance';
+            src: url('Alliance%20No.2%20Regular.otf') format('opentype');
+        }
+        @font-face {
+            font-family: 'MavenPro';
+            src: url('MavenPro-Regular.ttf') format('truetype');
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --black: #000;
+            --white: #fff;
+            --dim: #666;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            background: var(--black);
+            color: var(--white);
+            font-family: 'DM Mono', monospace;
+            cursor: crosshair;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .question {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(80px, 15vw, 180px);
+            line-height: 0.85;
+            letter-spacing: -0.03em;
+            opacity: 0;
+            animation: fadeIn 1s 0.3s forwards;
+        }
+
+        .btn {
+            margin-top: 48px;
+            display: inline-block;
+            padding: 14px 48px;
+            border: 1px solid rgba(255,255,255,0.2);
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            color: var(--white);
+            background: transparent;
+            cursor: crosshair;
+            transition: background 0.3s, border-color 0.3s, padding 0.3s;
+            opacity: 0;
+            animation: fadeIn 1s 1s forwards;
+        }
+
+        .btn:hover {
+            background: var(--white);
+            color: var(--black);
+            border-color: var(--white);
+            padding-left: 56px;
+            padding-right: 56px;
+        }
+
+        .btn.hidden,
+        .container.hidden {
+            display: none !important;
+        }
+
+        .white-flash {
+            position: fixed;
+            inset: 0;
+            z-index: 20;
+            background: #fff;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .white-flash.on {
+            opacity: 1;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        .flash-text {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .flash-text.show {
+            display: flex;
+        }
+
+        .flash-text .line {
+            font-size: clamp(44px, 8vw, 100px);
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+        }
+
+        .flash-text .line.font-alliance {
+            font-family: 'Alliance', sans-serif;
+        }
+
+        .flash-text .line.font-maven {
+            font-family: 'MavenPro', sans-serif;
+        }
+
+        .flash-text .line.font-anton {
+            font-family: 'Anton', sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="container">
+        <div class="question">what are you</div>
+        <button class="btn" id="btn">me</button>
+    </div>
+
+    <div class="flash-text" id="flash"></div>
+    <div class="white-flash" id="whiteFlash"></div>
+
+    <script>
+        const lines = [
+            { text: "WHAT DO WE DO", font: "alliance" },
+            { text: "NOTHING", font: "maven" },
+            { text: "DO WE WANT A BETTER WORLD", font: "alliance" },
+            { text: "YES", font: "maven" },
+            { text: "WHY", font: "alliance" },
+            { text: "MORALS.", font: "maven" },
+            { text: "RUN LIKE YOU ARE NOT THE SAME.", font: "anton" }
+        ];
+
+        const btn = document.getElementById('btn');
+        const container = document.getElementById('container');
+        const flash = document.getElementById('flash');
+        const whiteFlash = document.getElementById('whiteFlash');
+
+        let idx = 0;
+
+        btn.addEventListener('click', () => {
+            container.classList.add('hidden');
+            showNext();
+        });
+
+        function flashWhite() {
+            whiteFlash.classList.add('on');
+            setTimeout(() => whiteFlash.classList.remove('on'), 80);
+        }
+
+        function showNext() {
+            if (idx >= lines.length) {
+                return;
+            }
+
+            flashWhite();
+
+            setTimeout(() => {
+                const line = lines[idx];
+                flash.innerHTML = '<span class="line font-' + line.font + '">' + line.text + '</span>';
+                flash.classList.add('show');
+
+                const duration = line.text.length > 20 ? 700 : 500;
+
+                setTimeout(() => {
+                    flash.classList.remove('show');
+                    flash.innerHTML = '';
+                    idx++;
+                    setTimeout(showNext, 100);
+                }, duration);
+            }, 120);
+        }
+    </script>
+</body>
+</html>
