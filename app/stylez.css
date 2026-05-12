@@ -46,9 +46,9 @@
         --panel-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
         --panel-inset: inset 0 1px 0 rgba(255, 255, 255, 0.04);
         
-        --btn-primary-bg: linear-gradient(145deg, #ffffff, #e0e0e0);
+        --btn-primary-bg: #d0d0d0;
         --btn-secondary-bg: linear-gradient(145deg, #2a2a2a, #252525);
-        --btn-danger-bg: linear-gradient(145deg, #ff4444, #cc0000);
+        --btn-danger-bg: #b91c1c;
         
         --input-bg: rgba(30, 30, 30, 0.8);
         --input-border: #3a3a3a;
@@ -2037,10 +2037,10 @@
     }
 
     button.btn-primary:hover {
-        background: linear-gradient(145deg, #ffffff, #e8e8e8);
-        box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3);
-        border-color: rgb(206, 206, 206);
+        background: #d8d8d8;
+        border-color: #ffffff;
         color: #000;
+        box-shadow: 0 0 30px rgba(255, 255, 255, 0.15);
     }
 
     button:active {
@@ -2295,7 +2295,7 @@
     }
 
     .vis-overlay-content h2 {
-        font-family: 'Anton', 'Segoe UI', sans-serif;
+        font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;
         font-size: 2.5rem;
         letter-spacing: 2px;
         color: #fff;
@@ -3422,9 +3422,9 @@
 
     .btn-primary {
         background: var(--btn-primary-bg) !important;
-        color: #000;
-        box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2);
-        border: 1px solid rgb(206, 206, 206);
+        color: #111;
+        border: 2.5px solid #ffffff;
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.08);
     }
 
     .glass-btn {
@@ -3435,20 +3435,25 @@
 
     .btn-danger {
         background: var(--btn-danger-bg);
-        color: white;
-        box-shadow: 0 4px 16px rgba(255, 68, 68, 0.2);
+        color: #fff;
+        border: 2.5px solid #e74c3c;
+        box-shadow: 0 0 20px rgba(231, 76, 60, 0.08);
     }
 
     .btn-danger:hover {
-        background: linear-gradient(145deg, #ff5555, #dd0000);
-        box-shadow: 0 6px 20px rgba(255, 85, 85, 0.3);
+        background: #c62828;
+        border-color: #ef5350;
+        color: #fff;
+        box-shadow: 0 0 30px rgba(231, 76, 60, 0.15);
+        transform: translateY(-1px);
     }
 
     .btn-primary:hover {
-        background: linear-gradient(145deg, #ffffff, #e8e8e8);
-        transform: translateY(-2px);
+        background: #d8d8d8;
+        border-color: #ffffff;
         color: #000;
-        box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3);
+        box-shadow: 0 0 30px rgba(255, 255, 255, 0.15);
+        transform: translateY(-1px);
     }
 
     .glass-btn:hover {
@@ -4406,6 +4411,7 @@
         border-radius: 10px;
         border: none;
         background: transparent;
+        box-shadow: none !important;
         color: rgba(255, 255, 255, 0.2);
         cursor: pointer;
         display: flex;
@@ -4422,7 +4428,7 @@
     }
 
     .improve-btn:disabled {
-        opacity: 0.2;
+        opacity: 0.1;
         cursor: not-allowed;
         background: transparent;
     }
@@ -5336,23 +5342,33 @@
     }
 
     .clean-modal-btn-primary {
-        background: linear-gradient(145deg, #ffffff, #e0e0e0) !important;
-        color: #000 !important;
-        box-shadow: 0 2px 8px rgba(255, 255, 255, 0.15);
+        background: #d0d0d0 !important;
+        color: #111 !important;
+        border: 2.5px solid #ffffff !important;
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.08);
     }
 
     .clean-modal-btn-primary:hover {
+        background: #d8d8d8 !important;
+        border-color: #ffffff !important;
+        color: #000 !important;
+        box-shadow: 0 0 30px rgba(255, 255, 255, 0.15);
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.25);
     }
 
     .clean-modal-btn-danger {
-        background: linear-gradient(145deg, #ff4444, #cc0000) !important;
+        background: #b91c1c !important;
         color: #fff !important;
+        border: 2.5px solid #e74c3c !important;
+        box-shadow: 0 0 20px rgba(231, 76, 60, 0.08);
     }
 
     .clean-modal-btn-danger:hover {
-        background: linear-gradient(145deg, #ff5555, #dd0000) !important;
+        background: #c62828 !important;
+        border-color: #ef5350 !important;
+        color: #fff !important;
+        box-shadow: 0 0 30px rgba(231, 76, 60, 0.15);
+        transform: translateY(-1px);
     }
 
     /* Security Report - wider modal */
