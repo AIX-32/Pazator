@@ -3191,7 +3191,7 @@
         justify-content: center;
         gap: 6px;
         padding: 0 8px;
-        border-radius: 10px;
+        border-radius: 7px;
         border: 1px solid rgba(255, 255, 255, 0.12);
         background: rgba(255, 255, 255, 0.05);
         color: #ddd;
@@ -3273,7 +3273,7 @@
         display: block;
         width: 100%;
         padding: 7px 10px;
-        border-radius: 8px;
+        border-radius: 7px;
         border: 1px solid rgba(255, 255, 255, 0.12);
         background: rgba(255, 255, 255, 0.06);
         color: #e0e0e0;
@@ -3306,7 +3306,7 @@
         gap: 6px;
         width: 100%;
         padding: 8px;
-        border-radius: 8px;
+        border-radius: 7px;
         border: 1px solid rgba(255, 255, 255, 0.12);
         background: rgba(255, 255, 255, 0.05);
         color: rgba(255, 255, 255, 0.55);
@@ -4082,7 +4082,7 @@
     .ai-chat-history-panel {
         background: linear-gradient(180deg, #1a1a1a 0%, #161616 100%);
         border: 1px solid #2a2a2a;
-        border-radius: 16px;
+        border-radius: 7px;
         width: 280px;
         min-height: 70vh;
         max-height: 95vh;
@@ -4167,7 +4167,7 @@
     .ai-chat-content {
         background: linear-gradient(180deg, #1e1e1e 0%, #1a1a1a 100%);
         border: 1px solid #333;
-        border-radius: 20px;
+        border-radius: 7px;
         padding: 0;
         width: 95%;
         max-width: 1200px;
@@ -4319,7 +4319,7 @@
         max-width: 100%;
         text-align: left;
         padding: 20px;
-        border-radius: 16px;
+        border-radius: 7px;
         box-shadow:
             0 4px 16px rgba(0, 0, 0, 0.3),
             inset 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -4351,6 +4351,7 @@
         background: linear-gradient(180deg, #1e1e1e 0%, #1a1a1a 100%);
         border-top: 1px solid #2c2c2c;
         flex-shrink: 0;
+
     }
 
     .context-display {
@@ -4361,7 +4362,7 @@
         padding: 8px 10px;
         background: rgba(255, 255, 255, 0.02);
         border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 8px;
+        border-radius: 7px;
         max-height: 80px;
         overflow-y: auto;
     }
@@ -4423,7 +4424,7 @@
         flex: 1;
         background: rgba(255, 255, 255, 0.03);
         border: 1px solid rgba(255, 255, 255, 0.07);
-        border-radius: 12px;
+        border-radius: 7px;
         transition: border-color 0.2s, box-shadow 0.2s;
         min-height: 56px;
     }
@@ -4491,7 +4492,7 @@
     .ai-send-btn {
         width: 40px;
         height: 40px;
-        border-radius: 10px;
+        border-radius: 7px;
         border: none;
         background: #fff;
         color: #1a1a1a;
@@ -4502,6 +4503,7 @@
         transition: all 0.2s ease;
         font-size: 1rem;
         flex-shrink: 0;
+    
         box-shadow: 0 2px 12px rgba(255, 255, 255, 0.15);
     }
 
@@ -7143,7 +7145,7 @@
     .intel-action-item {
         background: var(--card-bg);
         border: 1px solid var(--border-color);
-        border-radius: 12px;
+        border-radius: 7px;
         padding: 14px 16px;
         display: flex;
         flex-direction: column;
@@ -7361,7 +7363,7 @@
     .intel-results {
         background: var(--card-bg);
         border: 1px solid var(--border-color);
-        border-radius: 12px;
+        border-radius: 7px;
         padding: 20px;
         box-shadow: 0 4px 16px var(--shadow-color);
         flex: 1;
@@ -7908,7 +7910,7 @@
     .analysis-action-card {
         background: var(--card-bg);
         border: 1px solid var(--border-color);
-        border-radius: 12px;
+        border-radius: 7px;
         padding: 14px 16px;
         display: flex;
         flex-direction: column;
@@ -8025,7 +8027,7 @@
     .analysis-tools-section {
         background: var(--card-bg);
         border: 1px solid var(--border-color);
-        border-radius: 12px;
+        border-radius: 7px;
         padding: 16px;
     }
 
@@ -8245,7 +8247,7 @@
         min-height: 0;
         overflow: hidden;
         background: rgba(0,0,0,0.15);
-        border-radius: 8px;
+        border-radius: 7px;
         border: 1px solid rgba(255,255,255,0.06);
     }
 
