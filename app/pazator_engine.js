@@ -96,8 +96,9 @@
                         }
                         var delTx = db.transaction('kv', 'readwrite');
                         delTx.objectStore('kv').delete('pazatorData');
-                    } catch (parseErr) {}
-                    resolve();
+                        delTx.oncomplete = function() { resolve(); };
+                        delTx.onerror = function() { resolve(); };
+                    } catch (parseErr) { resolve(); }
                 };
                 req.onerror = function () { resolve(); };
             } catch (e) { resolve(); }
@@ -173,37 +174,17 @@
         getPage: function (storeName, page, pageSize, filterFn, sortFn) {
             page = Math.max(1, page);
             pageSize = Math.min(100, Math.max(1, pageSize));
-            var skip = (page - 1) * pageSize;
-
-            if (!db) return Promise.resolve({ items: [], total: 0 });
-            return new Promise(function (resolve) {
-                var tx = db.transaction(storeName, 'readonly');
-                var store = tx.objectStore(storeName);
-                var countReq = store.count();
-                countReq.onsuccess = function () {
-                    var total = countReq.result;
-                    if (skip >= total) {
-                        resolve({ items: [], total: total, page: page, pageSize: pageSize, totalPages: Math.ceil(total / pageSize) });
-                        return;
-                    }
-                    var items = [];
-                    var cursorReq = store.openCursor();
-                    var cursorIndex = 0;
-                    cursorReq.onsuccess = function (e) {
-                        var cursor = e.target.result;
-                        if (!cursor || items.length >= pageSize) {
-                            if (filterFn) items = items.filter(filterFn);
-                            if (sortFn) items.sort(sortFn);
-                            resolve({ items: items, total: total, page: page, pageSize: pageSize, totalPages: Math.ceil(total / pageSize) });
-                            return;
-                        }
-                        if (cursorIndex >= skip) items.push(cursor.value);
-                        cursorIndex++;
-                        cursor.continue();
-                    };
-                    cursorReq.onerror = function () { resolve({ items: [], total: total }); };
+            return dbGetAll(storeName).then(function(all) {
+                if (filterFn) all = all.filter(filterFn);
+                if (sortFn) all.sort(sortFn);
+                var total = all.length;
+                var start = (page - 1) * pageSize;
+                var items = all.slice(start, start + pageSize);
+                return {
+                    items: items, total: total, page: page, pageSize: pageSize,
+                    totalPages: Math.ceil(total / pageSize),
+                    hasNext: start + pageSize < total, hasPrev: page > 1
                 };
-                countReq.onerror = function () { resolve({ items: [], total: 0 }); };
             });
         },
 

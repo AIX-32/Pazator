@@ -67,7 +67,7 @@ Please provide the rules in plain text, one per line.`;
     },
 
     loadRules() {
-        const saved = localStorage.getItem('tastur_rules');
+        var saved = localStorage.getItem('tastur_rules');
         if (saved) {
             try {
                 this.rules = JSON.parse(saved);
@@ -79,7 +79,14 @@ Please provide the rules in plain text, one per line.`;
     },
 
     saveRules() {
-        localStorage.setItem('tastur_rules', JSON.stringify(this.rules));
+        const json = JSON.stringify(this.rules);
+        if (window.pazatorDB) {
+            window.pazatorDB.setItem('tastur_rules', json).catch(function(e) {
+                console.warn('TASTUR: save failed', e);
+            });
+        } else {
+            localStorage.setItem('tastur_rules', json);
+        }
         this.renderRules();
     },
 
@@ -192,26 +199,20 @@ Please provide the rules in plain text, one per line.`;
     },
 
     evaluateCondition(condition, data) {
-        try {
-            // Simple evaluation: support things like to="analysis" or query="test"
-            // We use a safe-ish approach by replacing variables
-            let evalStr = condition;
-            
-            // Replace common variables from data
-            for (const [key, value] of Object.entries(data)) {
-                const regex = new RegExp(`\\b${key}\\b`, 'g');
-                evalStr = evalStr.replace(regex, JSON.stringify(value));
-            }
-
-            // Simple comparison support (== or =)
-            evalStr = evalStr.replace(/=/g, '===');
-            
-            // Evaluate
-            // eslint-disable-next-line no-eval
-            return eval(evalStr);
-        } catch (e) {
-            console.error('TASTUR: Condition evaluation failed', e, condition);
-            return false;
+        const match = condition.match(/^(\w+)\s*(===?|!==?|>=?|<=?)\s*(.+)$/);
+        if (!match) return false;
+        const [, key, op, rawVal] = match;
+        const left = data[key];
+        let right;
+        try { right = JSON.parse(rawVal); } catch { right = rawVal.replace(/^['"]|['"]$/g, ''); }
+        switch (op.replace(/={3}/, '==')) {
+            case '==':  return left == right;
+            case '!=':  return left != right;
+            case '>':   return left > right;
+            case '<':   return left < right;
+            case '>=':  return left >= right;
+            case '<=':  return left <= right;
+            default:    return false;
         }
     },
 

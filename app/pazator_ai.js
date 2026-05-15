@@ -12,13 +12,12 @@
 
     function computeHash(obj) {
         var str = typeof obj === 'string' ? obj : JSON.stringify(obj);
-        var hash = 0;
+        var hash = 2166136261;
         for (var i = 0; i < str.length; i++) {
-            var char = str.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
+            hash ^= str.charCodeAt(i);
+            hash = (hash * 16777619) >>> 0;
         }
-        return 'h' + Math.abs(hash).toString(36);
+        return 'h' + hash.toString(36);
     }
 
     AIQueue.getCached = function (key) {
@@ -80,7 +79,7 @@
         try {
             result = task.fn(signal);
         } catch (e) {
-            AIQueue._running--;
+            AIQueue._running = Math.max(0, AIQueue._running - 1);
             task.reject(e);
             AIQueue._abortControllers.delete(task.id);
             AIQueue._processQueue();
@@ -89,19 +88,19 @@
         if (result && typeof result.then === 'function') {
             result.then(function (value) {
                 if (task.cacheKey) AIQueue.setCached(task.cacheKey, value);
-                AIQueue._running--;
+                AIQueue._running = Math.max(0, AIQueue._running - 1);
                 task.resolve(value);
                 AIQueue._abortControllers.delete(task.id);
                 AIQueue._processQueue();
             }, function (err) {
-                AIQueue._running--;
+                AIQueue._running = Math.max(0, AIQueue._running - 1);
                 task.reject(err);
                 AIQueue._abortControllers.delete(task.id);
                 AIQueue._processQueue();
             });
         } else {
             if (task.cacheKey) AIQueue.setCached(task.cacheKey, result);
-            AIQueue._running--;
+            AIQueue._running = Math.max(0, AIQueue._running - 1);
             task.resolve(result);
             AIQueue._abortControllers.delete(task.id);
             AIQueue._processQueue();
@@ -131,7 +130,7 @@
 
     AIQueue.streamChat = async function (messages, onChunk, signal) {
         var apiKey = (typeof window.pazatorGemini !== 'undefined' && window.pazatorGemini.getApiKey) ? window.pazatorGemini.getApiKey() : '';
-        var model = (typeof window.pazatorGemini !== 'undefined' && window.pazatorGemini.getModel) ? window.pazatorGemini.getModel() : 'gemini-3.1-flash-lite-preview';
+        var model = (typeof window.pazatorGemini !== 'undefined' && window.pazatorGemini.getModel) ? window.pazatorGemini.getModel() : window.pazatorGemini && window.pazatorGemini.defaultModel ? window.pazatorGemini.defaultModel : 'gemini-3.1-flash-lite-preview';
 
         if (!apiKey) throw new Error('Gemini API key not configured.');
 
@@ -188,11 +187,12 @@
             buffer += decoder.decode(readResult.value, { stream: true });
             var lines = buffer.split('\n');
             buffer = lines.pop() || '';
+            var done = false;
             for (var li = 0; li < lines.length; li++) {
                 var line = lines[li].trim();
                 if (line.startsWith('data: ')) {
                     var jsonStr = line.slice(6).trim();
-                    if (jsonStr === '[DONE]') break;
+                    if (jsonStr === '[DONE]') { done = true; break; }
                     if (jsonStr) {
                         try {
                             var parsed = JSON.parse(jsonStr);
@@ -208,6 +208,7 @@
                     }
                 }
             }
+            if (done) break;
         }
         return fullText;
     };

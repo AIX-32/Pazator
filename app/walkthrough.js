@@ -86,7 +86,7 @@
     '}\n' +
     '#pz-wt-card .pz-wt-ghost:hover {\n' +
     '  color: #999;\n' +
-    '}\n' +
+    '}\n';
 
   document.head.appendChild(wtStyles);
 
@@ -233,19 +233,16 @@
     }
 
     var el = document.querySelector(s.target);
-    if (el) {
-      var r = el.getBoundingClientRect();
-      highlight.style.left = (r.left - 4) + 'px';
-      highlight.style.top = (r.top - 4) + 'px';
-      highlight.style.width = (r.width + 8) + 'px';
-      highlight.style.height = (r.height + 8) + 'px';
-      positionCard(el);
-    }
+    if (!el) { card.classList.add('visible'); return; }
 
-    if (el) {
-      var r = el.getBoundingClientRect();
-      var vis = r.top >= 0 && r.left >= 0 && r.bottom <= window.innerHeight && r.right <= window.innerWidth;
-      if (!vis) {
+    var r = el.getBoundingClientRect();
+    highlight.style.left = (r.left - 4) + 'px';
+    highlight.style.top = (r.top - 4) + 'px';
+    highlight.style.width = (r.width + 8) + 'px';
+    highlight.style.height = (r.height + 8) + 'px';
+
+    var vis = r.top >= 0 && r.left >= 0 && r.bottom <= window.innerHeight && r.right <= window.innerWidth;
+    if (!vis) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         setTimeout(function () {
           if (el) {

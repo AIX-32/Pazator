@@ -5,27 +5,14 @@
 
     PazatorUI.debounce = function (fn, delay) {
         var timer = null;
-        var lastArgs = null;
-        var pending = false;
         return function debounced() {
             var args = arguments;
             var ctx = this;
-            lastArgs = { args: args, ctx: ctx };
             if (timer) clearTimeout(timer);
-            if (!pending) {
-                pending = true;
-                timer = setTimeout(function () {
-                    pending = false;
-                    fn.apply(lastArgs.ctx, lastArgs.args);
-                    lastArgs = null;
-                }, delay);
-            } else {
-                timer = setTimeout(function () {
-                    pending = false;
-                    fn.apply(lastArgs.ctx, lastArgs.args);
-                    lastArgs = null;
-                }, delay);
-            }
+            timer = setTimeout(function () {
+                timer = null;
+                fn.apply(ctx, args);
+            }, delay);
         };
     };
 
@@ -159,11 +146,15 @@
             render();
         }
 
+        var lastStart = -1, lastEnd = -1;
         function render() {
             scrollTop = container.scrollTop;
             var viewportHeight = container.clientHeight || 400;
-            visibleStart = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
-            visibleEnd = Math.min(data.length, Math.ceil((scrollTop + viewportHeight) / itemHeight) + overscan);
+            var newStart = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
+            var newEnd = Math.min(data.length, Math.ceil((scrollTop + viewportHeight) / itemHeight) + overscan);
+            if (newStart === lastStart && newEnd === lastEnd) return;
+            visibleStart = newStart; visibleEnd = newEnd;
+            lastStart = newStart; lastEnd = newEnd;
 
             var children = inner.children;
             var needed = visibleEnd - visibleStart;

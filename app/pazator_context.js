@@ -48,7 +48,7 @@
             throw new Error('Gemini AI is not available (geminiChat missing).');
         }
 
-        return await window.geminiChat(messages);
+        return await window.geminiChat(messages, options);
     }
 
     function playAlertBeep(durationMs = 120, frequencyHz = 880) {
@@ -130,7 +130,9 @@
                     const others = Array.isArray(snap.pazatorData.others) ? snap.pazatorData.others.slice(0, maxOthers) : [];
                     snap.pazatorData = { ...snap.pazatorData, humans, others };
                 }
-            } catch { }
+            } catch (e) {
+                console.warn('[pazator_context] getSerializableContext error:', e);
+            }
             return snap;
         }
     };

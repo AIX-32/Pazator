@@ -1190,11 +1190,7 @@ function generatePersonId(name, birthDate) {
     const seqStr = String(seq).padStart(4, '0');
     const age = computeAge(birthDate);
     const ageStr = String(age).padStart(2, '0');
-    const candidate = `PZI${seqStr}${ageStr}`;
-    if (pazatorData.humans.some(h => h.id === candidate)) {
-        return generatePersonId(name, birthDate);
-    }
-    return candidate;
+    return `PZI${seqStr}${ageStr}`;
 }
 
 function generateOtherId() {
@@ -1424,14 +1420,10 @@ const STREET_LABEL_SOURCE = 'tracker-street-source';
 
 setTrackerMapFilterActive(false);
 
-function escapeHtml(unsafe) {
-    return unsafe.replace(/[&<>"']/g, function (m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        if (m === '"') return '&quot;';
-        return '&#039;';
-    });
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 var PazatorVectorSearch = {
@@ -1681,20 +1673,20 @@ var PazatorWorker = {
 
     _fallbackSearch: function(data, query, fields) {
         var q = (query || '').toLowerCase();
-        if (!q) return [];
+        if (!q) return data.slice();
         var results = [];
         for (var i = 0; i < data.length; i++) {
             var match = false;
-            for (var fi = 0; fi < fields.length; fi++) {
+            for (var fi = 0; fi < fields.length && !match; fi++) {
                 var val = data[i][fields[fi]];
-                if (val) {
-                    if (Array.isArray(val)) {
-                        for (var vi = 0; vi < val.length; vi++) {
-                            if (String(val[vi]).toLowerCase().includes(q)) { match = true; break; }
-                        }
-                    } else if (String(val).toLowerCase().includes(q)) { match = true; break; }
+                if (!val) continue;
+                if (Array.isArray(val)) {
+                    for (var vi = 0; vi < val.length && !match; vi++) {
+                        if (String(val[vi]).toLowerCase().includes(q)) match = true;
+                    }
+                } else if (String(val).toLowerCase().includes(q)) {
+                    match = true;
                 }
-                if (match) break;
             }
             if (match) results.push(data[i]);
         }
@@ -2279,12 +2271,14 @@ function saveData(immediate = false) {
             version: '2.0'
         };
 
-        const existingData = localStorage.getItem('pazatorData');
-        if (existingData) {
-            localStorage.setItem('pazatorData_backup', existingData);
-        }
+        var saveFn = window.pazatorDB
+            ? window.pazatorDB.setItem.bind(window.pazatorDB)
+            : function(k, v) { try { localStorage.setItem(k, v); } catch(e) {} };
 
-        localStorage.setItem('pazatorData', JSON.stringify(dataToSave));
+        saveFn('pazatorData_backup', localStorage.getItem('pazatorData')).catch(function() {});
+        saveFn('pazatorData', JSON.stringify(dataToSave)).catch(function(e) {
+            console.error('pazatorDB save failed', e);
+        });
 
         if (window.pazatorStore) {
             pazatorStore.getData().humans = pazatorData.humans;
@@ -2717,6 +2711,7 @@ function markDataChanged() {
     pendingChanges = true;
     lastChangeTime = Date.now();
     updatePersistenceIndicator('syncing', 'Pending save...');
+    syncAllObjectsFromHumans();
 
     if (window.pazatorStore) {
         pazatorStore.getData().humans = pazatorData.humans;
@@ -2860,7 +2855,12 @@ function loadData() {
     try {
         console.log(' Starting data load process...');
 
-        const storedData = localStorage.getItem('pazatorData');
+        var storedData = localStorage.getItem('pazatorData');
+        if (window.pazatorDB) {
+            window.pazatorDB.getItem('pazatorData').then(function(dbData) {
+                if (dbData) storedData = dbData;
+            }).catch(function() {});
+        }
         console.log(' Stored data found:', !!storedData);
 
         if (storedData) {
@@ -2928,9 +2928,10 @@ function loadData() {
         pazatorStore.rebuildIndexes();
     }
 
-    console.log('Rendering web nodes with loaded data...');
-    console.log('Data to render:', { humans: pazatorData.humans.length, others: pazatorData.others.length });
-    renderWebNodes();
+    syncAllObjectsFromHumans();
+
+    console.log('Rendering object canvas with loaded data...');
+    renderObjectCanvas();
     updateCreditStats();
     updateHeaderStats();
 
@@ -3002,6 +3003,8 @@ function fitAllNodesInView() {
 
     webContent.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`;
 }
+
+var _pendingFit = false;
 
 function renderWebNodes() {
     const visOffOverlay = document.getElementById('visOffOverlay');
@@ -3223,7 +3226,8 @@ function renderWebNodes() {
 
 
 
-    if (currentScale === 1 && currentTranslateX === 0 && currentTranslateY === 0) {
+    if (_pendingFit || (currentScale === 1 && currentTranslateX === 0 && currentTranslateY === 0)) {
+        _pendingFit = false;
         setTimeout(() => {
             console.log('Fitting all nodes in view...');
             fitAllNodesInView();
@@ -3837,12 +3841,35 @@ function openHumanFormForEdit(human) {
     document.getElementById('humanModalTitle').textContent = 'Edit Human Entry';
     document.getElementById('humanId').value = human.id;
     document.getElementById('humanName').value = human.name;
-    document.getElementById('humanGender').value = human.gender || '';
     document.getElementById('birthDate').value = human.birthDate || '';
-    document.getElementById('workplace').value = human.workplace || '';
     document.getElementById('credit').value = human.credit || '';
-    document.getElementById('socialClass').value = human.socialClass || '';
     document.getElementById('humanExtraNotes').value = human.extraNotes || '';
+
+    initAcFields();
+
+    setAcValue('gender', human.gender || '');
+    setAcValue('maritalStatus', human.maritalStatus || '');
+    setAcValue('workplace', human.workplace || '');
+    setAcValue('nationality', human.nationality || '');
+    setAcValue('countryOfOrigin', human.countryOfOrigin || '');
+    setAcValue('immigrationStatus', human.immigrationStatus || '');
+    setAcValue('ethnicity', human.ethnicity || '');
+    setAcValue('religion', human.religion || '');
+    setAcValue('politicalView', human.politicalViews || '');
+    setAcValue('threatLevel', human.threatLevel || '');
+    setAcValue('socialClass', human.socialClass || '');
+    setAcValue('incomeLevel', human.incomeLevel || '');
+    setAcValue('educationLevel', human.educationLevel || '');
+
+    if (human.languages) {
+        var langInst = _acInstances['language'];
+        if (langInst) {
+            langInst.clearValues();
+            human.languages.split(',').map(function (s) { return s.trim(); }).filter(Boolean).forEach(function (lang) {
+                langInst.addValue(lang);
+            });
+        }
+    }
 
     populateSelectOptions(human.friends || [], human.family || []);
 
@@ -3884,7 +3911,7 @@ async function deleteCurrentEntry() {
         }
 
         saveData();
-        renderWebNodes();
+        renderObjectCanvas();
         detailViewModal.style.display = 'none';
         detailViewModal.style.zIndex = '-1';
     }
@@ -4203,7 +4230,7 @@ async function processAICommand(command) {
                     'You CANNOT modify data or use tools. You can only discuss the information in the blackbox above.\n' +
                     'If asked about data not in the blackbox, say you dont have that information.\n\n' +
                     'Previous conversation:\n' +
-                    aiChatHistory.map(function(m) { return m.role + ': ' + m.content; }).join('\n');
+                    aiChatHistory.slice(-20).map(function(m) { return m.role + ': ' + (m.content || '').substring(0, 500); }).join('\n');
                 var bbResponse = await geminiChat([
                     { role: 'system', content: bbSystem },
                     { role: 'user', content: command }
@@ -4230,7 +4257,7 @@ async function processAICommand(command) {
                 await processToolBasedCommand(command);
             } catch (e) {
                 console.error('Tool-based mode error:', e);
-                addMessageToAIChat('Tool mode error: ' + e.message, 'ai');
+                addMessageToAIChat('CTXOD error: ' + e.message, 'ai');
             }
             hideAiTypingIndicator();
             aiSendBtn.disabled = false;
@@ -4274,11 +4301,14 @@ async function processAICommand(command) {
                         - Cases: ${dataSummary.casesCount} total
                         - High-risk individuals: ${dataSummary.highRiskCount}
                         - Average credit score: ${dataSummary.averageCredit}
+                        - Object system: ${window.pazatorObjects ? (function(){var s=pazatorObjects.getStats();return s.total+' reusable field values across '+(pazatorObjects.getTypes().filter(function(t){return (s[t]||0)>0;}).length)+' categories';})() : 'N/A'}
 
                         TOP RISKY PEOPLE:
 ${topRiskyStr}
 
-                        NOTE: Only the summary above is provided. For specific details, the user should enable Tool Mode so you can fetch data on demand. In full context mode, you see only stats.
+                        NOTE: Only the summary above is provided. For specific details, the user should enable CTXOD so you can fetch data on demand. In full context mode, you see only stats.
+
+                        OBJECT SYSTEM: Field values (nationality, religion, politicalViews, ethnicity, workplace, etc.) are tracked as reusable objects with usage counts. When you set a field like "nationality: American", a "Nationality" object for "American" is automatically created or reused. You can reference objects by name in field values — they will be created on the fly. Use {"action": "add_object", "data": {"type": "nationality", "name": "Canadian"}} to explicitly create an object before using it.
 
                         ${adminContext ? `ADMIN CONTEXT (USE THIS FOR ANALYSIS):
                         ${adminContext}
@@ -4358,6 +4388,7 @@ ${topRiskyStr}
                         {"action": "add_tag", "tag": "newTag"}
                         {"action": "assign_tag", "id": "12345", "tag": "employee"}
                         {"action": "remove_tag", "id": "12345", "tag": "employee"}
+                        {"action": "add_object", "data": {"type": "nationality", "name": "Canadian"}}
 
                         For questions that don't require data changes, provide a natural language response.
                         For data modification requests, ONLY respond with the JSON object, nothing else.
@@ -4613,7 +4644,7 @@ async function handleBatchActions(actions) {
 
         if (addHumanActions.length > 0) {
             markDataChanged();
-            renderWebNodes();
+            renderObjectCanvas();
         }
 
         for (const action of otherActions) {
@@ -4639,7 +4670,7 @@ async function handleBatchActions(actions) {
 
         if (completedActions > 0 && addHumanActions.length === 0) {
             markDataChanged();
-            renderWebNodes();
+            renderObjectCanvas();
         }
 
         batchResponse += `\nCompleted ${completedActions} out of ${totalActions} actions.`;
@@ -4680,7 +4711,7 @@ function createFamilyConnections() {
         }
 
         saveData();
-        renderWebNodes();
+        renderObjectCanvas();
     } catch (error) {
         console.error('Error in createFamilyConnections:', error);
         addMessageToAIChat("Sorry, I encountered an error creating family connections. Please try again.", 'ai');
@@ -4717,7 +4748,7 @@ function handleAIAction(action, isBatch = false) {
                 };
                 pazatorData.humans.push(newHuman);
                 markDataChanged();
-                renderWebNodes();
+                renderObjectCanvas();
                 response = `Added human: ${newHuman.name}`;
             } catch (e) {
                 response = `Failed to add human: ${e.message}`;
@@ -4733,7 +4764,7 @@ function handleAIAction(action, isBatch = false) {
                 };
                 pazatorData.others.push(newOther);
                 markDataChanged();
-                renderWebNodes();
+                renderObjectCanvas();
                 response = `Added other: ${newOther.name}`;
             } catch (e) {
                 response = `Failed to add other: ${e.message}`;
@@ -4747,7 +4778,7 @@ function handleAIAction(action, isBatch = false) {
                 const deletedName = pazatorData.humans[humanIndex].name;
                 pazatorData.humans.splice(humanIndex, 1);
                 markDataChanged();
-                renderWebNodes();
+                renderObjectCanvas();
                 response = `Deleted human: ${deletedName}`;
             } else {
                 response = "Couldn't find that human entry to delete.";
@@ -4761,7 +4792,7 @@ function handleAIAction(action, isBatch = false) {
                 const deletedName = pazatorData.others[otherIndex].name;
                 pazatorData.others.splice(otherIndex, 1);
                 markDataChanged();
-                renderWebNodes();
+                renderObjectCanvas();
                 response = `Deleted other: ${deletedName}`;
             } else {
                 response = "Couldn't find that other entry to delete.";
@@ -4788,7 +4819,7 @@ function handleAIAction(action, isBatch = false) {
                     ...action.data
                 };
                 markDataChanged();
-                renderWebNodes();
+                renderObjectCanvas();
                 response = `Modified human: ${pazatorData.humans[modHumanIndex].name}`;
             } else {
 
@@ -4811,7 +4842,7 @@ function handleAIAction(action, isBatch = false) {
                             ...action.data
                         };
                         markDataChanged();
-                        renderWebNodes();
+                        renderObjectCanvas();
                         response = `Modified human: ${pazatorData.humans[personIndex].name}`;
                     } else {
                         response = "Couldn't find that human entry to modify.";
@@ -4832,7 +4863,7 @@ function handleAIAction(action, isBatch = false) {
                     ...action.data
                 };
                 markDataChanged();
-                renderWebNodes();
+                renderObjectCanvas();
                 response = `Modified other: ${pazatorData.others[modOtherIndex].name}`;
             } else {
                 response = "Couldn't find that other entry to modify.";
@@ -4879,7 +4910,7 @@ function handleAIAction(action, isBatch = false) {
                 if (!pazatorData.humans[humanToTag].tags.includes(action.tag)) {
                     pazatorData.humans[humanToTag].tags.push(action.tag);
                     markDataChanged();
-                    renderWebNodes();
+                    renderObjectCanvas();
                     response = `I've assigned the tag '${action.tag}' to ${pazatorData.humans[humanToTag].name}.`;
                 } else {
                     response = `${pazatorData.humans[humanToTag].name} already has the tag '${action.tag}'.`;
@@ -4896,13 +4927,40 @@ function handleAIAction(action, isBatch = false) {
                 if (pazatorData.humans[humanToRemoveTag].tags && pazatorData.humans[humanToRemoveTag].tags.includes(action.tag)) {
                     pazatorData.humans[humanToRemoveTag].tags = pazatorData.humans[humanToRemoveTag].tags.filter(t => t !== action.tag);
                     markDataChanged();
-                    renderWebNodes();
+                    renderObjectCanvas();
                     response = `I've removed the tag '${action.tag}' from ${pazatorData.humans[humanToRemoveTag].name}.`;
                 } else {
                     response = `${pazatorData.humans[humanToRemoveTag].name} doesn't have the tag '${action.tag}'.`;
                 }
             } else {
                 response = "Couldn't find that human entry to remove a tag from.";
+                success = false;
+            }
+            break;
+
+        case "add_object":
+            try {
+                var objType = (action.data?.type || '').trim();
+                var objName = (action.data?.name || '').trim();
+                if (!objType || !objName) {
+                    response = "Both type and name are required for add_object.";
+                    success = false;
+                } else if (!window.pazatorObjects) {
+                    response = "Object system not available.";
+                    success = false;
+                } else {
+                    var validTypes = pazatorObjects.getTypes();
+                    if (validTypes.indexOf(objType) === -1) {
+                        response = "Invalid type '" + objType + "'. Valid types: " + validTypes.join(', ');
+                        success = false;
+                    } else {
+                        var objId = pazatorObjects.getOrCreate(objType, objName);
+                        var createdObj = pazatorObjects.getById(objId);
+                        response = "Object '" + objName + "' (" + objType + ") is ready." + (createdObj ? " Usage count: " + createdObj.usageCount : "");
+                    }
+                }
+            } catch (e) {
+                response = "Failed to add object: " + e.message;
                 success = false;
             }
             break;
@@ -5130,6 +5188,10 @@ chatUploadBtn.addEventListener('click', () => {
     chatUploadModal.style.zIndex = '1000';
 
     setTimeout(loadChatParticipants, 500);
+});
+
+document.getElementById('chatUploadBtnSidebar')?.addEventListener('click', function() {
+    document.getElementById('chatUploadBtn').click();
 });
 
 dataUploadBtn.addEventListener('click', () => {
@@ -5367,7 +5429,7 @@ async function runAiImport(previewOnly = false) {
         showAlert(`AI import complete: ${result.humans} humans, ${result.others} orgs.`, 'Success', 'success');
 
         markDataChanged();
-        renderWebNodes();
+        renderObjectCanvas();
 
         return result;
     } catch (error) {
@@ -5642,7 +5704,7 @@ uploadDataBtn.addEventListener('click', async () => {
         showAlert(`Successfully uploaded ${result.humans} humans and ${result.others} companies/organizations.`, 'Success', 'success');
         
         markDataChanged();
-        renderWebNodes();
+        renderObjectCanvas();
         
     } catch (error) {
         console.error('Error uploading data:', error);
@@ -5971,13 +6033,13 @@ function ensureDataPersistence() {
         }
     }
     saveData();
-    renderWebNodes();
+    renderObjectCanvas();
 }
 
 function postChatProcessingCleanup() {
     setTimeout(() => {
         ensureDataPersistence();
-        renderWebNodes();
+        renderObjectCanvas();
     }, 100);
 }
 
@@ -6505,6 +6567,8 @@ window.addEventListener('error', (event) => {
 
 document.getElementById('humanTypeBtn').addEventListener('click', () => {
     typeModal.style.display = 'none';
+    initAcFields();
+    resetAcFields();
     populateSelectOptions();
     humanModal.style.display = 'flex';
     humanModal.style.zIndex = '1000';
@@ -6512,6 +6576,20 @@ document.getElementById('humanTypeBtn').addEventListener('click', () => {
 
 document.getElementById('otherTypeBtn').addEventListener('click', () => {
     typeModal.style.display = 'none';
+    document.getElementById('otherModalTitle').textContent = 'Create Job / Company Entry';
+    document.querySelector('#otherForm label[for="otherName"]').textContent = 'Company / Job Title';
+    document.querySelector('#otherForm label[for="type"]').textContent = 'Industry / Role';
+    document.querySelector('#otherForm label[for="otherNote"]').textContent = 'Company Notes';
+    otherModal.style.display = 'flex';
+    otherModal.style.zIndex = '1000';
+});
+
+document.getElementById('genericTypeBtn').addEventListener('click', () => {
+    typeModal.style.display = 'none';
+    document.getElementById('otherModalTitle').textContent = 'Create Custom Entry';
+    document.querySelector('#otherForm label[for="otherName"]').textContent = 'Name';
+    document.querySelector('#otherForm label[for="type"]').textContent = 'Category';
+    document.querySelector('#otherForm label[for="otherNote"]').textContent = 'Notes';
     otherModal.style.display = 'flex';
     otherModal.style.zIndex = '1000';
 });
@@ -6519,6 +6597,7 @@ document.getElementById('otherTypeBtn').addEventListener('click', () => {
 document.getElementById('cancelHumanBtn').addEventListener('click', () => {
     humanModal.style.display = 'none';
     humanModal.style.zIndex = '-1';
+    resetAcFields();
 });
 
 document.getElementById('cancelOtherBtn').addEventListener('click', () => {
@@ -6796,25 +6875,25 @@ document.getElementById('clearChatOption')?.addEventListener('click', () => {
 document.getElementById('humanForm').addEventListener('submit', (e) => {
     e.preventDefault();
 
-    const id = document.getElementById('humanId').value;
-    const name = document.getElementById('humanName').value;
-    const gender = document.getElementById('humanGender').value;
-    const birthDate = document.getElementById('birthDate').value;
-    const workplace = document.getElementById('workplace').value;
-    const credit = document.getElementById('credit').value;
-    const socialClass = document.getElementById('socialClass').value;
-    const extraNotes = document.getElementById('humanExtraNotes').value;
-    const maritalStatus = document.getElementById('maritalStatus').value;
-    const nationality = document.getElementById('nationality').value;
-    const countryOfOrigin = document.getElementById('countryOfOrigin').value;
-    const immigrationStatus = document.getElementById('immigrationStatus').value;
-    const languages = document.getElementById('languages').value;
-    const ethnicity = document.getElementById('ethnicity').value;
-    const religion = document.getElementById('religion').value;
-    const politicalViews = document.getElementById('politicalViews').value;
-    const threatLevel = document.getElementById('threatLevel').value;
-    const incomeLevel = document.getElementById('incomeLevel').value;
-    const educationLevel = document.getElementById('educationLevel').value;
+    var id = document.getElementById('humanId').value;
+    var name = document.getElementById('humanName').value;
+    var gender = getAcTextValue('gender');
+    var birthDate = document.getElementById('birthDate').value;
+    var workplace = getAcTextValue('workplace');
+    var credit = document.getElementById('credit').value;
+    var socialClass = getAcTextValue('socialClass');
+    var extraNotes = document.getElementById('humanExtraNotes').value;
+    var maritalStatus = getAcTextValue('maritalStatus');
+    var nationality = getAcTextValue('nationality');
+    var countryOfOrigin = getAcTextValue('countryOfOrigin');
+    var immigrationStatus = getAcTextValue('immigrationStatus');
+    var languages = getAcTextValue('language');
+    var ethnicity = getAcTextValue('ethnicity');
+    var religion = getAcTextValue('religion');
+    var politicalViews = getAcTextValue('politicalView');
+    var threatLevel = getAcTextValue('threatLevel');
+    var incomeLevel = getAcTextValue('incomeLevel');
+    var educationLevel = getAcTextValue('educationLevel');
 
     const friendsSelect = document.getElementById('friends');
     const familySelect = document.getElementById('family');
@@ -6907,18 +6986,20 @@ document.getElementById('humanForm').addEventListener('submit', (e) => {
             }
 
             markDataChanged();
-            renderWebNodes();
+            renderObjectCanvas();
             humanModal.style.display = 'none';
             humanModal.style.zIndex = '-1';
             document.getElementById('humanForm').reset();
+            resetAcFields();
         };
         reader.readAsDataURL(imageFile);
     } else {
         markDataChanged();
-        renderWebNodes();
+        renderObjectCanvas();
         humanModal.style.display = 'none';
         humanModal.style.zIndex = '-1';
         document.getElementById('humanForm').reset();
+        resetAcFields();
     }
 });
 
@@ -6972,7 +7053,7 @@ document.getElementById('otherForm').addEventListener('submit', (e) => {
             }
 
             markDataChanged();
-            renderWebNodes();
+            renderObjectCanvas();
             otherModal.style.display = 'none';
             otherModal.style.zIndex = '-1';
             document.getElementById('otherForm').reset();
@@ -6980,7 +7061,7 @@ document.getElementById('otherForm').addEventListener('submit', (e) => {
         reader.readAsDataURL(imageFile);
     } else {
         markDataChanged();
-        renderWebNodes();
+        renderObjectCanvas();
         otherModal.style.display = 'none';
         otherModal.style.zIndex = '-1';
         document.getElementById('otherForm').reset();
@@ -6988,7 +7069,7 @@ document.getElementById('otherForm').addEventListener('submit', (e) => {
 });
 
 window.addEventListener('resize', () => {
-    renderWebNodes();
+    renderObjectCanvas();
 });
 
 let zoomTicking = false;
@@ -7013,6 +7094,8 @@ let initialPinchDistance = 0;
 let initialScale = 1;
 
 webContainer.addEventListener('wheel', (e) => {
+    if (e.target.closest('.obj-field, .obj-type-strip, .obj-detail-panel')) return;
+
     e.preventDefault();
 
     const rect = webContainer.getBoundingClientRect();
@@ -7096,7 +7179,7 @@ webContainer.addEventListener('mousedown', (e) => {
     // Don't start panning if the user is trying to interact with a node/UI element.
     const ignoreDrag = Boolean(
         e.target?.closest?.(
-            '.data-node, .node-label, .graph-node, .connection-node, button, a, input, textarea, select, label, .modal, .clean-modal'
+            '.data-node, .node-label, .graph-node, .connection-node, button, a, input, textarea, select, label, .modal, .clean-modal, .obj-tile, .obj-cluster, .obj-field, .obj-detail-panel, .obj-type-chip, .obj-canvas-search'
         )
     );
     if (ignoreDrag) return;
@@ -7149,18 +7232,18 @@ webContainer.addEventListener('mouseleave', () => {
 });
 
 applyFilterBtn.addEventListener('click', () => {
-    renderWebNodes();
+    renderObjectCanvas();
 });
 
 searchInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
-        renderWebNodes();
+        renderObjectCanvas();
     }
 });
 
 if (window.PazatorUI) {
     searchInput.addEventListener('input', PazatorUI.debounce(function() {
-        renderWebNodes();
+        renderObjectCanvas();
     }, 500));
 }
 
@@ -7959,7 +8042,7 @@ function sortByCredit() {
     });
 
     saveData();
-    renderWebNodes();
+    renderObjectCanvas();
     updateCreditStats();
 
     showAlert(`Sorted ${pazatorData.humans.length} people by credit score!`, 'Sorted', 'success');
@@ -8614,8 +8697,8 @@ async function exportHumanToPDF(humanId) {
             { label: 'Education', value: human.educationLevel || 'Not specified' }
         ]},
         { title: 'RELATIONSHIPS', items: [
-            { label: 'Friends', value: human.friends?.length ? human.friends.join(', ') : 'None recorded' },
-            { label: 'Family', value: human.family?.length ? human.family.join(', ') : 'None recorded' }
+            { label: 'Friends', value: (human.friends || []).map(function(id) { return getHumanNameById(id); }).filter(Boolean).join(', ') || 'None' },
+            { label: 'Family', value: (human.family || []).map(function(id) { return getHumanNameById(id); }).filter(Boolean).join(', ') || 'None' }
         ]},
         { title: 'NOTES', items: [
             { label: 'Notes', value: human.extraNotes || 'No notes' }
@@ -9250,7 +9333,7 @@ IMPORTANT: Return scores for ALL ${humansToEvaluate.length} people. Be realistic
         });
         
         saveData();
-        renderWebNodes();
+        renderObjectCanvas();
         updateCreditStats();
         
     } catch (error) {
@@ -9264,7 +9347,7 @@ IMPORTANT: Return scores for ALL ${humansToEvaluate.length} people. Be realistic
         });
         
         saveData();
-        renderWebNodes();
+        renderObjectCanvas();
         updateCreditStats();
         hideCreditEvalModal();
     }
@@ -10363,7 +10446,7 @@ try {
     console.error(' Fatal initialization error:', initError);
     pazatorData = { humans: [], others: [] };
     tags = [];
-    renderWebNodes();
+    renderObjectCanvas();
     renderTags();
     console.log('️ Using fallback initialization');
 }
@@ -12441,12 +12524,6 @@ function formatTime(timestamp) {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
 // Settings Functions
 function openSettingsModal() {
     const modal = document.getElementById('settingsModal');
@@ -12644,6 +12721,351 @@ function updateGeminiStatus() {
     }
 }
 
+function syncAllObjectsFromHumans() {
+    if (!window.pazatorObjects) return;
+    (pazatorData.humans || []).forEach(function (h) {
+        pazatorObjects.ensureObjectsForHuman(h);
+    });
+}
+
+function getObjectStatsSummary() {
+    if (!window.pazatorObjects) return 'Object system not available';
+    var stats = pazatorObjects.getStats();
+    var types = pazatorObjects.getTypes().filter(function (t) { return (stats[t] || 0) > 0; });
+    var lines = ['OBJECT SYSTEM:'];
+    lines.push('- ' + stats.total + ' total objects across ' + types.length + ' categories');
+    types.forEach(function (t) {
+        lines.push('  ' + pazatorObjects.getTypeLabel(t) + ': ' + stats[t] + ' objects');
+    });
+    return lines.join('\n');
+}
+
+function getObjectConnections(type, name) {
+    if (!window.pazatorObjects) return [];
+    var obj = pazatorObjects.getByName(type, name);
+    if (!obj) return [];
+    var fieldMap = {
+        gender: 'gender', maritalStatus: 'maritalStatus', nationality: 'nationality',
+        countryOfOrigin: 'countryOfOrigin', immigrationStatus: 'immigrationStatus',
+        language: 'languages', ethnicity: 'ethnicity', religion: 'religion',
+        politicalView: 'politicalViews', threatLevel: 'threatLevel', socialClass: 'socialClass',
+        incomeLevel: 'incomeLevel', educationLevel: 'educationLevel', workplace: 'workplace',
+        occupation: 'occupation'
+    };
+    var humanField = fieldMap[type];
+    if (!humanField) return [];
+    return pazatorData.humans.filter(function (h) {
+        var val = h[humanField];
+        if (!val) return false;
+        if (Array.isArray(val)) return val.some(function (v) { return v.toLowerCase() === obj.name.toLowerCase(); });
+        return val.toLowerCase() === obj.name.toLowerCase();
+    }).map(function (h) {
+        return { id: h.id, name: h.name, threatLevel: h.threatLevel || 'None', credit: h.credit };
+    });
+}
+
+var _acInstances = {};
+
+function initAcFields() {
+    document.querySelectorAll('.obj-ac-placeholder').forEach(function (el) {
+        var type = el.dataset.acType;
+        if (!type || _acInstances[type]) return;
+        var placeholder = el.dataset.acPlaceholder || 'Search...';
+        var multiple = el.dataset.acMultiple === 'true';
+        var instance = createAutocompleteField(el, {
+            type: type,
+            placeholder: placeholder,
+            label: '',
+            allowMultiple: multiple,
+            name: type + '_obj'
+        });
+        _acInstances[type] = instance;
+    });
+}
+
+function getAcTextValue(type) {
+    var inst = _acInstances[type];
+    if (!inst) return '';
+    if (inst.hiddenInput && inst.textInput) {
+        var hiddenVal = inst.hiddenInput.value;
+        if (hiddenVal && hiddenVal.indexOf(',') !== -1) {
+            return hiddenVal.split(',').map(function (id) {
+                var obj = pazatorObjects.getById(id.trim());
+                return obj ? obj.name : '';
+            }).filter(Boolean).join(', ');
+        }
+    }
+    return inst.textInput ? inst.textInput.value.trim() : '';
+}
+
+function setAcValue(type, value) {
+    var inst = _acInstances[type];
+    if (!inst) return;
+    if (value) {
+        var obj = pazatorObjects.getByName(type, value);
+        if (obj) {
+            inst.setValue(obj.id, obj.name);
+        } else {
+            inst.textInput.value = value;
+        }
+    } else {
+        inst.reset();
+    }
+}
+
+function resetAcFields() {
+    Object.keys(_acInstances).forEach(function (key) {
+        if (_acInstances[key]) _acInstances[key].reset();
+    });
+}
+
+function renderObjectCanvas() {
+    var webContent = document.getElementById('webContent');
+    var visOffOverlay = document.getElementById('visOffOverlay');
+    var visEmptyOverlay = document.getElementById('visEmptyOverlay');
+    var vtContainer = document.getElementById('virtualTableContainer');
+
+    if (vtContainer) vtContainer.style.display = 'none';
+    if (visOffOverlay) visOffOverlay.style.display = 'none';
+    if (visEmptyOverlay) visEmptyOverlay.style.display = 'none';
+    webContent.style.display = '';
+
+    var stats = pazatorObjects.getStats();
+    var totalObjs = stats.total;
+    var totalHumans = pazatorData.humans.length;
+
+    if (totalObjs === 0 && totalHumans === 0) {
+        if (visEmptyOverlay) visEmptyOverlay.style.display = 'flex';
+        return;
+    }
+
+    var types = pazatorObjects.getTypes();
+
+    var html = '<div class="obj-canvas">';
+    html += '<div class="obj-canvas-top">';
+    html += '<div class="obj-canvas-top-left">';
+    html += '<div class="obj-canvas-titles">';
+    html += '<div class="obj-canvas-title">Object Graph</div>';
+    html += '<div class="obj-canvas-subtitle">' + totalObjs + ' objects across ' + types.filter(function (t) { return (stats[t] || 0) > 0; }).length + ' categories</div>';
+    html += '</div></div>';
+    html += '<div class="obj-canvas-top-right">';
+    html += '<div class="obj-canvas-pill"><i class="fas fa-cube"></i> ' + totalObjs + '</div>';
+    html += '<div class="obj-canvas-pill"><i class="fas fa-users"></i> ' + totalHumans + '</div>';
+    html += '<div class="obj-canvas-search" id="objCanvasSearchWrap">';
+    html += '<i class="fas fa-search"></i>';
+    html += '<input type="text" id="objCanvasSearch" placeholder="Find object..." class="obj-search-input">';
+    html += '</div></div></div>';
+
+    html += '<div class="obj-type-strip" id="objTypeStrip">';
+    html += '<button class="obj-type-chip active" data-type="_all">All</button>';
+    types.forEach(function (t) {
+        var count = stats[t] || 0;
+        if (count > 0) {
+            html += '<button class="obj-type-chip" data-type="' + t + '">' +
+                '<i class="fas ' + pazatorObjects.getTypeIcon(t) + '"></i> ' +
+                pazatorObjects.getTypeLabel(t).split(' ')[0] +
+                ' <span class="obj-chip-count">' + count + '</span></button>';
+        }
+    });
+    html += '</div>';
+
+    html += '<div class="obj-field" id="objField">';
+    html += '<div class="obj-field-inner" id="objFieldInner"></div>';
+    html += '</div></div>';
+
+    webContent.innerHTML = html;
+    webContent.style.width = '100%';
+    webContent.style.height = '100%';
+    webContent.style.transform = 'none';
+    webContent.style.position = 'relative';
+    currentScale = 1;
+    currentTranslateX = 0;
+    currentTranslateY = 0;
+
+    document.querySelectorAll('.obj-type-chip').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            document.querySelectorAll('.obj-type-chip').forEach(function (t) { t.classList.remove('active'); });
+            this.classList.add('active');
+            renderObjectsToField(this.dataset.type);
+        });
+    });
+
+    var searchInput = document.getElementById('objCanvasSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', function () {
+            var activeChip = document.querySelector('.obj-type-chip.active');
+            renderObjectsToField(activeChip ? activeChip.dataset.type : '_all', this.value);
+        });
+    }
+
+    renderObjectsToField('_all');
+}
+
+function renderObjectsToField(type, searchQuery) {
+    var field = document.getElementById('objFieldInner');
+    if (!field) return;
+
+    var types = pazatorObjects.getTypes();
+    var hasContent = false;
+    var search = (searchQuery || '').toLowerCase().trim();
+    var html = '';
+
+    if (type === '_all') {
+        types.forEach(function (t) {
+            var objects = pazatorObjects.getAll(t);
+            if (objects.length === 0) return;
+            var rendered = renderObjectCluster(t, objects, search);
+            if (rendered) {
+                html += rendered;
+                hasContent = true;
+            }
+        });
+    } else {
+        var objects = pazatorObjects.getAll(type);
+        var rendered = renderObjectCluster(type, objects, search);
+        if (rendered) {
+            html += rendered;
+            hasContent = true;
+        }
+    }
+
+    if (!hasContent) {
+        html = '<div class="obj-void">';
+        html += '<div class="obj-void-icon">◈</div>';
+        html += '<div class="obj-void-text">' + (search ? 'No objects match "' + searchQuery + '"' : 'No objects yet') + '</div>';
+        html += '<div class="obj-void-hint">Create humans with new field values — objects appear here automatically</div>';
+        html += '</div>';
+    }
+
+    field.innerHTML = html;
+
+    field.querySelectorAll('.obj-tile').forEach(function (tile) {
+        tile.addEventListener('click', function () {
+            var objId = this.dataset.objId;
+            var objType = this.dataset.objType;
+            showObjectDetail(objId, objType);
+        });
+    });
+}
+
+function renderObjectCluster(type, objects, search) {
+    var sorted = objects.slice().sort(function (a, b) { return (b.usageCount || 0) - (a.usageCount || 0); });
+    if (search) {
+        sorted = sorted.filter(function (o) {
+            return o.name.toLowerCase().indexOf(search) !== -1;
+        });
+    }
+    if (sorted.length === 0) return null;
+
+    var maxUsage = sorted.length > 0 ? Math.max(1, sorted[0].usageCount || 1) : 1;
+    var icon = pazatorObjects.getTypeIcon(type);
+    var label = pazatorObjects.getTypeLabel(type);
+
+    var html = '<div class="obj-cluster" data-type="' + type + '">';
+    html += '<div class="obj-cluster-head">';
+    html += '<i class="fas ' + icon + '"></i> ';
+    html += '<span>' + label + '</span>';
+    html += '<span class="obj-cluster-count">' + sorted.length + '</span>';
+    html += '</div>';
+    html += '<div class="obj-cluster-body">';
+
+    sorted.slice(0, 30).forEach(function (obj) {
+        var usage = obj.usageCount || 0;
+        var sizeFactor = maxUsage > 1 ? (usage / maxUsage) : 0.3;
+        var fontSize = 11 + Math.round(sizeFactor * 5);
+        var opacity = 0.5 + sizeFactor * 0.5;
+
+        html += '<div class="obj-tile" data-obj-id="' + obj.id + '" data-obj-type="' + type + '" style="opacity:' + opacity + '">';
+        html += '<div class="obj-tile-inner">';
+        html += '<span class="obj-tile-name" style="font-size:' + fontSize + 'px">' + escapeHtml(obj.name) + '</span>';
+        html += '<span class="obj-tile-count">' + usage + '</span>';
+        html += '</div>';
+        html += '</div>';
+    });
+
+    html += '</div></div>';
+    return html;
+}
+
+function showObjectDetail(objId, objType) {
+    var obj = pazatorObjects.getById(objId);
+    if (!obj) return;
+
+    var matchedHumans = pazatorData.humans.filter(function (h) {
+        var fieldMap = {
+            gender: h.gender,
+            maritalStatus: h.maritalStatus,
+            nationality: h.nationality,
+            countryOfOrigin: h.countryOfOrigin,
+            immigrationStatus: h.immigrationStatus,
+            language: h.languages,
+            ethnicity: h.ethnicity,
+            religion: h.religion,
+            politicalView: h.politicalViews,
+            threatLevel: h.threatLevel,
+            socialClass: h.socialClass,
+            incomeLevel: h.incomeLevel,
+            educationLevel: h.educationLevel,
+            workplace: h.workplace,
+            occupation: h.occupation
+        };
+        var fieldVal = fieldMap[objType];
+        if (!fieldVal) return false;
+        if (Array.isArray(fieldVal)) {
+            return fieldVal.some(function (v) { return v.toLowerCase() === obj.name.toLowerCase(); });
+        }
+        return fieldVal.toLowerCase() === obj.name.toLowerCase();
+    });
+
+    var overlayDiv = document.createElement('div');
+    overlayDiv.className = 'obj-detail-overlay';
+    overlayDiv.id = 'objDetailOverlay';
+
+    var panel = document.createElement('div');
+    panel.className = 'obj-detail-panel';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'obj-detail-close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.addEventListener('click', function () { overlayDiv.remove(); });
+    panel.appendChild(closeBtn);
+
+    var header = document.createElement('div');
+    header.className = 'obj-detail-header';
+    header.innerHTML = '<i class="fas ' + pazatorObjects.getTypeIcon(objType) + '"></i><h2>' + escapeHtml(obj.name) + '</h2><span class="obj-detail-type">' + pazatorObjects.getTypeLabel(objType) + '</span>';
+    panel.appendChild(header);
+
+    var stats = document.createElement('div');
+    stats.className = 'obj-detail-stats';
+    stats.innerHTML = '<div class="obj-detail-stat"><span>' + matchedHumans.length + '</span> Humans</div>';
+    panel.appendChild(stats);
+
+    var humansContainer = document.createElement('div');
+    humansContainer.className = 'obj-detail-humans';
+
+    if (matchedHumans.length === 0) {
+        var empty = document.createElement('div');
+        empty.className = 'obj-empty-state';
+        empty.innerHTML = '<p>No humans with this object</p>';
+        humansContainer.appendChild(empty);
+    } else {
+        matchedHumans.forEach(function (h) {
+            var card = document.createElement('div');
+            card.className = 'obj-human-card';
+            card.addEventListener('click', function () { showDetailView(h, 'human'); });
+            var avatarHtml = h.imagePreview
+                ? '<img src="' + h.imagePreview + '" alt="">'
+                : '<i class="fas fa-user"></i>';
+            card.innerHTML = '<div class="obj-human-avatar">' + avatarHtml + '</div><div class="obj-human-info"><div class="obj-human-name">' + escapeHtml(h.name) + '</div><div class="obj-human-extra">' + (h.threatLevel ? 'Threat: ' + h.threatLevel : '') + '</div></div>';
+            humansContainer.appendChild(card);
+        });
+    }
+
+    panel.appendChild(humansContainer);
+    overlayDiv.appendChild(panel);
+    document.body.appendChild(overlayDiv);
+}
+
 function initSettings() {
     if (localStorage.getItem('noBlur') === 'true') {
         document.body.classList.add('no-blur');
@@ -12708,7 +13130,7 @@ function setZorToolMode(enabled) {
     localStorage.setItem(ZOR_TOOL_MODE_KEY, enabled ? 'true' : 'false');
     updateZorToolModeUI();
     if (enabled) {
-        showFloatingNotification('Tool mode ON — Zor will fetch data via tools instead of full context dump', 'info');
+        showFloatingNotification('CTXOD ON — Zor will fetch data on demand instead of full context dump', 'info');
     } else {
         showFloatingNotification('Full context mode — all data will be fed to Zor', 'info');
     }
@@ -12747,10 +13169,10 @@ function updateZorToolModeUI() {
             toggle.style.display = 'flex';
             toggle.classList.toggle('active', isZorToolMode());
             if (isZorToolMode()) {
-                toggle.title = 'ON: Zor fetches specific data via tools instead of getting all context dumped. Click to switch back to full context.';
-                toggle.querySelector('.toggle-label').textContent = 'Tools';
+                toggle.title = 'CTXOD: Zor fetches specific data on demand instead of full context. Click to switch back.';
+                toggle.querySelector('.toggle-label').textContent = 'CTXOD';
             } else {
-                toggle.title = 'OFF: all data is fed to Zor in the prompt. Click to switch to tool-based mode (saves tokens).';
+                toggle.title = 'OFF: all data is fed to Zor in the prompt. Click to switch to CTXOD (saves tokens).';
                 toggle.querySelector('.toggle-label').textContent = 'Full Ctx';
             }
         }
@@ -12771,7 +13193,7 @@ function updateZorToolModeUI() {
         if (bb) {
             statusText.textContent = 'Black box on';
         } else {
-            statusText.textContent = isZorToolMode() ? 'Tool mode' : 'Context ready';
+            statusText.textContent = isZorToolMode() ? 'CTXOD' : 'Context ready';
         }
     }
     const statusIndicator = document.querySelector('.status-indicator');
@@ -13076,6 +13498,102 @@ const ZorTools = {
                 connections.sort(function(x, y) { return y.strength - x.strength; });
                 return { count: connections.length, connections: connections.slice(0, 20) };
             }
+        },
+        list_object_types: {
+            description: 'List all object types in the system (e.g., gender, nationality, religion, politicalView, etc.) with counts.',
+            parameters: {},
+            handler: function() {
+                if (!window.pazatorObjects) return { types: [] };
+                var stats = pazatorObjects.getStats();
+                var types = pazatorObjects.getTypes().filter(function(t) { return (stats[t] || 0) > 0; });
+                return {
+                    count: types.length,
+                    types: types.map(function(t) {
+                        return { type: t, label: pazatorObjects.getTypeLabel(t), count: stats[t] || 0, icon: pazatorObjects.getTypeIcon(t) };
+                    })
+                };
+            }
+        },
+        get_objects_by_type: {
+            description: 'Get all objects of a specific type (e.g., "nationality", "religion", "politicalView", "workplace", "gender", "threatLevel"). Returns objects sorted by usage count.',
+            parameters: { type: 'The object type name (e.g., "nationality", "religion", "politicalView", "workplace")' },
+            handler: function(params) {
+                if (!window.pazatorObjects) return { count: 0, objects: [] };
+                var type = params.type || '';
+                var objects = pazatorObjects.getAll(type);
+                return {
+                    type: type,
+                    label: pazatorObjects.getTypeLabel(type),
+                    count: objects.length,
+                    objects: objects.sort(function(a, b) { return (b.usageCount || 0) - (a.usageCount || 0); }).slice(0, 50)
+                };
+            }
+        },
+        get_object_detail: {
+            description: 'Get details about a specific object and all humans connected to it. Use this to see who shares a particular attribute.',
+            parameters: { type: 'Object type (e.g., "nationality", "religion", "politicalView")', name: 'Object name (e.g., "American", "Christian", "Liberal")' },
+            handler: function(params) {
+                if (!window.pazatorObjects) return { found: false };
+                var obj = pazatorObjects.getByName(params.type, params.name);
+                if (!obj) return { found: false, message: 'Object not found' };
+                var matchedHumans = pazatorData.humans.filter(function(h) {
+                    var fieldMap = {
+                        gender: h.gender, maritalStatus: h.maritalStatus, nationality: h.nationality,
+                        countryOfOrigin: h.countryOfOrigin, immigrationStatus: h.immigrationStatus,
+                        language: h.languages, ethnicity: h.ethnicity, religion: h.religion,
+                        politicalView: h.politicalViews, threatLevel: h.threatLevel, socialClass: h.socialClass,
+                        incomeLevel: h.incomeLevel, educationLevel: h.educationLevel, workplace: h.workplace,
+                        occupation: h.occupation
+                    };
+                    var val = fieldMap[params.type];
+                    if (!val) return false;
+                    if (Array.isArray(val)) return val.some(function(v) { return v.toLowerCase() === obj.name.toLowerCase(); });
+                    return val.toLowerCase() === obj.name.toLowerCase();
+                });
+                return {
+                    found: true,
+                    object: obj,
+                    connectedHumans: matchedHumans.map(function(h) {
+                        return { id: h.id, name: h.name, threatLevel: h.threatLevel || 'None', credit: h.credit, tags: h.tags || [] };
+                    }),
+                    connectionCount: matchedHumans.length
+                };
+            }
+        },
+        search_objects: {
+            description: 'Search for objects by name across all types or within a specific type.',
+            parameters: { query: 'Search term', type: 'Optional - restrict to a specific object type' },
+            handler: function(params) {
+                if (!window.pazatorObjects) return { count: 0, results: [] };
+                var query = (params.query || '').toLowerCase();
+                if (!query) return { count: 0, results: [] };
+                var searchType = params.type || null;
+                var types = searchType ? [searchType] : pazatorObjects.getTypes();
+                var results = [];
+                types.forEach(function(t) {
+                    var objects = pazatorObjects.search(t, query);
+                    objects.forEach(function(o) {
+                        results.push({ type: t, label: pazatorObjects.getTypeLabel(t), object: o });
+                    });
+                });
+                results.sort(function(a, b) { return (b.object.usageCount || 0) - (a.object.usageCount || 0); });
+                return { count: results.length, results: results.slice(0, 30) };
+            }
+        },
+        add_object: {
+            description: 'Create a new object of a given type (e.g., nationality, religion, politicalView, workplace). Use this when you need a specific field value that does not exist yet before assigning it to a human.',
+            parameters: { type: 'Object type (e.g., "nationality", "religion", "politicalView", "workplace", "ethnicity", "language")', name: 'The name of the new object (e.g., "Canadian", "Buddhist", "Libertarian")' },
+            handler: function(params) {
+                if (!window.pazatorObjects) return { success: false, message: 'Object system not available' };
+                var type = (params.type || '').trim();
+                var name = (params.name || '').trim();
+                if (!type || !name) return { success: false, message: 'Both type and name are required' };
+                var validTypes = pazatorObjects.getTypes();
+                if (validTypes.indexOf(type) === -1) return { success: false, message: 'Invalid type. Valid types: ' + validTypes.join(', ') };
+                var id = pazatorObjects.getOrCreate(type, name);
+                var obj = pazatorObjects.getById(id);
+                return { success: true, object: obj, message: 'Object "' + name + '" (' + type + ') is ready' };
+            }
         }
     },
 
@@ -13180,6 +13698,7 @@ function getZorToolSystemPrompt() {
     prompt += 'Use these tools to get specific information rather than asking for all data at once.\n\n';
     prompt += ZorTools.getToolDescriptions();
     prompt += '\n\nHuman entries have fields: name, gender, birthDate, workplace/occupation, credit (0-370), socialClass, maritalStatus, nationality, countryOfOrigin, immigrationStatus, languages, ethnicity, religion, politicalViews, threatLevel (None/Low/Medium/High/Critical), educationLevel, incomeLevel, friends, family, extraNotes, tags.\n\n';
+    prompt += 'OBJECT SYSTEM: Field values (nationality, religion, politicalViews, ethnicity, workplace, etc.) are tracked as reusable objects with usage counts — use list_object_types / get_objects_by_type / search_objects tools to explore them. When setting a field, just use the name string (e.g. "Canadian") and it will be automatically created. Use the add_object tool to explicitly create a new object before referencing it.\n\n';
     prompt += 'Case file actions: {"action": "create_case", "title": "...", "description": "...", "status": "open"}\n';
     prompt += '  {"action": "edit_case", "title": "...", "description": "..."}\n';
     prompt += '  {"action": "add_case_note", "title": "...", "note": "..."}\n';
@@ -13193,7 +13712,8 @@ function getZorToolSystemPrompt() {
     prompt += '  {"action": "list_humans"}\n  {"action": "list_others"}\n  {"action": "count_entries"}\n';
     prompt += '  {"action": "add_tag", "tag": "newTag"}\n';
     prompt += '  {"action": "assign_tag", "id": "12345", "tag": "employee"}\n';
-    prompt += '  {"action": "remove_tag", "id": "12345", "tag": "employee"}\n\n';
+    prompt += '  {"action": "remove_tag", "id": "12345", "tag": "employee"}\n';
+    prompt += '  {"action": "add_object", "data": {"type": "nationality", "name": "Canadian"}}\n\n';
     prompt += 'Previous conversation:\n';
     prompt += aiChatHistory.map(function(m) { return m.role + ': ' + m.content; }).join('\n') + '\n\n';
     if (adminContext) {
@@ -13206,3 +13726,6 @@ function getZorToolSystemPrompt() {
 // Call init settings on DOMContentLoaded
 document.addEventListener('DOMContentLoaded', initSettings);
 document.addEventListener('DOMContentLoaded', loadLogoForPDF);
+document.addEventListener('DOMContentLoaded', function () {
+    initAcFields();
+});

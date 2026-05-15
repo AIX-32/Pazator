@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Docs — Pazator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --black: #000; --white: #fff; --dim: #666; }
+    html { font-size: 16px; }
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: 'DM Mono', monospace;
+      overflow-x: hidden;
+      cursor: crosshair;
+    }
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 32px; height: 52px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      background: var(--black);
+    }
+    .tb-left { font-size: 9px; letter-spacing: 0.5em; color: var(--dim); }
+    .tb-center { font-family: 'Anton', sans-serif; font-size: 18px; letter-spacing: 0.12em; }
+    .tb-right { display: flex; gap: 28px; }
+    .tb-right a {
+      font-size: 9px; letter-spacing: 0.35em; color: var(--dim);
+      text-decoration: none; text-transform: uppercase; transition: color 0.2s;
+    }
+    .tb-right a:hover { color: var(--white); }
+    .hero {
+      min-height: 100vh; padding-top: 52px;
+      display: grid; grid-template-rows: auto 1fr auto;
+    }
+    .ticker-wrap {
+      overflow: hidden; white-space: nowrap; padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .ticker-inner {
+      display: inline-block;
+      animation: tick 20s linear infinite;
+      font-size: 9px; letter-spacing: 0.45em; color: var(--dim);
+    }
+    @keyframes tick { to { transform: translateX(-50%); } }
+    .content { border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .content-inner {
+      max-width: 800px; margin: 0 auto; padding: 80px 48px;
+    }
+    .content h1 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(48px, 8vw, 100px);
+      line-height: 0.85; letter-spacing: -0.03em;
+      margin-bottom: 20px;
+    }
+    .content h2 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(20px, 3vw, 36px);
+      letter-spacing: -0.01em;
+      margin-top: 60px; margin-bottom: 20px;
+    }
+    .content p {
+      font-size: 12px; line-height: 2;
+      color: rgba(255,255,255,0.45); margin-bottom: 20px;
+    }
+    .badge {
+      display: inline-block;
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 4px 12px; font-size: 8px; letter-spacing: 0.35em;
+      color: var(--dim); margin-bottom: 20px;
+    }
+    .doc-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+      margin: 40px 0;
+    }
+    .doc-card {
+      display: block; text-decoration: none;
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 40px 32px;
+      transition: border-color 0.3s, background 0.3s;
+    }
+    .doc-card:hover {
+      border-color: rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.02);
+    }
+    .doc-card .tag {
+      font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase;
+      color: var(--dim); margin-bottom: 16px;
+    }
+    .doc-card .title {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(28px, 4vw, 48px);
+      letter-spacing: -0.02em;
+      color: var(--white);
+      margin-bottom: 12px;
+    }
+    .doc-card .desc {
+      font-size: 11px; line-height: 1.8;
+      color: rgba(255,255,255,0.4);
+    }
+    .doc-card .arrow {
+      display: inline-block; margin-top: 20px;
+      font-size: 9px; letter-spacing: 0.35em; text-transform: uppercase;
+      color: var(--dim); transition: color 0.3s;
+    }
+    .doc-card:hover .arrow { color: var(--white); }
+    hr { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 40px 0; }
+    footer {
+      padding: 40px 48px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      font-size: 9px; letter-spacing: 0.3em; color: var(--dim);
+    }
+    @media(max-width:700px) {
+      .content-inner { padding: 48px 24px; }
+      .doc-grid { grid-template-columns: 1fr; }
+      .tb-right { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="tb-left">PAZATOR DOCS</div>
+    <div class="tb-center">DOCS</div>
+    <nav class="tb-right">
+      <a href="ctxod.html">CTXOD</a>
+      <a href="tastur.html">TASTUR</a>
+      <a href="../app">App</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="content">
+      <div class="content-inner">
+        <div class="badge">DOCS &mdash; v0.May1526</div>
+        <h1>Documentation.</h1>
+        <p>
+          Guides and references for Pazator's core systems. Each page covers a specific feature
+          &mdash; how it works, how to use it, and what to expect.
+        </p>
+
+        <div class="doc-grid">
+          <a href="ctxod.html" class="doc-card">
+            <div class="tag">AI Context</div>
+            <div class="title">CTXOD</div>
+            <div class="desc">
+              Context On Demand &mdash; lets Zor fetch specific data using tools instead of
+              receiving the full database summary with every message. Saves tokens and keeps
+              responses focused.
+            </div>
+            <div class="arrow">Read &rarr;</div>
+          </a>
+
+          <a href="tastur.html" class="doc-card">
+            <div class="tag">Automation</div>
+            <div class="title">TASTUR</div>
+            <div class="desc">
+              Event-driven rule engine for workspace automation. Write
+              <code style="color:var(--white);">WHEN &hellip; IF &hellip; THEN &hellip;</code>
+              rules that respond to tab switches, threat detection, searches, and more.
+            </div>
+            <div class="arrow">Read &rarr;</div>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <span>PAZATOR &mdash; MASS DATA INTELLIGENCE</span>
+    </footer>
+  </section>
+</body>
+</html>

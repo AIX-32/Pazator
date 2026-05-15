@@ -93,9 +93,7 @@
                 request.onsuccess = function (e) {
                     var cursor = e.target.result;
                     if (cursor) {
-                        if (!cache.has(cursor.key)) {
-                            cache.set(cursor.key, cursor.value);
-                        }
+                        cache.set(cursor.key, cursor.value);
                         cursor.continue();
                     } else {
                         resolve();
@@ -128,29 +126,6 @@
             } catch (err) { reject(err); }
         });
     }
-
-    localStorage.getItem = function (key) {
-        return cache.get(key) !== undefined ? cache.get(key) : null;
-    };
-
-    localStorage.setItem = function (key, value) {
-        var str = String(value);
-        cache.set(key, str);
-        native.setItem(key, str);
-        dbPut(key, str).catch(function () {});
-    };
-
-    localStorage.removeItem = function (key) {
-        cache.delete(key);
-        native.removeItem(key);
-        dbDelete(key).catch(function () {});
-    };
-
-    localStorage.clear = function () {
-        cache.clear();
-        native.clear();
-        dbClear().catch(function () {});
-    };
 
     window.pazatorDB = {
         init: function () {

@@ -5,10 +5,6 @@
     var batchDepth = 0;
     var pendingNotifications = [];
 
-    function getKey(storeName, id) {
-        return storeName + ':' + (id || '');
-    }
-
     var store = {
         _data: {
             humans: [],
@@ -88,12 +84,11 @@
             var key = String(name || '').toLowerCase().trim().replace(/\s+/g, ' ');
             var id = store._nameIndex.get(key);
             if (id) return store._humanIndex.get(id) || null;
-            for (var entry of store._nameIndex) {
-                if (entry[0].includes(key)) {
-                    return store._humanIndex.get(entry[1]) || null;
-                }
-            }
-            return null;
+            var result = null;
+            store._nameIndex.forEach(function(val, k) {
+                if (!result && k.includes(key)) result = store._humanIndex.get(val) || null;
+            });
+            return result;
         },
 
         findHumans: function (predicate) {
@@ -177,9 +172,12 @@
             var d = this._data;
             var humans = d.humans || [];
             var others = d.others || [];
+            var threatScore = function(h) {
+                var t = h.threatLevel;
+                return t === 'Critical' ? 4 : t === 'High' ? 3 : t === 'Medium' ? 2 : t === 'Low' ? 1 : 0;
+            };
             var topRisk = humans.slice(0).sort(function (a, b) {
-                return (a.threatLevel === 'Critical' ? 4 : a.threatLevel === 'High' ? 3 : a.threatLevel === 'Medium' ? 2 : a.threatLevel === 'Low' ? 1 : 0) >
-                       (b.threatLevel === 'Critical' ? 4 : b.threatLevel === 'High' ? 3 : b.threatLevel === 'Medium' ? 2 : b.threatLevel === 'Low' ? 1 : 0) ? -1 : 1;
+                return threatScore(b) - threatScore(a);
             }).slice(0, 20).map(function (h) {
                 return { id: h.id, name: h.name, threatLevel: h.threatLevel || 'None', credit: h.credit };
             });
@@ -200,7 +198,7 @@
                 topRiskyPeople: topRisk
             };
         }
-    };
+        },
 
         getHumansPage: function (page, pageSize, filter) {
             page = Math.max(1, page);
@@ -303,12 +301,16 @@
             store._dirtyStores.clear();
             for (var s = 0; s < stores.length; s++) {
                 var sn = stores[s];
-                var data = store._data[sn];
-                if (data && data.length) {
-                    window.pazatorEngine.putMany(sn, data).catch(function () {});
+                if (sn === 'tags') {
+                    window.pazatorEngine.put('tags', { id: '_tags', list: store._data.tags }).catch(function () {});
+                } else {
+                    var data = store._data[sn];
+                    if (data && data.length) {
+                        window.pazatorEngine.putMany(sn, data).catch(function () {});
+                    }
                 }
             }
-        }
+        },
     };
 
     var initProxy = function () {
@@ -324,7 +326,7 @@
 
                 data[key].push = function () {
                     var result = originalPush.apply(this, arguments);
-                    store.rebuildIndexes();
+                    if (key === 'humans') store.rebuildIndexes();
                     store.markDirty(key);
                     store.emit(key + '_changed', { action: 'push', items: Array.from(arguments) });
                     store.emit('data_changed', { store: key, action: 'push' });
@@ -332,7 +334,7 @@
                 };
                 data[key].pop = function () {
                     var result = originalPop.apply(this, arguments);
-                    store.rebuildIndexes();
+                    if (key === 'humans') store.rebuildIndexes();
                     store.markDirty(key);
                     store.emit(key + '_changed', { action: 'pop' });
                     store.emit('data_changed', { store: key, action: 'pop' });
@@ -340,7 +342,7 @@
                 };
                 data[key].splice = function () {
                     var result = originalSplice.apply(this, arguments);
-                    store.rebuildIndexes();
+                    if (key === 'humans') store.rebuildIndexes();
                     store.markDirty(key);
                     store.emit(key + '_changed', { action: 'splice', args: Array.from(arguments) });
                     store.emit('data_changed', { store: key, action: 'splice' });
@@ -348,7 +350,7 @@
                 };
                 data[key].shift = function () {
                     var result = originalShift.apply(this, arguments);
-                    store.rebuildIndexes();
+                    if (key === 'humans') store.rebuildIndexes();
                     store.markDirty(key);
                     store.emit(key + '_changed', { action: 'shift' });
                     store.emit('data_changed', { store: key, action: 'shift' });
@@ -356,7 +358,7 @@
                 };
                 data[key].unshift = function () {
                     var result = originalUnshift.apply(this, arguments);
-                    store.rebuildIndexes();
+                    if (key === 'humans') store.rebuildIndexes();
                     store.markDirty(key);
                     store.emit(key + '_changed', { action: 'unshift', items: Array.from(arguments) });
                     store.emit('data_changed', { store: key, action: 'unshift' });
