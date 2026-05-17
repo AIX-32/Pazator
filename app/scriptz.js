@@ -1,7 +1,8 @@
 
 let pazatorData = {
     humans: [],
-    others: []
+    others: [],
+    chats: []
 };
 
 let tags = [];
@@ -17,23 +18,14 @@ const AUTO_SAVE_DELAY = 2000;
 const PERIODIC_SAVE_INTERVAL = 30000;
 
 let openMenuSections = [];
-let trackerPersonNames = [];
+
 
 let searchTabInitialized = false;
-let agentsTabInitialized = false;
-let articlesTabInitialized = false;
+
 let casesTabInitialized = false;
 let selectedCaseId = null;
 
-const TRACKER_CONFIG_KEY = 'shahedTrackerConfig';
-const TRACKER_CONFIG_EXAMPLE = {
-    url: 'https://xyz.supabase.co',
-    key: 'anon-key'
-};
-const DEFAULT_TRACKER_CONFIG = {
-    url: '',
-    key: ''
-};
+
 
 let logoBase64 = null;
 
@@ -109,10 +101,6 @@ function showConfirm(message, title = 'Confirm', type = 'question') {
             ]
         });
     });
-}
-
-function hasValidTrackerConfig(config) {
-    return Boolean(config && config.url && config.key);
 }
 
 const VALID_CHAT_SOURCES = ['whatsapp', 'telegram', 'discord', 'signal', 'manual'];
@@ -768,25 +756,9 @@ Provide your analysis in this EXACT JSON format:
     }
 };
 
-let trackerConfig = null;
-let trackerSupabase = null;
-let trackerConfigPromptedThisSession = false;
-let pendingTrackerDetailShowAlias = null;
 const PERSON_ID_SEQUENCE_KEY = 'pziIdSequence';
 let personIdSequence = 1;
 loadPersonIdSequence();
-
-function loadTrackerConfig() {
-    try {
-        const stored = localStorage.getItem(TRACKER_CONFIG_KEY);
-        if (stored) {
-            return JSON.parse(stored);
-        }
-    } catch (e) {
-        console.warn('Malformed tracker config, ignoring.', e);
-    }
-    return null;
-}
 
 function loadPersonIdSequence() {
     const stored = localStorage.getItem(PERSON_ID_SEQUENCE_KEY);
@@ -844,347 +816,6 @@ function computeAge(birthDate) {
     return Math.max(age, 0);
 }
 
-function applyTrackerConfig(config) {
-    if (!config || !config.url || !config.key) {
-        trackerSupabase = null;
-        trackerDebug && (trackerDebug.innerText = 'Tracker disabled until you configure a Supabase connection.');
-        return;
-    }
-
-    if (typeof supabase === 'undefined') {
-        trackerSupabase = null;
-        trackerDebug && (trackerDebug.innerText = 'Supabase client library is not available.');
-        return;
-    }
-
-    trackerSupabase = supabase.createClient(config.url, config.key);
-    trackerDebug && (trackerDebug.innerText = `Tracker connected to ${config.url}`);
-}
-
-function showTrackerStatusModal(title, message, { variant = 'info', onClose } = {}) {
-    const typeColor = {
-        info: '#4d9de0',
-        success: '#6bcf7f',
-        error: '#ff6b6b'
-    }[variant] || '#4d9de0';
-
-    const modal = document.createElement('div');
-    modal.className = 'modal context-modal';
-    modal.style.display = 'flex';
-    modal.style.zIndex = '1105';
-
-    const dialog = document.createElement('div');
-    dialog.className = 'modal-content';
-    dialog.style.maxWidth = '440px';
-    dialog.style.minWidth = '320px';
-
-    const header = document.createElement('div');
-    header.className = 'modal-header';
-
-    const titleEl = document.createElement('h2');
-    titleEl.textContent = title;
-    titleEl.style.color = typeColor;
-    titleEl.style.fontSize = '1.4rem';
-    titleEl.style.margin = '0';
-
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'close';
-    closeBtn.type = 'button';
-    closeBtn.innerHTML = '&times;';
-
-    header.appendChild(titleEl);
-    header.appendChild(closeBtn);
-
-    const body = document.createElement('div');
-    body.className = 'modal-body';
-    body.style.padding = '8px 0';
-    body.innerHTML = '';
-    message = String(message || '');
-    message.split('\n').forEach((line, index) => {
-        const paragraph = document.createElement('p');
-        paragraph.textContent = line;
-        paragraph.style.margin = index ? '12px 0 0' : '0';
-        paragraph.style.color = '#d7d7d7';
-        paragraph.style.lineHeight = '1.5';
-        paragraph.style.fontSize = '0.95rem';
-        body.appendChild(paragraph);
-    });
-
-    const actions = document.createElement('div');
-    actions.className = 'form-actions';
-    actions.style.marginTop = '20px';
-
-    const confirmBtn = document.createElement('button');
-    confirmBtn.type = 'button';
-    confirmBtn.className = 'btn btn-primary';
-    confirmBtn.textContent = 'Close';
-    actions.appendChild(confirmBtn);
-
-    const cleanup = () => {
-        if (modal.parentNode) {
-            modal.parentNode.removeChild(modal);
-        }
-        if (typeof onClose === 'function') {
-            onClose();
-        }
-    };
-
-    closeBtn.addEventListener('click', cleanup);
-    confirmBtn.addEventListener('click', cleanup);
-    modal.addEventListener('click', (event) => {
-        if (event.target === modal) {
-            cleanup();
-        }
-    });
-
-    dialog.appendChild(header);
-    dialog.appendChild(body);
-    dialog.appendChild(actions);
-    modal.appendChild(dialog);
-    document.body.appendChild(modal);
-}
-
-function openTrackerConfigModal(previousConfig, placeholderConfig = {}) {
-    const modal = document.createElement('div');
-    modal.className = 'modal context-modal';
-    modal.style.display = 'flex';
-    modal.style.zIndex = '1110';
-
-    const dialog = document.createElement('div');
-    dialog.className = 'modal-content';
-    dialog.style.maxWidth = '520px';
-    dialog.style.minWidth = '320px';
-
-    const header = document.createElement('div');
-    header.className = 'modal-header';
-
-    const titleEl = document.createElement('h2');
-    titleEl.textContent = 'Tracker configuration';
-    titleEl.style.margin = '0';
-    titleEl.style.fontSize = '1.4rem';
-
-    header.appendChild(titleEl);
-
-    const form = document.createElement('form');
-    form.className = 'modal-body';
-    form.style.display = 'flex';
-    form.style.flexDirection = 'column';
-    form.style.gap = '16px';
-    form.style.padding = '0';
-
-    const info = document.createElement('p');
-    info.textContent = 'Enter the Supabase tracker URL and anonymous key so the tracker sync can run securely.';
-    info.style.color = '#b7b7b7';
-    info.style.fontSize = '0.9rem';
-    info.style.margin = '0';
-
-    const createField = (labelText, initialValue, placeholder, type = 'text') => {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'form-group';
-        const label = document.createElement('label');
-        label.textContent = labelText;
-        label.style.display = 'block';
-        label.style.fontSize = '0.85rem';
-        label.style.fontWeight = '600';
-        label.style.color = '#cfd8ff';
-        label.style.marginBottom = '6px';
-        const input = document.createElement('input');
-        input.className = 'form-control';
-        input.type = type;
-        input.value = initialValue || '';
-        input.placeholder = placeholder;
-        input.autocomplete = 'off';
-        wrapper.appendChild(label);
-        wrapper.appendChild(input);
-        return { wrapper, input };
-    };
-
-    const urlPlaceholder = placeholderConfig.url || 'https://xyz.supabase.co';
-    const keyPlaceholder = placeholderConfig.key || 'Supabase anonymous key';
-    const urlField = createField('Supabase URL', previousConfig.url || '', urlPlaceholder, 'url');
-    const keyField = createField('Anonymous key', previousConfig.key || '', keyPlaceholder, 'text');
-
-    const messageEl = document.createElement('div');
-    messageEl.style.minHeight = '18px';
-    messageEl.style.fontSize = '0.9rem';
-    messageEl.style.color = '#ff6b6b';
-    messageEl.style.margin = '0';
-
-    const actions = document.createElement('div');
-    actions.className = 'form-actions';
-    actions.style.paddingTop = '12px';
-    actions.style.marginTop = '0';
-    actions.style.borderTop = '1px solid rgba(255, 255, 255, 0.08)';
-
-    const cancelBtn = document.createElement('button');
-    cancelBtn.type = 'button';
-    cancelBtn.className = 'btn btn-secondary';
-    cancelBtn.textContent = 'Cancel';
-
-    const saveBtn = document.createElement('button');
-    saveBtn.type = 'submit';
-    saveBtn.className = 'btn btn-primary';
-    saveBtn.textContent = 'Save configuration';
-
-    actions.appendChild(cancelBtn);
-    actions.appendChild(saveBtn);
-
-    form.appendChild(info);
-    form.appendChild(urlField.wrapper);
-    form.appendChild(keyField.wrapper);
-    form.appendChild(messageEl);
-    form.appendChild(actions);
-
-    const cleanup = () => {
-        document.removeEventListener('keydown', handleKeydown);
-        if (modal.parentNode) {
-            modal.parentNode.removeChild(modal);
-        }
-    };
-
-    const revertToPrevious = () => {
-        trackerDebug && (trackerDebug.innerText = 'Tracker configuration unchanged.');
-        if (hasValidTrackerConfig(previousConfig)) {
-            applyTrackerConfig(previousConfig);
-        } else {
-            trackerSupabase = null;
-            trackerDebug && (trackerDebug.innerText = 'Tracker disabled until you configure a Supabase connection.');
-        }
-    };
-
-    const handleCancel = () => {
-        revertToPrevious();
-        cleanup();
-    };
-
-    const handleSave = () => {
-        messageEl.textContent = '';
-        const trimmedUrl = urlField.input.value.trim();
-        const trimmedKey = keyField.input.value.trim();
-        if (!trimmedUrl || !trimmedKey) {
-            const alertMsg = 'Tracker configuration requires both URL and key.';
-            messageEl.textContent = alertMsg;
-            trackerDebug && (trackerDebug.innerText = alertMsg);
-            return;
-        }
-
-        trackerConfig = { url: trimmedUrl, key: trimmedKey, userSaved: true };
-        try {
-            localStorage.setItem(TRACKER_CONFIG_KEY, JSON.stringify(trackerConfig));
-        } catch (storageError) {
-            console.warn('Unable to persist tracker config:', storageError);
-        }
-
-        applyTrackerConfig(trackerConfig);
-        trackerDebug && (trackerDebug.innerText = 'Tracker configuration updated.');
-        if (trackerMap) {
-            fetchTrackerPeople();
-        }
-        cleanup();
-    };
-
-    const handleKeydown = (event) => {
-        if (event.key === 'Escape') {
-            handleCancel();
-        }
-    };
-
-    form.addEventListener('submit', (event) => {
-        event.preventDefault();
-        handleSave();
-    });
-
-    cancelBtn.addEventListener('click', handleCancel);
-
-    [urlField.input, keyField.input].forEach(input => {
-        input.addEventListener('input', () => {
-            messageEl.textContent = '';
-        });
-    });
-
-    modal.addEventListener('click', (event) => {
-        if (event.target === modal) {
-            handleCancel();
-        }
-    });
-
-    document.addEventListener('keydown', handleKeydown);
-
-    dialog.appendChild(header);
-    dialog.appendChild(form);
-    modal.appendChild(dialog);
-    document.body.appendChild(modal);
-
-    setTimeout(() => {
-        urlField.input.focus();
-    }, 0);
-}
-
-function promptForTrackerConfig() {
-    trackerConfigPromptedThisSession = true;
-    const storedConfig = loadTrackerConfig();
-    const previousConfig = trackerConfig || storedConfig || DEFAULT_TRACKER_CONFIG;
-    openTrackerConfigModal(previousConfig, TRACKER_CONFIG_EXAMPLE);
-}
-
-function ensureTrackerConfig(promptForNew = false) {
-    const storedConfig = loadTrackerConfig();
-    trackerConfig = trackerConfig || storedConfig;
-    if (hasValidTrackerConfig(trackerConfig)) {
-        applyTrackerConfig(trackerConfig);
-    } else {
-        trackerSupabase = null;
-        trackerDebug && (trackerDebug.innerText = 'Tracker disabled until you configure a Supabase connection.');
-    }
-
-    if (promptForNew && !trackerConfigPromptedThisSession && !trackerConfig?.userSaved) {
-        promptForTrackerConfig();
-    }
-}
-
-function formatTrackerTimestamp(iso) {
-    if (!iso) return 'never';
-    const parsed = new Date(iso);
-    if (Number.isNaN(parsed.getTime())) return 'never';
-    return parsed.toLocaleString();
-}
-
-const TRACKER_META_FIELDS = [
-    { key: 'timestamp', label: 'Last seen', format: value => formatTrackerTimestamp(value) },
-    { key: 'ip', label: 'IP Address' },
-    { key: 'ip_address', label: 'IP Address' },
-    { key: 'server', label: 'Server' },
-    { key: 'region', label: 'Region' },
-    { key: 'country', label: 'Country' },
-    { key: 'device', label: 'Device' },
-    { key: 'platform', label: 'Platform' },
-    { key: 'user_agent', label: 'User Agent' },
-    { key: 'speed', label: 'Speed' },
-    { key: 'heading', label: 'Heading' }
-];
-
-function buildTrackerMetaHtml(row) {
-    if (!row) return '';
-    const seen = new Set();
-    const lines = [];
-    TRACKER_META_FIELDS.forEach(field => {
-        if (seen.has(field.label)) return;
-        let rawValue = row[field.key];
-        if (rawValue == null || rawValue === '') return;
-        const formatted = field.format
-            ? field.format(rawValue)
-            : rawValue;
-        if (formatted == null || formatted === '') return;
-        lines.push(
-            `<div class="tracker-meta-line"><span class="tracker-meta-label">${escapeHtml(field.label)}</span>` +
-            `<strong class="tracker-meta-value">${escapeHtml(String(formatted))}</strong></div>`
-        );
-        seen.add(field.label);
-    });
-    if (!lines.length) return '';
-    return `<div class="tracker-location-meta">${lines.join('')}</div>`;
-}
-
 function generatePersonId(name, birthDate) {
     const seq = getNextPersonSequence();
     const seqStr = String(seq).padStart(4, '0');
@@ -1199,226 +830,6 @@ function generateOtherId() {
     }
     return `OTH-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 11)}`;
 }
-
-function updateDetailTrackerInfo(data) {
-    if (!detailTrackerContainer) return;
-    if (!data || data.type !== 'human') {
-        detailTrackerContainer.style.display = 'none';
-        return;
-    }
-
-    detailTrackerContainer.style.display = 'block';
-    const alias = data.trackerAlias || '';
-    const statusText = alias
-        ? `Linked to "${alias}" (last sync ${formatTrackerTimestamp(data.trackerLinkedAt)}).`
-        : 'Not linked yet. Use the tracker tab to connect this person.';
-
-    if (detailTrackerStatus) {
-        detailTrackerStatus.textContent = statusText;
-    }
-
-    if (detailTrackerAliasInput) {
-        detailTrackerAliasInput.value = alias || data.name || '';
-    }
-
-    if (detailTrackerShowBtn) {
-        detailTrackerShowBtn.disabled = !alias;
-    }
-}
-
-async function reverseGeocodeLocation(lat, lon, signal) {
-    if (typeof lat !== 'number' || typeof lon !== 'number') {
-        throw new Error('Invalid coordinates');
-    }
-    const url = new URL('https://nominatim.openstreetmap.org/reverse');
-    url.search = new URLSearchParams({
-        format: 'json',
-        lat: lat.toFixed(6),
-        lon: lon.toFixed(6),
-        zoom: '14',
-        addressdetails: '1'
-    }).toString();
-
-    const response = await fetch(url.toString(), {
-        method: 'GET',
-        signal,
-        headers: {
-            'Accept-Language': 'en-US,en;q=0.9'
-        }
-    });
-
-    if (!response.ok) {
-        throw new Error(`Geocode HTTP ${response.status}`);
-    }
-
-    const payload = await response.json();
-    if (payload && payload.error) {
-        throw new Error(payload.error);
-    }
-
-    return payload.display_name || payload.address?.road || 'Unknown place';
-}
-
-async function setTrackerLocationDetails(lat, lon, metaRow = null) {
-    if (!trackerLocationInfo) return;
-
-    const metaIdentifier = metaRow?.timestamp ? metaRow.timestamp : '';
-    const key = `${lat.toFixed(5)}|${lon.toFixed(5)}|${metaIdentifier}`;
-    if (key === trackerLocationCacheKey) return;
-    trackerLocationCacheKey = key;
-    trackerLocationInfo.innerHTML = '<span class="tracker-location-status">Resolving place details…</span>';
-
-    if (trackerLocationAbortController) {
-        trackerLocationAbortController.abort();
-    }
-    trackerLocationAbortController = new AbortController();
-
-    try {
-        const displayName = await reverseGeocodeLocation(lat, lon, trackerLocationAbortController.signal);
-        trackerLocationInfo.innerHTML = `
-            <div class="tracker-location-title">${escapeHtml(displayName)}</div>
-            ${buildTrackerMetaHtml(metaRow)}
-        `;
-    } catch (error) {
-        if (error.name === 'AbortError') return;
-        trackerLocationInfo.innerHTML = `
-            <div class="tracker-location-title">Unable to resolve location.</div>
-            ${buildTrackerMetaHtml(metaRow)}
-        `;
-        console.warn('Tracker reverse geocode failed', error);
-    }
-}
-
-function requestTrackerShow(alias) {
-    if (!alias) return;
-    pendingTrackerDetailShowAlias = alias;
-    if (trackerMap) {
-        showTrackerPersonLocations(alias);
-        pendingTrackerDetailShowAlias = null;
-    }
-}
-
-function ensureTrackerLabelLayers() {
-    if (!trackerMap || trackerLabelLayersAdded) return;
-
-    trackerMap.addSource(STREET_LABEL_SOURCE, {
-        type: 'raster',
-        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-        tileSize: 256
-    });
-    trackerMap.addLayer({
-        id: STREET_LABEL_LAYER,
-        type: 'raster',
-        source: STREET_LABEL_SOURCE,
-        layout: { visibility: 'none' },
-        paint: { 'raster-opacity': 0.9 }
-    });
-
-    trackerLabelLayersAdded = true;
-}
-
-function toggleLabelLayer(type) {
-    if (!trackerMap) return;
-    ensureTrackerLabelLayers();
-
-    const isStreet = type === 'street';
-    const layerId = STREET_LABEL_LAYER;
-    const btn = trackerStreetLabelBtn;
-    const activeState = !streetLabelsActive;
-
-    trackerMap.setLayoutProperty(layerId, 'visibility', activeState ? 'visible' : 'none');
-
-    streetLabelsActive = activeState;
-
-    if (btn) {
-        btn.classList.toggle('active', activeState);
-        const label = 'Street';
-        btn.textContent = `${activeState ? 'Hide' : 'Show'} ${label.toLowerCase()} names`;
-    }
-}
-
-function setTrackerMapFilterActive(activeState) {
-    const enabled = !!activeState;
-    trackerFilterActive = enabled;
-    trackerMapContainer?.classList.toggle('tracker-filter-active', enabled);
-
-    if (trackerFilterToggleBtn) {
-        trackerFilterToggleBtn.classList.toggle('active', enabled);
-        trackerFilterToggleBtn.textContent = `${enabled ? 'Hide' : 'Show'} filter`;
-    }
-}
-
-function toggleTrackerMapFilter() {
-    setTrackerMapFilterActive(!trackerFilterActive);
-}
-
-const trackerSidebar = document.getElementById('trackerSidebar');
-const trackerPeopleListEl = document.getElementById('trackerPeopleList');
-const trackerDebug = document.getElementById('trackerDebug');
-const trackerLocationInfo = document.getElementById('trackerLocationInfo');
-const trackerToggleSidebarBtn = document.getElementById('trackerToggleSidebarBtn');
-const trackerSpinToggleBtn = document.getElementById('trackerSpinToggleBtn');
-const trackerStreetLabelBtn = document.getElementById('streetLabelToggle');
-const trackerFilterToggleBtn = document.getElementById('trackerFilterToggle');
-const trackerSettingsBtn = document.getElementById('trackerSettingsBtn');
-const trackerSettingsMenu = document.getElementById('trackerSettingsMenu');
-const trackerSpinSpeedInput = document.getElementById('trackerSpinSpeed');
-const trackerSpinSpeedValue = document.getElementById('trackerSpinSpeedValue');
-const trackerHumanSelect = document.getElementById('trackerHumanSelect');
-const trackerConnectBtn = document.getElementById('trackerConnectBtn');
-const trackerRefreshBtn = document.getElementById('trackerRefreshBtn');
-const trackerPurgeBtn = document.getElementById('trackerPurgeBtn');
-const trackerConfigureBtn = document.getElementById('trackerConfigureBtn');
-const trackerMapContainer = document.getElementById('trackerMap');
-
-let trackerMap;
-let trackerSpinning = false;
-let trackerAnimationFrame = null;
-let trackerLastSpinTimestamp = null;
-let trackerInitialized = false;
-let trackerLocationAbortController = null;
-let trackerLocationCacheKey = '';
-let trackerLabelLayersAdded = false;
-let streetLabelsActive = false;
-let trackerFilterActive = false;
-let trackerSpinSpeedDps = 10;
-
-function setTrackerSpinSpeed(nextSpeed) {
-    const parsed = Number(nextSpeed);
-    const safeValue = Number.isFinite(parsed) ? Math.max(0, Math.min(60, parsed)) : 10;
-    trackerSpinSpeedDps = safeValue;
-
-    if (trackerSpinSpeedInput) trackerSpinSpeedInput.value = String(Math.round(safeValue));
-    if (trackerSpinSpeedValue) trackerSpinSpeedValue.textContent = `${Math.round(safeValue)}°/s`;
-
-    try {
-        localStorage.setItem('trackerSpinSpeedDps', String(Math.round(safeValue)));
-    } catch (err) {
-        // ignore storage errors
-    }
-}
-
-function setTrackerSettingsMenuOpen(isOpen) {
-    if (!trackerSettingsMenu || !trackerSettingsBtn) return;
-    trackerSettingsMenu.classList.toggle('open', !!isOpen);
-    trackerSettingsBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-}
-
-try {
-    const saved = localStorage.getItem('trackerSpinSpeedDps');
-    if (saved != null) setTrackerSpinSpeed(saved);
-} catch (err) {
-    // ignore storage errors
-}
-
-setTrackerSpinSpeed(trackerSpinSpeedDps);
-
-const TRACKER_PATH_LAYER = 'tracker-path';
-const TRACKER_MARKERS_LAYER = 'tracker-markers';
-const STREET_LABEL_LAYER = 'tracker-street-labels';
-const STREET_LABEL_SOURCE = 'tracker-street-source';
-
-setTrackerMapFilterActive(false);
 
 function escapeHtml(text) {
     const div = document.createElement('div');
@@ -1700,13 +1111,6 @@ const typeModal = document.getElementById('typeModal');
 const humanModal = document.getElementById('humanModal');
 const otherModal = document.getElementById('otherModal');
 const detailViewModal = document.getElementById('detailViewModal');
-const detailTrackerContainer = document.getElementById('detailTrackerContainer');
-const detailTrackerStatus = document.getElementById('detailTrackerStatus');
-const detailTrackerAliasInput = document.getElementById('detailTrackerAlias');
-const detailTrackerSaveAliasBtn = document.getElementById('detailTrackerSaveAliasBtn');
-const detailTrackerShowBtn = document.getElementById('detailTrackerShowBtn');
-const humanTrackerSelect = document.getElementById('humanTrackerSelect');
-const humanTrackerAliasInput = document.getElementById('humanTrackerAlias');
 const aiChatModal = document.getElementById('aiChatModal');
 const webContainer = document.getElementById('webContainer');
 const aiInput = document.getElementById('aiInput');
@@ -1765,7 +1169,6 @@ function showAiTypingIndicator() {
     `;
     aiChatMessages.appendChild(aiTypingIndicator);
     aiChatMessages.scrollTo({ top: aiChatMessages.scrollHeight, behavior: 'smooth' });
-    startZorThinkingTimer();
 }
 
 function hideAiTypingIndicator() {
@@ -1773,143 +1176,12 @@ function hideAiTypingIndicator() {
         aiTypingIndicator.remove();
         aiTypingIndicator = null;
     }
-    hideZorWaitingGame();
 }
 
-let zorThinkingTimer = null;
-let zorGameInterval = null;
-let zorGameTimeout = null;
-let zorGameScore = 0;
-let zorGameStartTime = 0;
-let zorGameActive = false;
-let zorTargetTimeout = null;
 
-function startZorThinkingTimer() {
-    clearTimeout(zorThinkingTimer);
-    zorThinkingTimer = setTimeout(() => {
-        const gameEl = document.getElementById('zorWaitingGame');
-        if (gameEl && !zorGameActive) {
-            gameEl.style.display = 'block';
-        }
-    }, 10000);
-}
-
-function hideZorWaitingGame() {
-    const gameEl = document.getElementById('zorWaitingGame');
-    if (gameEl) {
-        gameEl.style.display = 'none';
-        stopZorGame();
-    }
-}
-
-function getGameArea() {
-    return document.getElementById('gameArea');
-}
-
-function getGameTarget() {
-    return document.getElementById('gameTarget');
-}
-
-function getGameScore() {
-    return document.getElementById('gameScore');
-}
-
-function getGameTimer() {
-    return document.getElementById('gameTimer');
-}
-
-function getGameStartBtn() {
-    return document.getElementById('gameStartBtn');
-}
-
-function spawnTarget() {
-    const target = getGameTarget();
-    const area = getGameArea();
-    if (!target || !area || !zorGameActive) return;
-
-    const areaRect = area.getBoundingClientRect();
-    const targetSize = 40;
-    const maxX = areaRect.width - targetSize - 8;
-    const maxY = areaRect.height - targetSize - 8;
-
-    const x = Math.random() * maxX + 4;
-    const y = Math.random() * maxY + 4;
-
-    target.style.left = x + 'px';
-    target.style.top = y + 'px';
-    target.style.display = 'block';
-
-    clearTimeout(zorTargetTimeout);
-    zorTargetTimeout = setTimeout(() => {
-        if (target.style.display === 'block' && zorGameActive) {
-            target.style.display = 'none';
-            if (zorGameScore > 0) {
-                zorGameScore--;
-                getGameScore().textContent = zorGameScore;
-            }
-            spawnTarget();
-        }
-    }, 1200);
-}
-
-function updateZorGameTimer() {
-    if (!zorGameActive) return;
-    const elapsed = ((Date.now() - zorGameStartTime) / 1000).toFixed(1);
-    getGameTimer().textContent = elapsed + 's';
-}
-
-function startZorGame() {
-    zorGameScore = 0;
-    zorGameActive = true;
-    zorGameStartTime = Date.now();
-    getGameScore().textContent = '0';
-    getGameTimer().textContent = '0.0s';
-    getGameStartBtn().textContent = 'Playing...';
-    getGameStartBtn().disabled = true;
-    getGameTarget().style.display = 'none';
-
-    zorGameInterval = setInterval(updateZorGameTimer, 100);
-
-    setTimeout(spawnTarget, 300);
-
-    getGameTarget().onclick = () => {
-        if (zorGameActive) {
-            zorGameScore++;
-            getGameScore().textContent = zorGameScore;
-            getGameTarget().style.display = 'none';
-            clearTimeout(zorTargetTimeout);
-            spawnTarget();
-        }
-    };
-}
-
-function stopZorGame() {
-    zorGameActive = false;
-    clearInterval(zorGameInterval);
-    clearTimeout(zorTargetTimeout);
-    clearTimeout(zorThinkingTimer);
-    zorGameInterval = null;
-    zorTargetTimeout = null;
-    const target = getGameTarget();
-    if (target) {
-        target.style.display = 'none';
-        target.onclick = null;
-    }
-    const btn = getGameStartBtn();
-    if (btn) {
-        btn.textContent = 'Start Game';
-        btn.disabled = false;
-    }
-}
-
-const searchInput = document.getElementById('searchInput');
-const filterType = document.getElementById('filterType');
-const applyFilterBtn = document.getElementById('applyFilterBtn');
 const tagInput = document.getElementById('tagInput');
 const addTagBtn = document.getElementById('addTagBtn');
 const tagsContainer = document.getElementById('tagsContainer');
-const refreshViewBtn = document.getElementById('refreshViewBtn');
-const toggleConnectionsBtn = document.getElementById('toggleConnectionsBtn');
 const showStatisticsBtn = document.getElementById('showStatisticsBtn');
 const findConnectionsBtn = document.getElementById('findConnectionsBtn');
 const refreshCreditsBtn = document.getElementById('refreshCreditsBtn');
@@ -2126,7 +1398,7 @@ function createTab(tabId) {
     let tabLabel = tabId.charAt(0).toUpperCase() + tabId.slice(1);
     if (tabId === 'threats') tabLabel = 'Threats & Fraud';
     if (tabId === 'chat-control') tabLabel = 'Chat Security';
-    if (tabId === 'tracker') tabLabel = 'Shahed Tracker';
+    if (tabId === 'tracker') tabLabel = 'LCTX';
 
     newTab.innerHTML = `
                 ${tabLabel}
@@ -2182,19 +1454,15 @@ function switchTab(tabId) {
         activeContent.classList.add('active');
     }
 
-    if (tabId === 'tracker') {
-        ensureTrackerConfig(true);
-        ensureTrackerTabReady();
-    } else if (tabId === 'chat-control') {
+    if (tabId === 'chat-control') {
         loadSavedChats();
     } else if (tabId === 'search') {
         setTimeout(initSearchTab, 50);
-    } else if (tabId === 'agents') {
-        setTimeout(initAgentsTab, 50);
-    } else if (tabId === 'articles') {
-        setTimeout(initArticlesTab, 50);
     } else if (tabId === 'threats') {
         updateIntelligenceCenterStats();
+    } else if (tabId === 'tracker') {
+        ensureTrackerConfig(true);
+        ensureTrackerTabReady();
     } else if (tabId === 'cases') {
         setTimeout(initCasesTab, 50);
     } else if (tabId === 'analysis') {
@@ -2323,390 +1591,6 @@ function saveData(immediate = false) {
     }
 }
 
-function ensureTrackerTabReady() {
-    if (trackerInitialized) {
-        refreshTrackerHumanOptions();
-        return;
-    }
-
-    trackerInitialized = true;
-    refreshTrackerHumanOptions();
-
-    if (!trackerMapContainer || typeof maplibregl === 'undefined') {
-        trackerDebug && (trackerDebug.innerText = 'Tracker map requires MapLibre library.');
-        return;
-    }
-
-    trackerMap = new maplibregl.Map({
-        container: 'trackerMap',
-        style: {
-            version: 8,
-            sources: {
-                satellite: {
-                    type: 'raster',
-                    tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
-                    tileSize: 256,
-                    attribution: 'Tiles © Esri'
-                }
-            },
-            layers: [{
-                id: 'satellite',
-                type: 'raster',
-                source: 'satellite'
-            }]
-        },
-        center: [0, 0],
-        zoom: 2,
-        pitch: 60,
-        bearing: 0
-    });
-
-    trackerMap.on('load', () => {
-        startTrackerSpin();
-        ensureTrackerLabelLayers();
-        fetchTrackerPeople().then(() => {
-            if (pendingTrackerDetailShowAlias) {
-                showTrackerPersonLocations(pendingTrackerDetailShowAlias);
-                pendingTrackerDetailShowAlias = null;
-            }
-        });
-    });
-}
-
-function spinTrackerMap(timestamp) {
-    if (!trackerSpinning || !trackerMap) return;
-    const now = typeof timestamp === 'number' ? timestamp : performance.now();
-    if (trackerLastSpinTimestamp == null) trackerLastSpinTimestamp = now;
-    const deltaSeconds = Math.min(0.05, Math.max(0, (now - trackerLastSpinTimestamp) / 1000));
-    trackerLastSpinTimestamp = now;
-
-    const deltaBearing = trackerSpinSpeedDps * deltaSeconds;
-    if (deltaBearing) {
-        trackerMap.setBearing((trackerMap.getBearing() + deltaBearing) % 360);
-    }
-
-    trackerAnimationFrame = requestAnimationFrame(spinTrackerMap);
-}
-
-function startTrackerSpin() {
-    if (trackerSpinning) return;
-    trackerSpinning = true;
-    trackerLastSpinTimestamp = null;
-    trackerSpinToggleBtn?.classList.add('active');
-    if (trackerSpinToggleBtn) trackerSpinToggleBtn.innerText = 'Pause spin';
-    trackerAnimationFrame = requestAnimationFrame(spinTrackerMap);
-}
-
-function stopTrackerSpin() {
-    trackerSpinning = false;
-    trackerLastSpinTimestamp = null;
-    trackerSpinToggleBtn?.classList.remove('active');
-    if (trackerSpinToggleBtn) trackerSpinToggleBtn.innerText = 'Resume spin';
-    if (trackerAnimationFrame) {
-        cancelAnimationFrame(trackerAnimationFrame);
-        trackerAnimationFrame = null;
-    }
-}
-
-async function fetchTrackerPeople() {
-    if (!trackerSupabase) {
-        trackerDebug && (trackerDebug.innerText = 'Tracker connection is unavailable.');
-        return;
-    }
-
-    trackerDebug && (trackerDebug.innerText = 'Fetching tracker people...');
-
-    const { data, error } = await trackerSupabase
-        .from('locations')
-        .select('name')
-        .order('timestamp', { ascending: false });
-
-    if (error) {
-        const message = escapeHtml(error.message || 'Unknown error');
-        trackerDebug && (trackerDebug.innerText = `Error fetching tracker: ${error.message}`);
-        if (trackerPeopleListEl) {
-            trackerPeopleListEl.innerHTML = `<div class="tracker-placeholder">Unable to load tracker data: ${message}</div>`;
-        }
-        return;
-    }
-
-    if (!data || data.length === 0) {
-        trackerDebug && (trackerDebug.innerText = 'Tracker table is empty.');
-        if (trackerPeopleListEl) {
-            trackerPeopleListEl.innerHTML = '<div class="tracker-placeholder">No tracker data available.</div>';
-        }
-        return;
-    }
-
-    const nameCount = {};
-    data.forEach(row => {
-        if (!row.name) return;
-        nameCount[row.name] = (nameCount[row.name] || 0) + 1;
-    });
-
-    const uniqueNames = Object.keys(nameCount).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
-    renderTrackerPeopleList(uniqueNames, nameCount);
-
-    trackerDebug && (trackerDebug.innerText = `Found ${data.length} tracker points across ${uniqueNames.length} people.`);
-}
-
-function renderTrackerPeopleList(names, countMap) {
-    if (!trackerPeopleListEl) return;
-
-    if (!names.length) {
-        trackerPeopleListEl.innerHTML = '<div class="tracker-placeholder">No tracker data found.</div>';
-        return;
-    }
-
-    trackerPeopleListEl.innerHTML = '';
-
-    names.forEach(name => {
-        const item = document.createElement('div');
-        item.className = 'tracker-person-item';
-        item.dataset.name = name;
-        item.innerHTML = `
-            <span>${escapeHtml(name)}</span>
-            <span class="tracker-person-count">${countMap[name]} point${countMap[name] !== 1 ? 's' : ''}</span>
-        `;
-
-        item.addEventListener('click', () => {
-            document.querySelectorAll('.tracker-person-item').forEach(el => el.classList.remove('active'));
-            item.classList.add('active');
-            showTrackerPersonLocations(name);
-        });
-
-    trackerPeopleListEl.appendChild(item);
-});
-
-    trackerPersonNames = names;
-    updateHumanTrackerOptions();
-}
-
-function clearTrackerOverlays() {
-    if (!trackerMap) return;
-    [TRACKER_PATH_LAYER, TRACKER_MARKERS_LAYER].forEach(layerId => {
-        if (trackerMap.getLayer(layerId)) trackerMap.removeLayer(layerId);
-        if (trackerMap.getSource(layerId)) trackerMap.removeSource(layerId);
-    });
-}
-
-function updateHumanTrackerOptions(selectedValue = '') {
-    const select = humanTrackerSelect;
-    if (!select) return;
-    const previous = select.value;
-    select.innerHTML = '<option value="">Select from Shahed tracker</option>';
-    trackerPersonNames.forEach(name => {
-        const option = document.createElement('option');
-        option.value = name;
-        option.textContent = name;
-        select.appendChild(option);
-    });
-    const toSelect = selectedValue || previous;
-    if (toSelect) {
-        select.value = toSelect;
-    }
-}
-
-function applyTrackerAliasToHuman(entry, alias, existingEntry = null) {
-    if (!entry) return;
-    if (alias) {
-        entry.trackerAlias = alias;
-        if (existingEntry && existingEntry.trackerAlias === alias && existingEntry.trackerLinkedAt) {
-            entry.trackerLinkedAt = existingEntry.trackerLinkedAt;
-        } else {
-            entry.trackerLinkedAt = new Date().toISOString();
-        }
-    } else {
-        delete entry.trackerAlias;
-        delete entry.trackerLinkedAt;
-    }
-}
-
-async function showTrackerPersonLocations(name) {
-    if (!trackerSupabase || !trackerMap) {
-        trackerDebug && (trackerDebug.innerText = 'Tracker map is not ready.');
-        return;
-    }
-
-    trackerDebug && (trackerDebug.innerText = `Loading locations for ${name}…`);
-
-    const { data, error } = await trackerSupabase
-        .from('locations')
-        .select('*')
-        .eq('name', name)
-        .order('timestamp', { ascending: true });
-
-    if (error) {
-        trackerDebug && (trackerDebug.innerText = `Error: ${error.message}`);
-        return;
-    }
-
-    if (!data || data.length === 0) {
-        trackerDebug && (trackerDebug.innerText = `No tracker points for ${name}.`);
-        return;
-    }
-
-    clearTrackerOverlays();
-
-    const coords = data
-        .filter(row => row.latitude !== null && row.longitude !== null)
-        .map(row => [row.longitude, row.latitude]);
-
-    if (!coords.length) {
-        trackerDebug && (trackerDebug.innerText = 'Tracker coordinates are invalid.');
-        return;
-    }
-
-    trackerMap.addSource(TRACKER_PATH_LAYER, {
-        type: 'geojson',
-        data: {
-            type: 'Feature',
-            geometry: { type: 'LineString', coordinates: coords }
-        }
-    });
-    trackerMap.addLayer({
-        id: TRACKER_PATH_LAYER,
-        type: 'line',
-        source: TRACKER_PATH_LAYER,
-        paint: {
-            'line-color': '#000000',
-            'line-width': 3,
-            'line-opacity': 0.9
-        }
-    });
-
-    const markersGeoJSON = {
-        type: 'FeatureCollection',
-        features: coords.map((coord, index) => ({
-            type: 'Feature',
-            geometry: { type: 'Point', coordinates: coord },
-            properties: { index, timestamp: data[index]?.timestamp }
-        }))
-    };
-
-    trackerMap.addSource(TRACKER_MARKERS_LAYER, { type: 'geojson', data: markersGeoJSON });
-    trackerMap.addLayer({
-        id: TRACKER_MARKERS_LAYER,
-        type: 'circle',
-        source: TRACKER_MARKERS_LAYER,
-        paint: {
-            'circle-radius': 5,
-            'circle-color': '#000000',
-            'circle-stroke-width': 2,
-            'circle-stroke-color': '#ffffff',
-            'circle-opacity': 1
-        }
-    });
-
-    const latestPoint = data[data.length - 1];
-    const lastCoord = coords[coords.length - 1];
-    trackerMap.flyTo({
-        center: lastCoord,
-        zoom: 15,
-        pitch: 60,
-        bearing: trackerMap.getBearing(),
-        duration: 1800,
-        essential: true
-    });
-
-    setTrackerLocationDetails(lastCoord[1], lastCoord[0], latestPoint);
-}
-
-function connectTrackerSelection() {
-    if (!trackerHumanSelect) return;
-    const humanId = trackerHumanSelect.value;
-    if (!humanId) {
-        trackerDebug && (trackerDebug.innerText = 'Select a Pazator person to connect.');
-        return;
-    }
-
-    const option = trackerHumanSelect.selectedOptions?.[0];
-    const human = pazatorData.humans.find(h => String(h.id) === humanId || h.name === humanId);
-
-    if (!human) {
-        trackerDebug && (trackerDebug.innerText = 'Linked Pazator entry is missing.');
-        return;
-    }
-
-    const trackerAlias = (option?.dataset?.trackerName || option?.textContent || human.name).trim();
-    human.trackerAlias = trackerAlias || human.name;
-    human.trackerLinkedAt = new Date().toISOString();
-    saveData();
-    refreshTrackerHumanOptions();
-
-    if (document.currentDetailData?.type === 'human' &&
-        String(document.currentDetailData.id) === String(human.id)) {
-        document.currentDetailData = { ...human, type: 'human' };
-        updateDetailTrackerInfo(document.currentDetailData);
-    }
-
-    trackerDebug && (trackerDebug.innerText = `Connected ${human.name} to tracker alias ${trackerAlias}.`);
-    const escName = (typeof CSS !== 'undefined' && CSS.escape)
-        ? CSS.escape(trackerAlias)
-        : trackerAlias.replace(/["\\]/g, '\\$&');
-
-    const target = document.querySelector(`.tracker-person-item[data-name="${escName}"]`);
-    if (target) {
-        target.click();
-    } else {
-        requestTrackerShow(trackerAlias);
-    }
-}
-
-async function purgeTrackerData() {
-    if (!trackerSupabase) {
-        trackerDebug && (trackerDebug.innerText = 'Tracker connection is unavailable.');
-        return;
-    }
-
-    const confirmed = await showConfirm('Delete ALL tracker location data? This cannot be undone.', 'Confirm Deletion', 'warning');
-    if (!confirmed) return;
-
-    const { error } = await trackerSupabase
-        .from('locations')
-        .delete()
-        .neq('id', 0);
-
-    if (error) {
-        showAlert('Error: ' + error.message, 'Error', 'error');
-    } else {
-        showAlert('All tracker data purged.', 'Success', 'success');
-        fetchTrackerPeople();
-        clearTrackerOverlays();
-        trackerDebug && (trackerDebug.innerText = 'Tracker data cleared.');
-    }
-}
-
-function refreshTrackerHumanOptions() {
-    if (!trackerHumanSelect) return;
-
-    const previousValue = trackerHumanSelect.value;
-    trackerHumanSelect.innerHTML = '';
-    const placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = 'Select a human';
-    trackerHumanSelect.appendChild(placeholder);
-
-    const humanOptions = pazatorData.humans
-        .filter(human => human?.name)
-        .slice()
-        .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-
-    humanOptions.forEach(human => {
-        const option = document.createElement('option');
-        const optionValue = human.id ?? human.name;
-        option.value = optionValue;
-        const alias = human.trackerAlias;
-        option.textContent = `[${human.id}] ${alias ? `${human.name} / ${alias}` : human.name}`;
-        option.dataset.trackerName = alias || human.name;
-        trackerHumanSelect.appendChild(option);
-    });
-
-    if (previousValue) {
-        trackerHumanSelect.value = previousValue;
-    }
-}
-
 function markDataChanged() {
     pendingChanges = true;
     lastChangeTime = Date.now();
@@ -2826,6 +1710,8 @@ function normalizeLoadedData() {
             birthDate: '',
             extraNotes: '',
             tags: [],
+            chats: [],
+            cases: [],
             friends: [],
             family: []
         };
@@ -2852,8 +1738,9 @@ function normalizeLoadedData() {
 }
 
 function loadData() {
+    var loadIndicator = document.getElementById('dataLoadIndicator');
+    if (loadIndicator) loadIndicator.style.display = 'flex';
     try {
-        console.log(' Starting data load process...');
 
         var storedData = localStorage.getItem('pazatorData');
         if (window.pazatorDB) {
@@ -2861,11 +1748,9 @@ function loadData() {
                 if (dbData) storedData = dbData;
             }).catch(function() {});
         }
-        console.log(' Stored data found:', !!storedData);
 
         if (storedData) {
             const parsedData = JSON.parse(storedData);
-            console.log(' Parsed data structure:', parsedData);
 
             if (parsedData && typeof parsedData === 'object') {
                 pazatorData = {
@@ -2874,43 +1759,30 @@ function loadData() {
                 };
                 tags = Array.isArray(parsedData.tags) ? parsedData.tags : [];
                 cases = Array.isArray(parsedData.cases) ? parsedData.cases : [];
-
-                console.log(` Successfully loaded ${pazatorData.humans.length} humans and ${pazatorData.others.length} others`);
-                console.log(' Loaded humans:', pazatorData.humans);
-                console.log(' Loaded others:', pazatorData.others);
-                console.log(' Loaded cases:', cases.length);
             } else {
-                console.warn('️ Invalid data structure in localStorage');
                 throw new Error('Invalid data structure');
             }
         } else {
-            console.log(' No stored data found, initializing with defaults');
             pazatorData = { humans: [], others: [] };
             tags = [];
             saveData(true);
         }
     } catch (error) {
         console.error('Error loading data:', error);
-        console.error('Error details:', error.message);
 
         try {
-            console.log('Attempting to load from backup...');
             const backupData = localStorage.getItem('pazatorData_backup');
             if (backupData) {
                 const parsedBackup = JSON.parse(backupData);
                 pazatorData = parsedBackup.pazatorData || { humans: [], others: [] };
                 tags = parsedBackup.tags || [];
                 cases = parsedBackup.cases || [];
-                console.log('Loaded data from backup');
-                console.log(`Loaded from backup: ${pazatorData.humans.length} humans, ${pazatorData.others.length} others`);
             } else {
-                console.log('No backup data found, using defaults');
                 pazatorData = { humans: [], others: [] };
                 tags = [];
                 cases = [];
             }
         } catch (backupError) {
-            console.error('Could not load from backup:', backupError);
             pazatorData = { humans: [], others: [] };
             tags = [];
             cases = [];
@@ -2930,13 +1802,17 @@ function loadData() {
 
     syncAllObjectsFromHumans();
 
-    console.log('Rendering object canvas with loaded data...');
     renderObjectCanvas();
     updateCreditStats();
     updateHeaderStats();
 
     const totalItems = pazatorData.humans.length + pazatorData.others.length;
     updatePersistenceIndicator('online', `Loaded (${totalItems} items)`);
+    if (loadIndicator) {
+        loadIndicator.style.display = 'none';
+        setTimeout(function() { loadIndicator.style.display = 'none'; }, 500);
+    }
+    showFloatingNotification(`Loaded ${totalItems} items`, 'success');
 }
 
 let currentScale = 1;
@@ -2950,62 +1826,6 @@ let currentTranslateX = 0, currentTranslateY = 0;
 
 const webContent = document.getElementById('webContent');
 
-let nodePositions = new Map();
-let connectionLinePool = [];
-const MAX_POOLED_LINES = 500;
-let connectionsSvg = null;
-let linesNeedFullRedraw = true;
-
-function fitAllNodesInView() {
-
-    const nodes = document.querySelectorAll('.data-node');
-
-    if (nodes.length === 0) return;
-
-    let minX = Infinity, minY = Infinity;
-    let maxX = -Infinity, maxY = -Infinity;
-
-    nodes.forEach(node => {
-        const rect = node.getBoundingClientRect();
-        const contentRect = webContent.getBoundingClientRect();
-
-        const x = rect.left - contentRect.left;
-        const y = rect.top - contentRect.top;
-
-        minX = Math.min(minX, x);
-        minY = Math.min(minY, y);
-        maxX = Math.max(maxX, x + rect.width);
-        maxY = Math.max(maxY, y + rect.height);
-    });
-
-    const width = maxX - minX;
-    const height = maxY - minY;
-
-    const viewportWidth = webContainer.offsetWidth;
-    const viewportHeight = webContainer.offsetHeight;
-
-    const scaleX = viewportWidth / width;
-    const scaleY = viewportHeight / height;
-
-    let newScale = Math.min(scaleX, scaleY) * 0.9;
-
-    newScale = Math.max(minScale, Math.min(maxScale, newScale));
-
-    const contentWidth = width * newScale;
-    const contentHeight = height * newScale;
-
-    const offsetX = (viewportWidth - contentWidth) / 2 - minX * newScale;
-    const offsetY = (viewportHeight - contentHeight) / 2 - minY * newScale;
-
-    currentScale = newScale;
-    currentTranslateX = offsetX;
-    currentTranslateY = offsetY;
-
-    webContent.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`;
-}
-
-var _pendingFit = false;
-
 function renderWebNodes() {
     const visOffOverlay = document.getElementById('visOffOverlay');
     const visEmptyOverlay = document.getElementById('visEmptyOverlay');
@@ -3018,334 +1838,25 @@ function renderWebNodes() {
         return;
     }
 
-    console.log('Starting renderWebNodes function...');
-    console.log('Current data state:', {
-        humans: pazatorData.humans.length,
-        others: pazatorData.others.length,
-        total: totalDataCount
-    });
-
-    nodePositions.clear();
-    webContent.innerHTML = '';
-
-    connectionsSvg = null;
-
-    const searchTerm = searchInput.value.toLowerCase();
-    const selectedType = filterType.value;
-
     let allData = [
         ...pazatorData.humans.map(h => ({ ...h, type: 'human' })),
         ...pazatorData.others.map(o => ({ ...o, type: 'other' }))
     ];
 
-    if (searchTerm) {
-        allData = allData.filter(data =>
-            data.name.toLowerCase().includes(searchTerm) ||
-            (data.type === 'human' && data.extraNotes && data.extraNotes.toLowerCase().includes(searchTerm)) ||
-            (data.type === 'other' && data.note && data.note.toLowerCase().includes(searchTerm))
-        );
-    }
+    if (visOffOverlay) visOffOverlay.style.display = 'none';
+    if (visEmptyOverlay) visEmptyOverlay.style.display = 'none';
 
-    if (selectedType !== 'all') {
-        allData = allData.filter(data => data.type === selectedType);
-    }
-
-    // Performance Limiter: Show virtual table if too many nodes
-    if (allData.length > 15) {
-        if (visOffOverlay) visOffOverlay.style.display = 'none';
-        if (visEmptyOverlay) visEmptyOverlay.style.display = 'none';
-        renderVirtualTable(allData);
-        return;
-    } else {
-        var vtContainer = document.getElementById('virtualTableContainer');
-        if (vtContainer) vtContainer.style.display = 'none';
-        var vtBody = document.getElementById('virtualTableBody');
-        if (vtBody) {
-            vtBody.innerHTML = '';
-            if (vtBody._vtCleanup) { vtBody._vtCleanup(); vtBody._vtCleanup = null; }
-        }
-        webContent.style.display = '';
-        if (visOffOverlay) visOffOverlay.style.display = 'none';
-        if (visEmptyOverlay) visEmptyOverlay.style.display = 'none';
-    }
-
-    console.log(' Filtered data to display:', allData);
-
-    const containerWidth = webContent.offsetWidth;
-    const containerHeight = webContent.offsetHeight;
-    const centerX = containerWidth / 2;
-    const centerY = containerHeight / 2;
-
-    console.log(`️ Creating ${allData.length} nodes...`);
-
-    var floatingLabel = document.createElement('div');
-    floatingLabel.className = 'node-label';
-    floatingLabel.id = 'floatingNodeLabel';
-    document.body.appendChild(floatingLabel);
-
-    allData.forEach((data, index) => {
-        console.log(` Creating node ${index + 1}:`, data);
-
-        const node = document.createElement('div');
-        node.className = `data-node ${data.type}`;
-        node.dataset.id = data.id;
-        node.dataset.type = data.type;
-
-        let x, y;
-        if (allData.length === 1) {
-
-            x = centerX - 30;
-            y = centerY - 30;
-        } else {
-
-            const nodesPerCircle = 20;
-            const circleIndex = Math.floor(index / nodesPerCircle);
-            const nodeIndexInCircle = index % nodesPerCircle;
-            const totalCircles = Math.ceil(allData.length / nodesPerCircle);
-
-            const angle = (nodeIndexInCircle / Math.min(nodesPerCircle, allData.length - circleIndex * nodesPerCircle)) * Math.PI * 2;
-
-            const baseDistance = Math.min(containerWidth, containerHeight) * 0.15;
-            const circleSpacing = Math.max(100, baseDistance * 0.5);
-            const distance = baseDistance + (circleIndex * circleSpacing);
-
-            x = centerX + Math.cos(angle) * distance - 30;
-            y = centerY + Math.sin(angle) * distance - 30;
-        }
-
-        node.style.left = `${x}px`;
-        node.style.top = `${y}px`;
-
-        nodePositions.set(data.id, { x, y, node });
-
-        let displayText = data.name;
-        if (data.type === 'human') {
-            if (data.credit !== undefined) {
-                const credit = Math.round(data.credit);
-                displayText = `${data.name}\n${credit}`;
-            }
-            if (data.socialClass) {
-                const classSymbol = data.socialClass === '1%' ? '1%' :
-                    data.socialClass === 'high class' ? 'HC' :
-                        data.socialClass === 'medium class' ? 'MC' : 'LC';
-                displayText += ` ${classSymbol}`;
-            }
-        }
-
-        const shortenedName = displayText.length > 12 ? displayText.substring(0, 12) + '...' : displayText;
-        node.textContent = shortenedName;
-
-        node.addEventListener('mouseenter', function (e) {
-            var el = floatingLabel;
-            el.innerHTML = '';
-
-            var avatar = document.createElement('div');
-            avatar.className = 'node-label-avatar';
-            if (data.imagePreview) {
-                var img = document.createElement('img');
-                img.src = data.imagePreview;
-                img.alt = data.name;
-                img.onerror = function () { avatar.innerHTML = '<div class=\"placeholder\"><i class=\"fas fa-user\"></i></div>'; };
-                avatar.appendChild(img);
-            } else {
-                avatar.innerHTML = '<div class=\"placeholder\"><i class=\"fas fa-user\"></i></div>';
-            }
-            el.appendChild(avatar);
-
-            var info = document.createElement('div');
-            info.className = 'node-label-info';
-
-            var nameEl = document.createElement('div');
-            nameEl.className = 'node-label-name';
-            nameEl.textContent = data.name;
-            info.appendChild(nameEl);
-
-            var details = document.createElement('div');
-            details.className = 'node-label-details';
-
-            if (data.credit !== undefined) {
-                var badge = document.createElement('span');
-                badge.className = 'node-label-badge credit';
-                badge.innerHTML = '<i class=\"fas fa-shield-alt\"></i> ' + Math.round(data.credit);
-                details.appendChild(badge);
-            }
-
-            if (data.birthDate) {
-                var age = typeof calculateAge === 'function' ? calculateAge(data.birthDate) : null;
-                if (age !== null) {
-                    var badge = document.createElement('span');
-                    badge.className = 'node-label-badge age';
-                    badge.innerHTML = '<i class=\"fas fa-calendar\"></i> ' + age + 'y';
-                    details.appendChild(badge);
-                }
-            }
-
-            if (data.socialClass) {
-                var badge = document.createElement('span');
-                badge.className = 'node-label-badge class';
-                badge.textContent = data.socialClass;
-                details.appendChild(badge);
-            }
-
-            if (data.gender) {
-                var badge = document.createElement('span');
-                badge.className = 'node-label-badge gender';
-                badge.textContent = data.gender;
-                details.appendChild(badge);
-            }
-
-            info.appendChild(details);
-            el.appendChild(info);
-
-            el.classList.add('visible');
-            el.style.left = (e.clientX + 14) + 'px';
-            el.style.top = (e.clientY + 12) + 'px';
-        });
-
-        node.addEventListener('mousemove', function (e) {
-            if (floatingLabel.classList.contains('visible')) {
-                floatingLabel.style.left = (e.clientX + 14) + 'px';
-                floatingLabel.style.top = (e.clientY + 12) + 'px';
-            }
-        });
-
-        node.addEventListener('mouseleave', function () {
-            floatingLabel.classList.remove('visible');
-        });
-
-        node.addEventListener('click', (e) => {
-            e.stopPropagation();
-            showDetailView(data, data.type);
-        });
-
-        webContent.appendChild(node);
-        console.log(`Node ${index + 1} appended to DOM`);
-    });
-
-    console.log(`Created ${allData.length} nodes successfully`);
-
-
-
-    if (_pendingFit || (currentScale === 1 && currentTranslateX === 0 && currentTranslateY === 0)) {
-        _pendingFit = false;
-        setTimeout(() => {
-            console.log('Fitting all nodes in view...');
-            fitAllNodesInView();
-        }, 100);
-    }
-
+    renderVirtualTable(allData);
     updateHeaderStats();
-    console.log('renderWebNodes completed!');
 }
 
-function drawFamilyConnections() {
-    const svg = document.getElementById('connections-svg');
-    if (!svg) return;
 
-    const containerRect = webContent.getBoundingClientRect();
-    const padding = 100;
-    const visibleMinX = -padding;
-    const visibleMinY = -padding;
-    const visibleMaxX = containerRect.width + padding;
-    const visibleMaxY = containerRect.height + padding;
-
-    const familyLines = [];
-    const friendLines = [];
-
-    pazatorData.humans.forEach(human => {
-        const posA = nodePositions.get(human.id);
-        if (!posA) return;
-
-        if (human.family && human.family.length > 0) {
-            human.family.forEach(familyId => {
-                if (familyId === human.id) return;
-                const posB = nodePositions.get(familyId);
-                if (!posB) return;
-
-                const nodeW = posA.node?.offsetWidth || 60;
-                const nodeH = posA.node?.offsetHeight || 60;
-                const x1 = posA.x + nodeW / 2;
-                const y1 = posA.y + nodeH / 2;
-                const x2 = posB.x + nodeW / 2;
-                const y2 = posB.y + nodeH / 2;
-
-                if (x1 < visibleMinX && x2 < visibleMinX) return;
-                if (y1 < visibleMinY && y2 < visibleMinY) return;
-                if (x1 > visibleMaxX && x2 > visibleMaxX) return;
-                if (y1 > visibleMaxY && y2 > visibleMaxY) return;
-
-                familyLines.push({ x1, y1, x2, y2 });
-            });
-        }
-
-        if (human.friends && human.friends.length > 0) {
-            human.friends.forEach(friendId => {
-                if (friendId === human.id) return;
-                const posB = nodePositions.get(friendId);
-                if (!posB) return;
-
-                const nodeW = posA.node?.offsetWidth || 60;
-                const nodeH = posA.node?.offsetHeight || 60;
-                const x1 = posA.x + nodeW / 2;
-                const y1 = posA.y + nodeH / 2;
-                const x2 = posB.x + nodeW / 2;
-                const y2 = posB.y + nodeH / 2;
-
-                if (x1 < visibleMinX && x2 < visibleMinX) return;
-                if (y1 < visibleMinY && y2 < visibleMinY) return;
-                if (x1 > visibleMaxX && x2 > visibleMaxX) return;
-                if (y1 > visibleMaxY && y2 > visibleMaxY) return;
-
-                friendLines.push({ x1, y1, x2, y2 });
-            });
-        }
-    });
-
-    const totalLines = familyLines.length + friendLines.length;
-    while (connectionLinePool.length < totalLines) {
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.className.baseVal = 'connection-line';
-        connectionLinePool.push(line);
-    }
-
-    const fragment = document.createDocumentFragment();
-    connectionLinePool.forEach(line => {
-        if (line.parentNode) line.parentNode.removeChild(line);
-    });
-
-    familyLines.forEach((l, i) => {
-        const line = connectionLinePool[i];
-        line.setAttribute('x1', l.x1);
-        line.setAttribute('y1', l.y1);
-        line.setAttribute('x2', l.x2);
-        line.setAttribute('y2', l.y2);
-        line.setAttribute('stroke', 'rgba(255, 255, 255, 0.6)');
-        line.setAttribute('stroke-width', '2');
-        line.setAttribute('stroke-dasharray', '5,5');
-        line.setAttribute('data-type', 'family');
-        fragment.appendChild(line);
-    });
-
-    friendLines.forEach((l, i) => {
-        const line = connectionLinePool[familyLines.length + i];
-        line.setAttribute('x1', l.x1);
-        line.setAttribute('y1', l.y1);
-        line.setAttribute('x2', l.x2);
-        line.setAttribute('y2', l.y2);
-        line.setAttribute('stroke', 'rgba(107, 57, 255, 0.4)');
-        line.setAttribute('stroke-width', '1');
-        line.setAttribute('data-type', 'friend');
-        fragment.appendChild(line);
-    });
-
-    for (let i = totalLines; i < connectionLinePool.length; i++) {
-        connectionLinePool[i].remove();
-    }
-
-    svg.appendChild(fragment);
-}
 
 var _vtListInstance = null;
+var _vtSortField = null;
+var _vtSortDir = 'asc';
+var _vtSelected = new Set();
+var _vtData = [];
 
 function renderVirtualTable(allData) {
     var container = document.getElementById('virtualTableContainer');
@@ -3360,6 +1871,31 @@ function renderVirtualTable(allData) {
     if (webContainer) webContainer.style.overflow = 'visible';
 
     var data = allData || [];
+    _vtData = data;
+
+    // Render bulk selection bar
+    renderBulkBar(container);
+
+    function renderSortHeader(label, field, cls) {
+        var isActive = _vtSortField === field;
+        var dir = isActive ? _vtSortDir : '';
+        return '<div class="vt-col ' + cls + '" data-sort="' + field + '" onclick="toggleSort(\'' + field + '\')">' +
+            label + ' <span class="sort-icon ' + (isActive ? 'active' : '') + '">' +
+            (dir === 'asc' ? '▲' : dir === 'desc' ? '▼' : '⇅') + '</span></div>';
+    }
+
+    // Apply sort
+    var sortedData = _vtSortField ? sortData(data, _vtSortField, _vtSortDir) : data;
+
+    var headerRow = container.querySelector('.virtual-table-header');
+    var existingCount = headerRow.querySelector('.vt-row-count');
+    if (!existingCount) {
+        var countEl = document.createElement('span');
+        countEl.className = 'vt-row-count';
+        countEl.style.cssText = 'margin-left:auto;font-size:0.75rem;color:#888;white-space:nowrap;';
+        headerRow.appendChild(countEl);
+    }
+    headerRow.querySelector('.vt-row-count').textContent = data.length + ' entries';
 
     function renderItem(item, index) {
         if (!item) return '';
@@ -3370,21 +1906,27 @@ function renderVirtualTable(allData) {
         var creditClass = credit >= 250 ? 'high' : credit >= 125 ? 'medium' : 'low';
         var tags = (item.tags || []).slice(0, 5);
         var tagsHtml = tags.length > 0 ? tags.map(function(t) { return '<span class="vt-tag">' + escapeHtml(t) + '</span>'; }).join('') : '<span style="color:#666;font-size:0.75rem;">—</span>';
-        return '<div class="vt-row ' + typeClass + '" data-id="' + escapeHtml(item.id) + '" data-type="' + item.type + '">' +
-            '<div class="vt-col vt-col-name">' + escapeHtml(item.name || 'Unknown') + '</div>' +
+        var isSelected = _vtSelected.has(item.id);
+        var chatCount = (item.chats || []).length;
+        var caseCount = (item.cases || []).length;
+        return '<div class="vt-row ' + typeClass + (isSelected ? ' selected' : '') + '" data-id="' + escapeHtml(item.id) + '" data-type="' + item.type + '">' +
+            '<div class="vt-col vt-col-checkbox"><input type="checkbox" ' + (isSelected ? 'checked' : '') + ' onclick="event.stopPropagation();toggleBulkSelect(\'' + escapeHtml(item.id) + '\')"></div>' +
+            '<div class="vt-col vt-col-name" onclick="openSlidePanel(\'' + escapeHtml(item.id) + '\',\'' + item.type + '\')">' + escapeHtml(item.name || 'Unknown') + '</div>' +
             '<div class="vt-col vt-col-type"><span class="vt-type-badge ' + item.type + '">' + item.type + '</span></div>' +
-            '<div class="vt-col vt-col-threat"><span class="vt-threat-badge ' + threatClass + '">' + threatLevel + '</span></div>' +
-            '<div class="vt-col vt-col-credit"><span class="vt-credit-score ' + creditClass + '">' + credit + '</span></div>' +
+            '<div class="vt-col vt-col-threat"><span class="vt-threat-badge ' + threatClass + '" ondblclick="inlineEditThreat(this,\'' + escapeHtml(item.id) + '\')">' + threatLevel + '</span></div>' +
+            '<div class="vt-col vt-col-credit"><span class="vt-credit-score ' + creditClass + '" ondblclick="inlineEditCredit(this,\'' + escapeHtml(item.id) + '\')">' + credit + '</span></div>' +
             '<div class="vt-col vt-col-tags">' + tagsHtml + '</div>' +
-            '<div class="vt-col vt-col-actions"><button class="vt-view-btn">View</button></div>' +
+            '<div class="vt-col vt-col-actions"><button class="vt-view-btn" onclick="event.stopPropagation();openSlidePanel(\'' + escapeHtml(item.id) + '\',\'' + item.type + '\')">View</button></div>' +
             '</div>';
     }
 
     function handleItemClick(item, index, e) {
-        if (e.target && e.target.classList.contains('vt-view-btn')) {
-            openDetailView(item.id, item.type);
+        if (e.target && (e.target.classList.contains('vt-view-btn') || e.target.closest('.vt-view-btn'))) {
+            openSlidePanel(item.id, item.type);
+        } else if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'checkbox') {
+            // handled by onclick
         } else {
-            openDetailView(item.id, item.type);
+            openSlidePanel(item.id, item.type);
         }
     }
 
@@ -3401,6 +1943,22 @@ function renderVirtualTable(allData) {
         }
     }
 
+    // Build header
+    var headerEl = container.querySelector('.virtual-table-header') || (function() {
+        var h = document.createElement('div');
+        h.className = 'virtual-table-header';
+        container.insertBefore(h, body);
+        return h;
+    })();
+    headerEl.innerHTML =
+        '<div class="vt-col vt-col-checkbox"><input type="checkbox" onchange="toggleSelectAll(this.checked)" ' + (_vtSelected.size === data.length && data.length > 0 ? 'checked' : '') + '></div>' +
+        renderSortHeader('Name', 'name', 'vt-col-name') +
+        renderSortHeader('Type', 'type', 'vt-col-type') +
+        renderSortHeader('Threat', 'threatLevel', 'vt-col-threat') +
+        renderSortHeader('Credit', 'credit', 'vt-col-credit') +
+        '<div class="vt-col vt-col-tags">Tags</div>' +
+        '<div class="vt-col vt-col-actions">Actions</div>';
+
     if (window.PazatorUI && PazatorUI.VirtualList) {
         if (_vtListInstance) _vtListInstance.destroy();
         body.innerHTML = '';
@@ -3410,29 +1968,29 @@ function renderVirtualTable(allData) {
             renderItem: renderItem,
             onItemClick: handleItemClick
         });
-        _vtListInstance.update(data);
+        _vtListInstance.update(sortedData);
     } else {
         var page = 1;
         var pageSize = 30;
         function renderPage() {
             var start = (page - 1) * pageSize;
-            var end = Math.min(start + pageSize, data.length);
-            var pageData = data.slice(start, end);
+            var end = Math.min(start + pageSize, sortedData.length);
+            var pageData = sortedData.slice(start, end);
             var html = '';
             for (var i = 0; i < pageData.length; i++) {
                 html += renderItem(pageData[i], start + i);
             }
             body.innerHTML = html;
-            var totalPages = Math.max(1, Math.ceil(data.length / pageSize));
+            var totalPages = Math.max(1, Math.ceil(sortedData.length / pageSize));
             pagination.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:8px;font-size:0.85rem;color:#aaa;">' +
                 '<button class="vt-page-btn" data-page="prev" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#ccc;padding:4px 14px;border-radius:4px;cursor:pointer;' + (page <= 1 ? 'opacity:0.4;cursor:default;' : '') + '">‹ Prev</button>' +
-                '<span>Page ' + page + ' of ' + totalPages + ' (' + data.length + ' total)</span>' +
+                '<span>Page ' + page + ' of ' + totalPages + ' (' + sortedData.length + ' total)</span>' +
                 '<button class="vt-page-btn" data-page="next" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#ccc;padding:4px 14px;border-radius:4px;cursor:pointer;' + (page >= totalPages ? 'opacity:0.4;cursor:default;' : '') + '">Next ›</button>' +
                 '</div>';
             body.querySelectorAll('.vt-row').forEach(function(row) {
                 row.addEventListener('click', function(e) {
                     var idx = Array.prototype.indexOf.call(body.children, row) + start;
-                    var item = data[idx];
+                    var item = sortedData[idx];
                     if (item) handleItemClick(item, idx, e);
                 });
             });
@@ -3459,6 +2017,197 @@ function renderVirtualTable(allData) {
     }
 
     updateHeaderStats();
+}
+
+function toggleSort(field) {
+    if (_vtSortField === field) {
+        _vtSortDir = _vtSortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+        _vtSortField = field;
+        _vtSortDir = 'asc';
+    }
+    renderWebNodes();
+}
+
+function sortData(data, field, dir) {
+    var sorted = [].concat(data);
+    sorted.sort(function(a, b) {
+        var va = a[field], vb = b[field];
+        if (field === 'credit') {
+            va = va !== undefined ? va : 185;
+            vb = vb !== undefined ? vb : 185;
+        }
+        if (field === 'threatLevel') {
+            var order = { 'high': 3, 'medium': 2, 'low': 1, 'none': 0, 'None': 0 };
+            va = order[(va || 'none').toLowerCase()] || 0;
+            vb = order[(vb || 'none').toLowerCase()] || 0;
+        }
+        if (typeof va === 'string') va = va.toLowerCase();
+        if (typeof vb === 'string') vb = vb.toLowerCase();
+        if (va < vb) return dir === 'asc' ? -1 : 1;
+        if (va > vb) return dir === 'asc' ? 1 : -1;
+        return 0;
+    });
+    return sorted;
+}
+
+function toggleBulkSelect(id) {
+    if (_vtSelected.has(id)) {
+        _vtSelected.delete(id);
+    } else {
+        _vtSelected.add(id);
+    }
+    renderWebNodes();
+}
+
+function toggleSelectAll(checked) {
+    _vtSelected.clear();
+    if (checked) {
+        _vtData.forEach(function(item) { _vtSelected.add(item.id); });
+    }
+    renderWebNodes();
+}
+
+function renderBulkBar(container) {
+    var existing = container.querySelector('.vt-bulk-bar');
+    if (existing) existing.remove();
+    if (_vtSelected.size === 0) return;
+    var bar = document.createElement('div');
+    bar.className = 'vt-bulk-bar';
+    bar.innerHTML = '<span class="bulk-count">' + _vtSelected.size + ' selected</span>' +
+        '<div class="bulk-actions">' +
+        '<button class="btn btn-secondary" style="padding:3px 10px;font-size:0.75rem;" onclick="bulkSetCredit(200)">Set Credit 200</button>' +
+        '<button class="btn btn-secondary" style="padding:3px 10px;font-size:0.75rem;" onclick="bulkSetThreat(\'low\')">Set Low Threat</button>' +
+        '<button class="btn btn-secondary" style="padding:3px 10px;font-size:0.75rem;" onclick="bulkSetThreat(\'medium\')">Set Med Threat</button>' +
+        '<button class="btn btn-secondary" style="padding:3px 10px;font-size:0.75rem;" onclick="bulkSetThreat(\'high\')">Set High Threat</button>' +
+        '<button class="btn btn-danger" style="padding:3px 10px;font-size:0.75rem;" onclick="bulkDeleteSelected()">Delete</button>' +
+        '<button class="btn btn-secondary" style="padding:3px 10px;font-size:0.75rem;" onclick="bulkClearSelection()">Clear</button>' +
+        '</div>';
+    container.insertBefore(bar, container.querySelector('.virtual-table-header'));
+}
+
+async function bulkSetCredit(val) {
+    const confirmed = await showConfirm(`Set credit to ${val} for ${_vtSelected.size} selected entries?`, 'Bulk Update', 'question');
+    if (!confirmed) return;
+    _vtSelected.forEach(function(id) {
+        var human = pazatorData.humans.find(function(h) { return h.id === id; });
+        if (human) { human.credit = val; }
+    });
+    markDataChanged();
+    renderWebNodes();
+}
+
+async function bulkSetThreat(level) {
+    const confirmed = await showConfirm(`Set threat to "${level}" for ${_vtSelected.size} selected entries?`, 'Bulk Update', 'question');
+    if (!confirmed) return;
+    _vtSelected.forEach(function(id) {
+        var human = pazatorData.humans.find(function(h) { return h.id === id; });
+        if (human) { human.threatLevel = level; }
+    });
+    markDataChanged();
+    renderWebNodes();
+}
+
+async function bulkDeleteSelected() {
+    const count = _vtSelected.size;
+    const confirmed = await showConfirm(`Delete ${count} selected entr${count === 1 ? 'y' : 'ies'}? This cannot be undone.`, 'Bulk Delete', 'warning');
+    if (!confirmed) return;
+    _vtSelected.forEach(function(id) {
+        var idx = pazatorData.humans.findIndex(function(h) { return h.id === id; });
+        if (idx !== -1) { pazatorData.humans.splice(idx, 1); return; }
+        idx = pazatorData.others.findIndex(function(o) { return o.id === id; });
+        if (idx !== -1) { pazatorData.others.splice(idx, 1); }
+    });
+    _vtSelected.clear();
+    markDataChanged();
+    renderObjectCanvas();
+    showFloatingNotification(`Deleted ${count} entr${count === 1 ? 'y' : 'ies'}`, 'info');
+}
+
+function bulkClearSelection() {
+    _vtSelected.clear();
+    renderWebNodes();
+}
+
+function inlineEditCredit(el, id) {
+    var current = el.textContent.trim();
+    var input = document.createElement('input');
+    input.type = 'number';
+    input.className = 'vt-inline-edit';
+    input.value = current;
+    input.addEventListener('blur', function() {
+        var val = parseInt(input.value);
+        if (!isNaN(val) && val >= 0) {
+            var human = pazatorData.humans.find(function(h) { return h.id === id; });
+            if (human) { human.credit = val; _pendingChanges(); }
+        }
+        renderWebNodes();
+    });
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') input.blur();
+        if (e.key === 'Escape') renderWebNodes();
+    });
+    el.textContent = '';
+    el.appendChild(input);
+    input.focus();
+    input.select();
+}
+
+function inlineEditThreat(el, id) {
+    var options = ['low', 'medium', 'high', 'critical'];
+    var select = document.createElement('select');
+    select.className = 'vt-inline-edit';
+    select.style.width = 'auto';
+    options.forEach(function(opt) {
+        var o = document.createElement('option');
+        o.value = opt;
+        o.textContent = opt.charAt(0).toUpperCase() + opt.slice(1);
+        select.appendChild(o);
+    });
+    select.addEventListener('change', function() {
+        var human = pazatorData.humans.find(function(h) { return h.id === id; });
+        if (human) { human.threatLevel = select.value; _pendingChanges(); }
+        renderWebNodes();
+    });
+    select.addEventListener('blur', function() {
+        setTimeout(function() {
+            if (!select.matches(':focus')) renderWebNodes();
+        }, 200);
+    });
+    el.textContent = '';
+    el.appendChild(select);
+    select.focus();
+}
+
+function renderFilterChips() {
+    var container = document.getElementById('filterChipsContainer');
+    if (!container) return;
+    var chips = [];
+    var searchTerm = document.getElementById('searchInput');
+    var filterType = document.getElementById('filterType');
+    if (searchTerm && searchTerm.value) {
+        chips.push({ label: 'Search: "' + searchTerm.value + '"', onRemove: function() { searchTerm.value = ''; renderWebNodes(); } });
+    }
+    if (filterType && filterType.value !== 'all') {
+        chips.push({ label: 'Type: ' + filterType.value, onRemove: function() { filterType.value = 'all'; renderWebNodes(); } });
+    }
+    if (_vtSortField) {
+        chips.push({ label: 'Sort: ' + _vtSortField + ' (' + _vtSortDir + ')', onRemove: function() { _vtSortField = null; renderWebNodes(); } });
+    }
+    if (chips.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+    container.style.display = 'flex';
+    container.innerHTML = chips.map(function(chip, i) {
+        return '<span class="filter-chip"><span>' + chip.label + '</span><span class="chip-remove" data-idx="' + i + '">&times;</span></span>';
+    }).join('');
+    container.querySelectorAll('.chip-remove').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var idx = parseInt(this.dataset.idx);
+            if (chips[idx]) chips[idx].onRemove();
+        });
+    });
 }
 
 function showDetailView(data, type) {
@@ -3599,6 +2348,53 @@ function showDetailView(data, type) {
             notesSection.style.display = 'none';
         }
 
+        // Linked Chats
+        const linkedChatsSection = document.getElementById('detailLinkedChatsSection');
+        if (linkedChatsSection && data.chats && data.chats.length > 0) {
+            linkedChatsSection.style.display = '';
+            const list = linkedChatsSection.querySelector('.linked-item-list') || (() => {
+                const el = document.createElement('div');
+                el.className = 'linked-item-list';
+                linkedChatsSection.appendChild(el);
+                return el;
+            })();
+            list.innerHTML = data.chats.map(chatRef => {
+                const chat = (pazatorData.chats || []).find(c => c.id === chatRef || c.timestamp === chatRef);
+                if (!chat) return '';
+                return '<div class="linked-item" onclick="openSlidePanel(\'' + (chat.id || chatRef) + '\',\'chat\')">' +
+                    '<div class="linked-icon chat-icon"><i class="fas fa-comment"></i></div>' +
+                    '<span class="linked-name">' + (chat.source || 'Chat') + ' - ' + new Date(chat.timestamp).toLocaleDateString() + '</span>' +
+                    '<span class="linked-date">' + (chat.suspicious ? '<span style="color:#ff6b6b;">⚠ Suspicious</span>' : '') + '</span>' +
+                    '</div>';
+            }).join('');
+        } else if (linkedChatsSection) {
+            linkedChatsSection.style.display = 'none';
+        }
+
+        // Linked Cases
+        const linkedCasesSection = document.getElementById('detailLinkedCasesSection');
+        if (linkedCasesSection) {
+            const humanCases = cases.filter(c => c.entities && c.entities.includes(data.id));
+            if (humanCases.length > 0) {
+                linkedCasesSection.style.display = '';
+                const list = linkedCasesSection.querySelector('.linked-item-list') || (() => {
+                    const el = document.createElement('div');
+                    el.className = 'linked-item-list';
+                    linkedCasesSection.appendChild(el);
+                    return el;
+                })();
+                list.innerHTML = humanCases.map(c => {
+                    return '<div class="linked-item" onclick="switchTab(\'cases\');setTimeout(function(){selectCase(\'' + c.id + '\')},100)">' +
+                        '<div class="linked-icon case-icon"><i class="fas fa-folder"></i></div>' +
+                        '<span class="linked-name">' + escapeHtml(c.title) + '</span>' +
+                        '<span class="linked-date">' + new Date(c.createdAt).toLocaleDateString() + '</span>' +
+                        '</div>';
+                }).join('');
+            } else {
+                linkedCasesSection.style.display = 'none';
+            }
+        }
+
         const familyGraphContainer = document.getElementById('familyGraphContainer');
         familyGraphContainer.style.display = '';
 
@@ -3621,14 +2417,418 @@ function showDetailView(data, type) {
         document.getElementById('familyGraphContainer').style.display = 'none';
     }
 
-    updateDetailTrackerInfo({ ...data, type });
-
     detailViewModal.style.display = 'flex';
     detailViewModal.style.zIndex = '1000';
 
-    if (type === 'human') {
-        scheduleFamilyGraphRender(data);
+}
+
+// ===== Slide Detail Panel =====
+function openSlidePanel(id, type) {
+    var panel = document.getElementById('detailSlidePanel');
+    var backdrop = document.getElementById('slidePanelBackdrop');
+    var title = document.getElementById('slidePanelTitle');
+    var body = document.getElementById('slidePanelBody');
+    if (!panel || !body) return;
+
+    var data;
+    if (type === 'human') data = pazatorData.humans.find(function(h) { return h.id === id; });
+    else if (type === 'chat') data = (pazatorData.chats || []).find(function(c) { return c.id === id || c.timestamp === id; });
+    else data = pazatorData.others.find(function(o) { return o.id === id; });
+
+    if (!data) {
+        body.innerHTML = '<div style="padding:20px;color:#666;">Entity not found</div>';
+        panel.classList.add('open');
+        if (backdrop) backdrop.classList.add('open');
+        return;
     }
+
+    title.textContent = data.name || (data.source ? data.source.toUpperCase() + ' Chat' : 'Details');
+    document.currentDetailData = data;
+
+    var html = '';
+    if (type === 'human') {
+        html += '<div class="detail-slide-section"><h4>Profile</h4>';
+        html += '<div class="slide-value">Credit: <strong>' + (data.credit !== undefined ? Math.round(data.credit) : 'N/A') + '</strong></div>';
+        html += '<div class="slide-value">Threat: <strong>' + (data.threatLevel || 'None') + '</strong></div>';
+        html += '<div class="slide-value">Gender: ' + (data.gender || '—') + '</div>';
+        html += '<div class="slide-value">Age: ' + (data.birthDate ? calculateAge(data.birthDate) + 'y' : '—') + '</div>';
+        html += '</div>';
+
+        // Relationships
+        html += '<div class="detail-slide-section"><h4>Relationships</h4>';
+        if (data.family && data.family.length > 0) {
+            data.family.forEach(function(fid) {
+                var name = getHumanNameById(fid);
+                html += '<div class="detail-slide-entity-row" onclick="openSlidePanel(\'' + fid + '\',\'human\')"><i class="fas fa-users"></i><span class="entity-name">' + name + '</span><span class="entity-type">family</span></div>';
+            });
+        }
+        if (data.friends && data.friends.length > 0) {
+            data.friends.forEach(function(fid) {
+                var name = getHumanNameById(fid);
+                html += '<div class="detail-slide-entity-row" onclick="openSlidePanel(\'' + fid + '\',\'human\')"><i class="fas fa-user-friends"></i><span class="entity-name">' + name + '</span><span class="entity-type">friend</span></div>';
+            });
+        }
+        if ((!data.family || data.family.length === 0) && (!data.friends || data.friends.length === 0)) {
+            html += '<div class="slide-value" style="color:#555;">No relationships</div>';
+        }
+        html += '</div>';
+
+        // Tags
+        if (data.tags && data.tags.length > 0) {
+            html += '<div class="detail-slide-section"><h4>Tags</h4>';
+            html += '<div class="slide-value">' + data.tags.map(function(t) { return '<span class="vt-tag">' + escapeHtml(t) + '</span>'; }).join(' ') + '</div>';
+            html += '</div>';
+        }
+
+        // Notes
+        if (data.extraNotes) {
+            html += '<div class="detail-slide-section"><h4>Notes</h4>';
+            html += '<div class="slide-value">' + escapeHtml(data.extraNotes) + '</div></div>';
+        }
+
+        // LCTX Tracker Link
+        var trackerAlias = data.trackerAlias || '';
+        var trackerLinkedAt = data.trackerLinkedAt || '';
+        html += '<div class="detail-slide-section" id="detailTrackerContainer">';
+        html += '<h4><i class="fas fa-location-crosshairs"></i> LCTX Tracker</h4>';
+        html += '<div class="detail-tracker-status" id="detailTrackerStatus">' + (trackerAlias ? 'Linked to "' + escapeHtml(trackerAlias) + '" (last sync ' + formatTrackerTimestamp(trackerLinkedAt) + ').' : 'Not linked yet. Use the tracker tab to connect this person.') + '</div>';
+        html += '<div class="detail-tracker-controls" style="margin-top:8px;display:flex;gap:8px;align-items:center;">';
+        html += '<input type="text" id="detailTrackerAlias" class="form-control" value="' + escapeHtml(trackerAlias || data.name || '') + '" placeholder="Tracker alias" style="flex:1;">';
+        html += '<div class="detail-tracker-buttons" style="display:flex;gap:6px;">';
+        html += '<button class="detail-tracker-btn" id="detailTrackerSaveAliasBtn" onclick="saveDetailTrackerAlias(\'' + data.id + '\')"><i class="fas fa-save"></i></button>';
+        html += '<button class="detail-tracker-btn" id="detailTrackerShowBtn" ' + (!trackerAlias ? 'disabled' : '') + ' onclick="requestTrackerShow(\'' + escapeHtml(trackerAlias) + '\');switchTab(\'tracker\')"><i class="fas fa-map-marker-alt"></i></button>';
+        html += '</div></div>';
+
+        // LCTX Data Point card (latest known location)
+        html += '<div class="detail-slide-section" id="detailTrackerDataPoint">';
+        html += '<h4><i class="fas fa-map-pin"></i> LCTX Data Point</h4>';
+        html += '<div id="detailTrackerDataPointBody" style="font-size:0.85rem;">';
+        if (trackerAlias && window.trackerSupabase) {
+            html += '<div style="color:#666;">Loading latest location...</div>';
+        } else if (trackerAlias) {
+            html += '<div style="color:#666;">Configure the tracker first</div>';
+        } else {
+            html += '<div style="color:#555;font-style:italic;">Link a tracker alias above to see live data</div>';
+        }
+        html += '</div></div></div>';
+
+        // Fetch latest location data if alias linked
+        if (trackerAlias && window.trackerSupabase) {
+            (function(alias) {
+                setTimeout(function() {
+                    fetchLatestTrackerLocation(alias).then(function(loc) {
+                        var body = document.getElementById('detailTrackerDataPointBody');
+                        if (!body) return;
+                        if (!loc) {
+                            body.innerHTML = '<div style="color:#666;">No location data found for this alias</div>';
+                            return;
+                        }
+                        body.innerHTML =
+                            '<div class="tracker-datapoint-grid">' +
+                                '<div class="tracker-datapoint-item"><span class="tdp-label">Coordinates</span><span class="tdp-value">' + loc.latitude.toFixed(4) + ', ' + loc.longitude.toFixed(4) + '</span></div>' +
+                                (loc.timestamp ? '<div class="tracker-datapoint-item"><span class="tdp-label">Last seen</span><span class="tdp-value">' + formatTrackerTimestamp(loc.timestamp) + '</span></div>' : '') +
+                                (loc.ip ? '<div class="tracker-datapoint-item"><span class="tdp-label">IP</span><span class="tdp-value">' + escapeHtml(loc.ip) + '</span></div>' : '') +
+                                (loc.country ? '<div class="tracker-datapoint-item"><span class="tdp-label">Country</span><span class="tdp-value">' + escapeHtml(loc.country) + '</span></div>' : '') +
+                                (loc.region ? '<div class="tracker-datapoint-item"><span class="tdp-label">Region</span><span class="tdp-value">' + escapeHtml(loc.region) + '</span></div>' : '') +
+                                (loc.device ? '<div class="tracker-datapoint-item"><span class="tdp-label">Device</span><span class="tdp-value">' + escapeHtml(loc.device) + '</span></div>' : '') +
+                                (loc.platform ? '<div class="tracker-datapoint-item"><span class="tdp-label">Platform</span><span class="tdp-value">' + escapeHtml(loc.platform) + '</span></div>' : '') +
+                            '</div>';
+                    }).catch(function() {
+                        var body = document.getElementById('detailTrackerDataPointBody');
+                        if (body) body.innerHTML = '<div style="color:#666;">Failed to load location data</div>';
+                    });
+                }, 100);
+            })(trackerAlias);
+        }
+
+        // Linked Chats
+        if (data.chats && data.chats.length > 0) {
+            html += '<div class="detail-slide-section"><h4>Chats (' + data.chats.length + ')</h4>';
+            data.chats.forEach(function(chatRef) {
+                var chat = (pazatorData.chats || []).find(function(c) { return c.id === chatRef || c.timestamp === chatRef; });
+                html += '<div class="detail-slide-entity-row" onclick="openSlidePanel(\'' + (chat ? chat.id : chatRef) + '\',\'chat\')">' +
+                    '<i class="fas fa-comment"></i><span class="entity-name">' + (chat ? (chat.source || 'Chat') + ' - ' + new Date(chat.timestamp).toLocaleDateString() : 'Chat') + '</span>' +
+                    (chat && chat.suspicious ? '<span class="entity-type" style="color:#ff6b6b;">suspicious</span>' : '') +
+                    '</div>';
+            });
+            html += '</div>';
+        }
+
+        // Linked Cases
+        var humanCases = cases.filter(function(c) { return c.entities && c.entities.includes(data.id); });
+        if (humanCases.length > 0) {
+            html += '<div class="detail-slide-section"><h4>Cases (' + humanCases.length + ')</h4>';
+            humanCases.forEach(function(c) {
+                html += '<div class="detail-slide-entity-row" onclick="switchTab(\'cases\');setTimeout(function(){selectCase(\'' + c.id + '\')},100)">' +
+                    '<i class="fas fa-folder"></i><span class="entity-name">' + escapeHtml(c.title) + '</span>' +
+                    '<span class="entity-type">' + c.status + '</span></div>';
+            });
+            html += '</div>';
+        }
+
+    } else if (type === 'chat') {
+        html += '<div class="detail-slide-section"><h4>Chat Info</h4>';
+        html += '<div class="slide-value">Source: <strong>' + (data.source || 'Unknown') + '</strong></div>';
+        html += '<div class="slide-value">Date: ' + new Date(data.timestamp).toLocaleString() + '</div>';
+        html += '<div class="slide-value">Suspicious: <strong>' + (data.suspicious ? '<span style="color:#ff6b6b;">Yes</span>' : '<span style="color:#4caf50;">No</span>') + '</strong></div>';
+        if (data.riskLevel) html += '<div class="slide-value">Risk Level: ' + data.riskLevel + '</div>';
+        html += '</div>';
+        if (data.redFlags && data.redFlags.length > 0) {
+            html += '<div class="detail-slide-section"><h4>Red Flags</h4>';
+            data.redFlags.forEach(function(f) { html += '<div style="color:#ff6b6b;font-size:0.85rem;padding:2px 0;">⚠ ' + escapeHtml(f) + '</div>'; });
+            html += '</div>';
+        }
+        if (data.content) {
+            html += '<div class="detail-slide-section"><h4>Content Preview</h4>';
+            html += '<div class="slide-value" style="font-size:0.82rem;color:#aaa;max-height:200px;overflow-y:auto;">' + escapeHtml(data.content) + '</div></div>';
+        }
+        // Link to full view
+        html += '<div class="detail-slide-section"><button class="btn btn-secondary" style="width:100%;padding:10px;" onclick="switchTab(\'chat-control\')"><i class="fas fa-comments"></i> Open Chat Panel</button></div>';
+    } else {
+        html += '<div class="detail-slide-section"><h4>Details</h4>';
+        html += '<div class="slide-value">Type: ' + (data.type || 'Other') + '</div>';
+        if (data.note) html += '<div class="slide-value">Note: ' + escapeHtml(data.note) + '</div>';
+        html += '</div>';
+    }
+
+    body.innerHTML = html;
+    panel.classList.add('open');
+    if (backdrop) backdrop.classList.add('open');
+}
+
+function closeSlidePanel() {
+    var panel = document.getElementById('detailSlidePanel');
+    var backdrop = document.getElementById('slidePanelBackdrop');
+    if (panel) panel.classList.remove('open');
+    if (backdrop) backdrop.classList.remove('open');
+}
+
+// ===== Cross-Entity Search =====
+function initCrossSearch() {
+    var input = document.getElementById('crossSearchInput');
+    var results = document.getElementById('crossSearchResults');
+    var count = document.getElementById('crossSearchCount');
+    var clear = document.getElementById('crossSearchClear');
+    if (!input) return;
+
+    var debounceTimer;
+    input.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function() { performCrossSearch(); }, 300);
+    });
+
+    if (clear) {
+        clear.addEventListener('click', function() {
+            input.value = '';
+            results.style.display = 'none';
+            if (count) count.style.display = 'none';
+            clear.style.display = 'none';
+        });
+    }
+
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') { clear.click(); }
+    });
+}
+
+function performCrossSearch() {
+    var input = document.getElementById('crossSearchInput');
+    var results = document.getElementById('crossSearchResults');
+    var count = document.getElementById('crossSearchCount');
+    var clear = document.getElementById('crossSearchClear');
+    if (!input || !results) return;
+
+    var query = input.value.trim().toLowerCase();
+    if (query.length < 2) {
+        results.style.display = 'none';
+        if (count) count.style.display = 'none';
+        if (clear) clear.style.display = 'none';
+        return;
+    }
+
+    if (clear) clear.style.display = 'inline-block';
+
+    var matches = [];
+
+    // Search humans
+    pazatorData.humans.forEach(function(h) {
+        if ((h.name && h.name.toLowerCase().includes(query)) ||
+            (h.extraNotes && h.extraNotes.toLowerCase().includes(query)) ||
+            (h.tags && h.tags.some(function(t) { return t.toLowerCase().includes(query); })) ||
+            (h.nationality && h.nationality.toLowerCase().includes(query)) ||
+            (h.workplace && h.workplace.toLowerCase().includes(query))) {
+            matches.push({ id: h.id, type: 'human', name: h.name, sub: h.threatLevel ? 'Threat: ' + h.threatLevel : (h.workplace || '') });
+        }
+    });
+
+    // Search chats
+    (pazatorData.chats || []).forEach(function(c) {
+        if ((c.source && c.source.toLowerCase().includes(query)) ||
+            (c.content && c.content.toLowerCase().includes(query)) ||
+            (c.participants && c.participants.some(function(p) {
+                var pname = typeof p === 'object' ? p.name : p;
+                return pname && pname.toLowerCase().includes(query);
+            }))) {
+            var pnames = (c.participants || []).map(function(p) { return typeof p === 'object' ? p.name : p; }).join(', ');
+            matches.push({ id: c.id || c.timestamp, type: 'chat', name: (c.source || 'Chat') + ' - ' + new Date(c.timestamp).toLocaleDateString(), sub: pnames });
+        }
+    });
+
+    // Search cases
+    cases.forEach(function(c) {
+        if ((c.title && c.title.toLowerCase().includes(query)) ||
+            (c.description && c.description.toLowerCase().includes(query)) ||
+            (c.timeline && c.timeline.some(function(t) { return t.content && t.content.toLowerCase().includes(query); }))) {
+            matches.push({ id: c.id, type: 'case', name: c.title, sub: c.status + ' - ' + (c.entities ? c.entities.length : 0) + ' entities' });
+        }
+    });
+
+    if (count) {
+        count.textContent = matches.length + ' results';
+        count.style.display = 'inline-block';
+    }
+
+    if (matches.length === 0) {
+        results.innerHTML = '<div class="search-result-empty">No results found for "' + query + '"</div>';
+        results.style.display = 'block';
+        return;
+    }
+
+    // Limit display
+    var display = matches.slice(0, 50);
+    results.innerHTML = display.map(function(m) {
+        var icon = m.type === 'human' ? 'fa-user' : m.type === 'chat' ? 'fa-comment' : 'fa-folder';
+        return '<div class="search-result-item" onclick="openSlidePanel(\'' + m.id + '\',\'' + m.type + '\')">' +
+            '<div class="result-icon ' + m.type + '"><i class="fas ' + icon + '"></i></div>' +
+            '<span class="result-name">' + escapeHtml(m.name) + '</span>' +
+            '<span class="result-meta">' + escapeHtml(m.sub || '') + '</span></div>';
+    }).join('');
+    if (matches.length > 50) {
+        results.innerHTML += '<div style="padding:8px;text-align:center;color:#666;font-size:0.8rem;">+ ' + (matches.length - 50) + ' more results</div>';
+    }
+    results.style.display = 'block';
+}
+
+// ===== PDF Export for Cases =====
+async function exportCaseToPDF(caseId) {
+    var caseData = cases.find(function(c) { return c.id === caseId; });
+    if (!caseData) { showAlert('Case not found', 'Error', 'error'); return; }
+
+    if (!logoBase64) { await loadLogoForPDF(); }
+
+    var jsPDF = window.jspdf.jsPDF;
+    if (!jsPDF) { showAlert('PDF library not loaded', 'Error', 'error'); return; }
+
+    var doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    var pw = doc.internal.pageSize.getWidth();
+    var ph = doc.internal.pageSize.getHeight();
+    var m = 20;
+    var y = m;
+
+    doc.setFillColor(0, 0, 0);
+    doc.rect(0, 0, pw, 55, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(44);
+    doc.setFont('helvetica', 'bold');
+    doc.text('PAZATOR', m, 25);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Case Report', m, 38);
+    doc.setFontSize(8);
+    doc.text('Generated: ' + new Date().toLocaleDateString(), m, 48);
+
+    if (logoBase64) { doc.addImage(logoBase64, 'PNG', pw - m - 25, 12, 25, 25); }
+
+    y = 70;
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text(caseData.title, m, y);
+    y += 12;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text('Status: ' + (caseData.status || 'open').replace('-', ' '), m, y);
+    y += 6;
+    doc.text('Created: ' + new Date(caseData.createdAt).toLocaleDateString(), m, y);
+    y += 6;
+    doc.text('Entities: ' + (caseData.entities ? caseData.entities.length : 0), m, y);
+    y += 10;
+
+    doc.setDrawColor(0, 0, 0);
+    doc.line(m, y, m + 40, y);
+    y += 8;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(60, 60, 60);
+    doc.text('DESCRIPTION', m, y);
+    y += 7;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    var descLines = doc.splitTextToSize(caseData.description || 'No description', pw - m * 2);
+    doc.text(descLines, m, y);
+    y += descLines.length * 4 + 8;
+
+    // Entities
+    if (caseData.entities && caseData.entities.length > 0) {
+        if (y > ph - 60) { doc.addPage(); y = m; }
+        doc.setDrawColor(0, 0, 0);
+        doc.line(m, y, m + 40, y);
+        y += 8;
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(60, 60, 60);
+        doc.text('ENTITIES', m, y);
+        y += 7;
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
+        caseData.entities.forEach(function(eid) {
+            var human = pazatorData.humans.find(function(h) { return h.id === eid; });
+            var name = human ? human.name : eid;
+            doc.text('- ' + name, m + 5, y);
+            y += 5;
+            if (y > ph - 20) { doc.addPage(); y = m; }
+        });
+        y += 5;
+    }
+
+    // Timeline
+    if (caseData.timeline && caseData.timeline.length > 0) {
+        if (y > ph - 60) { doc.addPage(); y = m; }
+        doc.setDrawColor(0, 0, 0);
+        doc.line(m, y, m + 40, y);
+        y += 8;
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(60, 60, 60);
+        doc.text('TIMELINE', m, y);
+        y += 7;
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
+        caseData.timeline.forEach(function(item) {
+            var time = new Date(item.timestamp).toLocaleString();
+            doc.setFont('helvetica', 'bold');
+            doc.text(time, m, y);
+            y += 4;
+            doc.setFont('helvetica', 'normal');
+            var contentLines = doc.splitTextToSize(item.content.replace(/<[^>]*>/g, ''), pw - m * 2 - 10);
+            doc.text(contentLines, m + 5, y);
+            y += contentLines.length * 4 + 6;
+            if (y > ph - 20) { doc.addPage(); y = m; }
+        });
+    }
+
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.setFont('helvetica', 'italic');
+    doc.text('Pazator Intelligence System - SARPARAST', pw / 2, ph - 10, { align: 'center' });
+
+    doc.save('pazator-case-' + caseData.id.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase() + '-report.pdf');
+    showAlert('PDF report generated for case', 'Export Complete', 'success');
 }
 
 function openDetailView(id, type) {
@@ -3730,6 +2930,8 @@ function renderFamilyGraph(human) {
 
 function renderTags() {
     tagsContainer.innerHTML = '';
+    var countEl = document.getElementById('tagCount');
+    if (countEl) countEl.textContent = tags.length;
 
     if (tags.length === 0) {
         tagsContainer.innerHTML = '<span style="color: #666; font-size: 0.85rem;">No tags yet</span>';
@@ -3874,13 +3076,17 @@ function openHumanFormForEdit(human) {
     populateSelectOptions(human.friends || [], human.family || []);
 
     populateTagsForHuman(human.tags || []);
-    updateHumanTrackerOptions(human.trackerAlias || '');
 
-    if (humanTrackerAliasInput) {
-        humanTrackerAliasInput.value = human.trackerAlias || '';
+    var trackerSelect = document.getElementById('humanTrackerSelect');
+    var trackerAliasInput = document.getElementById('humanTrackerAlias');
+    if (trackerSelect) {
+        var option = trackerSelect.querySelector('option[value="' + (human.trackerAlias || '').replace(/["\\]/g, '\\$&') + '"]');
+        if (option) {
+            trackerSelect.value = human.trackerAlias || '';
+        }
     }
-    if (humanTrackerSelect) {
-        humanTrackerSelect.value = human.trackerAlias || '';
+    if (trackerAliasInput) {
+        trackerAliasInput.value = human.trackerAlias || '';
     }
 
     humanModal.style.display = 'flex';
@@ -3917,24 +3123,41 @@ async function deleteCurrentEntry() {
     }
 }
 
-function addMessageToAIChat(message, sender) {
+function addMessageToAIChat(message, sender, entityInfo) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `ai-message ${sender}`;
-    messageDiv.textContent = message;
+
+    const textSpan = document.createElement('span');
+    textSpan.textContent = message;
+    messageDiv.appendChild(textSpan);
+
+    let container = messageDiv;
+
+    if (entityInfo && entityInfo.name) {
+        container = document.createElement('div');
+        container.className = `ai-message-container ${sender}`;
+        container.appendChild(messageDiv);
+
+        const btn = document.createElement('button');
+        btn.className = 'ai-entity-link';
+        btn.innerHTML = `<i class="fas fa-external-link-alt"></i> ${escapeHtml(entityInfo.name)}`;
+        btn.onclick = function () { openDetailView(entityInfo.id, entityInfo.type); };
+        container.appendChild(btn);
+    }
 
     requestAnimationFrame(() => {
-        aiChatMessages.appendChild(messageDiv);
+        aiChatMessages.appendChild(container);
 
         aiChatMessages.scrollTo({
             top: aiChatMessages.scrollHeight,
             behavior: 'smooth'
         });
 
-        messageDiv.offsetHeight;
+        container.offsetHeight;
     });
 
     const role = sender === 'user' ? 'user' : 'assistant';
-    aiChatHistory.push({ role, content: message });
+    aiChatHistory.push(entityInfo ? { role, content: message, entityInfo } : { role, content: message });
 }
 
 function saveCurrentChat() {
@@ -3947,7 +3170,11 @@ function saveCurrentChat() {
     const firstUserMsg = aiChatHistory.find(m => m.role === 'user')?.content || 'New Chat';
     const newChat = { 
         title: String(firstUserMsg).substring(0, 30), 
-        messages: aiChatHistory.map(m => ({ role: String(m.role), content: String(m.content || '') })),
+        messages: aiChatHistory.map(m => {
+            const msg = { role: String(m.role), content: String(m.content || '') };
+            if (m.entityInfo) msg.entityInfo = m.entityInfo;
+            return msg;
+        }),
         titleGenerated: false
     };
     
@@ -3960,12 +3187,12 @@ function saveCurrentChat() {
     
     try {
         localStorage.setItem('chatHistory', finalJson);
-        console.log('Saved successfully');
     } catch (e) {
         console.error('Error saving chat:', e);
     }
 
     updateChatHistoryPanel();
+    showFloatingNotification('Conversation saved', 'success');
 }
 
 document.getElementById('saveChatBtn').addEventListener('click', saveCurrentChat);
@@ -4008,7 +3235,7 @@ function updateChatHistoryPanel() {
     chats = chats.filter(c => c && typeof c === 'object' && c.title);
 
     if (chats.length === 0) {
-        container.innerHTML = '<div class="ai-chat-history-item">No saved conversations</div>';
+        container.innerHTML = '<div class="ai-chat-empty-state"><i class="fas fa-comment-slash" style="font-size:1.5rem;opacity:0.3;margin-bottom:8px;display:block;text-align:center;"></i><div style="text-align:center;color:#888;font-size:0.8rem;">No saved conversations<br><small style="color:#666;">Chat with Zor and save to build a history</small></div></div>';
         return;
     }
 
@@ -4072,10 +3299,26 @@ function loadConversation(index) {
     aiChatMessages.innerHTML = '';
 
     chat.messages.forEach(msg => {
+        const sender = msg.role === 'user' ? 'user' : 'ai';
         const messageDiv = document.createElement('div');
-        messageDiv.className = `ai-message ${msg.role === 'user' ? 'user' : 'ai'}`;
+        messageDiv.className = `ai-message ${sender}`;
         messageDiv.textContent = msg.content;
-        aiChatMessages.appendChild(messageDiv);
+
+        if (msg.entityInfo) {
+            const container = document.createElement('div');
+            container.className = `ai-message-container ${sender}`;
+            container.appendChild(messageDiv);
+
+            const btn = document.createElement('button');
+            btn.className = 'ai-entity-link';
+            btn.innerHTML = `<i class="fas fa-external-link-alt"></i> ${escapeHtml(msg.entityInfo.name)}`;
+            btn.onclick = function () { openDetailView(msg.entityInfo.id, msg.entityInfo.type); };
+            container.appendChild(btn);
+
+            aiChatMessages.appendChild(container);
+        } else {
+            aiChatMessages.appendChild(messageDiv);
+        }
     });
 
     aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
@@ -4214,40 +3457,6 @@ async function processAICommand(command) {
         }
 
         addMessageToAIChat(command, 'user');
-
-        if (isBlackBox()) {
-            aiSendBtn.disabled = true;
-            setAiSendLoading(true);
-            showAiTypingIndicator();
-            try {
-                var bbData = getBlackBoxData();
-                var bbAdminContext = getAdminContext();
-                var bbSystem = 'You are Zor (model PZZ1). You are locked to the following compressed database blackbox.\n' +
-                    'You CANNOT access the live database. All your knowledge about the data comes from this snapshot:\n\n' +
-                    bbData + '\n\n' +
-                    (bbAdminContext ? 'ADDITIONAL CONTEXT:\n' + bbAdminContext + '\n\n' : '') +
-                    'You are direct, grounded, and mildly skeptical. Cut the fluff. No emojis. Be blunt.\n' +
-                    'You CANNOT modify data or use tools. You can only discuss the information in the blackbox above.\n' +
-                    'If asked about data not in the blackbox, say you dont have that information.\n\n' +
-                    'Previous conversation:\n' +
-                    aiChatHistory.slice(-20).map(function(m) { return m.role + ': ' + (m.content || '').substring(0, 500); }).join('\n');
-                var bbResponse = await geminiChat([
-                    { role: 'system', content: bbSystem },
-                    { role: 'user', content: command }
-                ]);
-                var bbText = bbResponse.content ? bbResponse.content : bbResponse;
-                addMessageToAIChat(bbText, 'ai');
-            } catch (e) {
-                console.error('Blackbox mode error:', e);
-                addMessageToAIChat('Blackbox error: ' + e.message, 'ai');
-            }
-            hideAiTypingIndicator();
-            aiSendBtn.disabled = false;
-            setAiSendLoading(false);
-            aiInput.value = '';
-            aiInput.focus();
-            return;
-        }
 
         if (isZorToolMode()) {
             aiSendBtn.disabled = true;
@@ -4622,6 +3831,7 @@ async function handleBatchActions(actions) {
         let totalActions = actions.length;
         let batchResponse = "I've completed the following actions:\n";
         let hasErrors = false;
+        let entityInfos = [];
 
         const addHumanActions = actions.filter(action => action.action === "add_human");
         const otherActions = actions.filter(action => action.action !== "add_human");
@@ -4631,6 +3841,7 @@ async function handleBatchActions(actions) {
                 const result = handleAIAction(action, true);
                 if (result.success) {
                     batchResponse += `- ${result.message}\n`;
+                    if (result.entityInfo) entityInfos.push(result.entityInfo);
                     completedActions++;
                 } else {
                     batchResponse += `- Failed to add ${action.data?.name || 'unknown person'}: ${result.message}\n`;
@@ -4652,6 +3863,7 @@ async function handleBatchActions(actions) {
                 const result = handleAIAction(action, true);
                 if (result.success) {
                     batchResponse += `- ${result.message}\n`;
+                    if (result.entityInfo) entityInfos.push(result.entityInfo);
                     completedActions++;
                 } else {
                     batchResponse += `- Failed action: ${result.message}\n`;
@@ -4679,6 +3891,26 @@ async function handleBatchActions(actions) {
         }
 
         addMessageToAIChat(batchResponse, 'ai');
+
+        if (entityInfos.length > 0) {
+            const entityRow = document.createElement('div');
+            entityRow.className = 'ai-message ai';
+            entityRow.style.display = 'flex';
+            entityRow.style.flexWrap = 'wrap';
+            entityRow.style.gap = '6px';
+            entityRow.style.padding = '8px 12px';
+            entityInfos.forEach(info => {
+                const btn = document.createElement('button');
+                btn.className = 'ai-entity-link';
+                btn.innerHTML = `<i class="fas fa-external-link-alt"></i> ${escapeHtml(info.name)}`;
+                btn.onclick = function () { openDetailView(info.id, info.type); };
+                entityRow.appendChild(btn);
+            });
+            requestAnimationFrame(() => {
+                aiChatMessages.appendChild(entityRow);
+                aiChatMessages.scrollTo({ top: aiChatMessages.scrollHeight, behavior: 'smooth' });
+            });
+        }
     } catch (error) {
         console.error('Error in handleBatchActions:', error);
         addMessageToAIChat("Sorry, I encountered an error processing the batch actions. Please try again.", 'ai');
@@ -4738,6 +3970,7 @@ function handleAIAction(action, isBatch = false) {
     let response = "Action completed.";
     let shouldRespond = !isBatch;
     let success = true;
+    let entityInfo = null;
 
     switch (action.action) {
         case "add_human":
@@ -4750,6 +3983,7 @@ function handleAIAction(action, isBatch = false) {
                 markDataChanged();
                 renderObjectCanvas();
                 response = `Added human: ${newHuman.name}`;
+                entityInfo = { id: newHuman.id, type: 'human', name: newHuman.name };
             } catch (e) {
                 response = `Failed to add human: ${e.message}`;
                 success = false;
@@ -4766,6 +4000,7 @@ function handleAIAction(action, isBatch = false) {
                 markDataChanged();
                 renderObjectCanvas();
                 response = `Added other: ${newOther.name}`;
+                entityInfo = { id: newOther.id, type: 'other', name: newOther.name };
             } catch (e) {
                 response = `Failed to add other: ${e.message}`;
                 success = false;
@@ -4821,6 +4056,7 @@ function handleAIAction(action, isBatch = false) {
                 markDataChanged();
                 renderObjectCanvas();
                 response = `Modified human: ${pazatorData.humans[modHumanIndex].name}`;
+                entityInfo = { id: pazatorData.humans[modHumanIndex].id, type: 'human', name: pazatorData.humans[modHumanIndex].name };
             } else {
 
                 const nameMatch = action.id.match(/temp_id_(\d+)/);
@@ -4844,6 +4080,7 @@ function handleAIAction(action, isBatch = false) {
                         markDataChanged();
                         renderObjectCanvas();
                         response = `Modified human: ${pazatorData.humans[personIndex].name}`;
+                        entityInfo = { id: pazatorData.humans[personIndex].id, type: 'human', name: pazatorData.humans[personIndex].name };
                     } else {
                         response = "Couldn't find that human entry to modify.";
                         success = false;
@@ -4865,6 +4102,7 @@ function handleAIAction(action, isBatch = false) {
                 markDataChanged();
                 renderObjectCanvas();
                 response = `Modified other: ${pazatorData.others[modOtherIndex].name}`;
+                entityInfo = { id: pazatorData.others[modOtherIndex].id, type: 'other', name: pazatorData.others[modOtherIndex].name };
             } else {
                 response = "Couldn't find that other entry to modify.";
                 success = false;
@@ -5101,12 +4339,12 @@ function handleAIAction(action, isBatch = false) {
     }
 
     if (isBatch) {
-        return { success, message: response };
+        return { success, message: response, entityInfo };
     } else if (shouldRespond) {
-        addMessageToAIChat(response, 'ai');
+        addMessageToAIChat(response, 'ai', entityInfo);
     }
 
-    return { success, message: response };
+    return { success, message: response, entityInfo };
 }
 
 newDataBtn.addEventListener('click', () => {
@@ -5130,7 +4368,6 @@ newDataBtn.addEventListener('click', () => {
 
     populateSelectOptions();
     populateTagsForHuman();
-    updateHumanTrackerOptions();
 
     typeModal.style.display = 'flex';
     typeModal.style.zIndex = '1000';
@@ -5900,6 +5137,8 @@ function processCSVData(data) {
             birthDate: '',
             extraNotes: '',
             tags: [],
+            chats: [],
+            cases: [],
             friends: [],
             family: []
         };
@@ -6424,14 +5663,12 @@ askAIBtn.addEventListener('click', () => {
 
     updateChatHistoryPanel();
 
-    console.log('Modal display style:', aiChatModal.style.display);
-    console.log('Modal z-index:', aiChatModal.style.zIndex);
+    if (aiChatHistory.length === 0 && aiChatMessages.children.length <= 1) {
+        aiChatMessages.innerHTML = '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:40px 20px;text-align:center;"><i class="fas fa-brain" style="font-size:2.5rem;color:#555;margin-bottom:16px;"></i><h3 style="color:#aaa;margin:0 0 8px 0;">Ask Zor anything</h3><p style="color:#777;font-size:0.85rem;margin:0;max-width:300px;line-height:1.5;">Analyze data, find connections, create entries, or just ask questions about your intelligence.</p></div>';
+    }
 
-    setTimeout(() => {
-        if (aiInput) {
-            aiInput.focus();
-            console.log('Input focused');
-        }
+    setTimeout(function() {
+        if (aiInput) aiInput.focus();
     }, 100);
 });
 
@@ -6621,7 +5858,6 @@ document.getElementById('closeAIChat').addEventListener('click', () => {
         aiChatModal.style.zIndex = '-1';
         aiChatModal.classList.remove('hiding');
         aiChatModal.classList.remove('debug');
-        hideZorWaitingGame();
     }, 300);
 });
 
@@ -6639,7 +5875,6 @@ aiChatModal.addEventListener('click', (event) => {
             aiChatModal.style.zIndex = '-1';
             aiChatModal.classList.remove('hiding');
             aiChatModal.classList.remove('debug');
-            hideZorWaitingGame();
         }, 300);
     }
 });
@@ -6823,7 +6058,7 @@ function debounce(func, wait) {
 }
 
 aiInput.addEventListener('keydown', debounce((e) => {
-    if (e.key === 'Enter' && !aiSendBtn.disabled) {
+    if ((e.key === 'Enter' && !e.shiftKey) && !aiSendBtn.disabled) {
         e.preventDefault();
         const command = aiInput.value.trim();
         if (command) {
@@ -6841,11 +6076,30 @@ aiInput.addEventListener('input', debounce(() => {
 }, 50));
 
 document.getElementById('historyBtn')?.addEventListener('click', () => {
-    showAlert('Chat history feature would open here. This is a placeholder for future implementation.', 'Coming Soon', 'info');
+    updateChatHistoryPanel();
+    const panel = document.querySelector('.ai-chat-history-panel');
+    if (panel) {
+        panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+    }
 });
 
 document.getElementById('favoritesBtn')?.addEventListener('click', () => {
-    showAlert('Favorite commands would appear here. This is a placeholder for future implementation.', 'Coming Soon', 'info');
+    const quickCmds = [
+        'Add a new human named [name] born on [date]',
+        'Show me all humans',
+        'Analyze risk for all entries',
+        'Find connections between [name] and [name]',
+        'Create a case about [topic]',
+        'Add a company named [name]',
+        'Generate 5 random people',
+        'Create tags: [tag1], [tag2], [tag3]',
+        'Export all data as CSV',
+        'Who has the highest threat level?'
+    ];
+    const cmd = quickCmds[Math.floor(Math.random() * quickCmds.length)];
+    aiInput.value = cmd;
+    aiInput.focus();
+    showFloatingNotification('Quick command loaded — press Enter', 'info');
 });
 
 const chatOptionsMenu = document.getElementById('chatOptionsMenu');
@@ -6861,14 +6115,19 @@ document.addEventListener('click', (e) => {
     }
 });
 
-document.getElementById('clearChatOption')?.addEventListener('click', () => {
+document.getElementById('clearChatOption')?.addEventListener('click', async () => {
     if (aiChatHistory.length === 0 && aiChatMessages.children.length <= 1) {
         chatOptionsMenu.classList.remove('active');
         return;
     }
-    startNewChat();
-    chatOptionsMenu.classList.remove('active');
-    showFloatingNotification('Chat cleared', 'info');
+    const confirmed = await showConfirm('Clear the entire conversation? This cannot be undone.', 'Clear Chat', 'warning');
+    if (confirmed) {
+        startNewChat();
+        chatOptionsMenu.classList.remove('active');
+        showFloatingNotification('Chat cleared', 'info');
+    } else {
+        chatOptionsMenu.classList.remove('active');
+    }
 });
 
 
@@ -6881,6 +6140,10 @@ document.getElementById('humanForm').addEventListener('submit', (e) => {
     var birthDate = document.getElementById('birthDate').value;
     var workplace = getAcTextValue('workplace');
     var credit = document.getElementById('credit').value;
+    if (credit !== '' && (isNaN(credit) || credit < 0 || credit > 370)) {
+        showAlert('Credit score must be between 0 and 370.', 'Validation Error', 'error');
+        return;
+    }
     var socialClass = getAcTextValue('socialClass');
     var extraNotes = document.getElementById('humanExtraNotes').value;
     var maritalStatus = getAcTextValue('maritalStatus');
@@ -6903,14 +6166,17 @@ document.getElementById('humanForm').addEventListener('submit', (e) => {
 
     const tagsSelect = document.getElementById('humanTags');
     const selectedTags = Array.from(tagsSelect.selectedOptions).map(option => option.value);
-    const trackerAliasValue = humanTrackerAliasInput?.value?.trim();
+
+    const trackerSelect = document.getElementById('humanTrackerSelect');
+    const trackerAliasInput = document.getElementById('humanTrackerAlias');
+    const trackerAlias = trackerAliasInput ? trackerAliasInput.value.trim() : '';
+    const trackerSelectedName = trackerSelect ? trackerSelect.value : '';
 
     if (id) {
 
         const humanIndex = window.pazatorStore ? pazatorStore.findHumanIndexById(id) : pazatorData.humans.findIndex(h => h.id === id);
         if (humanIndex !== -1) {
             const existingImage = pazatorData.humans[humanIndex].imagePreview;
-            const existingHuman = pazatorData.humans[humanIndex];
 
             pazatorData.humans[humanIndex] = {
                 id,
@@ -6925,6 +6191,8 @@ document.getElementById('humanForm').addEventListener('submit', (e) => {
                 extraNotes,
                 tags: selectedTags,
                 imagePreview: existingImage,
+                trackerAlias: trackerAlias || trackerSelectedName || pazatorData.humans[humanIndex].trackerAlias || undefined,
+                trackerLinkedAt: trackerAlias && !pazatorData.humans[humanIndex].trackerAlias ? new Date().toISOString() : pazatorData.humans[humanIndex].trackerLinkedAt || undefined,
                 maritalStatus: maritalStatus || undefined,
                 nationality: nationality || undefined,
                 countryOfOrigin: countryOfOrigin || undefined,
@@ -6937,7 +6205,6 @@ document.getElementById('humanForm').addEventListener('submit', (e) => {
                 incomeLevel: incomeLevel || undefined,
                 educationLevel: educationLevel || undefined
             };
-            applyTrackerAliasToHuman(pazatorData.humans[humanIndex], trackerAliasValue, existingHuman);
         }
     } else {
 
@@ -6954,6 +6221,10 @@ document.getElementById('humanForm').addEventListener('submit', (e) => {
             extraNotes,
             tags: selectedTags,
             imagePreview: null,
+            chats: [],
+            cases: [],
+            trackerAlias: trackerAlias || trackerSelectedName || undefined,
+            trackerLinkedAt: (trackerAlias || trackerSelectedName) ? new Date().toISOString() : undefined,
             maritalStatus: maritalStatus || undefined,
             nationality: nationality || undefined,
             countryOfOrigin: countryOfOrigin || undefined,
@@ -6967,7 +6238,6 @@ document.getElementById('humanForm').addEventListener('submit', (e) => {
             educationLevel: educationLevel || undefined
         };
 
-        applyTrackerAliasToHuman(newHuman, trackerAliasValue);
         pazatorData.humans.push(newHuman);
     }
 
@@ -7077,10 +6347,6 @@ let zoomTicking = false;
 function updateZoomTransform() {
     webContent.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`;
     zoomTicking = false;
-    if (connectionsSvg) {
-        connectionsSvg.style.transform = `scale(${1/currentScale})`;
-        connectionsSvg.style.transformOrigin = '0 0';
-    }
 }
 
 function requestZoomTransformUpdate() {
@@ -7159,11 +6425,6 @@ const DRAG_START_THRESHOLD_PX = 6;
 function updateDragTransform() {
     webContent.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`;
     dragTicking = false;
-    if (connectionsSvg) {
-        const tx = -currentTranslateX / currentScale;
-        const ty = -currentTranslateY / currentScale;
-        connectionsSvg.style.transform = `translate(${tx}px, ${ty}px)`;
-    }
 }
 
 function requestDragTransformUpdate() {
@@ -7230,22 +6491,6 @@ webContainer.addEventListener('mouseleave', () => {
     webContainer.classList.remove('dragging');
     webContent.style.transition = webContentTransitionBeforeDrag || '';
 });
-
-applyFilterBtn.addEventListener('click', () => {
-    renderObjectCanvas();
-});
-
-searchInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        renderObjectCanvas();
-    }
-});
-
-if (window.PazatorUI) {
-    searchInput.addEventListener('input', PazatorUI.debounce(function() {
-        renderObjectCanvas();
-    }, 500));
-}
 
 addTagBtn.addEventListener('click', () => {
     const tagText = tagInput.value.trim();
@@ -7427,23 +6672,7 @@ function showAISuggestTagsModal(suggestions) {
     modal.style.display = 'flex';
 }
 
-refreshViewBtn.addEventListener('click', () => {
-    currentScale = 1;
-    currentTranslateX = 0;
-    currentTranslateY = 0;
-    webContent.style.transform = `translate(0px, 0px) scale(1)`;
 
-    setTimeout(() => {
-        fitAllNodesInView();
-    }, 50);
-});
-
-toggleConnectionsBtn.addEventListener('click', () => {
-    const svg = document.getElementById('connections-svg');
-    if (svg) {
-        svg.style.display = svg.style.display === 'none' ? 'block' : 'none';
-    }
-});
 
 showStatisticsBtn.addEventListener('click', () => {
     const humanCount = pazatorData.humans.length;
@@ -7495,21 +6724,23 @@ intelClearResults?.addEventListener('click', () => {
 });
 
 function renderFindingsToCards(findings) {
-    const container = document.getElementById('intelResultsContent');
-    const countBadge = document.getElementById('intelResultsCount');
-    const resultsEl = document.getElementById('intelResults');
+    var container = document.getElementById('intelResultsContent');
+    var countBadge = document.getElementById('intelResultsCount');
+    var resultsEl = document.getElementById('intelResults');
     
     if (!container) return;
     
     container.innerHTML = '';
     resultsEl.style.display = 'block';
-    countBadge.textContent = `${findings.length} finding${findings.length !== 1 ? 's' : ''}`;
-    
-    findings.forEach((finding, index) => {
-        const card = document.createElement('div');
-        card.className = `intel-finding intel-finding-${finding.type || 'info'}`;
+    countBadge.textContent = findings.length + ' finding' + (findings.length !== 1 ? 's' : '');
+
+    var lastAnalysisId = window._lastIntelAnalysisId;
+
+    findings.forEach(function(finding) {
+        var card = document.createElement('div');
+        card.className = 'intel-finding intel-finding-' + (finding.type || 'info');
         
-        const typeIcon = {
+        var typeIcon = {
             threat: 'fa-exclamation-triangle',
             risk: 'fa-shield-alt',
             connection: 'fa-link',
@@ -7517,7 +6748,7 @@ function renderFindingsToCards(findings) {
             info: 'fa-info-circle'
         }[finding.type] || 'fa-info-circle';
         
-        const typeLabel = {
+        var typeLabel = {
             threat: 'Threat',
             risk: 'Risk',
             connection: 'Connection',
@@ -7525,33 +6756,72 @@ function renderFindingsToCards(findings) {
             info: 'Info'
         }[finding.type] || 'Info';
         
-        card.innerHTML = `
-            <div class="intel-finding-header">
-                <div class="intel-finding-type">
-                    <i class="fas ${typeIcon}"></i>
-                    <span>${typeLabel}</span>
-                </div>
-                <div class="intel-finding-subject">${finding.subject || 'Unknown'}</div>
-            </div>
-            <div class="intel-finding-content">${finding.content || finding.description || ''}</div>
-            ${finding.evidence ? `<div class="intel-finding-evidence"><i class="fas fa-fingerprint"></i> ${finding.evidence}</div>` : ''}
-            <div class="intel-finding-footer">
-                ${(finding.tags || []).map(tag => `<span class="intel-finding-tag">${tag}</span>`).join('')}
-            </div>
-        `;
+        card.innerHTML =
+            '<div class="intel-finding-header">' +
+                '<div class="intel-finding-type">' +
+                    '<i class="fas ' + typeIcon + '"></i>' +
+                    '<span>' + typeLabel + '</span>' +
+                '</div>' +
+                '<div class="intel-finding-subject">' + (finding.subject || 'Unknown') + '</div>' +
+            '</div>' +
+            '<div class="intel-finding-content">' + (finding.content || finding.description || '') + '</div>' +
+            (finding.evidence ? '<div class="intel-finding-evidence"><i class="fas fa-fingerprint"></i> ' + finding.evidence + '</div>' : '') +
+            '<div class="intel-finding-footer">' +
+                (finding.tags || []).map(function(tag) { return '<span class="intel-finding-tag">' + tag + '</span>'; }).join('') +
+                (lastAnalysisId ? '<button class="intel-save-evidence-btn" onclick="addAnalysisToEvidence(\'' + lastAnalysisId + '\')"><i class="fas fa-gavel"></i> Add to Case</button>' : '') +
+            '</div>';
         
         container.appendChild(card);
     });
     
     if (findings.length === 0) {
-        container.innerHTML = `
-            <div class="intel-empty-state">
-                <i class="fas fa-search"></i>
-                <p>No findings detected</p>
-                <small>The analysis completed but no significant patterns were found</small>
-            </div>
-        `;
+        container.innerHTML =
+            '<div class="intel-empty-state">' +
+                '<i class="fas fa-search"></i>' +
+                '<p>No findings detected</p>' +
+                '<small>The analysis completed but no significant patterns were found</small>' +
+            '</div>';
     }
+}
+
+function addAnalysisToEvidence(analysisId) {
+    if (!cases || cases.length === 0) {
+        showFloatingNotification('No cases yet. Create a case first.', 'info');
+        return;
+    }
+    if (!selectedCaseId) {
+        var caseList = cases.map(function(c, i) { return (i + 1) + '. ' + c.title; }).join('\n');
+        showFloatingNotification('Select a case first, then add evidence from the case detail panel.', 'info');
+        return;
+    }
+    var caseData = cases.find(function(c) { return c.id === selectedCaseId; });
+    if (!caseData) {
+        showFloatingNotification('Select a case first.', 'info');
+        return;
+    }
+    loadAnalyses();
+    var analysis = analysesStore.find(function(a) { return a.id === analysisId; });
+    if (!analysis) return;
+    if (!caseData.evidence) caseData.evidence = [];
+    if (caseData.evidence.find(function(e) { return e.id === analysisId; })) {
+        showFloatingNotification('This analysis is already attached as evidence to the current case.', 'info');
+        return;
+    }
+    caseData.evidence.push({
+        id: analysis.id,
+        type: analysis.type,
+        title: analysis.title,
+        findingCount: analysis.findings.length,
+        addedAt: Date.now()
+    });
+    caseData.timeline.push({
+        type: 'note',
+        content: '<strong>Evidence added</strong>: ' + escapeHtml(analysis.title),
+        timestamp: Date.now()
+    });
+    saveCases();
+    selectCase(selectedCaseId);
+    showFloatingNotification('Evidence added to case: ' + caseData.title, 'success');
 }
 
 async function runIntelligenceAnalysis() {
@@ -7621,6 +6891,11 @@ Be selective - only report significant findings. Maximum 10 findings. Return ONL
             renderFindingsToCards(findings);
             if (findingsCountEl) findingsCountEl.textContent = findings.length;
             if (lastAnalysisEl) lastAnalysisEl.textContent = new Date().toLocaleTimeString();
+
+            var title = 'Intelligence Analysis - ' + new Date().toLocaleString();
+            var saved = storeAnalysisResult('intelligence', title, findings);
+            window._lastIntelAnalysisId = saved.id;
+            showFloatingNotification('Analysis saved. You can attach it as evidence to any case.', 'info');
         } else {
             showAlert('Analysis returned unexpected format. Check chat for details.', 'Analysis Issue', 'warning');
         }
@@ -7644,115 +6919,12 @@ document.getElementById('searchBtn')?.addEventListener('click', () => {
     switchTab('search');
 });
 
-document.getElementById('agentsBtn')?.addEventListener('click', () => {
-    switchTab('agents');
-});
-
-document.getElementById('articlesBtn')?.addEventListener('click', () => {
-    switchTab('articles');
-});
-
 document.getElementById('trackerBtn')?.addEventListener('click', () => {
     switchTab('tracker');
 });
 
 document.getElementById('casesBtn')?.addEventListener('click', () => {
     switchTab('cases');
-});
-
-document.getElementById('tasturBtn')?.addEventListener('click', () => {
-    switchTab('tastur');
-});
-
-trackerConnectBtn?.addEventListener('click', connectTrackerSelection);
-trackerRefreshBtn?.addEventListener('click', () => {
-    if (trackerDebug) trackerDebug.innerText = 'Refreshing tracker data...';
-    fetchTrackerPeople();
-});
-trackerPurgeBtn?.addEventListener('click', () => {
-    purgeTrackerData();
-});
-trackerConfigureBtn?.addEventListener('click', () => {
-    promptForTrackerConfig();
-});
-trackerToggleSidebarBtn?.addEventListener('click', () => {
-    if (!trackerSidebar) return;
-    trackerSidebar.classList.toggle('collapsed');
-    trackerToggleSidebarBtn.innerText = trackerSidebar.classList.contains('collapsed') ? 'show sidebar' : 'hide sidebar';
-});
-trackerSpinToggleBtn?.addEventListener('click', () => {
-    if (trackerSpinning) {
-        stopTrackerSpin();
-    } else {
-        startTrackerSpin();
-    }
-});
-trackerStreetLabelBtn?.addEventListener('click', () => toggleLabelLayer('street'));
-trackerFilterToggleBtn?.addEventListener('click', toggleTrackerMapFilter);
-trackerSettingsBtn?.addEventListener('click', (event) => {
-    event.stopPropagation();
-    const isOpen = trackerSettingsMenu?.classList.contains('open');
-    setTrackerSettingsMenuOpen(!isOpen);
-});
-trackerSettingsMenu?.addEventListener('click', (event) => {
-    event.stopPropagation();
-});
-trackerSpinSpeedInput?.addEventListener('input', () => {
-    setTrackerSpinSpeed(trackerSpinSpeedInput.value);
-});
-
-document.addEventListener('click', (event) => {
-    if (!trackerSettingsMenu || !trackerSettingsBtn) return;
-    if (!trackerSettingsMenu.classList.contains('open')) return;
-    const target = event.target;
-    if (!(target instanceof Node)) return;
-    if (trackerSettingsMenu.contains(target)) return;
-    if (trackerSettingsBtn.contains(target)) return;
-    setTrackerSettingsMenuOpen(false);
-});
-
-document.addEventListener('keydown', (event) => {
-    if (event.key !== 'Escape') return;
-    if (!trackerSettingsMenu?.classList.contains('open')) return;
-    setTrackerSettingsMenuOpen(false);
-});
-humanTrackerSelect?.addEventListener('change', () => {
-    if (!humanTrackerAliasInput) return;
-    if (!humanTrackerAliasInput.value) {
-        humanTrackerAliasInput.value = humanTrackerSelect.value;
-    }
-});
-
-detailTrackerSaveAliasBtn?.addEventListener('click', () => {
-    const current = document.currentDetailData;
-    if (!current || current.type !== 'human') return;
-
-    const alias = detailTrackerAliasInput?.value?.trim();
-    const human = pazatorData.humans.find(h => String(h.id) === String(current.id));
-    if (!human) return;
-
-    if (!alias) {
-        delete human.trackerAlias;
-        delete human.trackerLinkedAt;
-    } else {
-        human.trackerAlias = alias;
-        human.trackerLinkedAt = new Date().toISOString();
-    }
-
-    saveData();
-    refreshTrackerHumanOptions();
-    document.currentDetailData = { ...human, type: 'human' };
-    updateDetailTrackerInfo(document.currentDetailData);
-    trackerDebug && (trackerDebug.innerText = alias
-        ? `Tracker alias saved for ${human.name}.`
-        : `Tracker link removed for ${human.name}.`);
-});
-
-detailTrackerShowBtn?.addEventListener('click', () => {
-    const alias = detailTrackerAliasInput?.value?.trim();
-    if (!alias) return;
-    openOrCreateTab('tracker');
-    requestTrackerShow(alias);
 });
 
 analyzeAllChatsBtn?.addEventListener('click', async () => {
@@ -7840,6 +7012,18 @@ bulkDeleteChatsBtn?.addEventListener('click', async () => {
         loadSavedChats();
         showAlert(`Deleted ${sortedIndices.length} chats`, 'Success', 'success');
     }
+});
+
+// Cross-entity search
+setTimeout(initCrossSearch, 200);
+
+// Slide panel close
+document.getElementById('slidePanelClose')?.addEventListener('click', closeSlidePanel);
+document.getElementById('slidePanelBackdrop')?.addEventListener('click', closeSlidePanel);
+
+// PDF export for cases
+document.getElementById('exportCasePdfBtn')?.addEventListener('click', function() {
+    if (selectedCaseId) exportCaseToPDF(selectedCaseId);
 });
 
 function getVisibleChatIndices() {
@@ -8148,6 +7332,13 @@ function updateHeaderStats() {
     if (humansEl) humansEl.textContent = pazatorData.humans.length;
     if (othersEl) othersEl.textContent = pazatorData.others.length;
     if (totalEl) totalEl.textContent = pazatorData.humans.length + pazatorData.others.length;
+
+    var sh = document.getElementById('sidebarHumansCount');
+    var so = document.getElementById('sidebarOthersCount');
+    var sc = document.getElementById('sidebarCasesCount');
+    if (sh) sh.textContent = pazatorData.humans.length;
+    if (so) so.textContent = pazatorData.others.length;
+    if (sc) sc.textContent = (cases || []).length;
 }
 
 function generateThreatReport() {
@@ -8454,6 +7645,93 @@ async function analyzeAllChats() {
             onChatComplete: (result) => {
                 if (result.result.isSuspicious) {
                     totalChatsBySource[result.source] = (totalChatsBySource[result.source] || 0) + 1;
+                }
+                // Auto-create humans from participants
+                const chat = chatHistory.find(c => c.timestamp === result.timestamp && c.source === result.source);
+                if (chat && chat.participants) {
+                    chat.participants.forEach(p => {
+                        const name = typeof p === 'object' ? p.name : p;
+                        if (!name) return;
+                        let human = pazatorData.humans.find(h => h.name.toLowerCase() === name.toLowerCase());
+                        if (!human) {
+                            human = {
+                                id: 'human_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+                                name: name,
+                                credit: 185,
+                                tags: [],
+                                chats: [],
+                                cases: [],
+                                extraNotes: '',
+                                friends: [],
+                                family: [],
+                                imagePreview: null,
+                                threatLevel: null,
+                                birthDate: null,
+                                gender: null,
+                                maritalStatus: null,
+                                workplace: null,
+                                nationality: null,
+                                countryOfOrigin: null,
+                                immigrationStatus: null,
+                                languages: null,
+                                ethnicity: null,
+                                religion: null,
+                                politicalViews: null,
+                                educationLevel: null,
+                                incomeLevel: null,
+                                socialClass: null,
+                                trustworthiness: null
+                            };
+                            pazatorData.humans.push(human);
+                            _pendingChanges();
+                        }
+                        // Bidirectional link: add chat reference to human
+                        if (!human.chats) human.chats = [];
+                        if (!human.chats.includes(chat.id || chat.timestamp)) {
+                            human.chats.push(chat.id || chat.timestamp);
+                        }
+                    });
+                    // Store chat in pazatorData.chats
+                    if (!pazatorData.chats) pazatorData.chats = [];
+                    if (!pazatorData.chats.find(c => c.timestamp === chat.timestamp && c.source === chat.source)) {
+                        pazatorData.chats.push({
+                            id: chat.id || 'chat_' + Date.now(),
+                            source: chat.source,
+                            participants: chat.participants,
+                            timestamp: chat.timestamp,
+                            content: chat.content ? chat.content.substring(0, 500) : '',
+                            suspicious: result.result.isSuspicious,
+                            riskLevel: result.result.riskLevel || 'low',
+                            redFlags: result.result.redFlags || []
+                        });
+                    }
+                }
+                // Auto-create case if suspicious
+                if (result.result.isSuspicious && result.result.riskLevel === 'high') {
+                    const existingCase = cases.find(c => 
+                        c.title && c.title.includes('Suspicious') && 
+                        c.source === result.source &&
+                        Math.abs(c.createdAt - result.timestamp) < 86400000
+                    );
+                    if (!existingCase) {
+                        const participantNames = chat ? chat.participants.map(p => typeof p === 'object' ? p.name : p).join(', ') : 'Unknown';
+                        const newCase = {
+                            id: 'case_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+                            title: 'Suspicious Chat - ' + participantNames.substring(0, 40),
+                            description: 'Auto-created from suspicious ' + (result.source || 'unknown') + ' chat. Risk level: ' + (result.result.riskLevel || 'low') + '. ' + (result.result.summary || ''),
+                            status: 'open',
+                            entities: [],
+                            timeline: [{
+                                type: 'note',
+                                content: 'Case auto-created from suspicious chat analysis',
+                                timestamp: Date.now()
+                            }],
+                            source: result.source,
+                            createdAt: Date.now()
+                        };
+                        cases.push(newCase);
+                        saveCases();
+                    }
                 }
             }
         });
@@ -10819,117 +10097,6 @@ function initSearchTab() {
     renderRecentSearches();
 }
 
-function initArticlesTab() {
-    if (!articlesTabInitialized) {
-        const saveBtn = document.getElementById('saveArticleBtn');
-        const toggleBtn = document.getElementById('toggleAddArticle');
-        const closeBtn = document.getElementById('closeAddPanel');
-        const clearBtn = document.getElementById('clearArticleBtn');
-        const searchInput = document.getElementById('articleSearch');
-        const filterSelect = document.getElementById('articleFilter');
-
-        if (saveBtn) saveBtn.addEventListener('click', saveArticle);
-        if (toggleBtn) toggleBtn.addEventListener('click', toggleAddPanel);
-        if (closeBtn) closeBtn.addEventListener('click', hideAddPanel);
-        if (clearBtn) clearBtn.addEventListener('click', clearArticleForm);
-        if (searchInput) searchInput.addEventListener('input', filterArticles);
-        if (filterSelect) filterSelect.addEventListener('change', filterArticles);
-
-        articlesTabInitialized = true;
-    }
-
-    renderArticlesList();
-}
-
-function toggleAddPanel() {
-    const panel = document.getElementById('addArticlePanel');
-    if (panel.style.display === 'flex') {
-        hideAddPanel();
-    } else {
-        showAddPanel();
-    }
-}
-
-function showAddPanel() {
-    const panel = document.getElementById('addArticlePanel');
-    panel.style.display = 'flex';
-    setTimeout(() => {
-        panel.style.transform = 'translateX(0)';
-        panel.style.opacity = '1';
-    }, 10);
-}
-
-function hideAddPanel() {
-    const panel = document.getElementById('addArticlePanel');
-    panel.style.transform = 'translateX(20px)';
-    panel.style.opacity = '0';
-    setTimeout(() => {
-        panel.style.display = 'none';
-    }, 300);
-}
-
-function clearArticleForm() {
-    document.getElementById('articleCompany').value = '';
-    document.getElementById('articleTitle').value = '';
-    document.getElementById('articleContent').value = '';
-}
-
-function filterArticles() {
-    const searchTerm = document.getElementById('articleSearch').value.toLowerCase();
-    const filter = document.getElementById('articleFilter').value;
-    const articles = JSON.parse(localStorage.getItem('knowledgeBase') || '[]');
-
-    let filteredArticles = [...articles];
-
-    if (filter === 'recent') {
-        filteredArticles.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        filteredArticles = filteredArticles.slice(0, 10);
-    }
-
-    if (searchTerm) {
-        filteredArticles = filteredArticles.filter(article =>
-            article.title.toLowerCase().includes(searchTerm) ||
-            article.company.toLowerCase().includes(searchTerm) ||
-            article.content.toLowerCase().includes(searchTerm)
-        );
-    }
-
-    renderFilteredArticles(filteredArticles);
-}
-
-function saveArticle() {
-    const company = document.getElementById('articleCompany').value.trim();
-    const title = document.getElementById('articleTitle').value.trim();
-    const content = document.getElementById('articleContent').value.trim();
-
-    if (!company || !title || !content) {
-        showAlert('Please fill in all fields', 'Notice', 'warning');
-        return;
-    }
-
-    const articles = JSON.parse(localStorage.getItem('knowledgeBase') || '[]');
-
-    const newArticle = {
-        id: Date.now(),
-        company: company,
-        title: title,
-        content: content,
-        timestamp: new Date()
-    };
-
-    articles.push(newArticle);
-    localStorage.setItem('knowledgeBase', JSON.stringify(articles));
-
-
-    clearArticleForm();
-    hideAddPanel();
-
-    renderArticlesList();
-
-
-    showFloatingNotification('Document saved successfully!', 'success');
-}
-
 function showToast(title, message, type, duration) {
     if (typeof title === 'object') {
         var opts = title;
@@ -10990,917 +10157,6 @@ function showFloatingNotification(message, type) {
     showToast(message, type);
 }
 
-function renderArticlesList() {
-    const articles = JSON.parse(localStorage.getItem('knowledgeBase') || '[]');
-    const countElement = document.getElementById('articlesCount');
-
-    countElement.textContent = `${articles.length} document${articles.length !== 1 ? 's' : ''}`;
-    renderFilteredArticles(articles);
-}
-
-function renderFilteredArticles(articles) {
-    const container = document.getElementById('articlesList');
-
-    if (articles.length === 0) {
-        const searchTerm = document.getElementById('articleSearch').value;
-        const message = searchTerm ? 'No matching documents found' : 'No documents in repository';
-
-        container.innerHTML = `
-                    <div style="text-align: center; padding: 60px 20px; color: #777; flex: 1; display: flex; flex-direction: column; justify-content: center;">
-                        <i class="fas fa-file-alt" style="font-size: 4rem; margin-bottom: 25px; color: #333;"></i>
-                        <h3 style="margin: 0 0 15px 0; color: #999; font-size: 1.4rem;">${message}</h3>
-                        <p style="margin: 0; font-size: 1.1rem; color: #666; max-width: 400px; margin: 0 auto;">
-                            ${searchTerm ? 'Try adjusting your search terms' : 'Click "Add Document" to begin building your knowledge base'}
-                        </p>
-                    </div>
-                `;
-        return;
-    }
-
-    container.innerHTML = articles.map(article => `
-                <div style="background: rgba(40, 40, 40, 0.8); border: 1px solid #444; border-radius: 12px; padding: 20px; transition: all 0.2s ease; margin-bottom: 15px;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
-                        <div style="flex: 1;">
-                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                                <i class="fas fa-file-alt" style="color: #4d9de0; font-size: 1.2rem;"></i>
-                                <h3 style="margin: 0; color: #ffffff; font-size: 1.2rem;">${article.title}</h3>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
-                                <span style="background: rgba(107, 207, 127, 0.2); color: #6bcf7f; padding: 4px 12px; border-radius: 15px; font-size: 0.85rem; font-weight: 500;">
-                                    ${article.company}
-                                </span>
-                                <span style="color: #888; font-size: 0.85rem;">
-                                    <i class="fas fa-calendar" style="margin-right: 5px;"></i>
-                                    ${new Date(article.timestamp).toLocaleDateString()}
-                                </span>
-                            </div>
-                        </div>
-                        <div style="display: flex; gap: 8px;">
-                            <button onclick="viewFullArticle(${article.id})" class="btn btn-secondary" style="padding: 8px 12px; font-size: 0.85rem; background: rgba(60, 60, 60, 0.7); border: 1px solid #555; border-radius: 8px;">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button onclick="deleteArticle(${article.id})" class="btn btn-danger" style="padding: 8px 12px; font-size: 0.85rem; background: linear-gradient(145deg, #ff4757, #cc3747); border: 1px solid #ff6b6b; border-radius: 8px;">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div style="margin-top: 15px; padding: 15px; background: rgba(255, 255, 255, 0.03); border-radius: 10px; border-left: 3px solid #4d9de0; max-height: 120px; overflow-y: auto;">
-                        <div style="color: #ccc; line-height: 1.5; font-size: 0.9rem;">
-                            ${article.content.substring(0, 250)}${article.content.length > 250 ? '...' : ''}
-                        </div>
-                    </div>
-                    
-                    ${article.content.length > 250 ? `
-                        <div style="margin-top: 12px; text-align: right;">
-                            <span style="color: #777; font-size: 0.85rem;">
-                                ${article.content.length} characters
-                            </span>
-                        </div>
-                    ` : ''}
-                </div>
-            `).join('');
-}
-
-async function deleteArticle(articleId) {
-    const confirmed = await showConfirm('Are you sure you want to delete this article?', 'Confirm Deletion', 'warning');
-    if (confirmed) {
-        const articles = JSON.parse(localStorage.getItem('knowledgeBase') || '[]');
-        const filteredArticles = articles.filter(a => a.id !== articleId);
-        localStorage.setItem('knowledgeBase', JSON.stringify(filteredArticles));
-        renderArticlesList();
-    }
-}
-
-function viewFullArticle(articleId) {
-    const articles = JSON.parse(localStorage.getItem('knowledgeBase') || '[]');
-    const article = articles.find(a => a.id === articleId);
-
-    if (!article) return;
-
-
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.style.display = 'flex';
-    modal.style.zIndex = '1000';
-
-    modal.innerHTML = `
-                <div class="modal-content" style="max-width: 800px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
-                    <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
-                        <h2 style="margin: 0; font-family: 'AllianceNo2', 'Segoe UI', system-ui, -apple-system, sans-serif;">${article.title}</h2>
-                        <button class="close" onclick="this.closest('.modal').remove()" style="background: none; border: none; color: #ddd; font-size: 1.8rem; cursor: pointer;">&times;</button>
-                    </div>
-                    
-                    <div style="padding: 20px 0; flex: 1; overflow-y: auto;">
-                        <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; border-left: 4px solid #6bcf7f;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div style="color: #6bcf7f; font-size: 1.1rem; font-weight: 500;">${article.company}</div>
-                                <div style="color: #888; font-size: 0.9rem;">Added: ${new Date(article.timestamp).toLocaleDateString()}</div>
-                            </div>
-                        </div>
-                        
-                        <div style="color: #ddd; line-height: 1.7; font-size: 1rem; white-space: pre-wrap;">
-                            ${article.content}
-                        </div>
-                    </div>
-                    
-                    <div style="display: flex; gap: 10px; padding-top: 20px; border-top: 1px solid #333;">
-                        <button onclick="deleteArticle(${article.id}); this.closest('.modal').remove()" class="btn btn-danger" style="padding: 12px 20px; flex: 1;">
-                            <i class="fas fa-trash" style="margin-right: 8px;"></i>Delete Article
-                        </button>
-                        <button onclick="this.closest('.modal').remove()" class="btn btn-secondary" style="padding: 12px 20px; flex: 1;">
-                            Close
-                        </button>
-                    </div>
-                </div>
-            `;
-
-    document.body.appendChild(modal);
-}
-
-let activeAgents = [];
-
-function initAgentsTab() {
-    if (!agentsTabInitialized) {
-        const createBtn = document.getElementById('createAgentBtn');
-        if (createBtn) {
-            createBtn.addEventListener('click', createNewAgent);
-        }
-        agentsTabInitialized = true;
-    }
-
-    renderAgentsList();
-}
-
-function createNewAgent() {
-    const name = document.getElementById('agentName').value.trim();
-    const goal = document.getElementById('agentGoal').value.trim();
-
-    if (!name || !goal) {
-        showAlert('Please enter both agent name and goal', 'Notice', 'warning');
-        return;
-    }
-
-    if (activeAgents.length >= 3) {
-        showAlert('Maximum 3 agents allowed. Please stop an existing agent first.', 'Limit Reached', 'warning');
-        return;
-    }
-
-    const agent = {
-        id: Date.now(),
-        name: name,
-        goal: goal,
-        startTime: new Date(),
-        logs: [],
-        status: 'running',
-        thoughts: [],
-        commandsUsed: []
-    };
-
-    activeAgents.push(agent);
-    document.getElementById('agentName').value = '';
-    document.getElementById('agentGoal').value = '';
-
-    renderAgentsList();
-    startAgent(agent.id);
-}
-
-function getAgentDatabaseContext() {
-    var parts = [];
-    parts.push('PEOPLE: ' + pazatorData.humans.length + ' total');
-    if (pazatorData.humans.length > 0) {
-        parts.push('First 50 names: ' + pazatorData.humans.slice(0, 50).map(function(h) { return h.name; }).join(', '));
-    }
-    if (pazatorData.others && pazatorData.others.length > 0) {
-        parts.push('ORGANIZATIONS: ' + pazatorData.others.length + ' total - ' + pazatorData.others.slice(0, 20).map(function(o) { return o.name; }).join(', '));
-    }
-    if (tags && tags.length > 0) {
-        parts.push('AVAILABLE TAGS: ' + tags.join(', '));
-    }
-    if (cases && cases.length > 0) {
-        parts.push('CASES: ' + cases.length + ' open cases');
-    }
-    return parts.join('\n');
-}
-
-async function startAgent(agentId) {
-    var agent = activeAgents.find(function(a) { return a.id === agentId; });
-    if (!agent) return;
-
-    if (pazatorData.humans.length === 0) {
-        agent.thoughts.push({
-            timestamp: new Date(),
-            message: 'No people in database. Cannot start investigation.'
-        });
-        agent.status = 'completed';
-        renderAgentsList();
-        showAlert('No people in database. Add some data first.', 'Notice', 'warning');
-        return;
-    }
-
-    var dbContext = getAgentDatabaseContext();
-
-    var systemPrompt = '\nYou are "' + agent.name + '", an autonomous AI investigator.\n\nGOAL: ' + agent.goal + '\n\nDATABASE CONTEXT:\n' + dbContext + '\n\nEach person has fields: name, gender, birthDate, nationality, workplace, credit, threatLevel, socialClass, maritalStatus, politicalViews, educationLevel, incomeLevel, languages, ethnicity, religion, tags, friends, family, extraNotes\n\nAVAILABLE COMMANDS:\n\n1. GET_PERSON_INFO\n   {"command": "GET_PERSON_INFO", "person": "Exact name"}\n   Get all details about a specific person.\n\n2. SEARCH_PEOPLE\n   {"command": "SEARCH_PEOPLE", "criteria": {"field": "value"}}\n   Search people by any field. Examples:\n   - {"command": "SEARCH_PEOPLE", "criteria": {"workplace": "Company Name"}}\n   - {"command": "SEARCH_PEOPLE", "criteria": {"tags": "employee"}}\n   - {"command": "SEARCH_PEOPLE", "criteria": {"threatLevel": "High"}}\n   - {"command": "SEARCH_PEOPLE", "criteria": {"nationality": "Iranian"}}\n\n3. LIST_ALL_PEOPLE\n   {"command": "LIST_ALL_PEOPLE"}\n   Get names of all people in the database.\n\n4. GET_OTHER_INFO\n   {"command": "GET_OTHER_INFO", "entity": "Entity name"}\n   Get details about an organization or entity.\n\n5. LIST_ALL_OTHERS\n   {"command": "LIST_ALL_OTHERS"}\n   List all organizations/entities.\n\n6. ADD_PERSON\n   {"command": "ADD_PERSON", "data": {"name": "...", "gender": "...", "nationality": "...", "workplace": "...", "tags": [], "extraNotes": "..."}}\n   Add a new person to the database. Only name is required.\n\n7. MODIFY_PERSON\n   {"command": "MODIFY_PERSON", "person": "Exact name", "data": {"field": "value"}}\n   Update a person. Examples:\n   - {"command": "MODIFY_PERSON", "person": "John Smith", "data": {"threatLevel": "High", "extraNotes": "Suspicious activity detected"}}\n   - {"command": "MODIFY_PERSON", "person": "Jane Doe", "data": {"tags": ["employee", "manager"]}}\n\n8. ADD_TAG\n   {"command": "ADD_TAG", "person": "Exact name", "tag": "tag-name"}\n   Add a tag to a person.\n\n9. REMOVE_TAG\n   {"command": "REMOVE_TAG", "person": "Exact name", "tag": "tag-name"}\n   Remove a tag from a person.\n\n10. CONNECT_PEOPLE\n    {"command": "CONNECT_PEOPLE", "person1": "Name", "person2": "Name", "type": "friend"} or "type": "family"\n    Create a connection between two people.\n\n11. CREATE_CASE\n    {"command": "CREATE_CASE", "title": "Case Title", "description": "What this case is about"}\n    Create a new case file.\n\n12. ADD_CASE_NOTE\n    {"command": "ADD_CASE_NOTE", "case": "Case Title", "note": "Note content"}\n    Add a note to an existing case.\n\n13. LOG_FINDING\n    {"command": "LOG_FINDING", "message": "What you discovered"}\n    Record an important finding in your investigation log.\n\n14. MISSION_COMPLETE\n    {"command": "MISSION_COMPLETE", "reason": "Summary of what you accomplished"}\n    Use when your goal is achieved.\n\nRULES:\n- Use GET_PERSON_INFO and SEARCH_PEOPLE to gather facts before acting\n- Search by exact name - if not found try variations\n- You can ADD_TAG, MODIFY_PERSON, and CONNECT_PEOPLE to act on your findings\n- Use CREATE_CASE for formal investigations, ADD_CASE_NOTE to document evidence\n- Use LOG_FINDING to record important discoveries\n- Once your goal is completed, call MISSION_COMPLETE with a summary\n- Be concise and systematic\n\nRESPOND WITH:\nTHINKING: Your analysis\nACTION: <one of the JSON commands above>\n';
-
-    agent.thoughts.push({
-        timestamp: new Date(),
-        message: 'Agent ' + agent.name + ' activated with goal: ' + agent.goal
-    });
-
-    renderAgentDetail(agent.id);
-    await runAgentCycle(agent.id, systemPrompt);
-}
-
-var agentCycleTimers = {};
-
-async function runAgentCycle(agentId, systemPrompt) {
-    var agent = activeAgents.find(function(a) { return a.id === agentId; });
-    if (!agent || agent.status !== 'running') return;
-
-    try {
-        var recentThoughts = agent.thoughts.slice(-5).map(function(t) {
-            return '[' + t.timestamp.toLocaleTimeString() + '] ' + t.message;
-        }).join('\n');
-
-        var userPrompt = '\nContinue investigating.\n\nRecent activity:\n' + recentThoughts + '\n\nRespond with:\nTHINKING: Your immediate analysis\nACTION: <one of the available JSON commands>\n\nIf you need more information, use GET_PERSON_INFO or SEARCH_PEOPLE.\nIf your goal is complete, use MISSION_COMPLETE.\n';
-
-        var aiResponse = await geminiChat([
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt }
-        ]);
-
-        var responseText = '';
-        if (typeof aiResponse === 'string') {
-            responseText = aiResponse;
-        } else if (aiResponse && typeof aiResponse === 'object') {
-            responseText = aiResponse.content || JSON.stringify(aiResponse);
-        } else {
-            responseText = String(aiResponse || 'No response');
-        }
-
-        agent.thoughts.push({
-            timestamp: new Date(),
-            message: responseText
-        });
-
-        var command = parseAgentCommand(responseText);
-        if (command && command.command) {
-            await executeAgentCommand(agentId, command);
-        } else {
-            agent.thoughts.push({
-                timestamp: new Date(),
-                message: 'No valid command found in response. Will retry...'
-            });
-        }
-
-        updateAgentDetail(agentId);
-
-        if (agent.status === 'running') {
-            if (agentCycleTimers[agentId]) clearTimeout(agentCycleTimers[agentId]);
-            agentCycleTimers[agentId] = setTimeout(function() { runAgentCycle(agentId, systemPrompt); }, 2500);
-        }
-
-    } catch (error) {
-        console.error('Agent error:', error);
-        agent.thoughts.push({
-            timestamp: new Date(),
-            message: 'Error occurred: ' + error.message
-        });
-        updateAgentDetail(agentId);
-    }
-}
-
-function parseAgentCommand(response) {
-    if (!response || typeof response !== 'string') return null;
-
-    var actionIdx = response.search(/ACTION:\s*/i);
-    if (actionIdx !== -1) {
-        var jsonStart = response.indexOf('{', actionIdx);
-        if (jsonStart !== -1) {
-            var depth = 0;
-            var inString = false;
-            for (var i = jsonStart; i < response.length; i++) {
-                var ch = response[i];
-                if (inString) {
-                    if (ch === '\\') { i++; continue; }
-                    if (ch === '"') inString = false;
-                    continue;
-                }
-                if (ch === '"') { inString = true; continue; }
-                if (ch === '{') depth++;
-                if (ch === '}') {
-                    depth--;
-                    if (depth === 0) {
-                        var jsonStr = response.substring(jsonStart, i + 1);
-                        try { return JSON.parse(jsonStr); } catch (e) {}
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    var braceIdx = response.indexOf('{');
-    if (braceIdx !== -1) {
-        var depth = 0;
-        var inString = false;
-        for (var j = braceIdx; j < response.length; j++) {
-            var ch2 = response[j];
-            if (inString) {
-                if (ch2 === '\\') { j++; continue; }
-                if (ch2 === '"') inString = false;
-                continue;
-            }
-            if (ch2 === '"') { inString = true; continue; }
-            if (ch2 === '{') depth++;
-            if (ch2 === '}') {
-                depth--;
-                if (depth === 0) {
-                    var jsonStr2 = response.substring(braceIdx, j + 1);
-                    try {
-                        var parsed = JSON.parse(jsonStr2);
-                        if (parsed && parsed.command) return parsed;
-                    } catch (e) {}
-                    break;
-                }
-            }
-        }
-    }
-
-    return null;
-}
-
-function findPersonByName(name) {
-    var lower = name.toLowerCase();
-    for (var i = 0; i < pazatorData.humans.length; i++) {
-        if (pazatorData.humans[i].name.toLowerCase() === lower) return pazatorData.humans[i];
-    }
-    for (var j = 0; j < pazatorData.humans.length; j++) {
-        if (pazatorData.humans[j].name.toLowerCase().indexOf(lower) !== -1) return pazatorData.humans[j];
-    }
-    return null;
-}
-
-async function executeAgentCommand(agentId, command) {
-    var agent = activeAgents.find(function(a) { return a.id === agentId; });
-    if (!agent) return;
-
-    agent.commandsUsed.push({
-        timestamp: new Date(),
-        command: command.command,
-        parameters: command
-    });
-
-    switch (command.command) {
-
-        case 'GET_PERSON_INFO': {
-            var person = findPersonByName(command.person);
-            if (person) {
-                var friendNames = [];
-                if (person.friends) {
-                    for (var fi = 0; fi < person.friends.length; fi++) {
-                        var f = pazatorData.humans.find(function(h) { return h.id === person.friends[fi]; });
-                        if (f) friendNames.push(f.name);
-                    }
-                }
-                var familyNames = [];
-                if (person.family) {
-                    for (var fami = 0; fami < person.family.length; fami++) {
-                        var fam = pazatorData.humans.find(function(h) { return h.id === person.family[fami]; });
-                        if (fam) familyNames.push(fam.name);
-                    }
-                }
-                var info = {
-                    name: person.name,
-                    gender: person.gender || 'N/A',
-                    birthDate: person.birthDate || 'N/A',
-                    nationality: person.nationality || 'N/A',
-                    workplace: person.workplace || 'N/A',
-                    credit: person.credit,
-                    threatLevel: person.threatLevel || 'None',
-                    socialClass: person.socialClass || 'N/A',
-                    maritalStatus: person.maritalStatus || 'N/A',
-                    politicalViews: person.politicalViews || 'N/A',
-                    educationLevel: person.educationLevel || 'N/A',
-                    incomeLevel: person.incomeLevel || 'N/A',
-                    languages: person.languages || 'N/A',
-                    ethnicity: person.ethnicity || 'N/A',
-                    religion: person.religion || 'N/A',
-                    tags: person.tags || [],
-                    friends: friendNames,
-                    family: familyNames,
-                    notes: person.extraNotes || ''
-                };
-                agent.thoughts.push({
-                    timestamp: new Date(),
-                    message: 'Retrieved info for ' + person.name + ': ' + JSON.stringify(info, null, 2)
-                });
-            } else {
-                agent.thoughts.push({
-                    timestamp: new Date(),
-                    message: 'Person not found: ' + command.person
-                });
-            }
-            break;
-        }
-
-        case 'SEARCH_PEOPLE': {
-            var criteria = command.criteria || {};
-            var results = [];
-            for (var si = 0; si < pazatorData.humans.length; si++) {
-                var h = pazatorData.humans[si];
-                var match = true;
-                for (var key in criteria) {
-                    if (criteria.hasOwnProperty(key)) {
-                        var val = String(criteria[key]).toLowerCase();
-                        var field = h[key];
-                        if (Array.isArray(field)) {
-                            var found = false;
-                            for (var ai = 0; ai < field.length; ai++) {
-                                if (String(field[ai]).toLowerCase().indexOf(val) !== -1) { found = true; break; }
-                            }
-                            if (!found) { match = false; break; }
-                        } else {
-                            if (!field || String(field).toLowerCase().indexOf(val) === -1) { match = false; break; }
-                        }
-                    }
-                }
-                if (match) results.push(h.name);
-            }
-            agent.thoughts.push({
-                timestamp: new Date(),
-                message: 'Search results (' + results.length + ' found): ' + (results.length > 0 ? results.join(', ') : 'No matches')
-            });
-            break;
-        }
-
-        case 'LIST_ALL_PEOPLE': {
-            var names = pazatorData.humans.map(function(h) { return h.name; });
-            agent.thoughts.push({
-                timestamp: new Date(),
-                message: 'All people (' + names.length + '): ' + names.join(', ')
-            });
-            break;
-        }
-
-        case 'GET_OTHER_INFO': {
-            var other = null;
-            for (var oi = 0; oi < pazatorData.others.length; oi++) {
-                if (pazatorData.others[oi].name.toLowerCase() === command.entity.toLowerCase()) {
-                    other = pazatorData.others[oi];
-                    break;
-                }
-            }
-            if (other) {
-                agent.thoughts.push({
-                    timestamp: new Date(),
-                    message: 'Entity info for ' + other.name + ': ' + JSON.stringify(other, null, 2)
-                });
-            } else {
-                agent.thoughts.push({
-                    timestamp: new Date(),
-                    message: 'Entity not found: ' + command.entity
-                });
-            }
-            break;
-        }
-
-        case 'LIST_ALL_OTHERS': {
-            var otherNames = pazatorData.others.map(function(o) { return o.name; });
-            agent.thoughts.push({
-                timestamp: new Date(),
-                message: 'Organizations (' + otherNames.length + '): ' + (otherNames.length > 0 ? otherNames.join(', ') : 'None')
-            });
-            break;
-        }
-
-        case 'ADD_TAG': {
-            var tagPerson = findPersonByName(command.person);
-            if (tagPerson) {
-                if (!tagPerson.tags) tagPerson.tags = [];
-                if (tagPerson.tags.indexOf(command.tag) === -1) {
-                    tagPerson.tags.push(command.tag);
-                    markDataChanged();
-                    agent.thoughts.push({
-                        timestamp: new Date(),
-                        message: 'Added tag "' + command.tag + '" to ' + tagPerson.name
-                    });
-                } else {
-                    agent.thoughts.push({
-                        timestamp: new Date(),
-                        message: tagPerson.name + ' already has tag "' + command.tag + '"'
-                    });
-                }
-            } else {
-                agent.thoughts.push({
-                    timestamp: new Date(),
-                    message: 'Person not found: ' + command.person
-                });
-            }
-            break;
-        }
-
-        case 'REMOVE_TAG': {
-            var removePerson = findPersonByName(command.person);
-            if (removePerson) {
-                if (removePerson.tags) {
-                    var idx = removePerson.tags.indexOf(command.tag);
-                    if (idx !== -1) {
-                        removePerson.tags.splice(idx, 1);
-                        markDataChanged();
-                        agent.thoughts.push({
-                            timestamp: new Date(),
-                            message: 'Removed tag "' + command.tag + '" from ' + removePerson.name
-                        });
-                    } else {
-                        agent.thoughts.push({
-                            timestamp: new Date(),
-                            message: removePerson.name + ' does not have tag "' + command.tag + '"'
-                        });
-                    }
-                }
-            } else {
-                agent.thoughts.push({
-                    timestamp: new Date(),
-                    message: 'Person not found: ' + command.person
-                });
-            }
-            break;
-        }
-
-        case 'MODIFY_PERSON': {
-            var modPerson = findPersonByName(command.person);
-            if (modPerson) {
-                var modData = command.data || {};
-                var changes = [];
-                for (var mk in modData) {
-                    if (modData.hasOwnProperty(mk)) {
-                        modPerson[mk] = modData[mk];
-                        changes.push(mk + '=' + JSON.stringify(modData[mk]));
-                    }
-                }
-                markDataChanged();
-                agent.thoughts.push({
-                    timestamp: new Date(),
-                    message: 'Updated ' + modPerson.name + ': ' + changes.join(', ')
-                });
-            } else {
-                agent.thoughts.push({
-                    timestamp: new Date(),
-                    message: 'Person not found: ' + command.person
-                });
-            }
-            break;
-        }
-
-        case 'ADD_PERSON': {
-            var newData = command.data || {};
-            if (!newData.name) {
-                agent.thoughts.push({
-                    timestamp: new Date(),
-                    message: 'Cannot add person: name is required'
-                });
-                break;
-            }
-            var maxId = 0;
-            for (var idi = 0; idi < pazatorData.humans.length; idi++) {
-                if (pazatorData.humans[idi].id > maxId) maxId = pazatorData.humans[idi].id;
-            }
-            newData.id = maxId + 1;
-            pazatorData.humans.push(newData);
-            markDataChanged();
-            agent.thoughts.push({
-                timestamp: new Date(),
-                message: 'Added new person: ' + newData.name + ' (ID: ' + newData.id + ')'
-            });
-            break;
-        }
-
-        case 'CONNECT_PEOPLE': {
-            var p1 = findPersonByName(command.person1);
-            var p2 = findPersonByName(command.person2);
-            if (!p1) {
-                agent.thoughts.push({ timestamp: new Date(), message: 'Person not found: ' + command.person1 });
-                break;
-            }
-            if (!p2) {
-                agent.thoughts.push({ timestamp: new Date(), message: 'Person not found: ' + command.person2 });
-                break;
-            }
-            var connType = command.type === 'family' ? 'family' : 'friends';
-            if (!p1[connType]) p1[connType] = [];
-            if (!p2[connType]) p2[connType] = [];
-            if (p1[connType].indexOf(p2.id) === -1) p1[connType].push(p2.id);
-            if (p2[connType].indexOf(p1.id) === -1) p2[connType].push(p1.id);
-            markDataChanged();
-            agent.thoughts.push({
-                timestamp: new Date(),
-                message: 'Connected ' + p1.name + ' and ' + p2.name + ' as ' + connType
-            });
-            break;
-        }
-
-        case 'CREATE_CASE': {
-            if (!command.title) {
-                agent.thoughts.push({ timestamp: new Date(), message: 'Cannot create case: title is required' });
-                break;
-            }
-            var newCase = {
-                id: Date.now().toString(),
-                title: command.title,
-                description: command.description || '',
-                status: 'open',
-                createdAt: new Date().toISOString(),
-                entities: [],
-                timeline: [{
-                    type: 'note',
-                    content: '<strong>Case created by agent ' + agent.name + '</strong>',
-                    timestamp: Date.now()
-                }],
-                notes: []
-            };
-            cases.push(newCase);
-            localStorage.setItem('pazatorCases', JSON.stringify(cases));
-            agent.thoughts.push({
-                timestamp: new Date(),
-                message: 'Created case: ' + command.title + (command.description ? ' - ' + command.description : '')
-            });
-            break;
-        }
-
-        case 'ADD_CASE_NOTE': {
-            if (!command.case) {
-                agent.thoughts.push({ timestamp: new Date(), message: 'Cannot add note: case title is required' });
-                break;
-            }
-            var foundCase = null;
-            for (var ci = 0; ci < cases.length; ci++) {
-                if (cases[ci].title.toLowerCase() === command.case.toLowerCase()) {
-                    foundCase = cases[ci];
-                    break;
-                }
-            }
-            if (foundCase) {
-                foundCase.timeline.push({
-                    type: 'note',
-                    content: '<strong>Agent ' + agent.name + '</strong>: ' + escapeHtml(command.note || ''),
-                    timestamp: Date.now()
-                });
-                localStorage.setItem('pazatorCases', JSON.stringify(cases));
-                agent.thoughts.push({
-                    timestamp: new Date(),
-                    message: 'Added note to case "' + command.case + '": ' + command.note
-                });
-            } else {
-                agent.thoughts.push({
-                    timestamp: new Date(),
-                    message: 'Case not found: ' + command.case
-                });
-            }
-            break;
-        }
-
-        case 'LOG_FINDING': {
-            agent.logs.push({
-                timestamp: new Date(),
-                message: command.message
-            });
-            agent.thoughts.push({
-                timestamp: new Date(),
-                message: 'Logged finding: ' + command.message
-            });
-            break;
-        }
-
-        case 'MISSION_COMPLETE': {
-            agent.status = 'completed';
-            agent.thoughts.push({
-                timestamp: new Date(),
-                message: 'Mission completed: ' + command.reason
-            });
-            showToast('Agent Complete', 'Agent ' + agent.name + ' completed its mission: ' + command.reason, 'success');
-            break;
-        }
-    }
-}
-
-function stopAgent(agentId) {
-    const agent = activeAgents.find(a => a.id === agentId);
-    if (agent) {
-        agent.status = 'stopped';
-        agent.thoughts.push({
-            timestamp: new Date(),
-            message: 'Agent manually stopped by user'
-        });
-        renderAgentsList();
-    }
-}
-
-async function deleteAgent(agentId) {
-    const confirmed = await showConfirm('Are you sure you want to delete this agent?', 'Confirm Deletion', 'warning');
-    if (confirmed) {
-        activeAgents = activeAgents.filter(a => a.id !== agentId);
-        renderAgentsList();
-    }
-}
-
-function renderAgentsList() {
-    const container = document.getElementById('agentsList');
-    const countElement = document.getElementById('agentCount');
-
-    countElement.textContent = `${activeAgents.length}/3`;
-
-    if (activeAgents.length === 0) {
-        container.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #777;">
-                        <i class="fas fa-robot" style="font-size: 3rem; margin-bottom: 20px; color: #444;"></i>
-                        <p style="margin: 0; font-size: 1.2rem;">No active agents</p>
-                        <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666;">Create an agent to get started</p>
-                    </div>
-                `;
-        return;
-    }
-
-    container.innerHTML = activeAgents.map(agent => {
-        const duration = Math.floor((new Date() - agent.startTime) / 1000);
-        const minutes = Math.floor(duration / 60);
-        const seconds = duration % 60;
-
-        return `
-                    <div style="background: rgba(40, 40, 40, 0.8); border: 1px solid #444; border-radius: 12px; padding: 20px; transition: all 0.2s ease;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
-                            <div>
-                                <h3 style="margin: 0 0 8px 0; color: #ffffff; font-size: 1.3rem;">${agent.name}</h3>
-                                <p style="margin: 0; color: #aaa; font-size: 0.95rem;">${agent.goal}</p>
-                            </div>
-                            <div style="text-align: right;">
-                                <span style="background: ${agent.status === 'running' ? '#6bcf7f' : agent.status === 'completed' ? '#4d9de0' : '#ff6b6b'}; 
-                                      color: white; padding: 4px 12px; border-radius: 15px; font-size: 0.8rem; font-weight: 500;">
-                                    ${agent.status.toUpperCase()}
-                                </span>
-                                <div style="margin-top: 8px; color: #888; font-size: 0.85rem;">
-                                    ${minutes}m ${seconds}s
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div style="display: flex; gap: 10px; margin-top: 15px;">
-                            <button onclick="renderAgentDetail(${agent.id})" class="btn btn-secondary" style="flex: 1; padding: 10px; font-size: 0.9rem;">
-                                <i class="fas fa-eye" style="margin-right: 6px;"></i>View Details
-                            </button>
-                            ${agent.status === 'running' ? `
-                                <button onclick="stopAgent(${agent.id})" class="btn btn-danger" style="padding: 10px 15px; font-size: 0.9rem;">
-                                    <i class="fas fa-stop"></i>
-                                </button>
-                            ` : ''}
-                            <button onclick="deleteAgent(${agent.id})" class="btn btn-danger" style="padding: 10px 15px; font-size: 0.9rem;">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-    }).join('');
-}
-
-function renderAgentDetail(agentId) {
-    var agent = activeAgents.find(function(a) { return a.id === agentId; });
-    if (!agent) return;
-
-    var existing = document.getElementById('agentDetailModal');
-    if (existing) existing.remove();
-
-    var modal = document.createElement('div');
-    modal.id = 'agentDetailModal';
-    modal.className = 'modal';
-    modal.style.display = 'flex';
-    modal.style.zIndex = '1000';
-
-    var duration = Math.floor((new Date() - agent.startTime) / 1000);
-    var minutes = Math.floor(duration / 60);
-    var seconds = duration % 60;
-
-    modal.innerHTML =
-        '<div class="modal-content" style="max-width:900px;width:95%;max-height:90vh;display:flex;flex-direction:column;">' +
-            '<div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;">' +
-                '<h2 style="margin:0;font-family:AllianceNo2,sans-serif;">' + agent.name + '</h2>' +
-                '<button class="close" onclick="this.closest(\'.modal\').remove()" style="background:none;border:none;color:#ddd;font-size:1.8rem;cursor:pointer;">&times;</button>' +
-            '</div>' +
-            '<div style="display:flex;gap:20px;flex:1;overflow:hidden;padding:20px 0;">' +
-                '<div style="flex:1;display:flex;flex-direction:column;gap:15px;">' +
-                    '<h3 style="margin:0;color:#fff;display:flex;align-items:center;gap:10px;">' +
-                        '<i class="fas fa-brain" style="color:#6bcf7f;"></i> Agent Activity' +
-                        '<span class="agent-duration" style="margin-left:auto;background:#444;color:#ddd;padding:3px 10px;border-radius:12px;font-size:0.8rem;">' + minutes + 'm ' + seconds + 's</span>' +
-                    '</h3>' +
-                    '<div id="agentDetailThoughts" style="flex:1;overflow-y:auto;background:rgba(20,20,20,0.5);border-radius:10px;padding:15px;">' +
-                        renderThoughtsHTML(agent.thoughts) +
-                    '</div>' +
-                '</div>' +
-                '<div style="flex:1;display:flex;flex-direction:column;gap:15px;">' +
-                    '<h3 style="margin:0;color:#fff;display:flex;align-items:center;gap:10px;">' +
-                        '<i class="fas fa-clipboard-list" style="color:#ffd93d;"></i> Investigation Logs' +
-                    '</h3>' +
-                    '<div id="agentDetailLogs" style="flex:1;overflow-y:auto;background:rgba(20,20,20,0.5);border-radius:10px;padding:15px;margin-bottom:15px;">' +
-                        renderLogsHTML(agent.logs) +
-                    '</div>' +
-                    '<h3 style="margin:0;color:#fff;display:flex;align-items:center;gap:10px;">' +
-                        '<i class="fas fa-terminal" style="color:#ff6b6b;"></i> Commands Used' +
-                    '</h3>' +
-                    '<div id="agentDetailCommands" style="flex:1;overflow-y:auto;background:rgba(20,20,20,0.5);border-radius:10px;padding:15px;">' +
-                        renderCommandsHTML(agent.commandsUsed) +
-                    '</div>' +
-                '</div>' +
-            '</div>' +
-            '<div style="display:flex;gap:10px;padding-top:20px;border-top:1px solid #333;">' +
-                '<button onclick="this.closest(\'.modal\').remove()" class="btn btn-secondary" style="flex:1;padding:12px;">Close</button>' +
-                (agent.status === 'running' ? '<button onclick="stopAgent(' + agent.id + ');this.closest(\'.modal\').remove()" class="btn btn-danger" style="padding:12px 20px;">Stop Agent</button>' : '') +
-            '</div>' +
-        '</div>';
-
-    document.body.appendChild(modal);
-    scrollThoughts();
-}
-
-function renderThoughtsHTML(thoughts) {
-    if (thoughts.length === 0) {
-        return '<div style="text-align:center;padding:30px;color:#777;"><i class="fas fa-brain" style="font-size:2rem;margin-bottom:15px;color:#444;"></i><p style="margin:0;">No activity yet</p></div>';
-    }
-    var html = '';
-    for (var ti = 0; ti < thoughts.length; ti++) {
-        var t = thoughts[ti];
-        html += '<div style="margin-bottom:15px;padding-bottom:15px;border-bottom:1px solid #333;">' +
-                    '<div style="color:#888;font-size:0.8rem;margin-bottom:5px;">' + t.timestamp.toLocaleTimeString() + '</div>' +
-                    '<div style="color:#ddd;line-height:1.5;white-space:pre-wrap;">' + escapeHtml(t.message) + '</div>' +
-                '</div>';
-    }
-    return html;
-}
-
-function renderLogsHTML(logs) {
-    if (logs.length === 0) {
-        return '<div style="text-align:center;padding:30px;color:#777;"><i class="fas fa-clipboard" style="font-size:2rem;margin-bottom:15px;color:#444;"></i><p style="margin:0;">No logs recorded yet</p></div>';
-    }
-    var html = '';
-    for (var li = 0; li < logs.length; li++) {
-        var l = logs[li];
-        html += '<div style="margin-bottom:12px;padding:12px;background:rgba(255,255,255,0.05);border-radius:8px;border-left:3px solid #ffd93d;">' +
-                    '<div style="color:#888;font-size:0.8rem;margin-bottom:5px;">' + l.timestamp.toLocaleTimeString() + '</div>' +
-                    '<div style="color:#ddd;">' + escapeHtml(l.message) + '</div>' +
-                '</div>';
-    }
-    return html;
-}
-
-function renderCommandsHTML(cmds) {
-    if (cmds.length === 0) {
-        return '<div style="text-align:center;padding:30px;color:#777;"><i class="fas fa-terminal" style="font-size:2rem;margin-bottom:15px;color:#444;"></i><p style="margin:0;">No commands executed yet</p></div>';
-    }
-    var html = '';
-    for (var ci = 0; ci < cmds.length; ci++) {
-        var c = cmds[ci];
-        html += '<div style="margin-bottom:12px;padding:12px;background:rgba(255,255,255,0.05);border-radius:8px;border-left:3px solid #ff6b6b;">' +
-                    '<div style="color:#888;font-size:0.8rem;margin-bottom:5px;">' + c.timestamp.toLocaleTimeString() + '</div>' +
-                    '<div style="color:#ddd;font-weight:500;margin-bottom:5px;">' + escapeHtml(c.command) + '</div>' +
-                    '<div style="color:#aaa;font-size:0.9rem;">' + escapeHtml(JSON.stringify(c.parameters, null, 2)) + '</div>' +
-                '</div>';
-    }
-    return html;
-}
-
-function scrollThoughts() {
-    var container = document.getElementById('agentDetailThoughts');
-    if (container) {
-        setTimeout(function() { container.scrollTop = container.scrollHeight; }, 50);
-    }
-}
-
-function updateAgentDetail(agentId) {
-    var agent = activeAgents.find(function(a) { return a.id === agentId; });
-    if (!agent) return;
-
-    var thoughtsEl = document.getElementById('agentDetailThoughts');
-    var logsEl = document.getElementById('agentDetailLogs');
-    var cmdsEl = document.getElementById('agentDetailCommands');
-    var durationEl = document.querySelector('.agent-duration');
-
-    if (!thoughtsEl || !thoughtsEl.offsetParent) return;
-
-    var duration = Math.floor((new Date() - agent.startTime) / 1000);
-    var minutes = Math.floor(duration / 60);
-    var seconds = duration % 60;
-
-    if (durationEl) durationEl.textContent = minutes + 'm ' + seconds + 's';
-
-    var wasAtBottom = thoughtsEl.scrollHeight - thoughtsEl.scrollTop - thoughtsEl.clientHeight < 60;
-
-    thoughtsEl.innerHTML = renderThoughtsHTML(agent.thoughts);
-    if (logsEl) logsEl.innerHTML = renderLogsHTML(agent.logs);
-    if (cmdsEl) cmdsEl.innerHTML = renderCommandsHTML(agent.commandsUsed);
-
-    if (wasAtBottom || thoughtsEl.dataset.autoScroll !== 'false') {
-        thoughtsEl.scrollTop = thoughtsEl.scrollHeight;
-    }
-}
-
 // Case Files Functions
 function initCasesTab() {
     if (!casesTabInitialized) {
@@ -11912,12 +10168,14 @@ function initCasesTab() {
         const addNoteBtn = document.getElementById('caseAddNoteBtn');
         const noteInput = document.getElementById('caseNoteInput');
         const zorBtn = document.getElementById('caseZorBtn');
+        const addEvidenceBtn = document.getElementById('addEvidenceToCaseBtn');
 
         if (newCaseBtn) newCaseBtn.addEventListener('click', showNewCaseModal);
         if (statusFilter) statusFilter.addEventListener('change', renderCasesList);
         if (editBtn) editBtn.addEventListener('click', showEditCaseModal);
         if (closeBtn) closeBtn.addEventListener('click', toggleCaseStatus);
         if (addEntityBtn) addEntityBtn.addEventListener('click', showEntityPickerModal);
+        if (addEvidenceBtn) addEvidenceBtn.addEventListener('click', showAddEvidenceModal);
         if (addNoteBtn) addNoteBtn.addEventListener('click', addCaseNote);
         if (noteInput) noteInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addCaseNote();
@@ -11942,6 +10200,19 @@ function loadCases() {
 
 function saveCases() {
     localStorage.setItem('pazatorCases', JSON.stringify(cases));
+}
+
+function exportCaseAsJSON() {
+    const caseData = cases.find(c => c.id === selectedCaseId);
+    if (!caseData) return;
+    const blob = new Blob([JSON.stringify(caseData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `case_${caseData.title.replace(/[^a-z0-9]/gi, '_')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showFloatingNotification('Case exported', 'success');
 }
 
 function renderCasesList() {
@@ -11970,7 +10241,7 @@ function renderCasesList() {
                 <span class="case-card-badge ${c.status}">${c.status.replace('-', ' ')}</span>
             </div>
             <div class="case-card-meta">
-                ${c.entities.length} entity ${c.entities.length === 1 ? 'tagged' : 'tagged'} • ${c.timeline.length} activity
+                ${c.entities.length} entity ${c.entities.length === 1 ? 'tagged' : 'tagged'} • ${c.timeline.length} activity${(c.evidence && c.evidence.length > 0) ? ' • ' + c.evidence.length + ' evidence' : ''}
             </div>
         </div>
     `).join('');
@@ -12003,10 +10274,25 @@ function selectCase(caseId) {
 
     document.getElementById('caseEntityCount').textContent = caseData.entities.length;
     document.getElementById('caseActivityCount').textContent = caseData.timeline.length;
+    document.getElementById('caseEvidenceCount').textContent = (caseData.evidence || []).length;
 
     document.getElementById('caseDescription').textContent = caseData.description || 'No description provided';
 
     renderCaseEntities(caseData);
+    renderCaseEvidence(caseData);
+    // Link humans in this case to the case's entity list
+    if (caseData.entities && caseData.entities.length > 0) {
+        caseData.entities.forEach(entityId => {
+            const human = pazatorData.humans.find(h => h.id === entityId);
+            if (human) {
+                if (!human.cases) human.cases = [];
+                if (!human.cases.includes(caseData.id)) {
+                    human.cases.push(caseData.id);
+                    _pendingChanges();
+                }
+            }
+        });
+    }
     renderCaseTimeline(caseData);
 }
 
@@ -12038,6 +10324,17 @@ function renderCaseEntities(caseData) {
     }).join('');
 }
 
+function timeAgo(ts) {
+    var diff = Date.now() - ts;
+    var mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + 'm ago';
+    var hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    var days = Math.floor(hrs / 24);
+    return days + 'd ago';
+}
+
 function renderCaseTimeline(caseData) {
     const container = document.getElementById('caseTimeline');
 
@@ -12048,7 +10345,7 @@ function renderCaseTimeline(caseData) {
 
     container.innerHTML = [...caseData.timeline].reverse().map(item => `
         <div class="case-timeline-item ${item.type}">
-            <span class="case-timeline-time">${new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            <span class="case-timeline-time" title="${new Date(item.timestamp).toLocaleString()}">${timeAgo(item.timestamp)}</span>
             <span class="case-timeline-content">${item.content}</span>
         </div>
     `).join('');
@@ -12062,10 +10359,11 @@ async function handoffCaseToZor() {
     zorBtn.disabled = true;
     zorBtn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Analyzing...';
 
+    const startTime = Date.now();
     caseData.timeline.push({
         type: 'note',
         content: '<strong>Zor analyzing case...</strong>',
-        timestamp: Date.now()
+        timestamp: startTime
     });
     saveCases();
     selectCase(selectedCaseId);
@@ -12133,10 +10431,15 @@ Be concise and actionable.
 }
 
 function showNewCaseModal() {
+    const allEntities = [
+        ...pazatorData.humans.map(h => ({ ...h, type: 'human' })),
+        ...pazatorData.others.map(o => ({ ...o, type: 'other' }))
+    ];
+
     const modal = document.createElement('div');
     modal.className = 'modal case-modal';
     modal.innerHTML = `
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 520px;">
             <div class="modal-header">
                 <h2>New Case</h2>
             </div>
@@ -12156,6 +10459,18 @@ function showNewCaseModal() {
                         <option value="in-progress">In Progress</option>
                         <option value="closed">Closed</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label>Link Entities <span style="color: #666; font-weight: normal; font-size: 0.8rem;">(optional)</span></label>
+                    <div class="case-form-entity-picker">
+                        ${allEntities.length > 0 ? allEntities.map(e => `
+                            <label class="case-form-entity-item">
+                                <input type="checkbox" class="case-entity-checkbox" value="${e.id}" data-type="${e.type}">
+                                <i class="fas ${e.type === 'human' ? 'fa-user' : 'fa-building'}" style="color: ${e.type === 'human' ? '#818cf8' : '#34d399'};"></i>
+                                <span>${escapeHtml(e.name)}</span>
+                            </label>
+                        `).join('') : '<p style="color: #666; font-size: 0.85rem;">No entities in database yet</p>'}
+                    </div>
                 </div>
             </div>
             <div class="form-actions">
@@ -12179,12 +10494,16 @@ function createNewCase() {
         return;
     }
 
+    const checkboxes = document.querySelectorAll('.case-entity-checkbox:checked');
+    const entities = Array.from(checkboxes).map(cb => cb.value);
+
     const newCase = {
         id: 'case_' + Date.now(),
         title,
         description,
         status,
-        entities: [],
+        entities,
+        evidence: [],
         timeline: [{
             type: 'note',
             content: '<strong>Case created</strong>',
@@ -12192,6 +10511,14 @@ function createNewCase() {
         }],
         createdAt: Date.now()
     };
+
+    if (entities.length > 0) {
+        newCase.timeline.push({
+            type: 'entity-added',
+            content: '<strong>Entities linked</strong>: ' + entities.length + ' entit' + (entities.length === 1 ? 'y' : 'ies') + ' added on creation',
+            timestamp: Date.now() + 1
+        });
+    }
 
     cases.push(newCase);
     saveCases();
@@ -12524,6 +10851,144 @@ function formatTime(timestamp) {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+// Evidence System
+var analysesStore = [];
+
+function loadAnalyses() {
+    try {
+        var saved = localStorage.getItem('pazatorAnalyses');
+        analysesStore = saved ? JSON.parse(saved) : [];
+    } catch (e) {
+        analysesStore = [];
+    }
+}
+
+function saveAnalyses() {
+    localStorage.setItem('pazatorAnalyses', JSON.stringify(analysesStore));
+}
+
+function storeAnalysisResult(type, title, findings) {
+    var entry = {
+        id: 'analysis_' + Date.now(),
+        type: type,
+        title: title,
+        findings: findings,
+        createdAt: Date.now()
+    };
+    analysesStore.push(entry);
+    saveAnalyses();
+    return entry;
+}
+
+function renderCaseEvidence(caseData) {
+    var container = document.getElementById('caseEvidenceList');
+    if (!container) return;
+
+    if (!caseData.evidence || caseData.evidence.length === 0) {
+        container.innerHTML = '<span class="case-empty-evidence">No evidence attached</span>';
+        return;
+    }
+
+    container.innerHTML = caseData.evidence.map(function(ev) {
+        var typeClass = 'evidence-intelligence';
+        var icon = 'fa-brain';
+        if (ev.type === 'threat') { typeClass = 'evidence-threat'; icon = 'fa-exclamation-triangle'; }
+        else if (ev.type === 'fraud') { typeClass = 'evidence-fraud'; icon = 'fa-shield-alt'; }
+        else if (ev.type === 'chat') { typeClass = 'evidence-chat'; icon = 'fa-comments'; }
+
+        return '<div class="case-evidence-item">' +
+            '<div class="evidence-icon ' + typeClass + '"><i class="fas ' + icon + '"></i></div>' +
+            '<div class="evidence-info">' +
+                '<div class="evidence-title">' + escapeHtml(ev.title) + '</div>' +
+                '<div class="evidence-meta">' + (ev.findingCount || 0) + ' finding' + (ev.findingCount === 1 ? '' : 's') + ' &middot; ' + new Date(ev.addedAt).toLocaleDateString() + '</div>' +
+            '</div>' +
+            '<i class="fas fa-trash remove-evidence" onclick="removeEvidenceFromCase(\'' + caseData.id + '\', \'' + ev.id + '\')" title="Remove evidence"></i>' +
+        '</div>';
+    }).join('');
+}
+
+function showAddEvidenceModal() {
+    var caseData = cases.find(function(c) { return c.id === selectedCaseId; });
+    if (!caseData) return;
+
+    loadAnalyses();
+
+    if (analysesStore.length === 0) {
+        showFloatingNotification('No analysis results available. Run an analysis first.', 'info');
+        return;
+    }
+
+    var alreadyAdded = (caseData.evidence || []).map(function(e) { return e.id; });
+
+    var modal = document.createElement('div');
+    modal.className = 'modal case-modal';
+    modal.innerHTML = '<div class="modal-content" style="max-width: 500px;">' +
+        '<div class="modal-header"><h2>Add Evidence</h2></div>' +
+        '<div class="modal-body">' +
+        '<p style="color: #888; font-size: 0.85rem; margin-bottom: 12px;">Select from saved analysis results to attach as evidence to this case.</p>' +
+        '<div class="evidence-picker-list">' +
+        analysesStore.filter(function(a) { return alreadyAdded.indexOf(a.id) < 0; }).map(function(a) {
+            var typeClass = 'evidence-intelligence';
+            var icon = 'fa-brain';
+            if (a.type === 'threat') { typeClass = 'evidence-threat'; icon = 'fa-exclamation-triangle'; }
+            else if (a.type === 'fraud') { typeClass = 'evidence-fraud'; icon = 'fa-shield-alt'; }
+
+            return '<div class="evidence-picker-item" onclick="addEvidenceToCase(\'' + a.id + '\')">' +
+                '<div class="evidence-icon ' + typeClass + '" style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas ' + icon + '"></i></div>' +
+                '<div style="flex:1;min-width:0;">' +
+                    '<div style="color:#e0e0e0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(a.title) + '</div>' +
+                    '<div style="color:#666;font-size:0.8rem;">' + a.findings.length + ' finding' + (a.findings.length === 1 ? '' : 's') + ' &middot; ' + a.type + ' &middot; ' + new Date(a.createdAt).toLocaleDateString() + '</div>' +
+                '</div>' +
+                '<i class="fas fa-plus" style="color:#818cf8;cursor:pointer;"></i>' +
+            '</div>';
+        }).join('') +
+        (analysesStore.filter(function(a) { return alreadyAdded.indexOf(a.id) < 0; }).length === 0 ? '<p style="color:#666;text-align:center;padding:20px;">All analysis results are already attached as evidence</p>' : '') +
+        '</div></div>' +
+        '<div class="form-actions"><button class="btn btn-secondary" onclick="this.closest(\'.modal\').remove()">Close</button></div>' +
+        '</div>';
+    document.body.appendChild(modal);
+    modal.classList.add('active');
+}
+
+function addEvidenceToCase(analysisId) {
+    var caseData = cases.find(function(c) { return c.id === selectedCaseId; });
+    if (!caseData) return;
+
+    var analysis = analysesStore.find(function(a) { return a.id === analysisId; });
+    if (!analysis) return;
+
+    if (!caseData.evidence) caseData.evidence = [];
+    if (caseData.evidence.find(function(e) { return e.id === analysisId; })) return;
+
+    caseData.evidence.push({
+        id: analysis.id,
+        type: analysis.type,
+        title: analysis.title,
+        findingCount: analysis.findings.length,
+        addedAt: Date.now()
+    });
+
+    caseData.timeline.push({
+        type: 'note',
+        content: '<strong>Evidence added</strong>: ' + escapeHtml(analysis.title),
+        timestamp: Date.now()
+    });
+
+    saveCases();
+    document.querySelector('.case-modal')?.remove();
+    selectCase(selectedCaseId);
+    showFloatingNotification('Evidence added to case', 'success');
+}
+
+function removeEvidenceFromCase(caseId, evidenceId) {
+    var caseData = cases.find(function(c) { return c.id === caseId; });
+    if (!caseData) return;
+
+    caseData.evidence = (caseData.evidence || []).filter(function(e) { return e.id !== evidenceId; });
+    saveCases();
+    selectCase(caseId);
+}
+
 // Settings Functions
 function openSettingsModal() {
     const modal = document.getElementById('settingsModal');
@@ -12563,7 +11028,7 @@ function toggleSkipIntro(enabled) {
 }
 
 // Password lock functions
-function togglePasswordLock(enabled) {
+async function togglePasswordLock(enabled) {
     var area = document.getElementById('passwordChangeArea');
     var toggle = document.getElementById('passwordLockToggle');
     var status = document.getElementById('passwordStatus');
@@ -12587,7 +11052,8 @@ function togglePasswordLock(enabled) {
         }
     } else {
         if (localStorage.getItem('pz_passwordHash')) {
-            if (!confirm('Disable password lock? Anyone who opens the app will have full access.')) {
+            var confirmed = await showConfirm('Disable password lock? Anyone who opens the app will have full access.', 'Password Lock', 'warning');
+            if (!confirmed) {
                 toggle.checked = true;
                 return;
             }
@@ -12618,8 +11084,9 @@ function savePassword() {
     document.getElementById('passwordRemoveBtn').style.display = '';
 }
 
-function removePassword() {
-    if (!confirm('Remove password lock? Anyone who opens the app will have full access.')) return;
+async function removePassword() {
+    var confirmed = await showConfirm('Remove password lock? Anyone who opens the app will have full access.', 'Password Lock', 'warning');
+    if (!confirmed) return;
     localStorage.removeItem('pz_passwordHash');
     localStorage.removeItem('pz_passwordEnabled');
     document.getElementById('passwordLockToggle').checked = false;
@@ -13081,7 +11548,6 @@ function initSettings() {
         }
     }
     initGeminiUI();
-    updateZorToolModeUI();
 }
 
 // Allow pressing Enter in the unlock input
@@ -13118,17 +11584,17 @@ async function loadLogoForPDF() {
 // ============================================================
 
 const ZOR_TOOL_MODE_KEY = 'pazator_zor_tool_mode';
-const ZOR_BLACKBOX_KEY = 'pazator_zor_blackbox';
-const ZOR_BLACKBOX_DATA_KEY = 'pazator_zor_blackbox_data';
 
 function isZorToolMode() {
-    if (isBlackBox()) return false;
     return localStorage.getItem(ZOR_TOOL_MODE_KEY) === 'true';
 }
 
 function setZorToolMode(enabled) {
     localStorage.setItem(ZOR_TOOL_MODE_KEY, enabled ? 'true' : 'false');
-    updateZorToolModeUI();
+    var btn = document.getElementById('zorToolModeToggle');
+    if (btn) {
+        btn.classList.toggle('active', enabled);
+    }
     if (enabled) {
         showFloatingNotification('CTXOD ON — Zor will fetch data on demand instead of full context dump', 'info');
     } else {
@@ -13136,153 +11602,10 @@ function setZorToolMode(enabled) {
     }
 }
 
-function isBlackBox() {
-    return localStorage.getItem(ZOR_BLACKBOX_KEY) === 'true';
-}
-
-function setBlackBox(enabled) {
-    localStorage.setItem(ZOR_BLACKBOX_KEY, enabled ? 'true' : 'false');
-    updateZorToolModeUI();
-    if (enabled) {
-        showFloatingNotification('Blackbox locked — Zor can only see the compressed snapshot. Click Blackbox again to unlock.', 'info');
-    } else {
-        showFloatingNotification('Blackbox unlocked — Zor can access live data again', 'info');
-    }
-}
-
-function getBlackBoxData() {
-    return localStorage.getItem(ZOR_BLACKBOX_DATA_KEY) || '';
-}
-
-function setBlackBoxData(data) {
-    localStorage.setItem(ZOR_BLACKBOX_DATA_KEY, data);
-}
-
-function updateZorToolModeUI() {
-    const bb = isBlackBox();
-    const toggle = document.getElementById('zorToolModeToggle');
-    if (toggle) {
-        if (bb) {
-            toggle.classList.remove('active');
-            toggle.style.display = 'none';
-        } else {
-            toggle.style.display = 'flex';
-            toggle.classList.toggle('active', isZorToolMode());
-            if (isZorToolMode()) {
-                toggle.title = 'CTXOD: Zor fetches specific data on demand instead of full context. Click to switch back.';
-                toggle.querySelector('.toggle-label').textContent = 'CTXOD';
-            } else {
-                toggle.title = 'OFF: all data is fed to Zor in the prompt. Click to switch to CTXOD (saves tokens).';
-                toggle.querySelector('.toggle-label').textContent = 'Full Ctx';
-            }
-        }
-    }
-    const bbBtn = document.getElementById('blackboxBtn');
-    if (bbBtn) {
-        bbBtn.classList.toggle('active', bb);
-        if (bb) {
-            bbBtn.title = 'Blackbox is ON — Zor is locked to the compressed .PZBB snapshot. Click to unlock and restore live data access.';
-            bbBtn.querySelector('.toggle-label').textContent = 'Unlock';
-        } else {
-            bbBtn.title = 'Compress all data into a .PZBB snapshot and lock Zor to it — he becomes a read-only bot with only the compressed summary. Click again to unlock.';
-            bbBtn.querySelector('.toggle-label').textContent = 'Blackbox';
-        }
-    }
-    const statusText = document.querySelector('.status-text');
-    if (statusText) {
-        if (bb) {
-            statusText.textContent = 'Black box on';
-        } else {
-            statusText.textContent = isZorToolMode() ? 'CTXOD' : 'Context ready';
-        }
-    }
-    const statusIndicator = document.querySelector('.status-indicator');
-    if (statusIndicator) {
-        if (bb) {
-            statusIndicator.style.background = '#4d9de0';
-            statusIndicator.style.boxShadow = '0 0 10px #4d9de0';
-        } else {
-            statusIndicator.style.background = isZorToolMode() ? '#ffd93d' : '#4CAF50';
-            statusIndicator.style.boxShadow = isZorToolMode() ? '0 0 10px #ffd93d' : '0 0 10px #4CAF50';
-        }
-    }
-}
-
-async function compressToBlackbox() {
-    if (isBlackBox()) {
-        setBlackBox(false);
-        showFloatingNotification('Blackbox deactivated – Zor can access data again', 'info');
-        return;
-    }
-    var overlay = document.getElementById('compressOverlay');
-    if (!overlay) return;
-    overlay.style.display = 'flex';
-    overlay.style.opacity = '1';
-
-    try {
-        var totalHumans = pazatorData.humans.length;
-        var totalOthers = pazatorData.others.length;
-        var totalTags = (tags || []).length;
-        var totalCases = cases.length;
-
-        var dataPackage = {
-            humans: pazatorData.humans.map(function(h) {
-                var clean = {};
-                var fields = ['id','name','gender','birthDate','workplace','occupation','credit','socialClass','maritalStatus','nationality','countryOfOrigin','immigrationStatus','languages','ethnicity','religion','politicalViews','threatLevel','educationLevel','incomeLevel','extraNotes','tags','friends','family'];
-                for (var fi = 0; fi < fields.length; fi++) {
-                    var f = fields[fi];
-                    if (h[f] !== undefined && h[f] !== null && h[f] !== '') clean[f] = h[f];
-                }
-                return clean;
-            }),
-            others: pazatorData.others,
-            tags: tags || [],
-            cases: cases.map(function(c) {
-                return { id: c.id, title: c.title, status: c.status, severity: c.severity, description: c.description, notes: c.notes };
-            })
-        };
-
-        var compressPrompt = 'You are a data compression engine. Compress the following intelligence database into a highly compact but readable text summary (.PZBB format). ' +
-            'Keep all important facts, relationships, threats, and patterns. Use abbreviations and concise formatting. ' +
-            'The output must be pure text, no markdown, no JSON wrapper. Start with "PZBB v1" on the first line.\n\n' +
-            'DATA:\n' + JSON.stringify(dataPackage);
-
-        var response = await geminiChat([
-            { role: 'system', content: 'You are a lossless text compression engine. Output ONLY the compressed data, nothing else.' },
-            { role: 'user', content: compressPrompt }
-        ]);
-
-        var compressed = response.content ? response.content.trim() : '';
-        if (!compressed || compressed.length < 10) {
-            compressed = 'PZBB v1\nERROR: Compression failed. Data preserved raw.\n' + JSON.stringify(dataPackage).substring(0, 5000);
-        }
-
-        setBlackBoxData(compressed);
-
-        var blob = new Blob([compressed], { type: 'text/plain' });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = 'pazator_blackbox_' + new Date().toISOString().slice(0, 10) + '.PZBB';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        addMessageToAIChat('=== BLACKBOX COMPRESSED DATA (.PZBB) ===\n' + compressed.substring(0, 3000) + (compressed.length > 3000 ? '\n...[truncated]...' : ''), 'system');
-
-        setBlackBox(true);
-
-        showFloatingNotification('Blackbox active – Zor is now locked to compressed data', 'info');
-    } catch (e) {
-        console.error('Compression error:', e);
-        showAlert('Blackbox compression failed: ' + e.message, 'Error', 'error');
-    } finally {
-        overlay.style.opacity = '0';
-        setTimeout(function() {
-            overlay.style.display = 'none';
-            overlay.style.opacity = '1';
-        }, 400);
+function initZorToolModeToggle() {
+    var btn = document.getElementById('zorToolModeToggle');
+    if (btn) {
+        btn.classList.toggle('active', isZorToolMode());
     }
 }
 
@@ -13722,10 +12045,1183 @@ function getZorToolSystemPrompt() {
     return prompt;
 }
 // ============================================================
+// LCTX Tracker
+// ============================================================
+
+const TRACKER_CONFIG_KEY = 'LCTXTrackerConfig';
+const TRACKER_CONFIG_EXAMPLE = {
+    url: 'https://xyz.supabase.co',
+    key: 'anon-key'
+};
+const DEFAULT_TRACKER_CONFIG = {
+    url: '',
+    key: ''
+};
+
+let trackerConfig = null;
+let trackerSupabase = null;
+let trackerConfigPromptedThisSession = false;
+let pendingTrackerDetailShowAlias = null;
+let trackerPersonNames = [];
+
+function hasValidTrackerConfig(config) {
+    return Boolean(config && config.url && config.key);
+}
+
+function loadTrackerConfig() {
+    try {
+        const stored = localStorage.getItem(TRACKER_CONFIG_KEY);
+        if (stored) {
+            return JSON.parse(stored);
+        }
+    } catch (e) {
+        console.warn('Malformed tracker config, ignoring.', e);
+    }
+    return null;
+}
+
+function applyTrackerConfig(config) {
+    if (!config || !config.url || !config.key) {
+        trackerSupabase = null;
+        trackerDebug && (trackerDebug.innerText = 'Tracker disabled until you configure a Supabase connection.');
+        return;
+    }
+
+    if (typeof supabase === 'undefined') {
+        trackerSupabase = null;
+        trackerDebug && (trackerDebug.innerText = 'Supabase client library is not available.');
+        return;
+    }
+
+    trackerSupabase = supabase.createClient(config.url, config.key);
+    trackerDebug && (trackerDebug.innerText = 'Tracker connected to ' + config.url);
+}
+
+function showTrackerStatusModal(title, message, { variant = 'info', onClose } = {}) {
+    const typeColor = {
+        info: '#4d9de0',
+        success: '#6bcf7f',
+        error: '#ff6b6b'
+    }[variant] || '#4d9de0';
+
+    const modal = document.createElement('div');
+    modal.className = 'modal context-modal';
+    modal.style.display = 'flex';
+    modal.style.zIndex = '1105';
+
+    const dialog = document.createElement('div');
+    dialog.className = 'modal-content';
+    dialog.style.maxWidth = '440px';
+    dialog.style.minWidth = '320px';
+
+    const header = document.createElement('div');
+    header.className = 'modal-header';
+
+    const titleEl = document.createElement('h2');
+    titleEl.textContent = title;
+    titleEl.style.color = typeColor;
+    titleEl.style.fontSize = '1.4rem';
+    titleEl.style.margin = '0';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'close';
+    closeBtn.type = 'button';
+    closeBtn.innerHTML = '&times;';
+
+    header.appendChild(titleEl);
+    header.appendChild(closeBtn);
+
+    const body = document.createElement('div');
+    body.className = 'modal-body';
+    body.style.padding = '8px 0';
+    body.innerHTML = '';
+    message = String(message || '');
+    message.split('\n').forEach((line, index) => {
+        const paragraph = document.createElement('p');
+        paragraph.textContent = line;
+        paragraph.style.margin = index ? '12px 0 0' : '0';
+        paragraph.style.color = '#d7d7d7';
+        paragraph.style.lineHeight = '1.5';
+        paragraph.style.fontSize = '0.95rem';
+        body.appendChild(paragraph);
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'form-actions';
+    actions.style.marginTop = '20px';
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.type = 'button';
+    confirmBtn.className = 'btn btn-primary';
+    confirmBtn.textContent = 'Close';
+    actions.appendChild(confirmBtn);
+
+    const cleanup = () => {
+        if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+        if (typeof onClose === 'function') {
+            onClose();
+        }
+    };
+
+    closeBtn.addEventListener('click', cleanup);
+    confirmBtn.addEventListener('click', cleanup);
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            cleanup();
+        }
+    });
+
+    dialog.appendChild(header);
+    dialog.appendChild(body);
+    dialog.appendChild(actions);
+    modal.appendChild(dialog);
+    document.body.appendChild(modal);
+}
+
+function openTrackerConfigModal(previousConfig, placeholderConfig = {}) {
+    const modal = document.createElement('div');
+    modal.className = 'modal context-modal';
+    modal.style.display = 'flex';
+    modal.style.zIndex = '1110';
+
+    const dialog = document.createElement('div');
+    dialog.className = 'modal-content';
+    dialog.style.maxWidth = '520px';
+    dialog.style.minWidth = '320px';
+
+    const header = document.createElement('div');
+    header.className = 'modal-header';
+
+    const titleEl = document.createElement('h2');
+    titleEl.textContent = 'LCTX Tracker configuration';
+    titleEl.style.margin = '0';
+    titleEl.style.fontSize = '1.4rem';
+
+    header.appendChild(titleEl);
+
+    const form = document.createElement('form');
+    form.className = 'modal-body';
+    form.style.display = 'flex';
+    form.style.flexDirection = 'column';
+    form.style.gap = '16px';
+    form.style.padding = '0';
+
+    const info = document.createElement('p');
+    info.textContent = 'Enter the Supabase tracker URL and anonymous key so the tracker sync can run securely.';
+    info.style.color = '#b7b7b7';
+    info.style.fontSize = '0.9rem';
+    info.style.margin = '0';
+
+    const createField = (labelText, initialValue, placeholder, type = 'text') => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'form-group';
+        const label = document.createElement('label');
+        label.textContent = labelText;
+        label.style.display = 'block';
+        label.style.fontSize = '0.85rem';
+        label.style.fontWeight = '600';
+        label.style.color = '#cfd8ff';
+        label.style.marginBottom = '6px';
+        const input = document.createElement('input');
+        input.className = 'form-control';
+        input.type = type;
+        input.value = initialValue || '';
+        input.placeholder = placeholder;
+        input.autocomplete = 'off';
+        wrapper.appendChild(label);
+        wrapper.appendChild(input);
+        return { wrapper, input };
+    };
+
+    const urlPlaceholder = placeholderConfig.url || 'https://xyz.supabase.co';
+    const keyPlaceholder = placeholderConfig.key || 'Supabase anonymous key';
+    const urlField = createField('Supabase URL', previousConfig.url || '', urlPlaceholder, 'url');
+    const keyField = createField('Anonymous key', previousConfig.key || '', keyPlaceholder, 'text');
+
+    const messageEl = document.createElement('div');
+    messageEl.style.minHeight = '18px';
+    messageEl.style.fontSize = '0.9rem';
+    messageEl.style.color = '#ff6b6b';
+    messageEl.style.margin = '0';
+
+    const actions = document.createElement('div');
+    actions.className = 'form-actions';
+    actions.style.paddingTop = '12px';
+    actions.style.marginTop = '0';
+    actions.style.borderTop = '1px solid rgba(255, 255, 255, 0.08)';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'btn btn-secondary';
+    cancelBtn.textContent = 'Cancel';
+
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'submit';
+    saveBtn.className = 'btn btn-primary';
+    saveBtn.textContent = 'Save configuration';
+
+    actions.appendChild(cancelBtn);
+    actions.appendChild(saveBtn);
+
+    form.appendChild(info);
+    form.appendChild(urlField.wrapper);
+    form.appendChild(keyField.wrapper);
+    form.appendChild(messageEl);
+    form.appendChild(actions);
+
+    const cleanup = () => {
+        document.removeEventListener('keydown', handleKeydown);
+        if (modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
+    };
+
+    const revertToPrevious = () => {
+        trackerDebug && (trackerDebug.innerText = 'Tracker configuration unchanged.');
+        if (hasValidTrackerConfig(previousConfig)) {
+            applyTrackerConfig(previousConfig);
+        } else {
+            trackerSupabase = null;
+            trackerDebug && (trackerDebug.innerText = 'Tracker disabled until you configure a Supabase connection.');
+        }
+    };
+
+    const handleCancel = () => {
+        revertToPrevious();
+        cleanup();
+    };
+
+    const handleSave = () => {
+        messageEl.textContent = '';
+        const trimmedUrl = urlField.input.value.trim();
+        const trimmedKey = keyField.input.value.trim();
+        if (!trimmedUrl || !trimmedKey) {
+            const alertMsg = 'Tracker configuration requires both URL and key.';
+            messageEl.textContent = alertMsg;
+            trackerDebug && (trackerDebug.innerText = alertMsg);
+            return;
+        }
+
+        trackerConfig = { url: trimmedUrl, key: trimmedKey, userSaved: true };
+        try {
+            localStorage.setItem(TRACKER_CONFIG_KEY, JSON.stringify(trackerConfig));
+        } catch (storageError) {
+            console.warn('Unable to persist tracker config:', storageError);
+        }
+
+        applyTrackerConfig(trackerConfig);
+        trackerDebug && (trackerDebug.innerText = 'Tracker configuration updated.');
+        if (trackerMap) {
+            fetchTrackerPeople();
+        }
+        cleanup();
+    };
+
+    const handleKeydown = (event) => {
+        if (event.key === 'Escape') {
+            handleCancel();
+        }
+    };
+
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        handleSave();
+    });
+
+    cancelBtn.addEventListener('click', handleCancel);
+
+    [urlField.input, keyField.input].forEach(input => {
+        input.addEventListener('input', () => {
+            messageEl.textContent = '';
+        });
+    });
+
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            handleCancel();
+        }
+    });
+
+    document.addEventListener('keydown', handleKeydown);
+
+    dialog.appendChild(header);
+    dialog.appendChild(form);
+    modal.appendChild(dialog);
+    document.body.appendChild(modal);
+
+    setTimeout(() => {
+        urlField.input.focus();
+    }, 0);
+}
+
+function promptForTrackerConfig() {
+    trackerConfigPromptedThisSession = true;
+    const storedConfig = loadTrackerConfig();
+    const previousConfig = trackerConfig || storedConfig || DEFAULT_TRACKER_CONFIG;
+    openTrackerConfigModal(previousConfig, TRACKER_CONFIG_EXAMPLE);
+}
+
+function ensureTrackerConfig(promptForNew = false) {
+    const storedConfig = loadTrackerConfig();
+    trackerConfig = trackerConfig || storedConfig;
+    if (hasValidTrackerConfig(trackerConfig)) {
+        applyTrackerConfig(trackerConfig);
+    } else {
+        trackerSupabase = null;
+        trackerDebug && (trackerDebug.innerText = 'Tracker disabled until you configure a Supabase connection.');
+    }
+
+    if (promptForNew && !trackerConfigPromptedThisSession && !trackerConfig?.userSaved) {
+        promptForTrackerConfig();
+    }
+}
+
+function formatTrackerTimestamp(iso) {
+    if (!iso) return 'never';
+    const parsed = new Date(iso);
+    if (Number.isNaN(parsed.getTime())) return 'never';
+    return parsed.toLocaleString();
+}
+
+const TRACKER_META_FIELDS = [
+    { key: 'timestamp', label: 'Last seen', format: value => formatTrackerTimestamp(value) },
+    { key: 'ip', label: 'IP Address' },
+    { key: 'ip_address', label: 'IP Address' },
+    { key: 'server', label: 'Server' },
+    { key: 'region', label: 'Region' },
+    { key: 'country', label: 'Country' },
+    { key: 'device', label: 'Device' },
+    { key: 'platform', label: 'Platform' },
+    { key: 'user_agent', label: 'User Agent' },
+    { key: 'speed', label: 'Speed' },
+    { key: 'heading', label: 'Heading' }
+];
+
+function buildTrackerMetaHtml(row) {
+    if (!row) return '';
+    const seen = new Set();
+    const lines = [];
+    TRACKER_META_FIELDS.forEach(field => {
+        if (seen.has(field.label)) return;
+        let rawValue = row[field.key];
+        if (rawValue == null || rawValue === '') return;
+        const formatted = field.format
+            ? field.format(rawValue)
+            : rawValue;
+        if (formatted == null || formatted === '') return;
+        lines.push(
+            '<div class="tracker-meta-line"><span class="tracker-meta-label">' + escapeHtml(field.label) + '</span>' +
+            '<strong class="tracker-meta-value">' + escapeHtml(String(formatted)) + '</strong></div>'
+        );
+        seen.add(field.label);
+    });
+    if (!lines.length) return '';
+    return '<div class="tracker-location-meta">' + lines.join('') + '</div>';
+}
+
+async function fetchLatestTrackerLocation(alias) {
+    if (!window.trackerSupabase || !alias) return null;
+    try {
+        var { data, error } = await window.trackerSupabase
+            .from('locations')
+            .select('*')
+            .eq('name', alias)
+            .order('timestamp', { ascending: false })
+            .limit(1);
+        if (error || !data || data.length === 0) return null;
+        return data[0];
+    } catch (e) {
+        console.error('fetchLatestTrackerLocation error:', e);
+        return null;
+    }
+}
+
+function updateDetailTrackerInfo(data) {
+    var container = document.getElementById('detailTrackerContainer');
+    if (!container) return;
+    if (!data || data.type !== 'human') {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+    const alias = data.trackerAlias || '';
+    const statusText = alias
+        ? 'Linked to "' + alias + '" (last sync ' + formatTrackerTimestamp(data.trackerLinkedAt) + ').'
+        : 'Not linked yet. Use the tracker tab to connect this person.';
+
+    var statusEl = document.getElementById('detailTrackerStatus');
+    if (statusEl) {
+        statusEl.textContent = statusText;
+    }
+
+    var aliasInput = document.getElementById('detailTrackerAlias');
+    if (aliasInput) {
+        aliasInput.value = alias || data.name || '';
+    }
+
+    var showBtn = document.getElementById('detailTrackerShowBtn');
+    if (showBtn) {
+        showBtn.disabled = !alias;
+    }
+
+    refreshTrackerDataPointCard(alias);
+}
+
+function refreshTrackerDataPointCard(alias) {
+    var body = document.getElementById('detailTrackerDataPointBody');
+    if (!body) return;
+    if (!alias || !window.trackerSupabase) {
+        body.innerHTML = !alias
+            ? '<div style="color:#555;font-style:italic;">Link a tracker alias above to see live data</div>'
+            : '<div style="color:#666;">Configure the tracker first</div>';
+        return;
+    }
+    body.innerHTML = '<div style="color:#666;">Loading latest location...</div>';
+    fetchLatestTrackerLocation(alias).then(function(loc) {
+        var b = document.getElementById('detailTrackerDataPointBody');
+        if (!b) return;
+        if (!loc) {
+            b.innerHTML = '<div style="color:#666;">No location data found for this alias</div>';
+            return;
+        }
+        b.innerHTML =
+            '<div class="tracker-datapoint-grid">' +
+                '<div class="tracker-datapoint-item"><span class="tdp-label">Coordinates</span><span class="tdp-value">' + loc.latitude.toFixed(4) + ', ' + loc.longitude.toFixed(4) + '</span></div>' +
+                (loc.timestamp ? '<div class="tracker-datapoint-item"><span class="tdp-label">Last seen</span><span class="tdp-value">' + formatTrackerTimestamp(loc.timestamp) + '</span></div>' : '') +
+                (loc.ip ? '<div class="tracker-datapoint-item"><span class="tdp-label">IP</span><span class="tdp-value">' + escapeHtml(loc.ip) + '</span></div>' : '') +
+                (loc.country ? '<div class="tracker-datapoint-item"><span class="tdp-label">Country</span><span class="tdp-value">' + escapeHtml(loc.country) + '</span></div>' : '') +
+                (loc.region ? '<div class="tracker-datapoint-item"><span class="tdp-label">Region</span><span class="tdp-value">' + escapeHtml(loc.region) + '</span></div>' : '') +
+                (loc.device ? '<div class="tracker-datapoint-item"><span class="tdp-label">Device</span><span class="tdp-value">' + escapeHtml(loc.device) + '</span></div>' : '') +
+                (loc.platform ? '<div class="tracker-datapoint-item"><span class="tdp-label">Platform</span><span class="tdp-value">' + escapeHtml(loc.platform) + '</span></div>' : '') +
+            '</div>';
+    }).catch(function() {
+        var b = document.getElementById('detailTrackerDataPointBody');
+        if (b) b.innerHTML = '<div style="color:#666;">Failed to load location data</div>';
+    });
+}
+
+async function reverseGeocodeLocation(lat, lon, signal) {
+    if (typeof lat !== 'number' || typeof lon !== 'number') {
+        throw new Error('Invalid coordinates');
+    }
+    const url = new URL('https://nominatim.openstreetmap.org/reverse');
+    url.search = new URLSearchParams({
+        format: 'json',
+        lat: lat.toFixed(6),
+        lon: lon.toFixed(6),
+        zoom: '14',
+        addressdetails: '1'
+    }).toString();
+
+    const response = await fetch(url.toString(), {
+        method: 'GET',
+        signal,
+        headers: {
+            'Accept-Language': 'en-US,en;q=0.9'
+        }
+    });
+
+    if (!response.ok) {
+        throw new Error('Geocode HTTP ' + response.status);
+    }
+
+    const payload = await response.json();
+    if (payload && payload.error) {
+        throw new Error(payload.error);
+    }
+
+    return payload.display_name || payload.address?.road || 'Unknown place';
+}
+
+async function setTrackerLocationDetails(lat, lon, metaRow = null) {
+    if (!trackerLocationInfo) return;
+
+    const metaIdentifier = metaRow?.timestamp ? metaRow.timestamp : '';
+    const key = lat.toFixed(5) + '|' + lon.toFixed(5) + '|' + metaIdentifier;
+    if (key === trackerLocationCacheKey) return;
+    trackerLocationCacheKey = key;
+    trackerLocationInfo.innerHTML = '<span class="tracker-location-status">Resolving place details…</span>';
+
+    if (trackerLocationAbortController) {
+        trackerLocationAbortController.abort();
+    }
+    trackerLocationAbortController = new AbortController();
+
+    try {
+        const displayName = await reverseGeocodeLocation(lat, lon, trackerLocationAbortController.signal);
+        trackerLocationInfo.innerHTML = '' +
+            '<div class="tracker-location-title">' + escapeHtml(displayName) + '</div>' +
+            buildTrackerMetaHtml(metaRow) + '';
+    } catch (error) {
+        if (error.name === 'AbortError') return;
+        trackerLocationInfo.innerHTML = '' +
+            '<div class="tracker-location-title">Unable to resolve location.</div>' +
+            buildTrackerMetaHtml(metaRow) + '';
+        console.warn('Tracker reverse geocode failed', error);
+    }
+}
+
+function requestTrackerShow(alias) {
+    if (!alias) return;
+    pendingTrackerDetailShowAlias = alias;
+    if (trackerMap) {
+        showTrackerPersonLocations(alias);
+        pendingTrackerDetailShowAlias = null;
+    }
+}
+
+function ensureTrackerLabelLayers() {
+    if (!trackerMap || trackerLabelLayersAdded) return;
+
+    trackerMap.addSource(STREET_LABEL_SOURCE, {
+        type: 'raster',
+        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        tileSize: 256
+    });
+    trackerMap.addLayer({
+        id: STREET_LABEL_LAYER,
+        type: 'raster',
+        source: STREET_LABEL_SOURCE,
+        layout: { visibility: 'none' },
+        paint: { 'raster-opacity': 0.9 }
+    });
+
+    trackerLabelLayersAdded = true;
+}
+
+function toggleLabelLayer(type) {
+    if (!trackerMap) return;
+    ensureTrackerLabelLayers();
+
+    const layerId = STREET_LABEL_LAYER;
+    const btn = trackerStreetLabelBtn;
+    const activeState = !streetLabelsActive;
+
+    trackerMap.setLayoutProperty(layerId, 'visibility', activeState ? 'visible' : 'none');
+
+    streetLabelsActive = activeState;
+
+    if (btn) {
+        btn.classList.toggle('active', activeState);
+        btn.textContent = (activeState ? 'Hide' : 'Show') + ' street names';
+    }
+}
+
+function setTrackerMapFilterActive(activeState) {
+    const enabled = !!activeState;
+    trackerFilterActive = enabled;
+    trackerMapContainer?.classList.toggle('tracker-filter-active', enabled);
+
+    if (trackerFilterToggleBtn) {
+        trackerFilterToggleBtn.classList.toggle('active', enabled);
+        trackerFilterToggleBtn.textContent = (enabled ? 'Hide' : 'Show') + ' filter';
+    }
+}
+
+function toggleTrackerMapFilter() {
+    setTrackerMapFilterActive(!trackerFilterActive);
+}
+
+const trackerSidebar = document.getElementById('trackerSidebar');
+const trackerPeopleListEl = document.getElementById('trackerPeopleList');
+const trackerDebug = document.getElementById('trackerDebug');
+const trackerLocationInfo = document.getElementById('trackerLocationInfo');
+const trackerToggleSidebarBtn = document.getElementById('trackerToggleSidebarBtn');
+const trackerSpinToggleBtn = document.getElementById('trackerSpinToggleBtn');
+const trackerStreetLabelBtn = document.getElementById('streetLabelToggle');
+const trackerFilterToggleBtn = document.getElementById('trackerFilterToggle');
+const trackerSettingsBtn = document.getElementById('trackerSettingsBtn');
+const trackerSettingsMenu = document.getElementById('trackerSettingsMenu');
+const trackerSpinSpeedInput = document.getElementById('trackerSpinSpeed');
+const trackerSpinSpeedValue = document.getElementById('trackerSpinSpeedValue');
+const trackerHumanSelect = document.getElementById('trackerHumanSelect');
+const trackerConnectBtn = document.getElementById('trackerConnectBtn');
+const trackerRefreshBtn = document.getElementById('trackerRefreshBtn');
+const trackerPurgeBtn = document.getElementById('trackerPurgeBtn');
+const trackerConfigureBtn = document.getElementById('trackerConfigureBtn');
+const trackerMapContainer = document.getElementById('trackerMap');
+
+let trackerMap;
+let trackerSpinning = false;
+let trackerAnimationFrame = null;
+let trackerLastSpinTimestamp = null;
+let trackerInitialized = false;
+let trackerLocationAbortController = null;
+let trackerLocationCacheKey = '';
+let trackerLabelLayersAdded = false;
+let streetLabelsActive = false;
+let trackerFilterActive = false;
+let trackerSpinSpeedDps = 10;
+
+function setTrackerSpinSpeed(nextSpeed) {
+    const parsed = Number(nextSpeed);
+    const safeValue = Number.isFinite(parsed) ? Math.max(0, Math.min(60, parsed)) : 10;
+    trackerSpinSpeedDps = safeValue;
+
+    if (trackerSpinSpeedInput) trackerSpinSpeedInput.value = String(Math.round(safeValue));
+    if (trackerSpinSpeedValue) trackerSpinSpeedValue.textContent = Math.round(safeValue) + '°/s';
+
+    try {
+        localStorage.setItem('trackerSpinSpeedDps', String(Math.round(safeValue)));
+    } catch (err) {
+        // ignore storage errors
+    }
+}
+
+function setTrackerSettingsMenuOpen(isOpen) {
+    if (!trackerSettingsMenu || !trackerSettingsBtn) return;
+    trackerSettingsMenu.classList.toggle('open', !!isOpen);
+    trackerSettingsBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+}
+
+try {
+    const saved = localStorage.getItem('trackerSpinSpeedDps');
+    if (saved != null) setTrackerSpinSpeed(saved);
+} catch (err) {
+    // ignore storage errors
+}
+
+setTrackerSpinSpeed(trackerSpinSpeedDps);
+
+const TRACKER_PATH_LAYER = 'tracker-path';
+const TRACKER_MARKERS_LAYER = 'tracker-markers';
+const STREET_LABEL_LAYER = 'tracker-street-labels';
+const STREET_LABEL_SOURCE = 'tracker-street-source';
+
+setTrackerMapFilterActive(false);
+
+function ensureTrackerTabReady() {
+    if (trackerInitialized) {
+        refreshTrackerHumanOptions();
+        return;
+    }
+
+    trackerInitialized = true;
+    refreshTrackerHumanOptions();
+
+    if (!trackerMapContainer || typeof maplibregl === 'undefined') {
+        trackerDebug && (trackerDebug.innerText = 'Tracker map requires MapLibre library.');
+        return;
+    }
+
+    trackerMap = new maplibregl.Map({
+        container: 'trackerMap',
+        style: {
+            version: 8,
+            sources: {
+                satellite: {
+                    type: 'raster',
+                    tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+                    tileSize: 256,
+                    attribution: 'Tiles © Esri'
+                }
+            },
+            layers: [{
+                id: 'satellite',
+                type: 'raster',
+                source: 'satellite'
+            }]
+        },
+        center: [0, 0],
+        zoom: 2,
+        pitch: 60,
+        bearing: 0
+    });
+
+    trackerMap.on('load', () => {
+        startTrackerSpin();
+        ensureTrackerLabelLayers();
+        fetchTrackerPeople().then(() => {
+            if (pendingTrackerDetailShowAlias) {
+                showTrackerPersonLocations(pendingTrackerDetailShowAlias);
+                pendingTrackerDetailShowAlias = null;
+            }
+        });
+    });
+}
+
+function spinTrackerMap(timestamp) {
+    if (!trackerSpinning || !trackerMap) return;
+    const now = typeof timestamp === 'number' ? timestamp : performance.now();
+    if (trackerLastSpinTimestamp == null) trackerLastSpinTimestamp = now;
+    const deltaSeconds = Math.min(0.05, Math.max(0, (now - trackerLastSpinTimestamp) / 1000));
+    trackerLastSpinTimestamp = now;
+
+    const deltaBearing = trackerSpinSpeedDps * deltaSeconds;
+    if (deltaBearing) {
+        trackerMap.setBearing((trackerMap.getBearing() + deltaBearing) % 360);
+    }
+
+    trackerAnimationFrame = requestAnimationFrame(spinTrackerMap);
+}
+
+function startTrackerSpin() {
+    if (trackerSpinning) return;
+    trackerSpinning = true;
+    trackerLastSpinTimestamp = null;
+    trackerSpinToggleBtn?.classList.add('active');
+    if (trackerSpinToggleBtn) trackerSpinToggleBtn.innerText = 'Pause spin';
+    trackerAnimationFrame = requestAnimationFrame(spinTrackerMap);
+}
+
+function stopTrackerSpin() {
+    trackerSpinning = false;
+    trackerLastSpinTimestamp = null;
+    trackerSpinToggleBtn?.classList.remove('active');
+    if (trackerSpinToggleBtn) trackerSpinToggleBtn.innerText = 'Resume spin';
+    if (trackerAnimationFrame) {
+        cancelAnimationFrame(trackerAnimationFrame);
+        trackerAnimationFrame = null;
+    }
+}
+
+async function fetchTrackerPeople() {
+    if (!trackerSupabase) {
+        trackerDebug && (trackerDebug.innerText = 'Tracker connection is unavailable.');
+        return;
+    }
+
+    trackerDebug && (trackerDebug.innerText = 'Fetching tracker people...');
+
+    const { data, error } = await trackerSupabase
+        .from('locations')
+        .select('name')
+        .order('timestamp', { ascending: false });
+
+    if (error) {
+        const message = escapeHtml(error.message || 'Unknown error');
+        trackerDebug && (trackerDebug.innerText = 'Error fetching tracker: ' + error.message);
+        if (trackerPeopleListEl) {
+            trackerPeopleListEl.innerHTML = '<div class="tracker-placeholder">Unable to load tracker data: ' + message + '</div>';
+        }
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        trackerDebug && (trackerDebug.innerText = 'Tracker table is empty.');
+        if (trackerPeopleListEl) {
+            trackerPeopleListEl.innerHTML = '<div class="tracker-placeholder">No tracker data available.</div>';
+        }
+        return;
+    }
+
+    const nameCount = {};
+    data.forEach(row => {
+        if (!row.name) return;
+        nameCount[row.name] = (nameCount[row.name] || 0) + 1;
+    });
+
+    const uniqueNames = Object.keys(nameCount).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    renderTrackerPeopleList(uniqueNames, nameCount);
+
+    trackerDebug && (trackerDebug.innerText = 'Found ' + data.length + ' tracker points across ' + uniqueNames.length + ' people.');
+}
+
+function renderTrackerPeopleList(names, countMap) {
+    if (!trackerPeopleListEl) return;
+
+    if (!names.length) {
+        trackerPeopleListEl.innerHTML = '<div class="tracker-placeholder">No tracker data found.</div>';
+        return;
+    }
+
+    trackerPeopleListEl.innerHTML = '';
+
+    names.forEach(name => {
+        const item = document.createElement('div');
+        item.className = 'tracker-person-item';
+        item.dataset.name = name;
+        item.innerHTML = '' +
+            '<span>' + escapeHtml(name) + '</span>' +
+            '<span class="tracker-person-count">' + countMap[name] + ' point' + (countMap[name] !== 1 ? 's' : '') + '</span>';
+
+        item.addEventListener('click', () => {
+            document.querySelectorAll('.tracker-person-item').forEach(el => el.classList.remove('active'));
+            item.classList.add('active');
+            showTrackerPersonLocations(name);
+        });
+
+        trackerPeopleListEl.appendChild(item);
+    });
+
+    trackerPersonNames = names;
+    updateHumanTrackerOptions();
+}
+
+function clearTrackerOverlays() {
+    if (!trackerMap) return;
+    [TRACKER_PATH_LAYER, TRACKER_MARKERS_LAYER].forEach(layerId => {
+        if (trackerMap.getLayer(layerId)) trackerMap.removeLayer(layerId);
+        if (trackerMap.getSource(layerId)) trackerMap.removeSource(layerId);
+    });
+}
+
+function updateHumanTrackerOptions(selectedValue = '') {
+    const select = document.getElementById('humanTrackerSelect');
+    if (!select) return;
+    const previous = select.value;
+    select.innerHTML = '<option value="">Select from LCTX tracker</option>';
+    trackerPersonNames.forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        select.appendChild(option);
+    });
+    const toSelect = selectedValue || previous;
+    if (toSelect) {
+        select.value = toSelect;
+    }
+}
+
+function applyTrackerAliasToHuman(entry, alias, existingEntry = null) {
+    if (!entry) return;
+    if (alias) {
+        entry.trackerAlias = alias;
+        if (existingEntry && existingEntry.trackerAlias === alias && existingEntry.trackerLinkedAt) {
+            entry.trackerLinkedAt = existingEntry.trackerLinkedAt;
+        } else {
+            entry.trackerLinkedAt = new Date().toISOString();
+        }
+    } else {
+        delete entry.trackerAlias;
+        delete entry.trackerLinkedAt;
+    }
+}
+
+async function showTrackerPersonLocations(name) {
+    if (!trackerSupabase || !trackerMap) {
+        trackerDebug && (trackerDebug.innerText = 'Tracker map is not ready.');
+        return;
+    }
+
+    trackerDebug && (trackerDebug.innerText = 'Loading locations for ' + name + '…');
+
+    const { data, error } = await trackerSupabase
+        .from('locations')
+        .select('*')
+        .eq('name', name)
+        .order('timestamp', { ascending: true });
+
+    if (error) {
+        trackerDebug && (trackerDebug.innerText = 'Error: ' + error.message);
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        trackerDebug && (trackerDebug.innerText = 'No tracker points for ' + name + '.');
+        return;
+    }
+
+    clearTrackerOverlays();
+
+    const coords = data
+        .filter(row => row.latitude !== null && row.longitude !== null)
+        .map(row => [row.longitude, row.latitude]);
+
+    if (!coords.length) {
+        trackerDebug && (trackerDebug.innerText = 'Tracker coordinates are invalid.');
+        return;
+    }
+
+    trackerMap.addSource(TRACKER_PATH_LAYER, {
+        type: 'geojson',
+        data: {
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates: coords }
+        }
+    });
+    trackerMap.addLayer({
+        id: TRACKER_PATH_LAYER,
+        type: 'line',
+        source: TRACKER_PATH_LAYER,
+        paint: {
+            'line-color': '#000000',
+            'line-width': 3,
+            'line-opacity': 0.9
+        }
+    });
+
+    const markersGeoJSON = {
+        type: 'FeatureCollection',
+        features: coords.map((coord, index) => ({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: coord },
+            properties: { index, timestamp: data[index]?.timestamp }
+        }))
+    };
+
+    trackerMap.addSource(TRACKER_MARKERS_LAYER, { type: 'geojson', data: markersGeoJSON });
+    trackerMap.addLayer({
+        id: TRACKER_MARKERS_LAYER,
+        type: 'circle',
+        source: TRACKER_MARKERS_LAYER,
+        paint: {
+            'circle-radius': 5,
+            'circle-color': '#000000',
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#ffffff',
+            'circle-opacity': 1
+        }
+    });
+
+    const latestPoint = data[data.length - 1];
+    const lastCoord = coords[coords.length - 1];
+    trackerMap.flyTo({
+        center: lastCoord,
+        zoom: 15,
+        pitch: 60,
+        bearing: trackerMap.getBearing(),
+        duration: 1800,
+        essential: true
+    });
+
+    setTrackerLocationDetails(lastCoord[1], lastCoord[0], latestPoint);
+}
+
+function connectTrackerSelection() {
+    if (!trackerHumanSelect) return;
+    const humanId = trackerHumanSelect.value;
+    if (!humanId) {
+        trackerDebug && (trackerDebug.innerText = 'Select a Pazator person to connect.');
+        return;
+    }
+
+    const option = trackerHumanSelect.selectedOptions?.[0];
+    const human = pazatorData.humans.find(h => String(h.id) === humanId || h.name === humanId);
+
+    if (!human) {
+        trackerDebug && (trackerDebug.innerText = 'Linked Pazator entry is missing.');
+        return;
+    }
+
+    const trackerAlias = (option?.dataset?.trackerName || option?.textContent || human.name).trim();
+    human.trackerAlias = trackerAlias || human.name;
+    human.trackerLinkedAt = new Date().toISOString();
+    saveData();
+    refreshTrackerHumanOptions();
+
+    if (document.currentDetailData?.type === 'human' &&
+        String(document.currentDetailData.id) === String(human.id)) {
+        document.currentDetailData = { ...human, type: 'human' };
+        updateDetailTrackerInfo(document.currentDetailData);
+    }
+
+    trackerDebug && (trackerDebug.innerText = 'Connected ' + human.name + ' to tracker alias ' + trackerAlias + '.');
+    const escName = (typeof CSS !== 'undefined' && CSS.escape)
+        ? CSS.escape(trackerAlias)
+        : trackerAlias.replace(/["\\]/g, '\\$&');
+
+    const target = document.querySelector('.tracker-person-item[data-name="' + escName + '"]');
+    if (target) {
+        target.click();
+    } else {
+        requestTrackerShow(trackerAlias);
+    }
+}
+
+async function purgeTrackerData() {
+    if (!trackerSupabase) {
+        trackerDebug && (trackerDebug.innerText = 'Tracker connection is unavailable.');
+        return;
+    }
+
+    const confirmed = await showConfirm('Delete ALL tracker location data? This cannot be undone.', 'Confirm Deletion', 'warning');
+    if (!confirmed) return;
+
+    const { error } = await trackerSupabase
+        .from('locations')
+        .delete()
+        .neq('id', 0);
+
+    if (error) {
+        showAlert('Error: ' + error.message, 'Error', 'error');
+    } else {
+        showAlert('All tracker data purged.', 'Success', 'success');
+        fetchTrackerPeople();
+        clearTrackerOverlays();
+        trackerDebug && (trackerDebug.innerText = 'Tracker data cleared.');
+    }
+}
+
+function refreshTrackerHumanOptions() {
+    if (!trackerHumanSelect) return;
+
+    const previousValue = trackerHumanSelect.value;
+    trackerHumanSelect.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Select a human';
+    trackerHumanSelect.appendChild(placeholder);
+
+    const humanOptions = pazatorData.humans
+        .filter(human => human?.name)
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+
+    humanOptions.forEach(human => {
+        const option = document.createElement('option');
+        const optionValue = human.id ?? human.name;
+        option.value = optionValue;
+        const alias = human.trackerAlias;
+        option.textContent = '[' + human.id + '] ' + (alias ? human.name + ' / ' + alias : human.name);
+        option.dataset.trackerName = alias || human.name;
+        trackerHumanSelect.appendChild(option);
+    });
+
+    if (previousValue) {
+        trackerHumanSelect.value = previousValue;
+    }
+}
+
+function saveDetailTrackerAlias(humanId) {
+    var human = pazatorData.humans.find(function(h) { return h.id === humanId; });
+    if (!human) return;
+    var input = document.getElementById('detailTrackerAlias');
+    if (!input) return;
+    var alias = input.value.trim();
+    if (alias) {
+        human.trackerAlias = alias;
+        human.trackerLinkedAt = human.trackerLinkedAt || new Date().toISOString();
+    } else {
+        delete human.trackerAlias;
+        delete human.trackerLinkedAt;
+    }
+    saveData();
+    refreshTrackerHumanOptions();
+    if (document.currentDetailData) {
+        document.currentDetailData.trackerAlias = human.trackerAlias;
+        document.currentDetailData.trackerLinkedAt = human.trackerLinkedAt;
+    }
+    var statusEl = document.getElementById('detailTrackerStatus');
+    if (statusEl) {
+        statusEl.textContent = alias
+            ? 'Linked to "' + alias + '" (last sync ' + formatTrackerTimestamp(human.trackerLinkedAt) + ').'
+            : 'Not linked yet. Use the tracker tab to connect this person.';
+    }
+    var showBtn = document.getElementById('detailTrackerShowBtn');
+    if (showBtn) {
+        showBtn.disabled = !alias;
+        showBtn.setAttribute('onclick', alias ? 'requestTrackerShow(\'' + alias.replace(/'/g, "\\'") + '\');switchTab(\'tracker\')' : '');
+    }
+}
+
+// Wire up tracker UI events
+document.addEventListener('DOMContentLoaded', function() {
+    if (trackerToggleSidebarBtn) {
+        trackerToggleSidebarBtn.addEventListener('click', function() {
+            trackerSidebar?.classList.toggle('collapsed');
+            this.textContent = trackerSidebar?.classList.contains('collapsed') ? 'Show sidebar' : 'Hide sidebar';
+        });
+    }
+
+    if (trackerSpinToggleBtn) {
+        trackerSpinToggleBtn.addEventListener('click', function() {
+            if (trackerSpinning) {
+                stopTrackerSpin();
+            } else {
+                startTrackerSpin();
+            }
+        });
+    }
+
+    if (trackerStreetLabelBtn) {
+        trackerStreetLabelBtn.addEventListener('click', function() {
+            toggleLabelLayer('street');
+        });
+    }
+
+    if (trackerFilterToggleBtn) {
+        trackerFilterToggleBtn.addEventListener('click', toggleTrackerMapFilter);
+    }
+
+    if (trackerSettingsBtn) {
+        trackerSettingsBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isOpen = trackerSettingsMenu?.classList.contains('open');
+            setTrackerSettingsMenuOpen(!isOpen);
+        });
+        document.addEventListener('click', function(e) {
+            if (trackerSettingsMenu && !trackerSettingsBtn.contains(e.target) && !trackerSettingsMenu.contains(e.target)) {
+                setTrackerSettingsMenuOpen(false);
+            }
+        });
+    }
+
+    if (trackerSpinSpeedInput) {
+        trackerSpinSpeedInput.addEventListener('input', function() {
+            setTrackerSpinSpeed(this.value);
+        });
+    }
+
+    if (trackerConfigureBtn) {
+        trackerConfigureBtn.addEventListener('click', function() {
+            const storedConfig = loadTrackerConfig();
+            openTrackerConfigModal(storedConfig || trackerConfig || DEFAULT_TRACKER_CONFIG, TRACKER_CONFIG_EXAMPLE);
+        });
+    }
+
+    if (trackerConnectBtn) {
+        trackerConnectBtn.addEventListener('click', connectTrackerSelection);
+    }
+
+    if (trackerRefreshBtn) {
+        trackerRefreshBtn.addEventListener('click', function() {
+            if (trackerSupabase) {
+                fetchTrackerPeople();
+            } else {
+                trackerDebug && (trackerDebug.innerText = 'Tracker connection is unavailable.');
+            }
+        });
+    }
+
+    if (trackerPurgeBtn) {
+        trackerPurgeBtn.addEventListener('click', purgeTrackerData);
+    }
+
+    var angleBtn = document.getElementById('trackerAngleBtn');
+    if (angleBtn) {
+        angleBtn.addEventListener('click', function() {
+            if (trackerMap) {
+                trackerMap.setPitch(60);
+            }
+        });
+    }
+    var topDownBtn = document.getElementById('trackerTopDownBtn');
+    if (topDownBtn) {
+        topDownBtn.addEventListener('click', function() {
+            if (trackerMap) {
+                trackerMap.setPitch(0);
+            }
+        });
+    }
+    var resetViewBtn = document.getElementById('trackerResetViewBtn');
+    if (resetViewBtn) {
+        resetViewBtn.addEventListener('click', function() {
+            if (trackerMap) {
+                trackerMap.flyTo({ center: [0, 0], zoom: 2, pitch: 60, bearing: 0, duration: 1000 });
+            }
+        });
+    }
+
+    var trackerSetupGuideBtn = document.getElementById('trackerSetupGuideBtn');
+    if (trackerSetupGuideBtn) {
+        trackerSetupGuideBtn.addEventListener('click', function() {
+            showTrackerStatusModal('How to setup the LCTX tracker server',
+                '1. Set up a Supabase project\n2. Create a "locations" table with columns: id, name, latitude, longitude, timestamp, ip, region, country, device, platform, user_agent, speed, heading\n3. Get your Supabase URL and anon key\n4. Click "Configure tracker server" and enter them.\n\nThe tracker will then sync and display live location data.',
+                { variant: 'info' });
+        });
+    }
+});
+
+// ============================================================
 
 // Call init settings on DOMContentLoaded
 document.addEventListener('DOMContentLoaded', initSettings);
 document.addEventListener('DOMContentLoaded', loadLogoForPDF);
 document.addEventListener('DOMContentLoaded', function () {
     initAcFields();
+    initZorToolModeToggle();
 });

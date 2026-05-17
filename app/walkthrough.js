@@ -94,7 +94,7 @@
     {
       target: '#tabBar',
       title: 'Navigation',
-      desc: 'Switch between workspaces: Dashboard, Analysis, Threats, Chat Security, Search, Agents, Articles, Tracker, Cases, and TASTUR.'
+      desc: 'Switch between workspaces: Dashboard, Analysis, Threats, Chat Security, Search, Tracker, and Cases.'
     },
     {
       target: '#newDataBtn',
@@ -142,19 +142,9 @@
       desc: 'Search across names, workplaces, dates, notes, tags, and relationships. Filter by type and field.'
     },
     {
-      target: '#agentsBtn',
-      title: 'Autonomous Agents',
-      desc: 'Create AI agents with custom goals. Each can search, browse, add data, create connections, and log evidence.'
-    },
-    {
       target: '#trackerBtn',
-      title: 'SHAHED Tracker',
-      desc: 'SHAHED enables location data to be provided to Zor and associates tracker profiles with users. Setting up the tracker hardware and server infrastructure is a separate process not included in this application.'
-    },
-    {
-      target: '#tasturBtn',
-      title: 'TASTUR Rules',
-      desc: 'Automate with event-driven rules. Example: WHEN threat_detected IF count > 5 THEN notify.'
+      title: 'LCTX Tracker',
+      desc: 'LCTX enables location data to be provided to Zor and associates tracker profiles with users. Setting up the tracker hardware and server infrastructure is a separate process not included in this application.'
     },
     {
       target: '#casesBtn',
@@ -256,8 +246,6 @@
         }, 350);
       }
     }
-  }
-
   function positionCard(el) {
     var r = el.getBoundingClientRect();
     var cw = Math.min(360, window.innerWidth - 32);

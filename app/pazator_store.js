@@ -197,7 +197,6 @@
                 casesCount: (d.cases || []).length,
                 topRiskyPeople: topRisk
             };
-        }
         },
 
         getHumansPage: function (page, pageSize, filter) {

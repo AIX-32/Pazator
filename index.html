@@ -6,9 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pazator - Mass Data Intelligence</title>
     <meta name="description"
-        content="Pazator delivers AI‑driven operational systems and predictive intelligence to stop threats before they happen. ">
+        content="Pazator delivers AI‑driven operational systems and predictive intelligence to stop threats before they happen.">
     <meta name="keywords"
-        content="Pazator, operational systems, intelligence solutions, AIOIP, Tirsun, Vundra, predictive intelligence, AI security">
+        content="Pazator, operational systems, intelligence solutions, free, predictive intelligence, AI security">
     <meta name="author" content="AIX.">
     <meta name="theme-color" content="#ffffff">
 
@@ -32,8 +32,10 @@
         href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:ital,wght@0,300;0,400;1,300&family=Space+Grotesk:wght@400;500&display=swap"
         rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v31.1.0/dist/font-face.css" rel="stylesheet" type="text/css" />
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v31.1.0/dist/font-face.css" rel="stylesheet"
+        type="text/css" />
     <script src="app/pazator_db.js"></script>
+
     <style>
         *,
         *::before,
@@ -48,6 +50,8 @@
             --white: #fff;
             --off: #f2f2f0;
             --dim: #666;
+            --accent: #e8e8e8;
+            --grain-opacity: 0.035;
         }
 
         html {
@@ -60,6 +64,19 @@
             font-family: 'DM Mono', monospace;
             overflow-x: hidden;
             cursor: crosshair;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 9998;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+            background-size: 128px 128px;
+            opacity: var(--grain-opacity);
+            mix-blend-mode: overlay;
         }
 
         #loader {
@@ -105,7 +122,9 @@
             padding: 0 32px;
             height: 52px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            background: var(--black);
+            background: rgba(0, 0, 0, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
         }
 
         .tb-left {
@@ -142,7 +161,7 @@
             min-height: 100vh;
             padding-top: 52px;
             display: grid;
-            grid-template-rows: auto 1fr auto;
+            grid-template-rows: auto 1fr;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
@@ -189,30 +208,41 @@
             right: 48px;
             width: 176px;
             height: 176px;
-            opacity: 1;
-            transform: none;
-            filter: none;
+            opacity: 0.9;
+            filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.1));
             z-index: 0;
-            animation: logoFloat 6s ease-in-out infinite, logoRotate 20s linear infinite;
+            animation: logoFloat 6s ease-in-out infinite, logoPulse 3s ease-in-out infinite;
+            transition: filter 0.3s ease, opacity 0.3s ease;
+            cursor: pointer;
+        }
+
+        .hero-logo:hover {
+            opacity: 1;
+            filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.3));
         }
 
         @keyframes logoFloat {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            25% { transform: translateY(-8px) rotate(2deg); }
-            50% { transform: translateY(0px) rotate(0deg); }
-            75% { transform: translateY(8px) rotate(-2deg); }
+
+            0%,
+            100% {
+                transform: translateY(0px) scale(1);
+            }
+
+            50% {
+                transform: translateY(-12px) scale(1.02);
+            }
         }
 
-        @keyframes logoRotate {
-            from { filter: hue-rotate(0deg); }
-            to { filter: hue-rotate(360deg); }
-        }
+        @keyframes logoPulse {
 
-        .hero-logo.fixed {
-            position: fixed;
-            top: 48px;
-            right: 48px;
-            z-index: -1;
+            0%,
+            100% {
+                opacity: 0.9;
+            }
+
+            50% {
+                opacity: 1;
+            }
         }
 
         .hero-wordmark {
@@ -239,8 +269,6 @@
 
         .hero-sub {
             font-family: 'Courier New', Courier, monospace;
-            font-weight: 500;
-            font-style: normal;
             font-size: 1rem;
             color: rgba(255, 255, 255, 0.32);
             letter-spacing: 0.18em;
@@ -480,6 +508,668 @@
             }
         }
 
+        /* -- ZOR SECTION -- */
+        .zor-section {
+            padding: 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            overflow: hidden;
+        }
+
+        .zor-top {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .zor-intro {
+            padding: 80px 48px;
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .zor-eyebrow {
+            font-size: 9px;
+            letter-spacing: 0.5em;
+            color: var(--dim);
+            margin-bottom: 28px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .zor-eyebrow::before {
+            content: '';
+            display: block;
+            width: 24px;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .zor-title {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(52px, 8vw, 110px);
+            line-height: 0.88;
+            letter-spacing: -0.03em;
+            margin-bottom: 36px;
+        }
+
+        .zor-title .zor-italic {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 400;
+            font-style: italic;
+            color: rgba(255, 255, 255, 0.35);
+            font-size: 0.72em;
+            letter-spacing: 0.02em;
+        }
+
+        .zor-lead {
+            font-size: 13px;
+            line-height: 2;
+            color: rgba(255, 255, 255, 0.42);
+            max-width: 420px;
+        }
+
+        /* Terminal window */
+        .zor-terminal-wrap {
+            padding: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.015);
+        }
+
+        .zor-terminal {
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            font-family: 'DM Mono', monospace;
+            font-size: 12px;
+            overflow: hidden;
+        }
+
+        .terminal-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .terminal-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .terminal-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .terminal-dot:first-child {
+            background: rgba(255, 80, 80, 0.5);
+        }
+
+        .terminal-dot:nth-child(2) {
+            background: rgba(255, 200, 50, 0.5);
+        }
+
+        .terminal-dot:nth-child(3) {
+            background: rgba(80, 220, 100, 0.5);
+        }
+
+        .terminal-title {
+            font-size: 9px;
+            letter-spacing: 0.3em;
+            color: var(--dim);
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .terminal-body {
+            padding: 24px;
+            min-height: 280px;
+            position: relative;
+        }
+
+        .terminal-line {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 14px;
+            opacity: 0;
+            animation: fadeIn 0.3s forwards;
+        }
+
+        .terminal-line.active {
+            margin-bottom: 0;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .t-prompt {
+            color: rgba(255, 255, 255, 0.2);
+            flex-shrink: 0;
+        }
+
+        .t-query {
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .t-response {
+            color: rgba(255, 255, 255, 0.38);
+            padding-left: 20px;
+            margin-bottom: 20px;
+            border-left: 1px solid rgba(255, 255, 255, 0.08);
+            line-height: 1.8;
+        }
+
+        .t-response.success {
+            color: rgba(180, 255, 180, 0.6);
+        }
+
+        .t-response.data {
+            color: rgba(180, 210, 255, 0.6);
+        }
+
+        .t-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 14px;
+            background: var(--white);
+            vertical-align: middle;
+            animation: cursor-blink 1s infinite;
+        }
+
+        @keyframes cursor-blink {
+
+            0%,
+            49% {
+                opacity: 1
+            }
+
+            50%,
+            100% {
+                opacity: 0
+            }
+        }
+
+        .terminal-active-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* ZOR capabilities grid */
+        .zor-caps {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .zor-cap {
+            padding: 40px 36px;
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            position: relative;
+            opacity: 0;
+            transform: translateY(16px);
+            transition: opacity 0.5s, transform 0.5s;
+        }
+
+        .zor-cap:last-child {
+            border-right: none;
+        }
+
+        .zor-cap.vis {
+            opacity: 1;
+            transform: none;
+        }
+
+        .zor-cap:hover {
+            background: rgba(255, 255, 255, 0.018);
+        }
+
+        .cap-num {
+            font-size: 9px;
+            letter-spacing: 0.4em;
+            color: rgba(255, 255, 255, 0.15);
+            margin-bottom: 24px;
+        }
+
+        .cap-icon {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.3);
+            margin-bottom: 20px;
+        }
+
+        .cap-title {
+            font-family: 'Anton', sans-serif;
+            font-size: 20px;
+            letter-spacing: 0.04em;
+            margin-bottom: 14px;
+        }
+
+        .cap-desc {
+            font-size: 11px;
+            line-height: 1.85;
+            color: rgba(255, 255, 255, 0.35);
+        }
+
+        /* Query examples as flowing tags */
+        .zor-queries {
+            padding: 40px 48px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .zq-label {
+            font-size: 9px;
+            letter-spacing: 0.45em;
+            color: var(--dim);
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        .zq-tag {
+            font-size: 11px;
+            padding: 8px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.5);
+            cursor: default;
+            transition: all 0.25s;
+            white-space: nowrap;
+        }
+
+        .zq-tag:hover {
+            border-color: rgba(255, 255, 255, 0.35);
+            color: var(--white);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .ctxod-section {
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .ctxod-head {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            min-height: 260px;
+        }
+
+        .ctxod-head-left {
+            padding: 64px 48px;
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .ctxod-eyebrow {
+            font-size: 9px;
+            letter-spacing: 0.5em;
+            color: var(--dim);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+
+        .ctxod-eyebrow::before {
+            content: '';
+            display: block;
+            width: 24px;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .ctxod-wordmark {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(36px, 6vw, 80px);
+            letter-spacing: 0.06em;
+            line-height: 1;
+        }
+
+        .ctxod-wordmark .ctxod-sub {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.28em;
+            letter-spacing: 0.3em;
+            color: rgba(255, 255, 255, 0.25);
+            display: block;
+            margin-top: 10px;
+        }
+
+        .ctxod-head-right {
+            padding: 64px 48px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .ctxod-desc {
+            font-size: 13px;
+            line-height: 2;
+            color: rgba(255, 255, 255, 0.42);
+            max-width: 440px;
+        }
+
+        .ctxod-flow {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .ctxod-step {
+            padding: 40px 32px;
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            position: relative;
+            opacity: 0;
+            transform: translateY(14px);
+            transition: opacity 0.5s, transform 0.5s;
+        }
+
+        .ctxod-step:last-child {
+            border-right: none;
+        }
+
+        .ctxod-step.vis {
+            opacity: 1;
+            transform: none;
+        }
+
+        .ctxod-step:hover {
+            background: rgba(255, 255, 255, 0.015);
+        }
+
+        .step-arrow {
+            position: absolute;
+            right: -10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.1);
+            z-index: 1;
+        }
+
+        .ctxod-step:last-child .step-arrow {
+            display: none;
+        }
+
+        .step-num {
+            font-size: 9px;
+            letter-spacing: 0.4em;
+            color: rgba(255, 255, 255, 0.12);
+            margin-bottom: 20px;
+        }
+
+        .step-label {
+            font-family: 'Anton', sans-serif;
+            font-size: 15px;
+            letter-spacing: 0.08em;
+            margin-bottom: 12px;
+            line-height: 1.2;
+        }
+
+        .step-desc {
+            font-size: 10px;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .ctxod-visual {
+            display: grid;
+            grid-template-columns: 1fr 80px 1fr;
+            align-items: stretch;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            min-height: 380px;
+        }
+
+        .ctxod-db-side {
+            padding: 40px 40px;
+        }
+
+        .ctxod-db-label {
+            font-size: 9px;
+            letter-spacing: 0.45em;
+            color: var(--dim);
+            margin-bottom: 24px;
+        }
+
+        .ctxod-db-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .db-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            color: rgba(255, 255, 255, 0.22);
+            transition: all 0.4s;
+            cursor: default;
+        }
+
+        .db-row.relevant {
+            border-color: rgba(255, 255, 255, 0.35);
+            color: rgba(255, 255, 255, 0.75);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .db-row.dimmed {
+            opacity: 0.8;
+        }
+
+        .db-row-dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            flex-shrink: 0;
+            transition: background 0.4s;
+        }
+
+        .db-row.relevant .db-row-dot {
+            background: var(--white);
+        }
+
+        .ctxod-arrow-col {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-left: 1px solid rgba(255, 255, 255, 0.08);
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.15);
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .ctxod-arrow-label {
+            font-size: 8px;
+            letter-spacing: 0.3em;
+            color: var(--dim);
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+        }
+
+        .ctxod-ctx-side {
+            padding: 40px 40px;
+            background: rgba(255, 255, 255, 0.012);
+        }
+
+        .ctxod-ctx-label {
+            font-size: 9px;
+            letter-spacing: 0.45em;
+            color: var(--dim);
+            margin-bottom: 24px;
+        }
+
+        .ctx-window {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            font-size: 10px;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.5);
+            min-height: 200px;
+            position: relative;
+        }
+
+        .ctx-window-title {
+            font-size: 8px;
+            letter-spacing: 0.4em;
+            color: var(--dim);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .ctx-token-count {
+            font-size: 8px;
+            letter-spacing: 0.3em;
+            color: rgba(255, 255, 255, 0.2);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .ctx-token-count.low {
+            color: rgba(140, 255, 140, 0.6);
+        }
+
+        .ctx-entry {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.45);
+            transition: all 0.4s;
+        }
+
+        .ctx-entry:last-child {
+            border-bottom: none;
+        }
+
+        .ctx-entry.highlight {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .ctx-entry-key {
+            color: rgba(255, 255, 255, 0.2);
+            margin-right: 8px;
+        }
+
+        .ctxod-usecases {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .ctxod-uc {
+            padding: 36px 32px;
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            opacity: 0;
+            transform: translateY(12px);
+            transition: opacity 0.5s, transform 0.5s;
+        }
+
+        .ctxod-uc:hover {
+            background: rgba(255, 255, 255, 0.015);
+        }
+
+        .ctxod-uc.vis {
+            opacity: 1;
+            transform: none;
+        }
+
+        .ctxod-uc:nth-child(3),
+        .ctxod-uc:nth-child(6) {
+            border-right: none;
+        }
+
+        .ctxod-uc:nth-child(4),
+        .ctxod-uc:nth-child(5),
+        .ctxod-uc:nth-child(6) {
+            border-bottom: none;
+        }
+
+        .uc-icon {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.2);
+            margin-bottom: 16px;
+        }
+
+        .uc-title {
+            font-family: 'Anton', sans-serif;
+            font-size: 14px;
+            letter-spacing: 0.1em;
+            margin-bottom: 10px;
+        }
+
+        .uc-desc {
+            font-size: 10px;
+            line-height: 1.75;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        @media(max-width:860px) {
+            .ctxod-head {
+                grid-template-columns: 1fr;
+            }
+
+            .ctxod-head-left {
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            }
+
+            .ctxod-flow {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .ctxod-step:nth-child(2) {
+                border-right: none;
+            }
+
+            .ctxod-step:nth-child(3),
+            .ctxod-step:nth-child(4) {
+                border-top: 1px solid rgba(255, 255, 255, 0.08);
+            }
+
+            .ctxod-visual {
+                grid-template-columns: 1fr;
+            }
+
+            .ctxod-arrow-col {
+                display: none;
+            }
+
+            .ctxod-ctx-side {
+                border-top: 1px solid rgba(255, 255, 255, 0.08);
+            }
+
+            .ctxod-usecases {
+                grid-template-columns: 1fr;
+            }
+
+            .ctxod-uc {
+                border-right: none !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+            }
+
+            .ctxod-uc:last-child {
+                border-bottom: none !important;
+            }
+        }
+
         .statement {
             padding: 100px 48px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -626,181 +1316,31 @@
             animation: blink 2s infinite;
         }
 
-        @media(max-width:860px) {
-            .hero-grid {
-                grid-template-columns: 1fr
-            }
-
-            .hero-right {
-                border-top: 1px solid rgba(255, 255, 255, 0.1)
-            }
-
-            .hero-logo {
-                top: 22px;
-                right: 22px;
-                width: 128px;
-                height: 128px;
-                opacity: 1;
-            }
-
-            .prow {
-                grid-template-columns: 44px 1fr
-            }
-
-            .pdesc,
-            .pstatus {
-                display: none
-            }
-
-            .statement {
-                grid-template-columns: 1fr;
-                gap: 36px
-            }
-
-            footer {
-                grid-template-columns: 1fr
-            }
-
-            .fl {
-                border-right: none
-            }
-
-            .tb-right {
-                display: none
-            }
-        }
-
-        .zor-section {
-            padding: 100px 40px;
-            border-top: 1px solid #1a1a1a;
-            border-bottom: 1px solid #1a1a1a;
-        }
-
-        .zor-header {
-            text-align: center;
-            margin-bottom: 60px;
-        }
-
-        .zor-badge {
-            display: inline-block;
-            border: 1px solid #333;
-            padding: 6px 16px;
-            font-size: 0.7rem;
-            letter-spacing: 2px;
-            color: var(--dim);
-            margin-bottom: 20px;
-        }
-
-        .zor-header h2 {
-            font-family: 'Anton', sans-serif;
-            font-size: 4rem;
-            letter-spacing: 4px;
-            margin-bottom: 16px;
-        }
-
-        .zor-subtitle {
-            font-size: 1.1rem;
-            color: var(--dim);
-            max-width: 500px;
-            margin: 0 auto;
-        }
-
-        .zor-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 24px;
-            max-width: 1100px;
-            margin: 0 auto 60px;
-        }
-
-        .zor-card {
-            border: 1px solid #222;
-            padding: 30px;
-            text-align: center;
-        }
-
-        .zor-card-icon {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto 20px;
-            border: 1px solid #333;
-            border-radius: 50%;
+        /* -- LANG -- */
+        .lang-switcher-hero {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            color: var(--dim);
-        }
-
-        .zor-card h3 {
-            font-size: 0.9rem;
-            letter-spacing: 1px;
+            justify-content: flex-end;
             margin-bottom: 12px;
         }
 
-        .zor-card p {
-            font-size: 0.8rem;
+        .lang-btn {
+            font-size: 9px;
+            letter-spacing: 0.35em;
             color: var(--dim);
-            line-height: 1.6;
+            text-decoration: none;
+            text-transform: uppercase;
+            padding: 6px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: color 0.2s, border-color 0.2s;
+            cursor: crosshair;
         }
 
-        .zor-examples {
-            max-width: 900px;
-            margin: 0 auto;
-            text-align: center;
-        }
-
-        .zor-examples h4 {
-            font-size: 0.75rem;
-            letter-spacing: 2px;
-            color: var(--dim);
-            margin-bottom: 20px;
-        }
-
-        .zor-example-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-        }
-
-        .zor-example {
-            border: 1px solid #222;
-            padding: 16px 12px;
-            font-size: 0.75rem;
-            color: rgba(255, 255, 255, 0.6);
-            cursor: default;
-            transition: all 0.2s;
-        }
-
-        .zor-example:hover {
-            border-color: #444;
+        .lang-btn:hover {
             color: var(--white);
+            border-color: rgba(255, 255, 255, 0.4);
         }
 
-        @media (max-width: 900px) {
-            .zor-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .zor-example-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .zor-header h2 {
-                font-size: 2.5rem;
-            }
-        }
-
-        @media (max-width: 600px) {
-            .zor-section {
-                padding: 60px 20px;
-            }
-
-            .zor-example-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
+        /* -- RTL -- */
         body.rtl {
             direction: rtl;
         }
@@ -874,12 +1414,26 @@
             direction: rtl;
         }
 
-        body.rtl .zor-header {
+        body.rtl .zor-top {
             direction: rtl;
         }
 
-        body.rtl .zor-card {
+        body.rtl .zor-intro {
+            border-right: none;
+            border-left: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        body.rtl .zor-caps {
             direction: rtl;
+        }
+
+        body.rtl .zor-cap {
+            border-right: none;
+            border-left: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        body.rtl .zor-cap:last-child {
+            border-left: none;
         }
 
         body.rtl,
@@ -887,9 +1441,9 @@
         body.rtl .hr-desc,
         body.rtl .st-body,
         body.rtl .pdesc,
-        body.rtl .zor-card p,
-        body.rtl .zor-subtitle,
-        body.rtl .zor-example {
+        body.rtl .zor-lead,
+        body.rtl .cap-desc,
+        body.rtl .zq-tag {
             font-family: 'Vazir', 'DM Mono', monospace;
         }
 
@@ -899,20 +1453,17 @@
         body.rtl .llabel,
         body.rtl .ticker-inner,
         body.rtl .hr-label,
-        body.rtl .stat-l,
-        body.rtl .stat-n,
         body.rtl .products-head h2,
         body.rtl .products-head span,
         body.rtl .pidx,
         body.rtl .pname,
         body.rtl .pill,
-        body.rtl .sdot,
-        body.rtl .zor-badge,
-        body.rtl .zor-header h2,
-        body.rtl .zor-card h3,
-        body.rtl .zor-examples h4,
+        body.rtl .zor-eyebrow,
+        body.rtl .zor-title,
+        body.rtl .cap-num,
+        body.rtl .cap-title,
+        body.rtl .zq-label,
         body.rtl .st-left,
-        body.rtl .st-left em,
         body.rtl .st-link,
         body.rtl .flogo,
         body.rtl .fcopy,
@@ -923,37 +1474,82 @@
             font-family: 'Vazir', 'Anton', sans-serif;
         }
 
-        .lang-switcher-hero {
-            display: flex;
-            justify-content: flex-end;
-            margin-bottom: 12px;
+        body.rtl .hero-logo {
+            left: 22px;
         }
 
-        .lang-btn {
-            font-size: 9px;
-            letter-spacing: 0.35em;
-            color: var(--dim);
-            text-decoration: none;
-            text-transform: uppercase;
-            padding: 6px 12px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            transition: color 0.2s, border-color 0.2s;
-            cursor: crosshair;
-        }
+        /* -- RESPONSIVE -- */
+        @media(max-width:860px) {
+            .hero-grid {
+                grid-template-columns: 1fr;
+            }
 
-        .lang-btn:hover {
-            color: var(--white);
-            border-color: rgba(255, 255, 255, 0.4);
-        }
+            .hero-right {
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+            }
 
-        body.rtl .lang-btn {
-            font-family: 'Vazir', 'DM Mono', monospace;
-        }
+            .hero-logo {
+                top: 22px;
+                right: 22px;
+                width: 128px;
+                height: 128px;
+                opacity: 1;
+            }
 
-        @media (max-width: 860px) {
-            body.rtl .hero-logo {
-                left: 22px;
-                right: auto;
+            .prow {
+                grid-template-columns: 44px 1fr;
+            }
+
+            .pdesc,
+            .pstatus {
+                display: none;
+            }
+
+            .statement {
+                grid-template-columns: 1fr;
+                gap: 36px;
+            }
+
+            footer {
+                grid-template-columns: 1fr;
+            }
+
+            .fl {
+                border-right: none;
+            }
+
+            .tb-right {
+                display: none;
+            }
+
+            .zor-top {
+                grid-template-columns: 1fr;
+            }
+
+            .zor-intro {
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            }
+
+            .zor-terminal-wrap {
+                padding: 32px 24px;
+            }
+
+            .zor-caps {
+                grid-template-columns: 1fr;
+            }
+
+            .zor-cap {
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            }
+
+            .zor-cap:last-child {
+                border-bottom: none;
+            }
+
+            .zor-queries {
+                padding: 28px 24px;
             }
         }
     </style>
@@ -963,7 +1559,7 @@
 
     <div id="loader">
         <div class="lcount" id="lc">0</div>
-        <div class="llabel">PAZATOR — INITIALIZING</div>
+        <div class="llabel">PAZATOR - INITIALIZING</div>
     </div>
 
     <header class="topbar">
@@ -971,19 +1567,17 @@
         <div class="tb-center">PAZATOR</div>
         <nav class="tb-right">
             <a href="./app">App</a>
-            <a href="./gallery/">Gallery</a>
+            <a href="./docs/">Docs</a>
             <a href="https://discord.gg/74c9RBYD4R" target="_blank">Discord</a>
         </nav>
     </header>
 
     <section class="hero">
-
         <div class="ticker-wrap">
-            <span class="ticker-inner">PAZATOR &nbsp;·&nbsp; MASS DATA INTELLIGENCE &nbsp;·&nbsp; ANOMALY DETECTION
-                &nbsp;·&nbsp; RISK ASSESSMENT &nbsp;·&nbsp; OPERATIONAL SYSTEMS &nbsp;·&nbsp; AIOIP &nbsp;·&nbsp; TIRSUN
-                &nbsp;·&nbsp; PAZATOR &nbsp;·&nbsp; MASS DATA INTELLIGENCE &nbsp;·&nbsp; ANOMALY
-                DETECTION &nbsp;·&nbsp; RISK ASSESSMENT &nbsp;·&nbsp; OPERATIONAL SYSTEMS &nbsp;·&nbsp; AIOIP
-                &nbsp;·&nbsp; TIRSUN &nbsp;·&nbsp;</span>
+            <span class="ticker-inner">PAZATOR · MASS DATA INTELLIGENCE · ANOMALY DETECTION · RISK ASSESSMENT ·
+                OPERATIONAL SYSTEMS · PAZATOR · MASS DATA INTELLIGENCE · ANOMALY DETECTION · RISK ASSESSMENT ·
+                OPERATIONAL SYSTEMS · PAZATOR · MASS DATA INTELLIGENCE · ANOMALY DETECTION · RISK ASSESSMENT ·
+                OPERATIONAL SYSTEMS ·</span>
         </div>
 
         <div class="hero-grid">
@@ -995,7 +1589,7 @@
                         <span class="wm-line">PAZA</span>
                         <span class="wm-line">TOR.</span>
                     </div>
-                    <div class="hero-sub">Stopping problems before they start. </div>
+                    <div class="hero-sub">Stopping problems before they start.</div>
                 </div>
             </div>
             <div class="hero-right">
@@ -1010,9 +1604,12 @@
                     </div>
                     <div class="hr-actions">
                         <a href="./app" class="hbtn fill"><span>Launch App</span><span class="a">→</span></a>
-                        <a href="https://discord.gg/74c9RBYD4R" target="_blank" class="hbtn"><span>Join Discord</span><span
-                                class="a">↗</span></a>
-                        <a href="https://aix-32.github.io/zor/" class="hbtn"><span>Zor personal</span><span class="a">→</span></a>
+                        <a href="https://discord.gg/74c9RBYD4R" target="_blank" class="hbtn"><span>Join
+                                Discord</span><span class="a">↗</span></a>
+                        <a href="https://aix-32.github.io/zor/" class="hbtn"><span>Zor Personal</span><span
+                                class="a">→</span></a>
+                                                     <a href="docs/" class="hbtn"><span>Docs</span><span
+                                class="a">→</span></a>
                     </div>
                 </div>
             </div>
@@ -1026,17 +1623,17 @@
                 PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR
                 &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp;</span>
             <span aria-hidden="true">PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR
-                &nbsp;/&nbsp; PAZATOR
                 &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp;
                 PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR
-                &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp;</span>
+                &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR
+                &nbsp;/&nbsp;</span>
         </div>
     </div>
 
     <section>
         <div class="products-head">
             <h2>SYSTEMS</h2>
-            <span>03 PRODUCTS</span>
+            <span>02 PRODUCTS</span>
         </div>
         <div class="prow">
             <div class="pidx">01</div>
@@ -1053,10 +1650,10 @@
         <div class="prow">
             <div class="pidx">02</div>
             <div class="pmain">
-                <div class="pname">SHAHED</div>
+                <div class="pname">LCTX</div>
             </div>
-            <div class="pdesc">A work in progress system thats gives location context to Zor for pattern finding and
-                analysis.</div>
+            <div class="pdesc">Gives location context to Zor for pattern finding and analysis. Bridges spatial data with
+                intelligence operations.</div>
             <div class="pstatus">
                 <div class="pill live">LIVE</div>
                 <div class="sdot live"></div>
@@ -1064,53 +1661,219 @@
         </div>
     </section>
 
+    <!-- ZOR SECTION -->
     <section class="zor-section">
-        <div class="zor-header">
-            <div class="zor-badge">AI ASSISTANT</div>
-            <h2>Meet ZOR</h2>
-            <p class="zor-subtitle">Your all-in-one intelligence companion</p>
-        </div>
 
-        <div class="zor-grid">
-            <div class="zor-card">
-                <div class="zor-card-icon">
-                    <i class="fas fa-brain"></i>
+        <div class="zor-top">
+            <div class="zor-intro">
+                <div class="zor-eyebrow">AI ASSISTANT</div>
+                <div class="zor-title">
+                    MEET<br>ZOR<span class="zor-italic">.</span>
                 </div>
-                <h3>Knows Your Data</h3>
-                <p>Zor has context of all your people, entities, tags, chats, and relationships. Ask about anyone and
-                    get instant insights.</p>
+                <p class="zor-lead">Your all-in-one intelligence companion. Zor knows your entire data graph - people,
+                    entities, relationships, tags - and can act on it in plain language.</p>
             </div>
 
-            <div class="zor-card">
-                <div class="zor-card-icon">
-                    <i class="fas fa-link"></i>
+            <div class="zor-terminal-wrap">
+                <div class="zor-terminal">
+                    <div class="terminal-header">
+                        <div class="terminal-dots">
+                        </div>
+                        <div class="terminal-title">Concept showcase. Actual implementation may vary.</div>
+                    </div>
+                    <div class="terminal-body" id="terminalBody">
+                        <div class="terminal-active-line">
+                            <span class="t-prompt">zor&gt;</span>
+                            <span class="t-query" id="typingTarget"></span><span class="t-cursor"
+                                id="termCursor"></span>
+                        </div>
+                    </div>
                 </div>
-                <h3>Connects Everything</h3>
-                <p>Leans on every Pazator system simultaneously. SHAHED locations, chat history, threat
-                    intelligence—all connected.</p>
-            </div>
-
-            <div class="zor-card">
-                <div class="zor-card-icon">
-                    <i class="fas fa-bolt"></i>
-                </div>
-                <h3>Takes Action</h3>
-                <p>Don't just ask—delegate. Create entries, tag people, trigger analysis, or launch investigations with
-                    a single prompt.</p>
             </div>
         </div>
 
-        <div class="zor-examples">
-            <h4>Example Queries</h4>
-            <div class="zor-example-grid">
-                <div class="zor-example">"Show me everyone with a credit score under 100"</div>
-                <div class="zor-example">"Find connections between these two people"</div>
-                <div class="zor-example">"Run a threat analysis on my WhatsApp chats"</div>
-                <div class="zor-example">"Create a new person: John Smith, works at Acme Corp"</div>
-                <div class="zor-example">"What's the risk distribution in my database?"</div>
-                <div class="zor-example">"Tag all suspicious entries with 'review-needed'"</div>
+        <div class="zor-caps">
+            <div class="zor-cap">
+                <div class="cap-num">01</div>
+                <div class="cap-icon"><i class="fas fa-brain"></i></div>
+                <div class="cap-title">KNOWS YOUR DATA</div>
+                <p class="cap-desc">Full context on every person, entity, tag, and relationship in your system. Ask
+                    anything - get instant, precise answers.</p>
+            </div>
+            <div class="zor-cap">
+                <div class="cap-num">02</div>
+                <div class="cap-icon"><i class="fas fa-link"></i></div>
+                <div class="cap-title">CONNECTS EVERYTHING</div>
+                <p class="cap-desc">Draws from all Pazator systems simultaneously - SARPARAST, LCTX, chat history,
+                    threat intel - unified in one query.</p>
+            </div>
+            <div class="zor-cap">
+                <div class="cap-num">03</div>
+                <div class="cap-icon"><i class="fas fa-bolt"></i></div>
+                <div class="cap-title">TAKES ACTION</div>
+                <p class="cap-desc">Don't just ask - delegate. Create entries, trigger analyses, launch investigations,
+                    tag entities with a single prompt.</p>
             </div>
         </div>
+
+        <div class="zor-queries">
+            <span class="zq-label">EXAMPLE QUERIES</span>
+            <span class="zq-tag">"credit score under 100"</span>
+            <span class="zq-tag">"connections between these two"</span>
+            <span class="zq-tag">"threat analysis on WhatsApp chats"</span>
+            <span class="zq-tag">"risk distribution in database"</span>
+            <span class="zq-tag">"tag all suspicious entries"</span>
+            <span class="zq-tag">"add person: John Smith, Acme Corp"</span>
+        </div>
+
+    </section>
+
+    <!-- CTXOD SECTION -->
+    <section class="ctxod-section">
+
+        <div class="ctxod-head">
+            <div class="ctxod-head-left">
+                <div class="ctxod-eyebrow">RETRIEVAL ENGINE</div>
+                <div>
+                    <div class="ctxod-wordmark">
+                        CTXOD
+                        <span class="ctxod-sub">CONTEXT ON DEMAND</span>
+                    </div>
+                </div>
+            </div>
+            <div class="ctxod-head-right">
+                <p class="ctxod-desc">An intelligent retrieval engine that instantly pulls real-time context about any
+                    person, entity, or relationship from across all Pazator systems - using natural language, with no
+                    manual data correlation, and without flooding the AI context window with irrelevant data.</p>
+            </div>
+        </div>
+
+        <div class="ctxod-flow">
+            <div class="ctxod-step">
+                <div class="step-num">01</div>
+                <div class="step-label">NATURAL LANGUAGE QUERY</div>
+                <p class="step-desc">Ask in plain language. No SQL, no filters, no schema knowledge required.</p>
+                <span class="step-arrow">→</span>
+            </div>
+            <div class="ctxod-step">
+                <div class="step-num">02</div>
+                <div class="step-label">CROSS-SYSTEM FETCH</div>
+                <p class="step-desc">CTXOD queries SARPARAST, SHAHED, and all connected sources simultaneously.</p>
+                <span class="step-arrow">→</span>
+            </div>
+            <div class="ctxod-step">
+                <div class="step-num">03</div>
+                <div class="step-label">RELEVANCE FILTERING</div>
+                <p class="step-desc">Only the data that matters is extracted. Unrelated records stay out of the AI
+                    window.</p>
+                <span class="step-arrow">→</span>
+            </div>
+            <div class="ctxod-step">
+                <div class="step-num">04</div>
+                <div class="step-label">FOCUSED RESPONSE</div>
+                <p class="step-desc">Zor receives a tight, precise context payload - fast, clean, actionable.</p>
+            </div>
+        </div>
+
+        <!-- Visual: full DB vs focused context window -->
+        <div class="ctxod-visual">
+            <div class="ctxod-db-side">
+                <div class="ctxod-db-label">FULL DATABASE - ALL RECORDS</div>
+                <div class="ctxod-db-rows" id="ctxodDbRows">
+                    <div class="db-row dimmed"><span class="db-row-dot"></span>PZI000141 - Ahmad R. - tag: low-risk
+                    </div>
+                    <div class="db-row dimmed"><span class="db-row-dot"></span>PZI000242 - Cargo manifest 2024-03</div>
+                    <div class="db-row relevant"><span class="db-row-dot"></span>PZI000343 - Karim V. - tag: high-risk
+                    </div>
+                    <div class="db-row dimmed"><span class="db-row-dot"></span>PZI000444 - Location cluster: Tehran-N
+                    </div>
+                    <div class="db-row relevant"><span class="db-row-dot"></span>PZI000545 - Karim V. - chat log #7
+                    </div>
+                    <div class="db-row dimmed"><span class="db-row-dot"></span>PZI000646 - Invoice batch 882</div>
+                    <div class="db-row relevant"><span class="db-row-dot"></span>PZI000747 - Karim V. ↔ Mina S. - link
+                    </div>
+                    <div class="db-row dimmed"><span class="db-row-dot"></span>PZI000848 - Location ping: 2024-11-02
+                    </div>
+                    <div class="db-row dimmed"><span class="db-row-dot"></span>PZI000949 - Group tag: finance</div>
+                    <div class="db-row relevant"><span class="db-row-dot"></span>PZI039223 - Karim V. - risk score: 94
+                    </div>
+                    <div class="db-row dimmed"><span class="db-row-dot"></span>PZI002842 - Archive batch 2023</div>
+                    <div class="db-row dimmed"><span class="db-row-dot"></span>PZI001141 - Ahmad R. - location ping
+                    </div>
+                </div>
+            </div>
+
+            <div class="ctxod-arrow-col">
+                <span style="font-size:16px; color:rgba(255,255,255,0.2)">→</span>
+                <span class="ctxod-arrow-label">CTXOD FILTER</span>
+            </div>
+
+            <div class="ctxod-ctx-side">
+                <div class="ctxod-ctx-label">AI CONTEXT WINDOW - CTXOD PAYLOAD</div>
+                <div class="ctx-window">
+                    <div class="ctx-window-title">
+                        <span>QUERY: "everything on Karim V."</span>
+                        <span class="ctx-token-count low" id="tokenCount">~420 tokens</span>
+                    </div>
+                    <div class="ctx-entry highlight">
+                        <span class="ctx-entry-key">profile:</span>Karim V. · risk score 94 · tag: high-risk
+                    </div>
+                    <div class="ctx-entry highlight">
+                        <span class="ctx-entry-key">chat_log:</span>7 messages flagged · anomaly pattern detected
+                    </div>
+                    <div class="ctx-entry highlight">
+                        <span class="ctx-entry-key">link:</span>Karim V. ↔ Mina S. · 3 shared locations
+                    </div>
+                    <div class="ctx-entry highlight">
+                        <span class="ctx-entry-key">note:</span>Full database not loaded · 8 irrelevant records excluded
+                    </div>
+                </div>
+                <div style="margin-top:14px; font-size:10px; color:rgba(255,255,255,0.2); letter-spacing:0.2em;">
+                    vs. ~18,400 tokens without CTXOD
+                </div>
+            </div>
+        </div>
+
+        <!-- Use cases -->
+        <div class="ctxod-usecases">
+            <div class="ctxod-uc">
+                <div class="uc-icon"><i class="fas fa-user-circle"></i></div>
+                <div class="uc-title">INSTANT PROFILING</div>
+                <p class="uc-desc">Pull a complete person or entity summary across all systems in one query. Name, risk
+                    score, tags, relationships, timeline.</p>
+            </div>
+            <div class="ctxod-uc">
+                <div class="uc-icon"><i class="fas fa-project-diagram"></i></div>
+                <div class="uc-title">RELATIONSHIP MAPPING</div>
+                <p class="uc-desc">Discover connections between entities - shared contacts, locations, chat threads -
+                    surfaced automatically.</p>
+            </div>
+            <div class="ctxod-uc">
+                <div class="uc-icon"><i class="fas fa-history"></i></div>
+                <div class="uc-title">TIMELINE RECONSTRUCTION</div>
+                <p class="uc-desc">Chronological view of all interactions, location pings, and events linked to a
+                    subject, assembled on demand.</p>
+            </div>
+            <div class="ctxod-uc">
+                <div class="uc-icon"><i class="fas fa-map-marker-alt"></i></div>
+                <div class="uc-title">LOCATION DISCOVERY</div>
+                <p class="uc-desc">Cross-reference LCTX data to find entities connected through geographic proximity or
+                    shared movement patterns.</p>
+            </div>
+            <div class="ctxod-uc">
+                <div class="uc-icon"><i class="fas fa-tag"></i></div>
+                <div class="uc-title">AUTOMATED RISK TAGGING</div>
+                <p class="uc-desc">Let CTXOD classify and tag entries based on pattern analysis. One prompt, bulk
+                    intelligence update.</p>
+            </div>
+            <div class="ctxod-uc">
+                <div class="uc-icon"><i class="fas fa-shield-alt"></i></div>
+                <div class="uc-title">THREAT ASSESSMENT</div>
+                <p class="uc-desc">Real-time intelligence gathering for active investigations - CTXOD pulls only what's
+                    needed, keeping analysis sharp.</p>
+            </div>
+        </div>
+
     </section>
 
     <section class="statement">
@@ -1131,11 +1894,11 @@
         <div class="fr">
             <nav class="fnav">
                 <a href="./app">Launch App</a>
-                <a href="./gallery/">Gallery</a>
+                <a href="./docs/">Docs</a>
                 <a href="https://discord.gg/74c9RBYD4R" target="_blank">Discord</a>
             </nav>
             <div class="fstatus">
-                <div class="fdot"></div>Note. This is a real project and is in beta.
+                <div class="fdot"></div>This is a real website, not a mockup. It's live.
             </div>
         </div>
     </footer>
@@ -1160,130 +1923,164 @@
         const obs = new IntersectionObserver(entries => {
             entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('vis'); });
         }, { threshold: 0.1 });
-        document.querySelectorAll('.prow, .st-left, .st-right').forEach(el => obs.observe(el));
+        document.querySelectorAll('.prow, .st-left, .st-right, .zor-cap, .ctxod-step, .ctxod-uc').forEach(el => obs.observe(el));
 
+        document.querySelectorAll('.zor-cap').forEach((el, i) => {
+            el.style.transitionDelay = `${i * 0.12}s`;
+        });
+        document.querySelectorAll('.ctxod-step').forEach((el, i) => {
+            el.style.transitionDelay = `${i * 0.1}s`;
+        });
+        document.querySelectorAll('.ctxod-uc').forEach((el, i) => {
+            el.style.transitionDelay = `${i * 0.08}s`;
+        });
+
+        const queries = [
+            { q: 'Show everyone with credit score under 100', r: '→ Found 14 entries · sorted by risk score', type: 'data' },
+            { q: 'Find connections between PZI000143 and PZI002843', r: '→ 3 shared contacts · 2 location overlaps · 1 chat thread', type: 'data' },
+            { q: 'Tag all entries flagged last week as review-needed', r: '→ 31 entries updated · tags applied', type: 'success' },
+            { q: "What's the risk distribution in my database?", r: '→ HIGH 12%  ·  MED 34%  ·  LOW 54%', type: 'data' },
+            { q: 'Run threat analysis on recent WhatsApp chats', r: '→ Analyzing 847 messages · 2 anomalies flagged', type: 'success' },
+        ];
+
+        const typingTarget = document.getElementById('typingTarget');
+        const termCursor = document.getElementById('termCursor');
+        const termBody = document.getElementById('terminalBody');
+        let qi = 0;
+        let completedLines = [];
+
+        function addCompletedLine(query, response, type) {
+            completedLines.push({ query, response, type });
+            if (completedLines.length > 3) completedLines.shift();
+            renderCompleted();
+        }
+
+        function renderCompleted() {
+            document.querySelectorAll('.terminal-line').forEach(el => el.remove());
+            const activeLine = termBody.querySelector('.terminal-active-line');
+            completedLines.forEach(({ query, response, type }) => {
+                const qLine = document.createElement('div');
+                qLine.className = 'terminal-line';
+                qLine.innerHTML = `<span class="t-prompt">zor&gt;</span><span class="t-query">${query}</span>`;
+                qLine.style.animationDelay = '0s';
+                termBody.insertBefore(qLine, activeLine);
+
+                const rLine = document.createElement('div');
+                rLine.className = `terminal-line`;
+                rLine.innerHTML = `<span class="t-response ${type}">${response}</span>`;
+                rLine.style.animationDelay = '0s';
+                termBody.insertBefore(rLine, activeLine);
+            });
+        }
+
+        function typeQuery() {
+            const { q, r, type } = queries[qi % queries.length];
+            let i = 0;
+            typingTarget.textContent = '';
+
+            function typeChar() {
+                if (i < q.length) {
+                    typingTarget.textContent += q[i++];
+                    setTimeout(typeChar, 38 + Math.random() * 30);
+                } else {
+                    // Pause, show response, then clear
+                    setTimeout(() => {
+                        termCursor.style.display = 'none';
+                        addCompletedLine(q, r, type);
+                        typingTarget.textContent = '';
+                        setTimeout(() => {
+                            termCursor.style.display = '';
+                            qi++;
+                            typeQuery();
+                        }, 900);
+                    }, 700);
+                }
+            }
+            typeChar();
+        }
+
+        // Start terminal after loader
+        setTimeout(typeQuery, 2000);
+
+        // -- LOGO PARALLAX --
+        const heroLogo = document.querySelector('.hero-logo');
+        const heroLeft = document.querySelector('.hero-left');
+        let mouseX = 0, mouseY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+            mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+        });
+
+        let ticking = false;
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                requestAnimationFrame(() => {
+                    const scrollY = window.scrollY;
+                    const mouseInfluence = 15;
+                    const parallax = scrollY * 0.3;
+                    heroLogo.style.transform = `translate(${mouseX * mouseInfluence}px, ${mouseY * mouseInfluence - parallax}px)`;
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        });
+
+        // -- TRANSLATIONS --
         const translations = {
             en: {
                 title: "Pazator - Mass Data Intelligence",
-                description: "Pazator delivers AI‑driven operational systems and predictive intelligence to stop threats before they happen.",
-                ogTitle: "Pazator – Mass Data Intelligence",
-                ogDescription: "AI‑powered operational intelligence that helps you stop problems before they start.",
-                twitterTitle: "Pazator – Mass Data Intelligence",
-                twitterDescription: "AI‑powered operational intelligence that helps you stop problems before they start.",
-                loaderLabel: "PAZATOR — INITIALIZING",
+                loaderLabel: "PAZATOR - INITIALIZING",
                 topbarLeft: "MASS DATA INTELLIGENCE",
-                navApp: "App",
-                navGallery: "Gallery",
-                navDiscord: "Discord",
+                navApp: "App", navGallery: "Gallery", navDiscord: "Discord",
                 langSwitch: "فا",
-                ticker: "PAZATOR · MASS DATA INTELLIGENCE · ANOMALY DETECTION · RISK ASSESSMENT · OPERATIONAL SYSTEMS · AIOIP · TIRSUN · PAZATOR · MASS DATA INTELLIGENCE · ANOMALY DETECTION · RISK ASSESSMENT · OPERATIONAL SYSTEMS · AIOIP · TIRSUN ·",
+                ticker: "PAZATOR · MASS DATA INTELLIGENCE · ANOMALY DETECTION · RISK ASSESSMENT · OPERATIONAL SYSTEMS · PAZATOR · MASS DATA INTELLIGENCE · ANOMALY DETECTION · RISK ASSESSMENT · OPERATIONAL SYSTEMS ·",
                 heroSub: "Stopping problems before they start.",
                 hrLabel: "// PLATFORM",
                 hrDesc: "Mass data infrastructure engineered to identify anomalies, assess risk, and deliver actionable intelligence before disruption occurs.",
-                launchApp: "Launch App",
-                joinDiscord: "Join Discord",
-                gallery: "Gallery",
-                stat1: "TWO.",
-                statL1: "SYSTEMS",
-                stat2: "ALL THE TIME.",
-                statL2: "UPTIME",
-                stat3: "FREE",
-                statL3: "PRICE",
-                stat4: "18200",
-                statL4: "MAX DATA AMOUNT",
-                productsHead: "SYSTEMS",
-                productsCount: "02 PRODUCTS",
-                p1name: "SARPARAST",
-                p1desc: "Mass data infrastructure engineered to identify anomalies, assess risk, and deliver actionable intelligence before disruption occurs.",
-                p1status: "LIVE",
-                p2name: "SHAHED",
-                p2desc: "A work in progress system thats gives location context to Zor for pattern finding and analysis.",
-                p2status: "LIVE",
-
-                zorBadge: "AI ASSISTANT",
-                zorTitle: "Meet ZOR",
-                zorSubtitle: "Your all-in-one intelligence companion",
-                zorCard1Title: "Knows Your Data",
-                zorCard1Desc: "Zor has context of all your people, entities, tags, chats, and relationships. Ask about anyone and get instant insights.",
-                zorCard2Title: "Connects Everything",
-                zorCard2Desc: "Leans on every Pazator system simultaneously. SHAHED locations, chat history, threat intelligence—all connected.",
-                zorCard3Title: "Takes Action",
-                zorCard3Desc: "Don't just ask—delegate. Create entries, tag people, trigger analysis, or launch investigations with a single prompt.",
-                zorExamplesTitle: "Example Queries",
-                zorExample1: "\"Show me everyone with a credit score under 100\"",
-                zorExample2: "\"Find connections between these two people\"",
-                zorExample3: "\"Run a threat analysis on my WhatsApp chats\"",
-                zorExample4: "\"Create a new person: John Smith, works at Acme Corp\"",
-                zorExample5: "\"What's the risk distribution in my database?\"",
-                zorExample6: "\"Tag all suspicious entries with 'review-needed'\"",
+                launchApp: "Launch App", joinDiscord: "Join Discord", zorPersonal: "Zor Personal",
+                productsHead: "SYSTEMS", productsCount: "02 PRODUCTS",
+                p1name: "SARPARAST", p1desc: "Mass data infrastructure engineered to identify anomalies, assess risk, and deliver actionable intelligence before disruption occurs.", p1status: "LIVE",
+                p2name: "LCTX", p2desc: "Gives location context to Zor for pattern finding and analysis. Bridges spatial data with intelligence operations.", p2status: "LIVE",
+                zorEyebrow: "AI ASSISTANT",
+                zorTitle: "MEET<br>ZOR<span class='zor-italic'>.</span>",
+                zorLead: "Your all-in-one intelligence companion. Zor knows your entire data graph - people, entities, relationships, tags - and can act on it in plain language.",
+                cap1num: "01", cap1title: "KNOWS YOUR DATA", cap1desc: "Full context on every person, entity, tag, and relationship in your system. Ask anything - get instant, precise answers.",
+                cap2num: "02", cap2title: "CONNECTS EVERYTHING", cap2desc: "Draws from all Pazator systems simultaneously - SARPARAST, LCTX, chat history, threat intel - unified in one query.",
+                cap3num: "03", cap3title: "TAKES ACTION", cap3desc: "Don't just ask - delegate. Create entries, trigger analyses, launch investigations, tag entities with a single prompt.",
+                zqLabel: "EXAMPLE QUERIES",
                 stLeft: "Data doesn't wait.<br><em>Neither<br>should you.</em>",
                 stBody: "Pazator is built for operators who need answers before questions form. Our systems process mass data at the edge of what's possible, surfacing the signal in the noise with zero compromise on speed or precision.",
                 getEarlyAccess: "Get Early Access",
-                fLogo: "PAZA<br>TOR",
-                fCopy: "A SOLO PROJECT BY AIX..",
-                fStatus: "Note. This is a real project and is in beta.",
-                wmarquee: "PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR / PAZATOR /"
+                fLogo: "PAZA<br>TOR", fCopy: "A SOLO PROJECT BY AIX..", fStatus: "Note. This is a real project and is in beta.",
+                wmarquee: "PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp;"
             },
             fa: {
                 title: "پازاتور - هوشمندی داده‌های کلان",
-                description: "پازاتور سامانه‌های عملیاتی هوش‌مند و بینش‌های پیش‌بینی‌کننده را برای متوقف کردن تهدیدها پیش از وقوع ارائه می‌دهد.",
-                ogTitle: "پازاتور – هوشمندی داده‌های کلان",
-                ogDescription: "بینش عملیاتی مبتنی بر هوش مصنوعی که به شما کمک می‌کند پیش از بروز مشکلات، آن‌ها را متوقف کنید.",
-                twitterTitle: "پازاتور – هوشمندی داده‌های کلان",
-                twitterDescription: "بینش عملیاتی مبتنی بر هوش مصنوعی که به شما کمک می‌کند پیش از بروز مشکلات، آن‌ها را متوقف کنید.",
-                loaderLabel: "پازاتور — در حال راه‌اندازی",
+                loaderLabel: "پازاتور - در حال راه‌اندازی",
                 topbarLeft: "هوشمندی داده‌های کلان",
-                navApp: "اپلیکیشن",
-                navGallery: "گالری",
-                navDiscord: "دیسکورد",
+                navApp: "اپلیکیشن", navGallery: "گالری", navDiscord: "دیسکورد",
                 langSwitch: "EN",
-                ticker: "پازاتور · هوشمندی داده‌های کلان · تشخیص ناهنجاری · ارزیابی ریسک · سامانه‌های عملیاتی · AIOIP · تیرسون · پازاتور · هوشمندی داده‌های کلان · تشخیص ناهنجاری · ارزیابی ریسک · سامانه‌های عملیاتی · AIOIP · تیرسون ·",
+                ticker: "پازاتور · هوشمندی داده‌های کلان · تشخیص ناهنجاری · ارزیابی ریسک · سامانه‌های عملیاتی · پازاتور · هوشمندی داده‌های کلان · تشخیص ناهنجاری · ارزیابی ریسک · سامانه‌های عملیاتی ·",
                 heroSub: "پیشگیری از بحران، پیش از آغاز.",
                 hrLabel: "// پلتفرم",
                 hrDesc: "زیرساخت داده‌های کلان مهندسی‌شده برای شناسایی ناهنجاری‌ها، ارزیابی ریسک و ارائه بینش عملیاتی پیش از وقوع اختلال.",
-                launchApp: "ورود به اپلیکیشن",
-                joinDiscord: "عضویت در دیسکورد",
-                gallery: "گالری",
-                stat1: "دو.",
-                statL1: "سامانه",
-                stat2: "همیشه.",
-                statL2: "آپ‌تایم",
-                stat3: "رایگان",
-                statL3: "قیمت",
-                stat4: "۱۸۲۰۰",
-                statL4: "حداکثر مقدار داده",
-                productsHead: "سیستم‌ها",
-                productsCount: "۰۲ محصول",
-                p1name: "سپرست",
-                p1desc: "زیرساخت داده‌های کلان مهندسی‌شده برای شناسایی ناهنجاری‌ها، ارزیابی ریسک و ارائه بینش عملیاتی پیش از وقوع اختلال.",
-                p1status: "فعال",
-                p2name: "شاهد",
-                p2desc: "سیستمی در حال توسعه که بستر مکانی را برای زور جهت یافتن الگوها و تحلیل فراهم می‌کند.",
-                p2status: "فعال",
-
-                zorBadge: "دستیار هوش مصنوعی",
-                zorTitle: "آشنایی با زور",
-                zorSubtitle: "همراه هوشمند همه‌کاره شما",
-                zorCard1Title: "داده‌های شما را می‌شناسد",
-                zorCard1Desc: "زور بر تمام افراد، موجودیت‌ها، برچسب‌ها، چت‌ها و روابط شما اشراف دارد. درباره هر کسی بپرسید و بینش فوری دریافت کنید.",
-                zorCard2Title: "همه چیز را متصل می‌کند",
-                zorCard2Desc: "بر تمام سامانه‌های پازاتور متکی است. بسترهای مکانی شاهد، تاریخچه چت، اطلاعات تهدید—همه متصل هستند.",
-                zorCard3Title: "اقدام می‌کند",
-                zorCard3Desc: "فقط نپرسید—واگذار کنید. ایجاد ورودی، برچسب‌گذاری افراد، تحریک تحلیل یا راه‌اندازی تحقیقات با یک دستور ساده.",
-                zorExamplesTitle: "نمونه پرسش‌ها",
-                zorExample1: "\"همه کسانی که امتیاز اعتباری زیر ۱۰۰ دارند را نشان بده\"",
-                zorExample2: "\"ارتباط بین این دو نفر را پیدا کن\"",
-                zorExample3: "\"تحلیل تهدید روی چت‌های واتس‌اپ من انجام بده\"",
-                zorExample4: "\"یک شخص جدید ایجاد کن: جان اسمیت، کارمند شرکت آکمه\"",
-                zorExample5: "\"توزیع ریسک در پایگاه داده من چیست؟\"",
-                zorExample6: "\"همه ورودی‌های مشکوک را با برچسب 'نیاز به بررسی' علامت بزن\"",
+                launchApp: "ورود به اپلیکیشن", joinDiscord: "عضویت در دیسکورد", zorPersonal: "زور شخصی",
+                productsHead: "سیستم‌ها", productsCount: "۰۲ محصول",
+                p1name: "سپرست", p1desc: "زیرساخت داده‌های کلان مهندسی‌شده برای شناسایی ناهنجاری‌ها، ارزیابی ریسک و ارائه بینش عملیاتی پیش از وقوع اختلال.", p1status: "فعال",
+                p2name: "LCTX", p2desc: "بستر مکانی را برای زور جهت یافتن الگوها و تحلیل فراهم می‌کند.", p2status: "فعال",
+                zorEyebrow: "دستیار هوش مصنوعی",
+                zorTitle: "آشنایی با<br>زور<span class='zor-italic'>.</span>",
+                zorLead: "دستیار هوشمند همه‌کاره شما. زور تمام گراف داده‌های شما را می‌شناسد و به زبان ساده روی آن عمل می‌کند.",
+                cap1num: "۰۱", cap1title: "داده‌های شما را می‌شناسد", cap1desc: "زمینه کامل هر شخص، موجودیت، برچسب و رابطه در سیستم شما. هر چیزی بپرسید - پاسخ فوری و دقیق دریافت کنید.",
+                cap2num: "۰۲", cap2title: "همه چیز را متصل می‌کند", cap2desc: "همزمان از تمام سیستم‌های پازاتور می‌کشد - سپرست، LCTX، تاریخچه چت، اطلاعات تهدید - یکپارچه در یک پرس‌و‌جو.",
+                cap3num: "۰۳", cap3title: "اقدام می‌کند", cap3desc: "فقط نپرسید - تفویض کنید. ورودی ایجاد کنید، تحلیل‌ها را راه‌اندازی کنید، تحقیقات را با یک دستور شروع کنید.",
+                zqLabel: "نمونه پرسش‌ها",
                 stLeft: "داده‌ها منتظر نمی‌مانند.<br><em>شما هم<br>نباید منتظر بمانید.</em>",
-                stBody: "پازاتور برای اپراتورهایی ساخته شده که پیش از شکل‌گیری سوالات، به پاسخ نیاز دارند. سیستم‌های ما داده‌های کلان را در مرز توانمندی پردازش می‌کنند و سیگنال را در میان نویز با عدم مصالحه در سرعت و دقت نمایان می‌سازند.",
+                stBody: "پازاتور برای اپراتورهایی ساخته شده که پیش از شکل‌گیری سوالات، به پاسخ نیاز دارند.",
                 getEarlyAccess: "دسترسی زودهنگام",
-                fLogo: "پازا<br>تور",
-                fCopy: "پروژه‌ای از AIX..",
-                fStatus: "نکته. این یک پروژه واقعی است و در نسخه بتا قرار دارد.",
-                wmarquee: "پازاتور / پازاتور / پازاتور / پازاتور / پازاتور / پازاتور / پازاتور / پازاتور / پازاتور / پازاتور / پازاتور / پازاتور / پازاتور / پازاتور / پازاتور / پازاتور /"
+                fLogo: "پازا<br>تور", fCopy: "پروژه‌ای از AIX..", fStatus: "نکته. این یک پروژه واقعی است و در نسخه بتا قرار دارد.",
+                wmarquee: "پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp;"
             }
         };
 
@@ -1295,12 +2092,6 @@
 
             document.getElementById('htmlRoot').setAttribute('lang', lang);
             document.title = t.title;
-            document.querySelector('meta[name="description"]').setAttribute('content', t.description);
-            document.querySelector('meta[property="og:title"]').setAttribute('content', t.ogTitle);
-            document.querySelector('meta[property="og:description"]').setAttribute('content', t.ogDescription);
-            document.querySelector('meta[name="twitter:title"]').setAttribute('content', t.twitterTitle);
-            document.querySelector('meta[name="twitter:description"]').setAttribute('content', t.twitterDescription);
-
             document.querySelector('.llabel').textContent = t.loaderLabel;
             document.querySelector('.tb-left').textContent = t.topbarLeft;
             document.querySelector('.tb-center').textContent = lang === 'fa' ? 'پازاتور' : 'PAZATOR';
@@ -1311,9 +2102,7 @@
             navLinks[2].textContent = t.navDiscord;
             document.getElementById('langSwitch').textContent = t.langSwitch;
 
-            const tickerContent = t.ticker;
-            document.querySelector('.ticker-inner').innerHTML = tickerContent + ' · ' + tickerContent + ' · ';
-
+            document.querySelector('.ticker-inner').innerHTML = t.ticker + ' ' + t.ticker;
             document.querySelector('.hero-sub').textContent = t.heroSub;
             document.querySelector('.hr-label').textContent = t.hrLabel;
             document.querySelector('.hr-desc').textContent = t.hrDesc;
@@ -1321,7 +2110,7 @@
             const hbtnSpans = document.querySelectorAll('.hbtn span:first-child');
             hbtnSpans[0].textContent = t.launchApp;
             hbtnSpans[1].textContent = t.joinDiscord;
-            hbtnSpans[2].textContent = t.gallery;
+            hbtnSpans[2].textContent = t.zorPersonal;
 
             document.querySelector('.products-head h2').textContent = t.productsHead;
             document.querySelector('.products-head span').textContent = t.productsCount;
@@ -1333,30 +2122,23 @@
             prows[1].querySelector('.pname').textContent = t.p2name;
             prows[1].querySelector('.pdesc').textContent = t.p2desc;
             prows[1].querySelector('.pill').textContent = t.p2status;
-            prows[2].querySelector('.pname').textContent = t.p3name;
-            prows[2].querySelector('.pdesc').textContent = t.p3desc;
-            prows[2].querySelector('.pill').textContent = t.p3status;
 
-            document.querySelector('.zor-badge').textContent = t.zorBadge;
-            document.querySelector('.zor-header h2').textContent = t.zorTitle;
-            document.querySelector('.zor-subtitle').textContent = t.zorSubtitle;
+            document.querySelector('.zor-eyebrow').textContent = t.zorEyebrow;
+            document.querySelector('.zor-title').innerHTML = t.zorTitle;
+            document.querySelector('.zor-lead').textContent = t.zorLead;
 
-            const zorCards = document.querySelectorAll('.zor-card');
-            zorCards[0].querySelector('h3').textContent = t.zorCard1Title;
-            zorCards[0].querySelector('p').textContent = t.zorCard1Desc;
-            zorCards[1].querySelector('h3').textContent = t.zorCard2Title;
-            zorCards[1].querySelector('p').textContent = t.zorCard2Desc;
-            zorCards[2].querySelector('h3').textContent = t.zorCard3Title;
-            zorCards[2].querySelector('p').textContent = t.zorCard3Desc;
+            const caps = document.querySelectorAll('.zor-cap');
+            caps[0].querySelector('.cap-num').textContent = t.cap1num;
+            caps[0].querySelector('.cap-title').textContent = t.cap1title;
+            caps[0].querySelector('.cap-desc').textContent = t.cap1desc;
+            caps[1].querySelector('.cap-num').textContent = t.cap2num;
+            caps[1].querySelector('.cap-title').textContent = t.cap2title;
+            caps[1].querySelector('.cap-desc').textContent = t.cap2desc;
+            caps[2].querySelector('.cap-num').textContent = t.cap3num;
+            caps[2].querySelector('.cap-title').textContent = t.cap3title;
+            caps[2].querySelector('.cap-desc').textContent = t.cap3desc;
 
-            document.querySelector('.zor-examples h4').textContent = t.zorExamplesTitle;
-            const zorExamples = document.querySelectorAll('.zor-example');
-            zorExamples[0].textContent = t.zorExample1;
-            zorExamples[1].textContent = t.zorExample2;
-            zorExamples[2].textContent = t.zorExample3;
-            zorExamples[3].textContent = t.zorExample4;
-            zorExamples[4].textContent = t.zorExample5;
-            zorExamples[5].textContent = t.zorExample6;
+            document.querySelector('.zq-label').textContent = t.zqLabel;
 
             document.querySelector('.st-left').innerHTML = t.stLeft;
             document.querySelector('.st-body').textContent = t.stBody;
@@ -1367,15 +2149,10 @@
             document.querySelector('.fstatus').innerHTML = '<div class="fdot"></div>' + t.fStatus;
 
             const wmarqueeSpans = document.querySelectorAll('.wmarquee-track span');
-            wmarqueeSpans[0].innerHTML = t.wmarquee + ' / ' + t.wmarquee + ' / ';
-            wmarqueeSpans[1].innerHTML = t.wmarquee + ' / ' + t.wmarquee + ' / ';
+            wmarqueeSpans[0].innerHTML = t.wmarquee;
+            wmarqueeSpans[1].innerHTML = t.wmarquee;
 
-            if (isRTL) {
-                document.body.classList.add('rtl');
-            } else {
-                document.body.classList.remove('rtl');
-            }
-
+            document.body.classList.toggle('rtl', isRTL);
             localStorage.setItem('pazator-lang', lang);
         }
 
@@ -1385,50 +2162,7 @@
             applyTranslations(currentLang);
         });
 
-        if (currentLang === 'fa') {
-            applyTranslations('fa');
-        }
-
-        // Scroll-driven logo animation
-        const heroLogo = document.querySelector('.hero-logo');
-        const heroLeft = document.querySelector('.hero-left');
-
-        let mouseX = 0, mouseY = 0;
-
-        document.addEventListener('mousemove', (e) => {
-            mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
-            mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
-        });
-
-        function updateLogoOnScroll() {
-            const scrollY = window.scrollY;
-            const heroLeftRect = heroLeft.getBoundingClientRect();
-            const heroLeftTop = heroLeftRect.top + scrollY;
-
-            // Keep logo at its original position (absolute within hero-left)
-            // As user scrolls, the logo scrolls with the page naturally
-            // Add subtle parallax and mouse influence
-
-            const mouseInfluence = 15;
-            const parallax = scrollY * 0.3;
-
-            heroLogo.style.transform = `translate(${mouseX * mouseInfluence}px, ${mouseY * mouseInfluence - parallax}px)`;
-        }
-
-        // Throttled scroll handler
-        let ticking = false;
-        window.addEventListener('scroll', () => {
-            if (!ticking) {
-                requestAnimationFrame(() => {
-                    updateLogoOnScroll();
-                    ticking = false;
-                });
-                ticking = true;
-            }
-        });
-
-        // Initial call
-        updateLogoOnScroll();
+        if (currentLang === 'fa') applyTranslations('fa');
     </script>
 </body>
 
