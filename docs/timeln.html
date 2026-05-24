@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TIMELN — Entity Timeline | Pazator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --black: #000; --white: #fff; --dim: #666; }
+    html { font-size: 16px; }
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: 'DM Mono', monospace;
+      overflow-x: hidden;
+      cursor: crosshair;
+    }
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 32px; height: 52px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      background: var(--black);
+    }
+    .tb-left { font-size: 9px; letter-spacing: 0.5em; color: var(--dim); }
+    .tb-center { font-family: 'Anton', sans-serif; font-size: 18px; letter-spacing: 0.12em; }
+    .tb-right { display: flex; gap: 28px; }
+    .tb-right a {
+      font-size: 9px; letter-spacing: 0.35em; color: var(--dim);
+      text-decoration: none; text-transform: uppercase; transition: color 0.2s;
+    }
+    .tb-right a:hover { color: var(--white); }
+    .hero {
+      min-height: 100vh; padding-top: 52px;
+      display: grid; grid-template-rows: auto 1fr auto;
+    }
+    .ticker-wrap {
+      overflow: hidden; white-space: nowrap; padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .ticker-inner {
+      display: inline-block;
+      animation: tick 20s linear infinite;
+      font-size: 9px; letter-spacing: 0.45em; color: var(--dim);
+    }
+    @keyframes tick { to { transform: translateX(-50%); } }
+    .content { border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .content-inner {
+      max-width: 800px; margin: 0 auto; padding: 80px 48px;
+    }
+    .content h1 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(48px, 8vw, 100px);
+      line-height: 0.85; letter-spacing: -0.03em;
+      margin-bottom: 40px;
+    }
+    .content h2 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(20px, 3vw, 36px);
+      letter-spacing: -0.01em;
+      margin-top: 60px; margin-bottom: 20px;
+    }
+    .content h3 {
+      font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--dim); margin-top: 40px; margin-bottom: 12px;
+    }
+    .content p {
+      font-size: 12px; line-height: 2;
+      color: rgba(255,255,255,0.45); margin-bottom: 20px;
+    }
+    .content code, .content .code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px; color: var(--white);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 2px 8px; border-radius: 3px;
+    }
+    .content pre {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px; color: var(--white);
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 20px 24px; border-radius: 4px;
+      overflow-x: auto; margin: 16px 0 24px; line-height: 1.7;
+    }
+    .content ul { margin: 12px 0 20px 20px; }
+    .content li {
+      font-size: 12px; line-height: 2;
+      color: rgba(255,255,255,0.45);
+    }
+    .content .label {
+      font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase;
+      color: var(--dim); margin-bottom: 16px;
+    }
+    .badge {
+      display: inline-block;
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 4px 12px; font-size: 8px; letter-spacing: 0.35em;
+      color: var(--dim); margin-bottom: 20px;
+    }
+    .color-dot {
+      display: inline-block;
+      width: 8px; height: 8px; border-radius: 50%;
+      margin-right: 6px; vertical-align: middle;
+    }
+    hr { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 40px 0; }
+    footer {
+      padding: 40px 48px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      font-size: 9px; letter-spacing: 0.3em; color: var(--dim);
+    }
+    @media(max-width:700px) {
+      .content-inner { padding: 48px 24px; }
+      .tb-right { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="tb-left">PAZATOR DOCS</div>
+    <div class="tb-center">TIMELN</div>
+    <nav class="tb-right">
+      <a href="ctxod.html">CTXOD</a>
+      <a href="tastur.html">TASTUR</a>
+      <a href="timeln.html">TIMELN</a>
+      <a href="dashbrd.html">DASHBRD</a>
+      <a href="../app">App</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="content">
+      <div class="content-inner">
+        <div class="badge">FEATURE &mdash; v0.May1526</div>
+        <h1>Entity<br>Timeline.</h1>
+
+        <h3>Why it exists</h3>
+        <p>
+          Before TIMELN, every piece of data about a person lived in its own section of the slide panel.
+          Relationships in one box, cases in another, chats further down, tracker data somewhere else, the
+          analysis tab a whole separate click away. If you wanted to figure out the sequence of events
+          involving someone, you had to piece it together manually by jumping between sections.
+        </p>
+        <p>
+          That's the kind of friction that makes you miss things. TIMELN pulls everything into one
+          chronological feed so you can scroll through a person's history without context-switching.
+        </p>
+
+        <h2>How It Works</h2>
+        <p>
+          When you open the slide panel for a human or entity, the app runs
+          <code class="code">buildEntityTimeline(id, type)</code>, which queries every data source that
+          has a timestamp and an association with that entity. Each source returns a list of events,
+          the function merges them all into one array, sorts descending by timestamp, and hands it to
+          <code class="code">renderEntityTimeline()</code> to draw the feed.
+        </p>
+        <p>
+          The timeline lives at the bottom of the slide panel, after Cases. If there's nothing to show,
+          it just says "No timeline events" &mdash; no empty containers wasting space.
+        </p>
+
+        <h2>Event Sources</h2>
+        <p>Six data sources feed into the timeline, each with its own color and icon:</p>
+
+        <ul>
+          <li>
+            <span class="color-dot" style="background:#4d9de0;"></span>
+            <strong>Relationships</strong> &mdash; every relationship involving the entity, pulled from
+            <code class="code">pazatorRelationships.getForEntity()</code>. Uses the relationship type's
+            native color and icon. Shows the direction with the other party's name.
+          </li>
+          <li>
+            <span class="color-dot" style="background:#ffd93d;"></span>
+            <strong>Cases</strong> &mdash; case creation events when the entity is linked to a case.
+            Also picks up case timeline entries that specifically mention the entity
+            (<code class="code">entity-added</code>, <code class="code">entity-removed</code>, or notes
+            that contain the entity's name or ID).
+          </li>
+          <li>
+            <span class="color-dot" style="background:#00cec9;"></span>
+            <strong>Chats</strong> &mdash; each chat linked to a human via
+            <code class="code">human.chats[]</code> appears with its source label and timestamp.
+            Suspicious chats are flagged inline.
+          </li>
+          <li>
+            <span class="color-dot" style="background:#e17055;"></span>
+            <strong>Tracker</strong> &mdash; when a human has a linked LCTX tracker alias, the
+            <code class="code">trackerLinkedAt</code> timestamp creates a single event marking when
+            the alias was linked. Full location history would require querying the Supabase
+            <code class="code">locations</code> table, which isn't done yet.
+          </li>
+          <li>
+            <span class="color-dot" style="background:#a29bfe;"></span>
+            <strong>AI Analysis</strong> &mdash; entries in <code class="code">analysesStore</code>
+            where the title or findings text contains the entity's name or ID. This is a loose match
+            and can miss or over-catch depending on how the analysis was generated.
+          </li>
+          <li>
+            <span class="color-dot" style="background:#6bcf7f;"></span>
+            <strong>Notes</strong> &mdash; <code class="code">human.extraNotes</code> or
+            <code class="code">other.note</code> if present. Notes carry no timestamp, so they
+            always appear at the bottom of the feed.
+          </li>
+        </ul>
+
+        <h2>Click Behavior</h2>
+        <p>Each event is clickable. What happens depends on the source:</p>
+
+        <ul>
+          <li><strong>Case / Case Activity</strong> &mdash; switches to the Cases tab and selects that case.</li>
+          <li><strong>Chat</strong> &mdash; opens the chat's slide panel.</li>
+          <li><strong>Tracker</strong> &mdash; scrolls the slide panel to the LCTX Tracker section.</li>
+          <li><strong>Analysis</strong> &mdash; switches to the Analysis tab.</li>
+          <li><strong>Note</strong> &mdash; scrolls the slide panel to the bottom where notes are shown.</li>
+          <li><strong>Relationship</strong> &mdash; scrolls to the Relationships section.</li>
+        </ul>
+
+        <h2>What's Missing</h2>
+        <p>
+          No change tracking on entity fields. If someone's threat level changes or their credit score
+          updates, there's no record of that in the current data model &mdash; it just overwrites.
+          Field-level change history would need a formal audit log, which doesn't exist yet.
+        </p>
+        <p>
+          Tracker location history is also limited. Right now we only log when the alias was linked,
+          not the individual location pings. Showing actual GPS breadcrumbs would mean querying the
+          Supabase <code class="code">locations</code> table for every alias and feeding those into
+          the timeline, which is doable but hasn't been built.
+        </p>
+        <p>
+          AI analysis matching is text-based and fragile. If an entity's name changes or the analysis
+          uses a different reference to the same person, it won't match. The analyses store doesn't have
+          a structured entity reference field, so we're stuck with substring search for now.
+        </p>
+
+        <hr>
+
+        <h2>Future Plans</h2>
+        <p>
+          Bind the timeline to the <code class="code">pazatorStore</code> change events so it auto-updates
+          when relationships are added or cases are modified without reopening the panel. Also want to
+          add inline location data from the tracker history and maybe a visual indicator for clusters of
+          activity around the same date.
+        </p>
+      </div>
+    </div>
+
+    <footer>
+      <span>PAZATOR &mdash; MASS DATA INTELLIGENCE</span>
+    </footer>
+  </section>
+</body>
+</html>

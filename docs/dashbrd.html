@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DASHBRD — Dynamic Dashboard | Pazator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --black: #000; --white: #fff; --dim: #666; }
+    html { font-size: 16px; }
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: 'DM Mono', monospace;
+      overflow-x: hidden;
+      cursor: crosshair;
+    }
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 32px; height: 52px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      background: var(--black);
+    }
+    .tb-left { font-size: 9px; letter-spacing: 0.5em; color: var(--dim); }
+    .tb-center { font-family: 'Anton', sans-serif; font-size: 18px; letter-spacing: 0.12em; }
+    .tb-right { display: flex; gap: 28px; }
+    .tb-right a {
+      font-size: 9px; letter-spacing: 0.35em; color: var(--dim);
+      text-decoration: none; text-transform: uppercase; transition: color 0.2s;
+    }
+    .tb-right a:hover { color: var(--white); }
+    .hero {
+      min-height: 100vh; padding-top: 52px;
+      display: grid; grid-template-rows: auto 1fr auto;
+    }
+    .ticker-wrap {
+      overflow: hidden; white-space: nowrap; padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .ticker-inner {
+      display: inline-block;
+      animation: tick 20s linear infinite;
+      font-size: 9px; letter-spacing: 0.45em; color: var(--dim);
+    }
+    @keyframes tick { to { transform: translateX(-50%); } }
+    .content { border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .content-inner {
+      max-width: 800px; margin: 0 auto; padding: 80px 48px;
+    }
+    .content h1 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(48px, 8vw, 100px);
+      line-height: 0.85; letter-spacing: -0.03em;
+      margin-bottom: 40px;
+    }
+    .content h2 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(20px, 3vw, 36px);
+      letter-spacing: -0.01em;
+      margin-top: 60px; margin-bottom: 20px;
+    }
+    .content h3 {
+      font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--dim); margin-top: 40px; margin-bottom: 12px;
+    }
+    .content p {
+      font-size: 12px; line-height: 2;
+      color: rgba(255,255,255,0.45); margin-bottom: 20px;
+    }
+    .content code, .content .code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px; color: var(--white);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 2px 8px; border-radius: 3px;
+    }
+    .content pre {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px; color: var(--white);
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 20px 24px; border-radius: 4px;
+      overflow-x: auto; margin: 16px 0 24px; line-height: 1.7;
+    }
+    .content ul { margin: 12px 0 20px 20px; }
+    .content li {
+      font-size: 12px; line-height: 2;
+      color: rgba(255,255,255,0.45);
+    }
+    .content .label {
+      font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase;
+      color: var(--dim); margin-bottom: 16px;
+    }
+    .badge {
+      display: inline-block;
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 4px 12px; font-size: 8px; letter-spacing: 0.35em;
+      color: var(--dim); margin-bottom: 20px;
+    }
+    hr { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 40px 0; }
+    footer {
+      padding: 40px 48px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      font-size: 9px; letter-spacing: 0.3em; color: var(--dim);
+    }
+    @media(max-width:700px) {
+      .content-inner { padding: 48px 24px; }
+      .tb-right { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="tb-left">PAZATOR DOCS</div>
+    <div class="tb-center">DASHBRD</div>
+    <nav class="tb-right">
+      <a href="ctxod.html">CTXOD</a>
+      <a href="tastur.html">TASTUR</a>
+      <a href="timeln.html">TIMELN</a>
+      <a href="facets.html">FACETS</a>
+      <a href="dashbrd.html">DASHBRD</a>
+      <a href="../app">App</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="content">
+      <div class="content-inner">
+        <div class="badge">FEATURE &mdash; v0.May1826</div>
+        <h1>Dynamic<br>Dashboard.</h1>
+
+        <h3>Why it exists</h3>
+        <p>
+          The old Analysis tab was a static page. Same layout, same four metrics, same two tool buttons for everyone.
+          That works if the only thing you need is a glance at the numbers. But analysts dont all work the same way.
+          Some want to watch the threat feed in real time. Others want a big pie chart and nothing else. A few just
+          want to make sure the AI is still running.
+        </p>
+        <p>
+          So I ripped out the static grid and replaced it with widgets you can drag around, resize, add, and remove.
+          Your layout gets saved to IndexedDB. Come back tomorrow and your dashboard looks exactly how you left it.
+        </p>
+
+        <h2>How it works</h2>
+        <p>
+          The dashboard lives in the tab formerly known as Analysis. Click the chart icon in the tab bar and you get
+          a blank-ish canvas with a toolbar. The <code class="code">+ Add Widget</code> button drops down the available
+          widget types. Pick one and it gets placed in the first empty slot.
+        </p>
+        <p>
+          Every widget is a card with a header (title + resize/close buttons) and a body that renders live data.
+          Drag a card by its header to move it around. Click the expand icon to cycle through four sizes: 1x1, 1x2,
+          2x1, 2x2 (where the unit is roughly 280x160 pixels). Click the X to delete a widget. The layout is saved
+          automatically on every change.
+        </p>
+        <p>
+          The reset button (undo icon) restores the default seven-widget layout. The refresh button re-renders every
+          widget's content.
+        </p>
+
+        <h2>Widget types</h2>
+        <p>Seven widget types come built in:</p>
+
+        <ul>
+          <li><strong>Entity Count</strong> &mdash; big numbers for people, entities, cases, and tags. 1x1.</li>
+          <li><strong>Risk Distribution</strong> &mdash; a CSS conic-gradient pie chart showing credit risk tiers
+          (high/medium/low). 1x2.</li>
+          <li><strong>Recent Activity</strong> &mdash; the 12 most recently created or updated items across people,
+          entities, and cases, with timestamps. 1x2.</li>
+          <li><strong>Graph Snapshot</strong> &mdash; a tiny canvas with a force-directed-ish scatter of nodes
+          (blue = people, purple = entities) and random edges. Not a real graph layout &mdash; its purely decorative,
+          meant to give you a quick visual sense of data density. Shows node/edge counts and a high-risk badge. 2x2.</li>
+          <li><strong>Case Status</strong> &mdash; counts for open, in-progress, and closed cases with progress bars. 1x1.</li>
+          <li><strong>Threat Timeline</strong> &mdash; lists high and medium threat people with colored dots. 2x1.</li>
+          <li><strong>AI Insights</strong> &mdash; the six most recent AI analysis results from the analyses store. 1x2.</li>
+        </ul>
+
+        <h2>Layout persistence</h2>
+        <p>
+          Widget positions, sizes, and types are stored as a JSON array in the <code class="code">meta</code> object
+          store of PazatorV2 (IndexedDB) under the key <code class="code">dashboardLayout</code>. A localStorage
+          fallback is also written in case IndexedDB is unavailable. The storage is write-on-change &mdash; drag,
+          resize, add, or remove all trigger a save.
+        </p>
+
+        <pre>{
+  id: "dashboardLayout",
+  widgets: [
+    { id: "w-entity-count-xxx", type: "entity-count", x: 0, y: 0, w: 1, h: 1 },
+    { id: "w-risk-pie-xxx",     type: "risk-pie",     x: 1, y: 0, w: 1, h: 2 },
+    ...
+  ]
+}</pre>
+
+        <h2>Drag and drop</h2>
+        <p>
+          Uses the native HTML5 Drag and Drop API. No external libraries. When you start dragging a widget, its
+          opacity drops to 40% and the cursor changes to a grab hand. Dropping it onto another widget swaps their
+          positions. The drop target highlights briefly. The whole thing is lightweight and works without any
+          framework dependencies.
+        </p>
+        <p>
+          The grid is absolute-positioned. Each widget's position is calculated as <code class="code">x * (colWidth + gap)</code>
+          for left and <code class="code">y * (rowHeight + gap)</code> for top. Resizing changes the <code class="code">w</code>
+          and <code class="code">h</code> values and the card dimensions recalculate. The grid container's min-height
+          is computed from the furthest widget bottom-edge.
+        </p>
+
+        <h2>Code</h2>
+        <p>
+          Everything lives in <code class="code">app/pazator_dashboard.js</code> as a standalone IIFE that exports
+          <code class="code">window.pazatorDashboard</code>. The HTML was swapped out in
+          <code class="code">app/index.html</code> &mdash; the old Analysis tab content was replaced with a toolbar
+          and an empty <code class="code">#dashboardGrid</code> div. The <code class="code">switchTab</code> function
+          in <code class="code">scriptz.js</code> was updated to call <code class="code">pazatorDashboard.init()</code>
+          on first visit and <code class="code">pazatorDashboard.refresh()</code> on subsequent visits.
+        </p>
+
+        <hr>
+
+        <div class="label">Related</div>
+        <p>
+          The dashboard pulls data from the same store that powers the rest of the app &mdash;
+          <code class="code">pazatorStore._data</code>, <code class="code">cases</code>,
+          <code class="code">analysesStore</code>, etc. It uses <code class="code">pazatorEngine</code> for
+          IndexedDB persistence. See the <a href="../app" style="color:var(--white);">app</a> to try it.
+        </p>
+      </div>
+    </div>
+
+    <footer>
+      <span>PAZATOR &mdash; MASS DATA INTELLIGENCE</span>
+    </footer>
+  </section>
+</body>
+</html>

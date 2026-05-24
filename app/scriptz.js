@@ -4,6 +4,8 @@ let pazatorData = {
     others: [],
     chats: []
 };
+// Keep legacy globals in sync for other app modules (e.g. GraphView/dashboard).
+window.pazatorData = pazatorData;
 
 let tags = [];
 
@@ -28,6 +30,743 @@ let selectedCaseId = null;
 
 
 let logoBase64 = null;
+
+const AGENT_CONFIG = {
+    CHUNK_SIZE: 20,
+    MAX_CONCURRENT: 2,
+    AI_CALL_DELAY: 1500,
+    SCORE_THRESHOLD: 3,
+    TOP_CANDIDATE_PCT: 0.15,
+    MAX_FINDINGS_PER_TYPE: 200,
+    STATUS: {
+        IDLE: 'idle',
+        WORKING: 'working',
+        COMPLETED: 'completed',
+        ERROR: 'error'
+    }
+};
+
+class InvertedIndex {
+    constructor(people) {
+        this.indexes = {
+            workplace: new Map(),
+            nationality: new Map(),
+            countryOfOrigin: new Map(),
+            religion: new Map(),
+            politicalViews: new Map(),
+            ethnicity: new Map(),
+            immigrationStatus: new Map(),
+            threatLevel: new Map(),
+            occupation: new Map(),
+            educationLevel: new Map(),
+            maritalStatus: new Map(),
+            socialClass: new Map(),
+            incomeLevel: new Map(),
+            tag: new Map()
+        };
+        this.byName = new Map();
+        this.byId = new Map();
+        this.build(people);
+    }
+
+    build(people) {
+        people.forEach(p => {
+            if (p.id) this.byId.set(p.id, p);
+            if (p.name) this.byName.set(p.name.toLowerCase(), p);
+
+            this._add('workplace', p.workplace, p.id);
+            this._add('nationality', p.nationality, p.id);
+            this._add('countryOfOrigin', p.countryOfOrigin, p.id);
+            this._add('religion', p.religion, p.id);
+            this._add('politicalViews', p.politicalViews, p.id);
+            this._add('ethnicity', p.ethnicity, p.id);
+            this._add('immigrationStatus', p.immigrationStatus, p.id);
+            this._add('threatLevel', p.threatLevel, p.id);
+            this._add('occupation', p.occupation, p.id);
+            this._add('educationLevel', p.educationLevel, p.id);
+            this._add('maritalStatus', p.maritalStatus, p.id);
+            this._add('socialClass', p.socialClass, p.id);
+            this._add('incomeLevel', p.incomeLevel, p.id);
+
+            (p.tags || []).forEach(t => {
+                this._addToMap(this.indexes.tag, (t || '').toLowerCase(), p.id);
+            });
+        });
+    }
+
+    _add(key, value, id) {
+        if (value) this._addToMap(this.indexes[key], value.toLowerCase().trim(), id);
+    }
+
+    _addToMap(map, key, id) {
+        if (!key) return;
+        if (!map.has(key)) map.set(key, new Set());
+        map.get(key).add(id);
+    }
+
+    lookup(indexKey, value) {
+        const idx = this.indexes[indexKey];
+        if (!idx) return new Set();
+        return idx.get((value || '').toLowerCase().trim()) || new Set();
+    }
+
+    getById(id) { return this.byId.get(id); }
+    getByName(name) { return this.byName.get((name || '').toLowerCase()); }
+
+    getBuckets() {
+        const buckets = [];
+        Object.entries(this.indexes).forEach(([key, map]) => {
+            map.forEach((ids, value) => {
+                if (ids.size >= 2) {
+                    buckets.push({ indexKey: key, value, ids: [...ids] });
+                }
+            });
+        });
+        return buckets;
+    }
+}
+
+class FindingDedup {
+    constructor() {
+        this.seen = new Map();
+        this.findings = [];
+    }
+
+    add(finding) {
+        const key = this._hash(finding);
+        if (this.seen.has(key)) {
+            const existing = this.seen.get(key);
+            existing.count = (existing.count || 1) + 1;
+            if (finding.evidence && !existing.evidence.includes(finding.evidence)) {
+                existing.evidence += '; ' + finding.evidence;
+            }
+            return false;
+        }
+        finding.count = 1;
+        this.seen.set(key, finding);
+        this.findings.push(finding);
+        return true;
+    }
+
+    _hash(f) {
+        const subj = (f.subject || '').toLowerCase().trim();
+        const content = (f.content || '').toLowerCase().trim().substring(0, 60);
+        return subj + '|' + content;
+    }
+
+    getFindings() {
+        return this.findings.slice(0, AGENT_CONFIG.MAX_FINDINGS_PER_TYPE);
+    }
+}
+
+class Semaphore {
+    constructor(limit) {
+        this.limit = limit;
+        this.active = 0;
+        this.queue = [];
+    }
+
+    async acquire() {
+        if (this.active < this.limit) {
+            this.active++;
+            return Promise.resolve();
+        }
+        return new Promise(resolve => {
+            this.queue.push(resolve);
+        });
+    }
+
+    release() {
+        if (this.queue.length > 0) {
+            const resolve = this.queue.shift();
+            resolve();
+        } else {
+            this.active--;
+        }
+    }
+}
+
+class IntelligenceAgent {
+    constructor(name, type, color) {
+        this.name = name;
+        this.type = type;
+        this.color = color;
+        this.status = AGENT_CONFIG.STATUS.IDLE;
+        this.progress = 0;
+        this.total = 0;
+        this.processed = 0;
+        this.findingCount = 0;
+        this.onFinding = null;
+        this.semaphore = null;
+    }
+
+    setSemaphore(sem) { this.semaphore = sem; }
+
+    setStatus(status) {
+        this.status = status;
+        this.renderPanel();
+    }
+
+    updateProgress(processed, total) {
+        this.processed = processed;
+        this.total = total;
+        this.progress = total > 0 ? Math.round((processed / total) * 100) : 0;
+        this.renderPanel();
+    }
+
+    emitFinding(finding) {
+        this.findingCount++;
+        if (this.onFinding) this.onFinding(finding);
+    }
+
+    async processChunk(chunk, promptFn) {
+        if (this.semaphore) await this.semaphore.acquire();
+        try {
+            await this._delay(AGENT_CONFIG.AI_CALL_DELAY);
+            const prompt = promptFn(chunk);
+            const response = await geminiChat([
+                { role: 'system', content: 'You are a specialized intelligence agent. Output ONLY valid JSON.' },
+                { role: 'user', content: prompt }
+            ]);
+            const text = response.content || response;
+            const results = extractJSONFromResponse(text);
+            if (Array.isArray(results)) {
+                results.forEach(r => this.emitFinding(r));
+            }
+            return results || [];
+        } catch (e) {
+            return [];
+        } finally {
+            if (this.semaphore) this.semaphore.release();
+        }
+    }
+
+    _delay(ms) {
+        return new Promise(r => setTimeout(r, ms));
+    }
+
+    renderPanel() {
+        const el = document.getElementById('agent-row-' + this.type);
+        if (!el) return;
+        const dot = el.querySelector('.agent-panel-dot');
+        const status = el.querySelector('.agent-panel-status');
+        const fill = el.querySelector('.agent-panel-bar-fill');
+        const nameEl = el.querySelector('.agent-panel-name');
+        if (dot) dot.className = 'agent-panel-dot ' + this.status;
+        if (status) status.textContent = this.status.charAt(0).toUpperCase() + this.status.slice(1);
+        if (fill) {
+            fill.style.width = this.progress + '%';
+            fill.className = 'agent-panel-bar-fill' + (this.status === AGENT_CONFIG.STATUS.COMPLETED ? ' completed' : this.status === AGENT_CONFIG.STATUS.ERROR ? ' error' : '');
+        }
+        if (nameEl) nameEl.textContent = this.name + ' (' + this.findingCount + ')';
+    }
+
+    reset() {
+        this.status = AGENT_CONFIG.STATUS.IDLE;
+        this.progress = 0;
+        this.total = 0;
+        this.processed = 0;
+        this.findingCount = 0;
+    }
+}
+
+class AgentSystem {
+    constructor() {
+        this.agents = {
+            threat: new IntelligenceAgent('Threat', 'threat', '#ff6b6b'),
+            risk: new IntelligenceAgent('Risk', 'risk', '#ffd93d'),
+            intel: new IntelligenceAgent('Intel', 'intel', '#6bcf7f'),
+            connection: new IntelligenceAgent('Connection', 'connection', '#4d9de0')
+        };
+        this.running = false;
+        this.panelVisible = false;
+        this.semaphore = new Semaphore(AGENT_CONFIG.MAX_CONCURRENT);
+        Object.values(this.agents).forEach(a => a.setSemaphore(this.semaphore));
+        this.dedup = new FindingDedup();
+    }
+
+    showPanel() {
+        const panel = document.getElementById('agentPanel');
+        if (!panel) return;
+        panel.style.display = 'block';
+        this.panelVisible = true;
+        this.renderAllRows();
+    }
+
+    renderAllRows() {
+        const body = document.getElementById('agentPanelBody');
+        if (!body) return;
+        body.innerHTML = '';
+        Object.values(this.agents).forEach(agent => {
+            const row = document.createElement('div');
+            row.className = 'agent-panel-agent';
+            row.id = 'agent-row-' + agent.type;
+            row.innerHTML = `
+                <div class="agent-panel-dot ${agent.status}"></div>
+                <div class="agent-panel-info">
+                    <div class="agent-panel-name">${agent.name}</div>
+                    <div class="agent-panel-status">${agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}</div>
+                </div>
+                <div class="agent-panel-bar">
+                    <div class="agent-panel-bar-bg">
+                        <div class="agent-panel-bar-fill" style="width: ${agent.progress}%"></div>
+                    </div>
+                </div>
+            `;
+            body.appendChild(row);
+        });
+    }
+
+    getPersonData() {
+        return pazatorData.humans.map(h => ({
+            id: h.id, name: h.name, gender: h.gender, birthDate: h.birthDate,
+            workplace: h.workplace, occupation: h.occupation,
+            nationality: h.nationality, countryOfOrigin: h.countryOfOrigin,
+            immigrationStatus: h.immigrationStatus, languages: h.languages || [],
+            ethnicity: h.ethnicity, religion: h.religion,
+            politicalViews: h.politicalViews, threatLevel: h.threatLevel,
+            socialClass: h.socialClass, incomeLevel: h.incomeLevel,
+            educationLevel: h.educationLevel, maritalStatus: h.maritalStatus,
+            credit: h.credit, tags: h.tags || [],
+            friends: h.friends || [], family: h.family || [],
+            extraNotes: h.extraNotes || '', chats: h.chats || []
+        }));
+    }
+
+    getEntityData() {
+        return pazatorData.others.map(o => ({ id: o.id, name: o.name, note: o.note || '', tags: o.tags || [] }));
+    }
+
+    async runAll() {
+        if (this.running) return;
+        this.running = true;
+
+        this.showPanel();
+        const closeBtn = document.getElementById('agentPanelClose');
+        if (closeBtn) closeBtn.style.display = 'none';
+
+        const btn = document.getElementById('intelAnalyzeBtn');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Deploying...';
+        }
+
+        const people = this.getPersonData();
+        const entities = this.getEntityData();
+        const index = new InvertedIndex(people);
+
+        this.dedup = new FindingDedup();
+
+        Object.values(this.agents).forEach(a => {
+            a.reset();
+            a.onFinding = (f) => {
+                const isNew = this.dedup.add(f);
+                if (isNew) a.renderPanel();
+            };
+        });
+        this.renderAllRows();
+
+        try {
+            const threatPromise = this.runThreatAgent(people, entities, index);
+            const riskPromise = this.runRiskAgent(people, entities, index);
+            const intelPromise = this.runIntelAgent(people, entities, index);
+            const connectionPromise = this.runConnectionAgent(people, index);
+
+            await Promise.all([threatPromise, riskPromise, intelPromise, connectionPromise]);
+
+            this.collectAllFindings();
+        } catch (e) {
+            console.error('Agent system error:', e);
+        } finally {
+            this.running = false;
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-play"></i> Deploy Agents';
+            }
+            if (closeBtn) closeBtn.style.display = 'flex';
+        }
+    }
+
+    _scoreThreat(p) {
+        let score = 0;
+        const tl = (p.threatLevel || '').toLowerCase();
+        if (tl === 'critical') score += 10;
+        else if (tl === 'high') score += 7;
+        else if (tl === 'medium') score += 4;
+        else if (tl === 'low') score += 2;
+
+        const tags = (p.tags || []).map(t => t.toLowerCase());
+        const dangerous = ['dangerous', 'violent', 'extremist', 'weapon', 'bomb', 'threat', 'criminal', 'wanted', 'suspect', 'terrorist', 'militant', 'radical'];
+        tags.forEach(t => { if (dangerous.some(d => t.includes(d))) score += 3; });
+
+        const notes = (p.extraNotes || '').toLowerCase();
+        if (notes.includes('threat') || notes.includes('danger') || notes.includes('violent') || notes.includes('weapon')) score += 4;
+        if (notes.includes('extremist') || notes.includes('radical') || notes.includes('militant')) score += 5;
+
+        return score;
+    }
+
+    _scoreRisk(p) {
+        let score = 0;
+        const credit = p.credit || 185;
+        if (credit < 100) score += 5;
+        else if (credit < 150) score += 3;
+
+        const imm = (p.immigrationStatus || '').toLowerCase();
+        if (imm.includes('visa') || imm.includes('temporary') || imm.includes('expired') || imm.includes('overstay')) score += 3;
+        if (imm.includes('undocumented') || imm.includes('illegal')) score += 5;
+
+        const tags = (p.tags || []).map(t => t.toLowerCase());
+        const risky = ['suspicious', 'fraud', 'debt', 'bankrupt', 'unstable', 'unemployed', 'untrusted', 'scam'];
+        tags.forEach(t => { if (risky.some(r => t.includes(r))) score += 3; });
+
+        const income = (p.incomeLevel || '').toLowerCase();
+        if (income === 'low' || income === 'none') score += 2;
+
+        const notes = (p.extraNotes || '').toLowerCase();
+        if (notes.includes('suspicious') || notes.includes('fraud') || notes.includes('debt')) score += 3;
+        if (notes.includes('unstable') || notes.includes('risk')) score += 2;
+
+        return score;
+    }
+
+    _scoreIntel(p) {
+        let score = 0;
+        if (p.languages && p.languages.length > 2) score += 2;
+        if (p.educationLevel && (p.educationLevel.includes('university') || p.educationLevel.includes('master') || p.educationLevel.includes('phd'))) score += 2;
+        if (p.nationality && p.countryOfOrigin && p.nationality !== p.countryOfOrigin) score += 2;
+        const tags = (p.tags || []).map(t => t.toLowerCase());
+        const notable = ['leader', 'owner', 'manager', 'doctor', 'engineer', 'investor', 'executive', 'professional', 'veteran', 'expert', 'specialist'];
+        tags.forEach(t => { if (notable.some(n => t.includes(n))) score += 2; });
+        if (p.chats && p.chats.length > 5) score += 1;
+        return score;
+    }
+
+    async runThreatAgent(people, entities, index) {
+        const agent = this.agents.threat;
+        agent.setStatus(AGENT_CONFIG.STATUS.WORKING);
+
+        const scored = people.map(p => ({ person: p, score: this._scoreThreat(p) }));
+        const threshold = Math.max(AGENT_CONFIG.SCORE_THRESHOLD, this._percentile(scored.map(s => s.score), 1 - AGENT_CONFIG.TOP_CANDIDATE_PCT));
+        const candidates = scored.filter(s => s.score >= threshold).map(s => s.person);
+        const chunks = this._chunkArray(candidates, AGENT_CONFIG.CHUNK_SIZE);
+
+        agent.updateProgress(0, chunks.length);
+
+        if (chunks.length === 0) {
+            agent.setStatus(AGENT_CONFIG.STATUS.COMPLETED);
+            return;
+        }
+
+        const tasks = chunks.map((chunk, i) =>
+            this._runAIAnalysis(agent, chunk, i, 'threat', (c) => {
+                const peopleBrief = c.map(p => ({
+                    id: p.id, name: p.name, threatLevel: p.threatLevel,
+                    politicalViews: p.politicalViews, religion: p.religion,
+                    tags: p.tags, extraNotes: p.extraNotes,
+                    workplace: p.workplace, occupation: p.occupation,
+                    credit: p.credit
+                }));
+                return `Analyze these HIGH-PRIORITY people for threats and security concerns.
+People: ${JSON.stringify(peopleBrief, null, 2)}
+Return JSON: [{"type":"threat","subject":"name","content":"description","evidence":"specific data point","tags":["tag"]}]
+Focus on: dangerous behavior, extremist indicators, violent tendencies, security risks.
+Only genuine threats. Return ONLY JSON.`;
+            })
+        );
+
+        await Promise.all(tasks);
+        agent.setStatus(AGENT_CONFIG.STATUS.COMPLETED);
+    }
+
+    async runRiskAgent(people, entities, index) {
+        const agent = this.agents.risk;
+        agent.setStatus(AGENT_CONFIG.STATUS.WORKING);
+
+        const scored = people.map(p => ({ person: p, score: this._scoreRisk(p) }));
+        const threshold = Math.max(AGENT_CONFIG.SCORE_THRESHOLD, this._percentile(scored.map(s => s.score), 1 - AGENT_CONFIG.TOP_CANDIDATE_PCT));
+        const candidates = scored.filter(s => s.score >= threshold).map(s => s.person);
+        const chunks = this._chunkArray(candidates, AGENT_CONFIG.CHUNK_SIZE);
+
+        agent.updateProgress(0, chunks.length);
+
+        if (chunks.length === 0) {
+            agent.setStatus(AGENT_CONFIG.STATUS.COMPLETED);
+            return;
+        }
+
+        const tasks = chunks.map((chunk, i) =>
+            this._runAIAnalysis(agent, chunk, i, 'risk', (c) => {
+                const peopleBrief = c.map(p => ({
+                    id: p.id, name: p.name, credit: p.credit, incomeLevel: p.incomeLevel,
+                    socialClass: p.socialClass, educationLevel: p.educationLevel,
+                    immigrationStatus: p.immigrationStatus, tags: p.tags,
+                    extraNotes: p.extraNotes, workplace: p.workplace,
+                    occupation: p.occupation, maritalStatus: p.maritalStatus
+                }));
+                return `Analyze these people for risks and vulnerabilities.
+People: ${JSON.stringify(peopleBrief, null, 2)}
+Return JSON: [{"type":"risk","subject":"name","content":"description","evidence":"specific data","tags":["tag"]}]
+Focus on: financial risks, immigration issues, social vulnerabilities, instability.
+Only genuine risks. Return ONLY JSON.`;
+            })
+        );
+
+        await Promise.all(tasks);
+        agent.setStatus(AGENT_CONFIG.STATUS.COMPLETED);
+    }
+
+    async runIntelAgent(people, entities, index) {
+        const agent = this.agents.intel;
+        agent.setStatus(AGENT_CONFIG.STATUS.WORKING);
+
+        const scored = people.map(p => ({ person: p, score: this._scoreIntel(p) }));
+        const threshold = Math.max(AGENT_CONFIG.SCORE_THRESHOLD, this._percentile(scored.map(s => s.score), 1 - AGENT_CONFIG.TOP_CANDIDATE_PCT));
+        const candidates = scored.filter(s => s.score >= threshold).map(s => s.person);
+        const chunks = this._chunkArray(candidates, AGENT_CONFIG.CHUNK_SIZE);
+
+        agent.updateProgress(0, chunks.length);
+
+        if (chunks.length === 0) {
+            agent.setStatus(AGENT_CONFIG.STATUS.COMPLETED);
+            return;
+        }
+
+        const tasks = chunks.map((chunk, i) =>
+            this._runAIAnalysis(agent, chunk, i, 'intel', (c) => {
+                const peopleBrief = c.map(p => ({
+                    id: p.id, name: p.name, nationality: p.nationality,
+                    countryOfOrigin: p.countryOfOrigin, languages: p.languages,
+                    ethnicity: p.ethnicity, religion: p.religion,
+                    educationLevel: p.educationLevel, occupation: p.occupation,
+                    workplace: p.workplace, tags: p.tags, extraNotes: p.extraNotes,
+                    credit: p.credit
+                }));
+                return `Analyze these people for intelligence patterns and notable observations.
+People: ${JSON.stringify(peopleBrief, null, 2)}
+Return JSON: [{"type":"positive|info","subject":"name","content":"description","evidence":"data","tags":["tag"]}]
+Focus on: unique backgrounds, positive indicators, noteworthy patterns, demographic insights.
+Return ONLY JSON.`;
+            })
+        );
+
+        await Promise.all(tasks);
+        agent.setStatus(AGENT_CONFIG.STATUS.COMPLETED);
+    }
+
+    async _runAIAnalysis(agent, chunk, index, type, promptFn) {
+        agent.updateProgress(index, agent.total);
+        try {
+            await agent.processChunk(chunk, promptFn);
+        } catch (e) {
+            // retry once after delay
+            await agent._delay(AGENT_CONFIG.AI_CALL_DELAY * 2);
+            try {
+                await agent.processChunk(chunk, promptFn);
+            } catch (e2) {
+                // skip on second failure
+            }
+        }
+        agent.updateProgress(index + 1, agent.total);
+    }
+
+    _chunkArray(arr, size) {
+        const chunks = [];
+        for (let i = 0; i < arr.length; i += size) {
+            chunks.push(arr.slice(i, i + size));
+        }
+        return chunks;
+    }
+
+    _percentile(values, p) {
+        if (values.length === 0) return 0;
+        const sorted = [...values].sort((a, b) => a - b);
+        const idx = Math.floor(p * (sorted.length - 1));
+        return sorted[idx];
+    }
+
+    async runConnectionAgent(people, index) {
+        const agent = this.agents.connection;
+        agent.setStatus(AGENT_CONFIG.STATUS.WORKING);
+
+        const buckets = index.getBuckets();
+        const connections = new Map();
+        const processed = new Set();
+
+        const totalWork = buckets.length;
+        agent.updateProgress(0, totalWork);
+
+        for (let i = 0; i < buckets.length; i++) {
+            const bucket = buckets[i];
+            const ids = [...bucket.ids];
+
+            for (let j = 0; j < ids.length; j++) {
+                for (let k = j + 1; k < ids.length; k++) {
+                    const pairKey = [ids[j], ids[k]].sort().join('|');
+                    if (processed.has(pairKey)) continue;
+                    processed.add(pairKey);
+
+                    const p1 = index.getById(ids[j]);
+                    const p2 = index.getById(ids[k]);
+                    if (!p1 || !p2) continue;
+                    if (p1.friends?.includes(p2.id) || p1.family?.includes(p2.id)) continue;
+
+                    const shared = this._findSharedAttributes(p1, p2, bucket.indexKey, bucket.value);
+                    if (shared.length > 0) {
+                        const connKey = [p1.name, p2.name].sort().join('|');
+                        if (!connections.has(connKey)) {
+                            connections.set(connKey, { person1: p1.name, person2: p2.name, reasons: [], types: new Set() });
+                        }
+                        const conn = connections.get(connKey);
+                        shared.forEach(s => conn.reasons.push(s));
+                        conn.types.add(bucket.indexKey);
+                    }
+                }
+            }
+
+            if (i % 10 === 0 || i === buckets.length - 1) {
+                agent.updateProgress(i + 1, totalWork);
+            }
+        }
+
+        const strongConnections = [...connections.values()]
+            .filter(c => c.reasons.length >= 2)
+            .sort((a, b) => b.reasons.length - a.reasons.length)
+            .slice(0, 200);
+
+        const aiChunks = this._chunkArray(strongConnections.slice(0, 100), AGENT_CONFIG.CHUNK_SIZE);
+        agent.total = aiChunks.length;
+        agent.updateProgress(0, aiChunks.length);
+
+        if (aiChunks.length > 0) {
+            const tasks = aiChunks.map((chunk, i) =>
+                this._runAIAnalysis(agent, chunk, i, 'connection', (c) => {
+                    const peopleBrief = c.map(conn => ({
+                        person1: conn.person1,
+                        person2: conn.person2,
+                        sharedAttributes: conn.reasons,
+                        connectionTypes: [...conn.types]
+                    }));
+                    return `Evaluate these potential connections for significance.
+Connections: ${JSON.stringify(peopleBrief, null, 2)}
+Return JSON: [{"type":"connection","subject":"person1 <-> person2","content":"why this connection matters","evidence":"key shared attribute","tags":["type"]}]
+Focus on connections that could indicate hidden networks, collusion, or coordinated behavior.
+Return ONLY JSON.`;
+                })
+            );
+
+            await Promise.all(tasks);
+        }
+
+        for (const conn of strongConnections.slice(0, 50)) {
+            agent.emitFinding({
+                type: 'connection',
+                subject: conn.person1 + ' <-> ' + conn.person2,
+                content: 'Shares ' + conn.reasons.length + ' attributes: ' + conn.reasons.join('; '),
+                evidence: 'Types: ' + [...conn.types].join(', '),
+                tags: [...conn.types].slice(0, 3)
+            });
+        }
+
+        agent.updateProgress(agent.total, agent.total);
+        agent.setStatus(AGENT_CONFIG.STATUS.COMPLETED);
+    }
+
+    _findSharedAttributes(p1, p2, bucketKey, bucketValue) {
+        const shared = [];
+        const checks = [
+            ['workplace', 'Same workplace'],
+            ['nationality', 'Same nationality'],
+            ['countryOfOrigin', 'Same country of origin'],
+            ['religion', 'Same religion'],
+            ['politicalViews', 'Same political views'],
+            ['ethnicity', 'Same ethnicity'],
+            ['immigrationStatus', 'Same immigration status'],
+            ['occupation', 'Same occupation'],
+            ['educationLevel', 'Same education level'],
+            ['maritalStatus', 'Same marital status'],
+            ['socialClass', 'Same social class'],
+            ['incomeLevel', 'Same income level'],
+        ];
+
+        checks.forEach(([key, label]) => {
+            if (key === bucketKey) return;
+            const v1 = (p1[key] || '').toLowerCase().trim();
+            const v2 = (p2[key] || '').toLowerCase().trim();
+            if (v1 && v2 && v1 === v2) {
+                shared.push(label + ': ' + v1);
+            }
+        });
+
+        const tags1 = new Set((p1.tags || []).map(t => t.toLowerCase()));
+        const tags2 = new Set((p2.tags || []).map(t => t.toLowerCase()));
+        const commonTags = [...tags1].filter(t => tags2.has(t));
+        if (commonTags.length > 0) {
+            shared.push('Shared tags: ' + commonTags.slice(0, 3).join(', '));
+        }
+
+        const mutualFriends = (p1.friends || []).filter(f => (p2.friends || []).includes(f));
+        if (mutualFriends.length > 0) {
+            shared.push(mutualFriends.length + ' mutual friends');
+        }
+
+        const mutualFamily = (p1.family || []).filter(f => (p2.family || []).includes(f));
+        if (mutualFamily.length > 0) {
+            shared.push(mutualFamily.length + ' mutual family');
+        }
+
+        return shared;
+    }
+
+    collectAllFindings() {
+        const allFindings = this.dedup.getFindings();
+        if (allFindings.length > 0) {
+            renderFindingsToCards(allFindings);
+            const countEl = document.getElementById('intelFindingsCount');
+            if (countEl) countEl.textContent = allFindings.length;
+            const lastEl = document.getElementById('intelLastAnalysis');
+            if (lastEl) lastEl.textContent = new Date().toLocaleTimeString();
+
+            const title = 'Agent Analysis - ' + new Date().toLocaleString();
+            const saved = storeAnalysisResult('intelligence', title, allFindings);
+            window._lastIntelAnalysisId = saved.id;
+            showFloatingNotification('Agent analysis complete. ' + allFindings.length + ' findings across 4 agents.', 'success');
+        } else {
+            showFloatingNotification('Analysis complete. No significant findings.', 'info');
+        }
+    }
+}
+
+let agentSystem = null;
+
+function initAgentSystem() {
+    if (!agentSystem) {
+        agentSystem = new AgentSystem();
+    }
+    return agentSystem;
+}
+
+function toggleAgentPanel() {
+    const panel = document.getElementById('agentPanel');
+    if (!panel) return;
+    panel.classList.toggle('collapsed');
+}
+
+document.getElementById('agentPanelToggle')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleAgentPanel();
+});
+
+document.getElementById('agentPanelClose')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('agentPanel').style.display = 'none';
+    agentSystem = null;
+});
+
+document.querySelector('.agent-panel-header')?.addEventListener('click', (e) => {
+    if (e.target.closest('#agentPanelToggle') || e.target.closest('#agentPanelClose')) return;
+    toggleAgentPanel();
+});
 
 // Clean Modal UI Functions
 const cleanModal = document.getElementById('cleanModal');
@@ -1191,6 +1930,8 @@ const intelAnalyzeBtn = document.getElementById('intelAnalyzeBtn');
 const intelConnectionsBtn = document.getElementById('intelConnectionsBtn');
 const intelRefreshRiskBtn = document.getElementById('intelRefreshRiskBtn');
 const intelClearResults = document.getElementById('intelClearResults');
+const intelHeurBtn = document.getElementById('intelHeurBtn');
+const heurModal = document.getElementById('heurModal');
 
 const chatControlBtn = document.getElementById('chatControlBtn');
 const analyzeAllChatsBtn = document.getElementById('analyzeAllChatsBtn');
@@ -1325,6 +2066,12 @@ function initTabs() {
         }
     });
 
+    document.querySelectorAll('.tab-action[data-tab-target]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            switchTab(btn.dataset.tabTarget);
+        });
+    });
+
     if (addTabBtn) {
         addTabBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1438,6 +2185,14 @@ function createTab(tabId) {
 }
 
 function switchTab(tabId) {
+    const prevActiveTab = document.querySelector('.tab-content.active');
+    if (prevActiveTab && prevActiveTab.id === 'graphview-tab' && tabId !== 'graphview') {
+        if (window.pazatorGraphView) {
+            window.pazatorGraphView.destroy();
+            window.pazatorGraphView._initialized = false;
+        }
+    }
+
     document.querySelectorAll('.tab').forEach(tab => {
         tab.classList.remove('active');
     });
@@ -1465,8 +2220,54 @@ function switchTab(tabId) {
         ensureTrackerTabReady();
     } else if (tabId === 'cases') {
         setTimeout(initCasesTab, 50);
+    } else if (tabId === 'graphview') {
+        if (window.pazatorGraphView) {
+            if (!window.pazatorGraphView._initialized) {
+                setTimeout(function() {
+                    window.pazatorGraphView.init();
+                    window.pazatorGraphView._initialized = true;
+                }, 50);
+            } else {
+                window.pazatorGraphView.refresh();
+            }
+        }
     } else if (tabId === 'analysis') {
-        updateAnalysisHubStats();
+        if (window.pazatorDashboard) {
+            if (!window.pazatorDashboard._initialized) {
+                window.pazatorDashboard.init();
+                window.pazatorDashboard._initialized = true;
+            } else {
+                window.pazatorDashboard.refresh();
+            }
+        }
+    } else if (tabId === 'ontology') {
+        if (window.pazatorOntologyDesigner) {
+            window.pazatorOntologyDesigner.openInTab();
+        }
+    } else if (tabId === 'pipelines') {
+        if (window.pazatorPipelines) {
+            if (!window.pazatorPipelines._initialized) {
+                window.pazatorPipelines.init();
+                window.pazatorPipelines._initialized = true;
+            }
+            window.pazatorPipelines.renderPipelineManager('pipelineTabContent');
+        }
+    } else if (tabId === 'alerts') {
+        if (window.pazatorAlerts) {
+            if (!window.pazatorAlerts._initialized) {
+                window.pazatorAlerts.init();
+                window.pazatorAlerts._initialized = true;
+            }
+            window.pazatorAlerts.renderAlertCenter('alertTabContent');
+        }
+    } else if (tabId === 'api') {
+        if (window.pazatorAPI) {
+            if (!window.pazatorAPI._initialized) {
+                window.pazatorAPI.init();
+                window.pazatorAPI._initialized = true;
+            }
+            window.pazatorAPI.renderAPIConsole('apiTabContent');
+        }
     }
 
     if (window.Tastur) {
@@ -1800,11 +2601,18 @@ function loadData() {
         pazatorStore.rebuildIndexes();
     }
 
+    if (window.pazatorRelationships) {
+        var migrated = window.pazatorRelationships.migrateFromLegacy(pazatorData.humans);
+        if (migrated > 0) console.log('Migrated ' + migrated + ' legacy relationships');
+    }
+
     syncAllObjectsFromHumans();
 
     renderObjectCanvas();
     updateCreditStats();
     updateHeaderStats();
+
+    buildFacetIndex();
 
     const totalItems = pazatorData.humans.length + pazatorData.others.length;
     updatePersistenceIndicator('online', `Loaded (${totalItems} items)`);
@@ -1813,6 +2621,15 @@ function loadData() {
         setTimeout(function() { loadIndicator.style.display = 'none'; }, 500);
     }
     showFloatingNotification(`Loaded ${totalItems} items`, 'success');
+}
+
+function buildFacetIndex() {
+    if (!window.pazatorFacets) return;
+    try {
+        pazatorFacets.getInstance().build(pazatorData.humans, pazatorData.others);
+    } catch (e) {
+        console.warn('FacetIndex build failed:', e);
+    }
 }
 
 let currentScale = 1;
@@ -2076,12 +2893,12 @@ function renderBulkBar(container) {
     bar.className = 'vt-bulk-bar';
     bar.innerHTML = '<span class="bulk-count">' + _vtSelected.size + ' selected</span>' +
         '<div class="bulk-actions">' +
-        '<button class="btn btn-secondary" style="padding:3px 10px;font-size:0.75rem;" onclick="bulkSetCredit(200)">Set Credit 200</button>' +
-        '<button class="btn btn-secondary" style="padding:3px 10px;font-size:0.75rem;" onclick="bulkSetThreat(\'low\')">Set Low Threat</button>' +
-        '<button class="btn btn-secondary" style="padding:3px 10px;font-size:0.75rem;" onclick="bulkSetThreat(\'medium\')">Set Med Threat</button>' +
-        '<button class="btn btn-secondary" style="padding:3px 10px;font-size:0.75rem;" onclick="bulkSetThreat(\'high\')">Set High Threat</button>' +
-        '<button class="btn btn-danger" style="padding:3px 10px;font-size:0.75rem;" onclick="bulkDeleteSelected()">Delete</button>' +
-        '<button class="btn btn-secondary" style="padding:3px 10px;font-size:0.75rem;" onclick="bulkClearSelection()">Clear</button>' +
+        '<button class="bulk-action-btn" onclick="bulkAddTag()" title="Add tags to selected entries"><i class="fas fa-tag"></i> Tag</button>' +
+        '<button class="bulk-action-btn" onclick="bulkChangeThreat()" title="Change threat level"><i class="fas fa-shield-alt"></i> Threat</button>' +
+        '<button class="bulk-action-btn" onclick="bulkAddToCase()" title="Add to case"><i class="fas fa-folder"></i> Case</button>' +
+        '<button class="bulk-action-btn" onclick="bulkExportCSV()" title="Export selected as CSV"><i class="fas fa-file-csv"></i> Export</button>' +
+        '<button class="bulk-action-btn bulk-action-danger" onclick="bulkDeleteSelected()" title="Delete selected"><i class="fas fa-trash"></i> Delete</button>' +
+        '<button class="bulk-action-btn" onclick="bulkClearSelection()" title="Clear selection"><i class="fas fa-times"></i> Clear</button>' +
         '</div>';
     container.insertBefore(bar, container.querySelector('.virtual-table-header'));
 }
@@ -2127,6 +2944,291 @@ async function bulkDeleteSelected() {
 function bulkClearSelection() {
     _vtSelected.clear();
     renderWebNodes();
+}
+
+function bulkAddTag() {
+    if (_vtSelected.size === 0) return;
+    var existing = document.querySelector('.bulk-tag-popup-overlay');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.className = 'bulk-tag-popup-overlay';
+    overlay.innerHTML =
+        '<div class="bulk-tag-popup">' +
+            '<div class="bulk-popup-header">' +
+                '<h3><i class="fas fa-tag"></i> Add Tags to ' + _vtSelected.size + ' Selected</h3>' +
+                '<button class="bulk-popup-close">&times;</button>' +
+            '</div>' +
+            '<div class="bulk-popup-body">' +
+                '<div class="bulk-tag-input-row">' +
+                    '<input type="text" class="bulk-tag-input" placeholder="Type a tag name and press Enter..." autofocus>' +
+                    '<button class="bulk-tag-add-btn">Add</button>' +
+                '</div>' +
+                '<div class="bulk-tag-suggestions-label">Existing tags</div>' +
+                '<div class="bulk-tag-list"></div>' +
+            '</div>' +
+            '<div class="bulk-popup-footer">' +
+                '<span class="bulk-popup-hint">Click a tag or type a new one to add to all selected entries</span>' +
+            '</div>' +
+        '</div>';
+    document.body.appendChild(overlay);
+
+    var list = overlay.querySelector('.bulk-tag-list');
+    function renderTagChips() {
+        var tagList = (typeof tags !== 'undefined' && tags) ? tags : [];
+        list.innerHTML = tagList.map(function (t) {
+            return '<button type="button" class="bulk-tag-chip" data-tag="' + escapeHtml(t) + '">' + escapeHtml(t) + '</button>';
+        }).join('');
+        list.querySelectorAll('.bulk-tag-chip').forEach(function (chip) {
+            chip.addEventListener('click', function () {
+                applyTagToSelected(this.getAttribute('data-tag'));
+            });
+        });
+    }
+    renderTagChips();
+
+    function applyTagToSelected(tagName) {
+        if (!tagName || !tagName.trim()) return;
+        tagName = tagName.trim();
+        if (typeof tags !== 'undefined' && tags && tags.indexOf(tagName) === -1) {
+            tags.push(tagName);
+        }
+        _vtSelected.forEach(function (id) {
+            var human = pazatorData.humans.find(function (h) { return h.id === id; });
+            if (human) {
+                if (!human.tags) human.tags = [];
+                if (human.tags.indexOf(tagName) === -1) human.tags.push(tagName);
+                return;
+            }
+            var other = pazatorData.others.find(function (o) { return o.id === id; });
+            if (other) {
+                if (!other.tags) other.tags = [];
+                if (other.tags.indexOf(tagName) === -1) other.tags.push(tagName);
+            }
+        });
+        markDataChanged();
+        renderWebNodes();
+        showFloatingNotification('Tag "' + tagName + '" added to ' + _vtSelected.size + ' entr' + (_vtSelected.size === 1 ? 'y' : 'ies'), 'success');
+        overlay.remove();
+    }
+
+    overlay.querySelector('.bulk-tag-input').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            applyTagToSelected(this.value);
+        }
+    });
+    overlay.querySelector('.bulk-tag-add-btn').addEventListener('click', function () {
+        applyTagToSelected(overlay.querySelector('.bulk-tag-input').value);
+    });
+    overlay.querySelector('.bulk-popup-close').addEventListener('click', function () { overlay.remove(); });
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
+    setTimeout(function () { overlay.querySelector('.bulk-tag-input').focus(); }, 100);
+}
+
+function bulkChangeThreat() {
+    if (_vtSelected.size === 0) return;
+    var levels = ['None', 'Low', 'Medium', 'High', 'Critical'];
+    var levelIcons = { 'None': 'fa-circle', 'Low': 'fa-chevron-circle-down', 'Medium': 'fa-minus-circle', 'High': 'fa-chevron-circle-up', 'Critical': 'fa-exclamation-circle' };
+    var levelClasses = { 'None': 'threat-none', 'Low': 'threat-low', 'Medium': 'threat-medium', 'High': 'threat-high', 'Critical': 'threat-critical' };
+
+    var html = '<p style="margin:0 0 12px;color:#aaa;font-size:0.9rem;">Set threat level for <strong>' + _vtSelected.size + '</strong> selected entr' + (_vtSelected.size === 1 ? 'y' : 'ies') + ':</p>' +
+        '<div class="bulk-threat-grid">' +
+        levels.map(function (l) {
+            return '<button class="bulk-threat-btn ' + (levelClasses[l] || '') + '" data-level="' + l + '">' +
+                '<i class="fas ' + (levelIcons[l] || 'fa-circle') + '"></i> ' + l +
+                '</button>';
+        }).join('') +
+        '</div>';
+
+    showModal({
+        title: 'Change Threat Level',
+        html: html,
+        type: 'question',
+        buttons: [{ text: 'Cancel', primary: false, onClick: function () {} }]
+    });
+
+    // Wire up threat buttons after modal renders
+    setTimeout(function () {
+        var btns = document.querySelectorAll('.bulk-threat-btn');
+        btns.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var level = this.getAttribute('data-level');
+                var count = _vtSelected.size;
+                _vtSelected.forEach(function (id) {
+                    var human = pazatorData.humans.find(function (h) { return h.id === id; });
+                    if (human) { human.threatLevel = level; }
+                });
+                markDataChanged();
+                renderWebNodes();
+                hideModal();
+                showFloatingNotification('Threat set to "' + level + '" for ' + count + ' entr' + (count === 1 ? 'y' : 'ies'), 'success');
+            });
+        });
+    }, 50);
+}
+
+function bulkAddToCase() {
+    if (_vtSelected.size === 0) return;
+    if (!window.cases || cases.length === 0) {
+        showFloatingNotification('No cases exist. Create one first.', 'info');
+        return;
+    }
+
+    var existing = document.querySelector('.bulk-case-popup-overlay');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.className = 'bulk-case-popup-overlay';
+    overlay.innerHTML =
+        '<div class="bulk-case-popup">' +
+            '<div class="bulk-popup-header">' +
+                '<h3><i class="fas fa-folder"></i> Add ' + _vtSelected.size + ' Selected to Case</h3>' +
+                '<button class="bulk-popup-close">&times;</button>' +
+            '</div>' +
+            '<div class="bulk-popup-body">' +
+                '<div class="bulk-case-list"></div>' +
+            '</div>' +
+            '<div class="bulk-popup-footer">' +
+                '<span class="bulk-popup-hint">Select a case to add all selected entries</span>' +
+            '</div>' +
+        '</div>';
+    document.body.appendChild(overlay);
+
+    var list = overlay.querySelector('.bulk-case-list');
+    function renderCaseList() {
+        list.innerHTML = cases.map(function (c) {
+            var statusIcon = c.status === 'closed' ? 'fa-lock' : c.status === 'in-progress' ? 'fa-spinner' : 'fa-folder-open';
+            return '<button type="button" class="bulk-case-item" data-case-id="' + c.id + '">' +
+                '<i class="fas ' + statusIcon + '" style="color:' + (c.status === 'closed' ? '#e74c3c' : c.status === 'in-progress' ? '#f39c12' : '#2ecc71') + ';"></i> ' +
+                '<span class="bulk-case-title">' + escapeHtml(c.title || 'Untitled') + '</span>' +
+                '<span class="bulk-case-count">' + (c.entities ? c.entities.length : 0) + ' entities</span>' +
+                '</button>';
+        }).join('');
+        list.querySelectorAll('.bulk-case-item').forEach(function (item) {
+            item.addEventListener('click', function () {
+                var caseId = this.getAttribute('data-case-id');
+                var caseData = cases.find(function (c) { return c.id === caseId; });
+                if (!caseData) return;
+                var added = 0;
+                _vtSelected.forEach(function (id) {
+                    if (caseData.entities.indexOf(id) !== -1) return;
+                    caseData.entities.push(id);
+                    var entity = pazatorData.humans.find(function (h) { return h.id === id; }) || pazatorData.others.find(function (o) { return o.id === id; });
+                    caseData.timeline.push({
+                        type: 'entity-added',
+                        content: '<strong>Entity added</strong> (bulk): ' + (entity ? entity.name : 'Unknown'),
+                        timestamp: Date.now()
+                    });
+                    // Also set case ref on the entity
+                    if (entity) {
+                        if (!entity.cases) entity.cases = [];
+                        if (entity.cases.indexOf(caseId) === -1) entity.cases.push(caseId);
+                    }
+                    added++;
+                });
+                saveCases();
+                markDataChanged();
+                overlay.remove();
+                showFloatingNotification('Added ' + added + ' entr' + (added === 1 ? 'y' : 'ies') + ' to "' + (caseData.title || 'Untitled') + '"', 'success');
+            });
+        });
+    }
+    renderCaseList();
+
+    overlay.querySelector('.bulk-popup-close').addEventListener('click', function () { overlay.remove(); });
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
+}
+
+function bulkExportCSV() {
+    if (_vtSelected.size === 0) return;
+    var items = [];
+    _vtSelected.forEach(function (id) {
+        var human = pazatorData.humans.find(function (h) { return h.id === id; });
+        if (human) { items.push({ item: human, type: 'human' }); return; }
+        var other = pazatorData.others.find(function (o) { return o.id === id; });
+        if (other) { items.push({ item: other, type: 'other' }); }
+    });
+
+    if (items.length === 0) {
+        showFloatingNotification('No valid entries selected', 'info');
+        return;
+    }
+
+    var csvEscape = function (value) {
+        var raw = value == null ? '' : String(value);
+        if (raw.includes('"') || raw.includes(',') || raw.includes('\n')) {
+            return '"' + raw.replace(/"/g, '""') + '"';
+        }
+        return raw;
+    };
+
+    var joinList = function (value) {
+        if (!value) return '';
+        if (Array.isArray(value)) return value.filter(Boolean).map(String).join(', ');
+        return String(value);
+    };
+
+    var headers = ['Name', 'Type', 'Gender', 'Birth Date', 'Marital Status', 'Workplace', 'Nationality', 'Country of Origin', 'Immigration Status', 'Languages', 'Ethnicity', 'Religion', 'Political Views', 'Credit Score', 'Social Class', 'Income Level', 'Education Level', 'Threat Level', 'Notes', 'Tags', 'Friends', 'Family'];
+
+    var rows = [];
+    rows.push(headers.map(csvEscape).join(','));
+
+    items.forEach(function (entry) {
+        var item = entry.item;
+        if (entry.type === 'human') {
+            rows.push([
+                item.name || '',
+                '',
+                item.gender || '',
+                item.birthDate || '',
+                item.maritalStatus || '',
+                item.workplace || '',
+                item.nationality || '',
+                item.countryOfOrigin || '',
+                item.immigrationStatus || '',
+                item.languages || '',
+                item.ethnicity || '',
+                item.religion || '',
+                item.politicalViews || '',
+                item.credit !== undefined ? String(item.credit) : '',
+                item.socialClass || '',
+                item.incomeLevel || '',
+                item.educationLevel || '',
+                item.threatLevel || '',
+                item.extraNotes || item.notes || '',
+                joinList(item.tags),
+                joinList(item.friends),
+                joinList(item.family)
+            ].map(csvEscape).join(','));
+        } else {
+            rows.push([
+                item.name || '',
+                item.type || '',
+                '',
+                item.note || item.notes || '',
+                '',
+                '',
+                ''
+            ].map(csvEscape).join(','));
+        }
+    });
+
+    var pad2 = function (n) { return String(n).padStart(2, '0'); };
+    var now = new Date();
+    var stamp = now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate()) + '_' + pad2(now.getHours()) + '-' + pad2(now.getMinutes()) + '-' + pad2(now.getSeconds());
+    var filename = 'pazator-bulk-export-' + stamp + '.csv';
+
+    var csvText = rows.join('\n');
+    var blob = new Blob([csvText], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 0);
+    showFloatingNotification('Exported ' + items.length + ' entr' + (items.length === 1 ? 'y' : 'ies') + ' to CSV', 'success');
 }
 
 function inlineEditCredit(el, id) {
@@ -2417,190 +3519,254 @@ function showDetailView(data, type) {
         document.getElementById('familyGraphContainer').style.display = 'none';
     }
 
+    // Timeline
+    var timelineSection = document.getElementById('detailTimelineSection');
+    var timelineFeed = document.getElementById('detailTimelineFeed');
+    if (timelineSection && timelineFeed) {
+        timelineSection.style.display = '';
+        if (window.pazatorTimeline) {
+            window.pazatorTimeline.render(timelineFeed, data.id);
+        } else {
+            var events = buildEntityTimeline(data.id, type);
+            renderEntityTimeline('detailTimelineFeed', events);
+        }
+    }
+
     detailViewModal.style.display = 'flex';
     detailViewModal.style.zIndex = '1000';
 
 }
 
-// ===== Slide Detail Panel =====
 function openSlidePanel(id, type) {
-    var panel = document.getElementById('detailSlidePanel');
-    var backdrop = document.getElementById('slidePanelBackdrop');
-    var title = document.getElementById('slidePanelTitle');
-    var body = document.getElementById('slidePanelBody');
-    if (!panel || !body) return;
-
-    var data;
-    if (type === 'human') data = pazatorData.humans.find(function(h) { return h.id === id; });
-    else if (type === 'chat') data = (pazatorData.chats || []).find(function(c) { return c.id === id || c.timestamp === id; });
-    else data = pazatorData.others.find(function(o) { return o.id === id; });
-
-    if (!data) {
-        body.innerHTML = '<div style="padding:20px;color:#666;">Entity not found</div>';
-        panel.classList.add('open');
-        if (backdrop) backdrop.classList.add('open');
-        return;
-    }
-
-    title.textContent = data.name || (data.source ? data.source.toUpperCase() + ' Chat' : 'Details');
-    document.currentDetailData = data;
-
-    var html = '';
-    if (type === 'human') {
-        html += '<div class="detail-slide-section"><h4>Profile</h4>';
-        html += '<div class="slide-value">Credit: <strong>' + (data.credit !== undefined ? Math.round(data.credit) : 'N/A') + '</strong></div>';
-        html += '<div class="slide-value">Threat: <strong>' + (data.threatLevel || 'None') + '</strong></div>';
-        html += '<div class="slide-value">Gender: ' + (data.gender || '—') + '</div>';
-        html += '<div class="slide-value">Age: ' + (data.birthDate ? calculateAge(data.birthDate) + 'y' : '—') + '</div>';
-        html += '</div>';
-
-        // Relationships
-        html += '<div class="detail-slide-section"><h4>Relationships</h4>';
-        if (data.family && data.family.length > 0) {
-            data.family.forEach(function(fid) {
-                var name = getHumanNameById(fid);
-                html += '<div class="detail-slide-entity-row" onclick="openSlidePanel(\'' + fid + '\',\'human\')"><i class="fas fa-users"></i><span class="entity-name">' + name + '</span><span class="entity-type">family</span></div>';
-            });
-        }
-        if (data.friends && data.friends.length > 0) {
-            data.friends.forEach(function(fid) {
-                var name = getHumanNameById(fid);
-                html += '<div class="detail-slide-entity-row" onclick="openSlidePanel(\'' + fid + '\',\'human\')"><i class="fas fa-user-friends"></i><span class="entity-name">' + name + '</span><span class="entity-type">friend</span></div>';
-            });
-        }
-        if ((!data.family || data.family.length === 0) && (!data.friends || data.friends.length === 0)) {
-            html += '<div class="slide-value" style="color:#555;">No relationships</div>';
-        }
-        html += '</div>';
-
-        // Tags
-        if (data.tags && data.tags.length > 0) {
-            html += '<div class="detail-slide-section"><h4>Tags</h4>';
-            html += '<div class="slide-value">' + data.tags.map(function(t) { return '<span class="vt-tag">' + escapeHtml(t) + '</span>'; }).join(' ') + '</div>';
-            html += '</div>';
-        }
-
-        // Notes
-        if (data.extraNotes) {
-            html += '<div class="detail-slide-section"><h4>Notes</h4>';
-            html += '<div class="slide-value">' + escapeHtml(data.extraNotes) + '</div></div>';
-        }
-
-        // LCTX Tracker Link
-        var trackerAlias = data.trackerAlias || '';
-        var trackerLinkedAt = data.trackerLinkedAt || '';
-        html += '<div class="detail-slide-section" id="detailTrackerContainer">';
-        html += '<h4><i class="fas fa-location-crosshairs"></i> LCTX Tracker</h4>';
-        html += '<div class="detail-tracker-status" id="detailTrackerStatus">' + (trackerAlias ? 'Linked to "' + escapeHtml(trackerAlias) + '" (last sync ' + formatTrackerTimestamp(trackerLinkedAt) + ').' : 'Not linked yet. Use the tracker tab to connect this person.') + '</div>';
-        html += '<div class="detail-tracker-controls" style="margin-top:8px;display:flex;gap:8px;align-items:center;">';
-        html += '<input type="text" id="detailTrackerAlias" class="form-control" value="' + escapeHtml(trackerAlias || data.name || '') + '" placeholder="Tracker alias" style="flex:1;">';
-        html += '<div class="detail-tracker-buttons" style="display:flex;gap:6px;">';
-        html += '<button class="detail-tracker-btn" id="detailTrackerSaveAliasBtn" onclick="saveDetailTrackerAlias(\'' + data.id + '\')"><i class="fas fa-save"></i></button>';
-        html += '<button class="detail-tracker-btn" id="detailTrackerShowBtn" ' + (!trackerAlias ? 'disabled' : '') + ' onclick="requestTrackerShow(\'' + escapeHtml(trackerAlias) + '\');switchTab(\'tracker\')"><i class="fas fa-map-marker-alt"></i></button>';
-        html += '</div></div>';
-
-        // LCTX Data Point card (latest known location)
-        html += '<div class="detail-slide-section" id="detailTrackerDataPoint">';
-        html += '<h4><i class="fas fa-map-pin"></i> LCTX Data Point</h4>';
-        html += '<div id="detailTrackerDataPointBody" style="font-size:0.85rem;">';
-        if (trackerAlias && window.trackerSupabase) {
-            html += '<div style="color:#666;">Loading latest location...</div>';
-        } else if (trackerAlias) {
-            html += '<div style="color:#666;">Configure the tracker first</div>';
-        } else {
-            html += '<div style="color:#555;font-style:italic;">Link a tracker alias above to see live data</div>';
-        }
-        html += '</div></div></div>';
-
-        // Fetch latest location data if alias linked
-        if (trackerAlias && window.trackerSupabase) {
-            (function(alias) {
-                setTimeout(function() {
-                    fetchLatestTrackerLocation(alias).then(function(loc) {
-                        var body = document.getElementById('detailTrackerDataPointBody');
-                        if (!body) return;
-                        if (!loc) {
-                            body.innerHTML = '<div style="color:#666;">No location data found for this alias</div>';
-                            return;
-                        }
-                        body.innerHTML =
-                            '<div class="tracker-datapoint-grid">' +
-                                '<div class="tracker-datapoint-item"><span class="tdp-label">Coordinates</span><span class="tdp-value">' + loc.latitude.toFixed(4) + ', ' + loc.longitude.toFixed(4) + '</span></div>' +
-                                (loc.timestamp ? '<div class="tracker-datapoint-item"><span class="tdp-label">Last seen</span><span class="tdp-value">' + formatTrackerTimestamp(loc.timestamp) + '</span></div>' : '') +
-                                (loc.ip ? '<div class="tracker-datapoint-item"><span class="tdp-label">IP</span><span class="tdp-value">' + escapeHtml(loc.ip) + '</span></div>' : '') +
-                                (loc.country ? '<div class="tracker-datapoint-item"><span class="tdp-label">Country</span><span class="tdp-value">' + escapeHtml(loc.country) + '</span></div>' : '') +
-                                (loc.region ? '<div class="tracker-datapoint-item"><span class="tdp-label">Region</span><span class="tdp-value">' + escapeHtml(loc.region) + '</span></div>' : '') +
-                                (loc.device ? '<div class="tracker-datapoint-item"><span class="tdp-label">Device</span><span class="tdp-value">' + escapeHtml(loc.device) + '</span></div>' : '') +
-                                (loc.platform ? '<div class="tracker-datapoint-item"><span class="tdp-label">Platform</span><span class="tdp-value">' + escapeHtml(loc.platform) + '</span></div>' : '') +
-                            '</div>';
-                    }).catch(function() {
-                        var body = document.getElementById('detailTrackerDataPointBody');
-                        if (body) body.innerHTML = '<div style="color:#666;">Failed to load location data</div>';
-                    });
-                }, 100);
-            })(trackerAlias);
-        }
-
-        // Linked Chats
-        if (data.chats && data.chats.length > 0) {
-            html += '<div class="detail-slide-section"><h4>Chats (' + data.chats.length + ')</h4>';
-            data.chats.forEach(function(chatRef) {
-                var chat = (pazatorData.chats || []).find(function(c) { return c.id === chatRef || c.timestamp === chatRef; });
-                html += '<div class="detail-slide-entity-row" onclick="openSlidePanel(\'' + (chat ? chat.id : chatRef) + '\',\'chat\')">' +
-                    '<i class="fas fa-comment"></i><span class="entity-name">' + (chat ? (chat.source || 'Chat') + ' - ' + new Date(chat.timestamp).toLocaleDateString() : 'Chat') + '</span>' +
-                    (chat && chat.suspicious ? '<span class="entity-type" style="color:#ff6b6b;">suspicious</span>' : '') +
-                    '</div>';
-            });
-            html += '</div>';
-        }
-
-        // Linked Cases
-        var humanCases = cases.filter(function(c) { return c.entities && c.entities.includes(data.id); });
-        if (humanCases.length > 0) {
-            html += '<div class="detail-slide-section"><h4>Cases (' + humanCases.length + ')</h4>';
-            humanCases.forEach(function(c) {
-                html += '<div class="detail-slide-entity-row" onclick="switchTab(\'cases\');setTimeout(function(){selectCase(\'' + c.id + '\')},100)">' +
-                    '<i class="fas fa-folder"></i><span class="entity-name">' + escapeHtml(c.title) + '</span>' +
-                    '<span class="entity-type">' + c.status + '</span></div>';
-            });
-            html += '</div>';
-        }
-
-    } else if (type === 'chat') {
-        html += '<div class="detail-slide-section"><h4>Chat Info</h4>';
-        html += '<div class="slide-value">Source: <strong>' + (data.source || 'Unknown') + '</strong></div>';
-        html += '<div class="slide-value">Date: ' + new Date(data.timestamp).toLocaleString() + '</div>';
-        html += '<div class="slide-value">Suspicious: <strong>' + (data.suspicious ? '<span style="color:#ff6b6b;">Yes</span>' : '<span style="color:#4caf50;">No</span>') + '</strong></div>';
-        if (data.riskLevel) html += '<div class="slide-value">Risk Level: ' + data.riskLevel + '</div>';
-        html += '</div>';
-        if (data.redFlags && data.redFlags.length > 0) {
-            html += '<div class="detail-slide-section"><h4>Red Flags</h4>';
-            data.redFlags.forEach(function(f) { html += '<div style="color:#ff6b6b;font-size:0.85rem;padding:2px 0;">⚠ ' + escapeHtml(f) + '</div>'; });
-            html += '</div>';
-        }
-        if (data.content) {
-            html += '<div class="detail-slide-section"><h4>Content Preview</h4>';
-            html += '<div class="slide-value" style="font-size:0.82rem;color:#aaa;max-height:200px;overflow-y:auto;">' + escapeHtml(data.content) + '</div></div>';
-        }
-        // Link to full view
-        html += '<div class="detail-slide-section"><button class="btn btn-secondary" style="width:100%;padding:10px;" onclick="switchTab(\'chat-control\')"><i class="fas fa-comments"></i> Open Chat Panel</button></div>';
+    if (type === 'chat') {
+        switchTab('chat-control');
     } else {
-        html += '<div class="detail-slide-section"><h4>Details</h4>';
-        html += '<div class="slide-value">Type: ' + (data.type || 'Other') + '</div>';
-        if (data.note) html += '<div class="slide-value">Note: ' + escapeHtml(data.note) + '</div>';
-        html += '</div>';
+        openDetailView(id, type);
     }
-
-    body.innerHTML = html;
-    panel.classList.add('open');
-    if (backdrop) backdrop.classList.add('open');
 }
 
-function closeSlidePanel() {
-    var panel = document.getElementById('detailSlidePanel');
-    var backdrop = document.getElementById('slidePanelBackdrop');
-    if (panel) panel.classList.remove('open');
-    if (backdrop) backdrop.classList.remove('open');
+/* === Entity Timeline === */
+function buildEntityTimeline(entityId, entityType) {
+    var events = [];
+    var now = Date.now();
+
+    function entityName(id, type) {
+        if (type === 'human') return getHumanNameById(id);
+        var e = pazatorData.others.find(function(o) { return o.id === id; });
+        return e ? e.name : 'Unknown';
+    }
+
+    // 1. Relationships
+    if (window.pazatorRelationships) {
+        var rels = window.pazatorRelationships.getForEntity(entityId, entityType);
+        rels.forEach(function(r) {
+            var ts = new Date(r.createdAt).getTime();
+            if (isNaN(ts)) ts = now;
+            var isSource = r.sourceId === entityId;
+            var otherId = isSource ? r.targetId : r.sourceId;
+            var otherType = isSource ? r.targetType : r.sourceType;
+            var otherName = entityName(otherId, otherType);
+            var typeInfo = window.pazatorRelationships.getTypeInfo(r.type);
+            events.push({
+                type: 'relationship', timestamp: ts,
+                title: typeInfo.label + ' → ' + otherName,
+                description: r.notes || typeInfo.label + ' relationship',
+                color: typeInfo.color, icon: typeInfo.icon,
+                sourceData: r, sourceType: 'relationship'
+            });
+        });
+    }
+
+    // 2. Cases
+    var entityCases = cases.filter(function(c) { return c.entities && c.entities.indexOf(entityId) >= 0; });
+    entityCases.forEach(function(c) {
+        events.push({
+            type: 'case', timestamp: c.createdAt || 0,
+            title: 'Case: ' + c.title,
+            description: 'Case created — ' + c.status,
+            color: '#ffd93d', icon: 'fa-folder',
+            sourceData: c, sourceType: 'case'
+        });
+        if (c.timeline) {
+            c.timeline.forEach(function(t) {
+                if (t.type === 'entity-added' || t.type === 'entity-removed') {
+                    events.push({
+                        type: 'case_timeline', timestamp: t.timestamp,
+                        title: 'Activity: ' + c.title,
+                        description: stripHtml(t.content || ''),
+                        color: '#4d9de0', icon: 'fa-stream',
+                        sourceData: { case: c, timelineEntry: t }, sourceType: 'case_timeline'
+                    });
+                } else if (t.type === 'note') {
+                    var content = t.content || '';
+                    var en = entityName(entityId, entityType);
+                    if (content.indexOf(entityId) >= 0 || (en && content.indexOf(en) >= 0)) {
+                        events.push({
+                            type: 'case_timeline', timestamp: t.timestamp,
+                            title: 'Activity: ' + c.title,
+                            description: stripHtml(content),
+                            color: '#4d9de0', icon: 'fa-stream',
+                            sourceData: { case: c, timelineEntry: t }, sourceType: 'case_timeline'
+                        });
+                    }
+                }
+            });
+        }
+    });
+
+    // 3. Chats
+    if (entityType === 'human') {
+        var human = pazatorData.humans.find(function(h) { return h.id === entityId; });
+        if (human && human.chats && human.chats.length > 0) {
+            human.chats.forEach(function(chatRef) {
+                var chat = (pazatorData.chats || []).find(function(c) { return c.id === chatRef || c.timestamp === chatRef; });
+                if (chat) {
+                    var ts = typeof chat.timestamp === 'number' ? chat.timestamp : new Date(chat.timestamp).getTime();
+                    if (isNaN(ts)) ts = 0;
+                    events.push({
+                        type: 'chat', timestamp: ts,
+                        title: 'Chat: ' + (chat.source || 'Unknown'),
+                        description: 'Conversation' + (chat.suspicious ? ' (suspicious)' : ''),
+                        color: '#00cec9', icon: 'fa-comment',
+                        sourceData: chat, sourceType: 'chat'
+                    });
+                }
+            });
+        }
+    }
+
+    // 4. Tracker
+    if (entityType === 'human') {
+        var human = pazatorData.humans.find(function(h) { return h.id === entityId; });
+        if (human && human.trackerAlias && human.trackerLinkedAt) {
+            var ts = typeof human.trackerLinkedAt === 'number' ? human.trackerLinkedAt : new Date(human.trackerLinkedAt).getTime();
+            if (isNaN(ts)) ts = 0;
+            events.push({
+                type: 'tracker', timestamp: ts,
+                title: 'Tracker Linked: ' + human.trackerAlias,
+                description: 'LCTX tracker alias linked',
+                color: '#e17055', icon: 'fa-map-marker-alt',
+                sourceData: human, sourceType: 'tracker'
+            });
+        }
+    }
+
+    // 5. AI Analysis
+    if (analysesStore && analysesStore.length > 0) {
+        var en = entityName(entityId, entityType);
+        analysesStore.forEach(function(a) {
+            var found = a.title && (a.title.indexOf(entityId) >= 0 || (en && a.title.indexOf(en) >= 0));
+            if (!found && a.findings) {
+                for (var i = 0; i < a.findings.length; i++) {
+                    var f = a.findings[i];
+                    var fStr = typeof f === 'string' ? f : (f && f.content ? f.content : '');
+                    if (fStr.indexOf(entityId) >= 0 || (en && fStr.indexOf(en) >= 0)) { found = true; break; }
+                }
+            }
+            if (found) {
+                events.push({
+                    type: 'analysis', timestamp: a.createdAt || 0,
+                    title: 'Analysis: ' + (a.title || a.type || 'Untitled'),
+                    description: 'AI analysis related to ' + (en || entityId),
+                    color: '#a29bfe', icon: 'fa-robot',
+                    sourceData: a, sourceType: 'analysis'
+                });
+            }
+        });
+    }
+
+    // 6. Notes
+    if (entityType === 'human') {
+        var human = pazatorData.humans.find(function(h) { return h.id === entityId; });
+        if (human && human.extraNotes) {
+            events.push({
+                type: 'note', timestamp: 0,
+                title: 'Note',
+                description: human.extraNotes.substring(0, 120) + (human.extraNotes.length > 120 ? '...' : ''),
+                color: '#6bcf7f', icon: 'fa-sticky-note',
+                sourceData: human, sourceType: 'note'
+            });
+        }
+    } else {
+        var other = pazatorData.others.find(function(o) { return o.id === entityId; });
+        if (other && other.note) {
+            events.push({
+                type: 'note', timestamp: 0,
+                title: 'Note',
+                description: other.note.substring(0, 120) + (other.note.length > 120 ? '...' : ''),
+                color: '#6bcf7f', icon: 'fa-sticky-note',
+                sourceData: other, sourceType: 'note'
+            });
+        }
+    }
+
+    events.sort(function(a, b) { return b.timestamp - a.timestamp; });
+    return events;
+}
+
+function stripHtml(html) {
+    var div = document.createElement('div');
+    div.innerHTML = html;
+    return div.textContent || div.innerText || '';
+}
+
+function renderEntityTimeline(containerId, events) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+    if (!events || events.length === 0) {
+        container.innerHTML = '<div class="slide-value" style="color:#555;padding:4px 0;">No timeline events</div>';
+        return;
+    }
+    var html = '<div class="entity-timeline-feed">';
+    for (var i = 0; i < events.length; i++) {
+        var e = events[i];
+        var timeStr = '';
+        if (e.timestamp > 0) {
+            var diff = Date.now() - e.timestamp;
+            if (diff < 60000) timeStr = 'just now';
+            else if (diff < 3600000) timeStr = Math.floor(diff / 60000) + 'm ago';
+            else if (diff < 86400000) timeStr = Math.floor(diff / 3600000) + 'h ago';
+            else if (diff < 2592000000) timeStr = Math.floor(diff / 86400000) + 'd ago';
+            else timeStr = new Date(e.timestamp).toLocaleDateString();
+        }
+        html += '<div class="timeline-event" data-idx="' + i + '">' +
+            '<div class="timeline-event-dot"></div>' +
+            '<div class="timeline-event-line"></div>' +
+            '<div class="timeline-event-content">' +
+            '<div class="timeline-event-header">' +
+            '<span class="timeline-event-title">' + escapeHtml(e.title) + '</span>' +
+            (timeStr ? '<span class="timeline-event-time">' + timeStr + '</span>' : '') +
+            '</div>' +
+            (e.description ? '<div class="timeline-event-desc">' + escapeHtml(e.description) + '</div>' : '') +
+            '</div></div>';
+    }
+    html += '</div>';
+    container.innerHTML = html;
+
+    container._timelineEvents = events;
+    var els = container.querySelectorAll('.timeline-event');
+    for (var i = 0; i < els.length; i++) {
+        (function(evt) {
+            els[i].addEventListener('click', function() {
+                handleTimelineEventClick(evt);
+            });
+        })(events[i]);
+    }
+}
+
+function handleTimelineEventClick(event) {
+    if (!event) return;
+    switch (event.sourceType) {
+        case 'case':
+        case 'case_timeline':
+            var caseId = event.sourceType === 'case' ? event.sourceData.id : event.sourceData.case.id;
+            switchTab('cases');
+            setTimeout(function() { selectCase(caseId); }, 100);
+            break;
+        case 'chat':
+            switchTab('chat-control');
+            break;
+    }
 }
 
 // ===== Cross-Entity Search =====
@@ -5867,29 +7033,7 @@ document.getElementById('closeConnectionsModal').addEventListener('click', () =>
     hiddenConnectionsModal.style.zIndex = '-1';
 });
 
-aiChatModal.addEventListener('click', (event) => {
-    if (event.target === aiChatModal) {
-        aiChatModal.classList.add('hiding');
-        setTimeout(() => {
-            aiChatModal.style.display = 'none';
-            aiChatModal.style.zIndex = '-1';
-            aiChatModal.classList.remove('hiding');
-            aiChatModal.classList.remove('debug');
-        }, 300);
-    }
-});
 
-document.getElementById('hiddenConnectionsModal').addEventListener('click', (event) => {
-    if (event.target === document.getElementById('hiddenConnectionsModal')) {
-        const hiddenConnectionsModal = document.getElementById('hiddenConnectionsModal');
-        hiddenConnectionsModal.classList.add('hiding');
-        setTimeout(() => {
-            hiddenConnectionsModal.style.display = 'none';
-            hiddenConnectionsModal.style.zIndex = '-1';
-            hiddenConnectionsModal.classList.remove('hiding');
-        }, 300);
-    }
-});
 
 document.getElementById('editEntryBtn').addEventListener('click', () => {
     const data = document.currentDetailData;
@@ -6112,6 +7256,24 @@ chatMenuBtn?.addEventListener('click', (e) => {
 document.addEventListener('click', (e) => {
     if (!chatMenuBtn.contains(e.target) && !chatOptionsMenu.contains(e.target)) {
         chatOptionsMenu.classList.remove('active');
+    }
+});
+
+// Global modal backdrop click-to-close
+document.addEventListener('click', function(e) {
+    var modal = e.target.closest('.modal, .ai-chat-modal, .detail-view');
+    if (!modal || e.target !== modal) return;
+    if (modal.classList.contains('hiding')) return;
+    if (modal.classList.contains('ai-chat-modal') || modal.classList.contains('detail-view')) {
+        modal.classList.add('hiding');
+        setTimeout(function() {
+            modal.style.display = 'none';
+            modal.style.zIndex = '-1';
+            modal.classList.remove('hiding');
+            if (modal.classList.contains('ai-chat-modal')) modal.classList.remove('debug');
+        }, 300);
+    } else {
+        modal.style.display = 'none';
     }
 });
 
@@ -6674,7 +7836,7 @@ function showAISuggestTagsModal(suggestions) {
 
 
 
-showStatisticsBtn.addEventListener('click', () => {
+if (showStatisticsBtn) showStatisticsBtn.addEventListener('click', () => {
     const humanCount = pazatorData.humans.length;
     const otherCount = pazatorData.others.length;
     const totalConnections = pazatorData.humans.reduce((total, human) => {
@@ -6688,23 +7850,24 @@ showStatisticsBtn.addEventListener('click', () => {
 - Connections: ${totalConnections}`, 'Statistics', 'info');
 });
 
-findConnectionsBtn.addEventListener('click', async () => {
+findConnectionsBtn?.addEventListener('click', async () => {
     await findHiddenConnections();
 });
 
-refreshCreditsBtn.addEventListener('click', () => {
+refreshCreditsBtn?.addEventListener('click', () => {
     refreshPersonCredits();
 });
-sortByCreditBtn.addEventListener('click', () => {
+sortByCreditBtn?.addEventListener('click', () => {
     sortByCredit();
 });
 
 intelAnalyzeBtn?.addEventListener('click', async () => {
-    await runIntelligenceAnalysis();
+    const sys = initAgentSystem();
+    await sys.runAll();
 });
 
 intelConnectionsBtn?.addEventListener('click', async () => {
-    await findHiddenConnections();
+    await deployConnectionAgents();
 });
 
 intelRefreshRiskBtn?.addEventListener('click', () => {
@@ -6722,6 +7885,113 @@ intelClearResults?.addEventListener('click', () => {
     if (countBadge) countBadge.textContent = '0 findings';
     if (findingsCountEl) findingsCountEl.textContent = '0';
 });
+
+intelHeurBtn?.addEventListener('click', function () {
+    if (!window.pazatorHeuristics) {
+        showFloatingNotification('Heuristic Linkage system not available', 'error');
+        return;
+    }
+    var duplicates = window.pazatorHeuristics.scan(pazatorData.humans);
+    
+    // Update summary text
+    var summaryEl = document.getElementById('intelHeurSummary');
+    if (summaryEl) {
+        summaryEl.textContent = duplicates.length + ' suspected alias' + (duplicates.length !== 1 ? 'es' : '');
+    }
+    
+    var contentEl = document.getElementById('heurModalContent');
+    if (!contentEl) return;
+    
+    if (duplicates.length === 0) {
+        contentEl.innerHTML = '<div style="text-align:center;color:#666;padding:48px 24px;">' +
+            '<i class="fas fa-fingerprint" style="font-size:3rem;color:#333;margin-bottom:16px;display:block;"></i>' +
+            '<h3>NO SUSPECTED DUPLICATES</h3>' +
+            '<p style="font-size:0.85rem;color:#888;margin-top:6px;">All ingested entity linkages appear stable and distinct.</p>' +
+            '</div>';
+    } else {
+        var html = '<div style="display:flex;flex-direction:column;gap:16px;">';
+        duplicates.forEach(function (dup, index) {
+            var color = dup.score >= 80 ? '#ff6b6b' : dup.score >= 60 ? '#ffd93d' : '#a29bfe';
+            html += '<div class="heur-card" style="background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.05);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:12px;">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<span style="font-size:0.8rem;font-weight:600;color:' + color + ';text-transform:uppercase;letter-spacing:0.05em;border:1px solid ' + color + '44;padding:3px 8px;border-radius:4px;">' +
+                dup.score + '% Match Probability</span>' +
+                '<span style="font-size:0.75rem;color:#555;">ID Resolve System #' + (index + 1) + '</span>' +
+                '</div>' +
+                '<div style="display:flex;gap:20px;align-items:center;margin:8px 0;">' +
+                '<div style="flex:1;text-align:right;font-size:0.95rem;font-weight:600;color:#fff;">' + escapeHtml(dup.person1.name) + '</div>' +
+                '<div style="color:#555;font-size:0.8rem;"><i class="fas fa-arrows-left-right"></i></div>' +
+                '<div style="flex:1;text-align:left;font-size:0.95rem;font-weight:600;color:#fff;">' + escapeHtml(dup.person2.name) + '</div>' +
+                '</div>' +
+                '<div style="border-top:1px solid rgba(255,255,255,0.04);padding-top:10px;">' +
+                '<div style="font-size:0.75rem;color:#888;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;">Correlation Evidence:</div>' +
+                '<ul style="margin:0;padding-left:16px;font-size:0.8rem;color:rgba(255,255,255,0.6);line-height:1.5;">' +
+                dup.reasons.map(function(r) { return '<li>' + escapeHtml(r) + '</li>'; }).join('') +
+                '</ul>' +
+                '</div>' +
+                '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px;">' +
+                '<button class="btn glass-btn btn-sm" onclick="heurInvestigate(\'' + dup.person1.id + '\',\'' + dup.person2.id + '\')">' +
+                '<i class="fas fa-magnifying-glass"></i> Investigate Path</button>' +
+                '<button class="btn btn-primary btn-sm" onclick="heurResolveLink(\'' + dup.person1.id + '\',\'' + dup.person2.id + '\')">' +
+                '<i class="fas fa-link"></i> Link as Associates</button>' +
+                '</div>' +
+                '</div>';
+        });
+        html += '</div>';
+        contentEl.innerHTML = html;
+    }
+    
+    heurModal.style.display = 'flex';
+    heurModal.style.zIndex = '1100';
+});
+
+document.getElementById('closeHeurModal')?.addEventListener('click', function () {
+    heurModal.style.display = 'none';
+});
+
+document.getElementById('closeHeurModalBtn')?.addEventListener('click', function () {
+    heurModal.style.display = 'none';
+});
+
+window.heurInvestigate = function (id1, id2) {
+    heurModal.style.display = 'none';
+    switchTab('graphview');
+    setTimeout(function () {
+        if (window.graphViewContainer) {
+            // Find path using BFS and draw on graph
+            var path = findPath(id1, id2);
+            if (path && window.graphViewContainer) {
+                highlightPathOnGraph(window.graphViewContainer, path);
+                showFloatingNotification('Shortest path between entities highlighted on graph.', 'success');
+            } else {
+                showFloatingNotification('No connecting path found on current graph state.', 'info');
+            }
+        }
+    }, 150);
+};
+
+window.heurResolveLink = async function (id1, id2) {
+    // Make them friends/associates
+    var p1 = pazatorData.humans.find(function(h) { return String(h.id) === String(id1); });
+    var p2 = pazatorData.humans.find(function(h) { return String(h.id) === String(id2); });
+    if (!p1 || !p2) return;
+    
+    p1.friends = p1.friends || [];
+    p2.friends = p2.friends || [];
+    
+    if (p1.friends.indexOf(id2) === -1) p1.friends.push(id2);
+    if (p2.friends.indexOf(id1) === -1) p2.friends.push(id1);
+    
+    // Save to DB
+    if (window.pazatorStore && typeof pazatorStore.saveToDb === 'function') {
+        await pazatorStore.saveToDb();
+    }
+    
+    showFloatingNotification('Resolved: Established bidirectional link between ' + p1.name + ' and ' + p2.name, 'success');
+    
+    // Refresh HEUR modal list
+    document.getElementById('intelHeurBtn')?.click();
+};
 
 function renderFindingsToCards(findings) {
     var container = document.getElementById('intelResultsContent');
@@ -6822,93 +8092,6 @@ function addAnalysisToEvidence(analysisId) {
     saveCases();
     selectCase(selectedCaseId);
     showFloatingNotification('Evidence added to case: ' + caseData.title, 'success');
-}
-
-async function runIntelligenceAnalysis() {
-    const btn = document.getElementById('intelAnalyzeBtn');
-    const findingsCountEl = document.getElementById('intelFindingsCount');
-    const lastAnalysisEl = document.getElementById('intelLastAnalysis');
-    
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Analyzing...';
-    }
-    
-    try {
-        const humansData = pazatorData.humans.map(h => ({
-            id: h.id,
-            name: h.name,
-            gender: h.gender,
-            birthDate: h.birthDate,
-            workplace: h.workplace,
-            tags: h.tags || [],
-            extraNotes: h.extraNotes || '',
-            friends: (h.friends || []).map(fId => pazatorData.humans.find(h => h.id === fId)?.name || fId),
-            family: (h.family || []).map(fId => pazatorData.humans.find(h => h.id === fId)?.name || fId)
-        }));
-        
-        const othersData = pazatorData.others.map(o => ({
-            id: o.id,
-            name: o.name,
-            note: o.note || ''
-        }));
-        
-        const aiPrompt = `You are analyzing data for an Intelligence Center. Your task is to identify potential threats, risks, suspicious patterns, and hidden connections.
-
-DATA:
-Humans: ${JSON.stringify(humansData, null, 2)}
-Entities: ${JSON.stringify(othersData, null, 2)}
-
-Analyze this data and return a JSON array of findings in this EXACT format:
-[
-    {
-        "type": "threat|risk|connection|positive|info",
-        "subject": "Person or entity name",
-        "content": "Brief description of the finding",
-        "evidence": "Specific data point supporting this finding",
-        "tags": ["tag1", "tag2"]
-    }
-]
-
-Types:
-- threat: Direct danger or serious concern
-- risk: Potential vulnerability or concern
-- connection: Hidden relationship between people
-- positive: Good indicator or strength
-- info: Neutral observation
-
-Be selective - only report significant findings. Maximum 10 findings. Return ONLY the JSON array, no other text.`;
-
-        const aiResponse = await geminiChat([
-            { role: "system", content: "You are Zor, an intelligence analysis AI. Output ONLY valid JSON." },
-            { role: "user", content: aiPrompt }
-        ]);
-        
-        const responseText = aiResponse.content || aiResponse;
-        const findings = extractJSONFromResponse(responseText);
-        
-        if (Array.isArray(findings)) {
-            renderFindingsToCards(findings);
-            if (findingsCountEl) findingsCountEl.textContent = findings.length;
-            if (lastAnalysisEl) lastAnalysisEl.textContent = new Date().toLocaleTimeString();
-
-            var title = 'Intelligence Analysis - ' + new Date().toLocaleString();
-            var saved = storeAnalysisResult('intelligence', title, findings);
-            window._lastIntelAnalysisId = saved.id;
-            showFloatingNotification('Analysis saved. You can attach it as evidence to any case.', 'info');
-        } else {
-            showAlert('Analysis returned unexpected format. Check chat for details.', 'Analysis Issue', 'warning');
-        }
-        
-    } catch (e) {
-        console.error('Intelligence analysis failed:', e);
-        showAlert('Analysis failed: ' + e.message, 'Error', 'error');
-    } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-brain"></i> Run AI Analysis';
-        }
-    }
 }
 
 chatControlBtn?.addEventListener('click', () => {
@@ -7016,10 +8199,6 @@ bulkDeleteChatsBtn?.addEventListener('click', async () => {
 
 // Cross-entity search
 setTimeout(initCrossSearch, 200);
-
-// Slide panel close
-document.getElementById('slidePanelClose')?.addEventListener('click', closeSlidePanel);
-document.getElementById('slidePanelBackdrop')?.addEventListener('click', closeSlidePanel);
 
 // PDF export for cases
 document.getElementById('exportCasePdfBtn')?.addEventListener('click', function() {
@@ -8169,185 +9348,958 @@ async function clearChatHistory() {
     }
 }
 
-document.getElementById('closeConnectionsModal').addEventListener('click', () => {
-    const hiddenConnectionsModal = document.getElementById('hiddenConnectionsModal');
-    hiddenConnectionsModal.style.display = 'none';
-    hiddenConnectionsModal.style.zIndex = '-1';
-});
-
 document.getElementById('manualRefreshBtn')?.addEventListener('click', () => {
     manualRefresh();
 });
 
-async function findHiddenConnections() {
-    const hiddenConnectionsModal = document.getElementById('hiddenConnectionsModal');
-    const connectionsLoading = document.getElementById('connectionsLoading');
-    const connectionsResults = document.getElementById('connectionsResults');
-    const noConnections = document.getElementById('noConnections');
-    const connectionsGraph = document.getElementById('connectionsGraph');
-    const connectionsList = document.getElementById('connectionsList');
+async function deployConnectionAgents() {
+    const modal = document.getElementById('hiddenConnectionsModal');
+    const results = document.getElementById('connectionsResults');
+    const loading = document.getElementById('connectionsLoading');
+    const noResults = document.getElementById('noConnections');
+    const graph = document.getElementById('connectionsGraph');
+    const list = document.getElementById('connectionsList');
 
-    connectionsLoading.style.display = 'block';
-    connectionsResults.style.display = 'none';
-    noConnections.style.display = 'none';
-    hiddenConnectionsModal.style.display = 'flex';
-    hiddenConnectionsModal.style.zIndex = '1000';
+    const depth = parseInt(document.getElementById('connectionDepth')?.value || '2');
+    const scope = document.getElementById('connectionScope')?.value || 'all';
+    const agentCount = parseInt(document.getElementById('connectionAgentCount')?.value || '4');
 
-    findConnectionsBtn.disabled = true;
-    findConnectionsBtn.textContent = 'Analyzing...';
+    modal.style.display = 'flex';
+    modal.style.zIndex = '1000';
+    loading.style.display = 'block';
+    results.style.display = 'none';
+    noResults.style.display = 'none';
+    graph.innerHTML = '';
+    list.innerHTML = '';
 
-    try {
+    const people = pazatorData.humans.map(h => ({
+        id: h.id, name: h.name, gender: h.gender,
+        workplace: h.workplace, occupation: h.occupation,
+        nationality: h.nationality, countryOfOrigin: h.countryOfOrigin,
+        immigrationStatus: h.immigrationStatus, languages: h.languages || [],
+        ethnicity: h.ethnicity, religion: h.religion,
+        politicalViews: h.politicalViews, threatLevel: h.threatLevel,
+        socialClass: h.socialClass, incomeLevel: h.incomeLevel,
+        educationLevel: h.educationLevel, maritalStatus: h.maritalStatus,
+        credit: h.credit, tags: h.tags || [],
+        friends: h.friends || [], family: h.family || [],
+        extraNotes: h.extraNotes || ''
+    }));
 
-        const humansData = pazatorData.humans.map(human => ({
-            id: human.id,
-            name: human.name,
-            gender: human.gender,
-            birthDate: human.birthDate,
-            workplace: human.workplace,
-            friends: human.friends || [],
-            family: human.family || [],
-            extraNotes: human.extraNotes || '',
-            tags: human.tags || []
-        }));
+    const agentSys = initAgentSystem();
 
-        const context = `
-                    You are an AI detective analyzing connections between people in a social network.
-                    Your task is to identify potential hidden connections between people based on their data.
+    const connAgents = [];
+    for (let i = 0; i < agentCount; i++) {
+        connAgents.push({ id: i, name: 'Agent-' + (i + 1), status: 'idle', processed: 0, total: 0, findings: [] });
+    }
 
-                    Here's the data about the people:
-                    ${JSON.stringify(humansData, null, 2)}
-
-                    Based on the information provided, identify potential connections that are not explicitly stated.
-                    Look for patterns such as:
-                    - People who work at the same workplace
-                    - People with similar tags or interests
-                    - People with close birth dates (possibly classmates)
-                    - People who share friends or family members
-                    - People with similar political views or characteristics mentioned in extraNotes
-                    - People with overlapping or similar tags
-                    - People with common interests based on their tags
-
-                    Return your findings as a JSON array of potential connections in this format:
-                    [
-                        {
-                            "person1": "Person Name 1",
-                            "person2": "Person Name 2",
-                            "reason": "They both work at the same company",
-                            "connectionType": "work" 
-                        },
-                        {
-                            "person1": "Person Name 3",
-                            "person2": "Person Name 4",
-                            "reason": "They share multiple mutual friends",
-                            "connectionType": "friend"
-                        }
-                    ]
-
-                    Only return connections that are not already explicitly defined in the data.
-                    Be concise and only include strong potential connections.
-                    If no hidden connections are found, return an empty array.
-                `;
-
-        const aiResponse = await geminiChat([
-            { role: "system", content: context },
-            { role: "user", content: "Analyze the data and find hidden connections between these people." }
-        ]);
-
-        const responseText = aiResponse.content ? aiResponse.content : aiResponse;
-
-        try {
-
-            const connections = extractJSONFromResponse(responseText);
-
-            if (connections && Array.isArray(connections) && connections.length > 0) {
-
-                connectionsLoading.style.display = 'none';
-                connectionsResults.style.display = 'block';
-
-                renderConnectionsGraph(connections, connectionsGraph);
-
-                renderConnectionsList(connections, connectionsList);
-            } else {
-
-                connectionsLoading.style.display = 'none';
-                noConnections.style.display = 'block';
-            }
-        } catch (parseError) {
-            console.error('Error parsing AI response:', parseError);
-            connectionsLoading.style.display = 'none';
-            noConnections.style.display = 'block';
-            noConnections.innerHTML = `
-                        <h3>Error Processing Results</h3>
-                        <p>I found some potential connections, but had trouble processing them.</p>
-                        <div style="background: rgba(40, 40, 40, 0.7); padding: 15px; border-radius: 10px; margin-top: 15px; white-space: pre-wrap;">${responseText}</div>
-                    `;
+    const getPersonProfile = (personId) => {
+        const h = pazatorData.humans.find(x => x.id === personId);
+        if (!h) return null;
+        const profile = {};
+        if (scope === 'all' || scope === 'tags') profile.tags = h.tags || [];
+        if (scope === 'all' || scope === 'relations') {
+            profile.friends = h.friends || [];
+            profile.family = h.family || [];
         }
-    } catch (error) {
-        console.error('Error finding hidden connections:', error);
-        connectionsLoading.style.display = 'none';
-        noConnections.style.display = 'block';
-        noConnections.innerHTML = `
-                    <h3>Error Analyzing Connections</h3>
-                    <p>Sorry, I encountered an error while analyzing the connections. Please try again.</p>
-                `;
-    } finally {
-        findConnectionsBtn.disabled = false;
-        findConnectionsBtn.textContent = 'Find Hidden Connections';
+        if (scope === 'all' || scope === 'attributes') {
+            profile.name = h.name;
+            profile.workplace = h.workplace;
+            profile.occupation = h.occupation;
+            profile.nationality = h.nationality;
+            profile.countryOfOrigin = h.countryOfOrigin;
+            profile.ethnicity = h.ethnicity;
+            profile.religion = h.religion;
+            profile.politicalViews = h.politicalViews;
+            profile.educationLevel = h.educationLevel;
+        }
+        return profile;
+    };
+
+    const explorePerson = async (person, depthLevel, visited) => {
+        const key = person.id + '_d' + depthLevel;
+        if (visited.has(key)) return [];
+        visited.add(key);
+
+        const profile = getPersonProfile(person.id);
+        if (!profile) return [];
+
+        const results = [];
+
+        for (const other of pazatorData.humans) {
+            if (other.id === person.id) continue;
+            if (person.friends?.includes(other.id) || person.family?.includes(other.id)) continue;
+
+            const otherProfile = getPersonProfile(other.id);
+            if (!otherProfile) continue;
+
+            const connections = findLocalConnections(profile, otherProfile, person, other);
+            results.push(...connections);
+        }
+
+        if (depthLevel < depth) {
+            const nextTargets = [...(person.friends || []), ...(person.family || [])];
+            for (const friendId of nextTargets) {
+                const friend = pazatorData.humans.find(x => x.id === friendId);
+                if (friend) {
+                    const deeper = await explorePerson(friend, depthLevel + 1, visited);
+                    results.push(...deeper);
+                }
+            }
+        }
+
+        return results;
+    };
+
+    const allConnections = [];
+    const visited = new Set();
+
+    const chunks = [];
+    const chunkSize = Math.ceil(people.length / agentCount);
+    for (let i = 0; i < people.length; i += chunkSize) {
+        chunks.push(people.slice(i, i + chunkSize));
+    }
+
+    const agentPromises = connAgents.map(async (agent, idx) => {
+        agent.status = 'exploring';
+        agent.total = chunks[idx]?.length || 0;
+        agent.processed = 0;
+
+        const agentChunk = chunks[idx] || [];
+        const agentConnections = [];
+
+        for (const person of agentChunk) {
+            const found = await explorePerson(person, 1, visited);
+            agentConnections.push(...found);
+            agent.processed++;
+        }
+
+        agent.findings = agentConnections.slice(0, 20);
+        agent.status = 'done';
+
+        return agentConnections;
+    });
+
+    const resultsArray = await Promise.all(agentPromises);
+    resultsArray.forEach(r => allConnections.push(...r));
+
+    const unique = [];
+    const seen = new Set();
+    allConnections.forEach(c => {
+        const key = [c.person1, c.person2].sort().join('|');
+        if (!seen.has(key)) {
+            seen.add(key);
+            unique.push(c);
+        }
+    });
+
+    unique.sort((a, b) => (b.strength || 0) - (a.strength || 0));
+    const topConnections = unique.slice(0, 50);
+
+    loading.style.display = 'none';
+
+    if (topConnections.length > 0) {
+        results.style.display = 'block';
+        renderConnectionsGraph(topConnections.slice(0, 20), graph);
+        renderConnectionsList(topConnections, list);
+
+        const countEl = document.getElementById('intelConnectionsCount');
+        const summaryEl = document.getElementById('intelConnectionsSummary');
+        if (countEl) countEl.textContent = topConnections.length;
+        if (summaryEl) summaryEl.textContent = topConnections.length + ' found';
+    } else {
+        noResults.style.display = 'block';
     }
 }
 
+function findLocalConnections(profile1, profile2, person1, person2) {
+    const connections = [];
+    const shared = {};
+
+    if (profile1.tags && profile2.tags) {
+        const common = profile1.tags.filter(t => profile2.tags.includes(t));
+        if (common.length > 0) shared.tags = common;
+    }
+
+    if (profile1.friends && profile2.friends) {
+        const mutual = profile1.friends.filter(f => profile2.friends.includes(f));
+        if (mutual.length > 0) shared.mutualFriends = mutual;
+    }
+
+    if (profile1.family && profile2.family) {
+        const mutual = profile1.family.filter(f => profile2.family.includes(f));
+        if (mutual.length > 0) shared.mutualFamily = mutual;
+    }
+
+    if (profile1.workplace && profile2.workplace && profile1.workplace === profile2.workplace) {
+        shared.workplace = profile1.workplace;
+    }
+
+    if (profile1.nationality && profile2.nationality && profile1.nationality === profile2.nationality) {
+        shared.nationality = profile1.nationality;
+    }
+
+    if (profile1.countryOfOrigin && profile2.countryOfOrigin && profile1.countryOfOrigin === profile2.countryOfOrigin) {
+        shared.origin = profile1.countryOfOrigin;
+    }
+
+    if (profile1.religion && profile2.religion && profile1.religion === profile2.religion) {
+        shared.religion = profile1.religion;
+    }
+
+    if (profile1.politicalViews && profile2.politicalViews && profile1.politicalViews === profile2.politicalViews) {
+        shared.politics = profile1.politicalViews;
+    }
+
+    if (Object.keys(shared).length > 0) {
+        const reasons = [];
+        if (shared.tags) reasons.push('Shared tags: ' + shared.tags.join(', '));
+        if (shared.mutualFriends) reasons.push('Mutual friends: ' + shared.mutualFriends.length);
+        if (shared.mutualFamily) reasons.push('Mutual family: ' + shared.mutualFamily.length);
+        if (shared.workplace) reasons.push('Same workplace: ' + shared.workplace);
+        if (shared.nationality) reasons.push('Same nationality: ' + shared.nationality);
+        if (shared.origin) reasons.push('Same origin: ' + shared.origin);
+        if (shared.religion) reasons.push('Same religion: ' + shared.religion);
+        if (shared.politics) reasons.push('Same politics: ' + shared.politics);
+
+        connections.push({
+            person1: person1.name,
+            person2: person2.name,
+            reason: reasons.join('; '),
+            connectionType: Object.keys(shared)[0] || 'unknown',
+            strength: Object.keys(shared).length,
+            shared
+        });
+    }
+
+    return connections;
+}
+
 function renderConnectionsGraph(connections, graphContainer) {
+    var hasD3 = typeof d3 !== 'undefined';
+    if (hasD3 && graphContainer) {
+        renderForceGraphInElement(graphContainer, {
+            connections: connections,
+            width: graphContainer.clientWidth || 600,
+            height: graphContainer.clientHeight || 300
+        });
+        return;
+    }
     graphContainer.innerHTML = '';
 
-    const people = [...new Set(connections.flatMap(conn => [conn.person1, conn.person2]))];
+    var people = [...new Set(connections.flatMap(function(conn) { return [conn.person1, conn.person2]; }))];
 
-    const centerX = graphContainer.offsetWidth / 2;
-    const centerY = graphContainer.offsetHeight / 2;
-    const radius = Math.min(centerX, centerY) * 0.7;
+    var centerX = graphContainer.offsetWidth / 2;
+    var centerY = graphContainer.offsetHeight / 2;
+    var radius = Math.min(centerX, centerY) * 0.7;
 
-    const personPositions = {};
-    people.forEach((person, index) => {
-        const angle = (index / people.length) * Math.PI * 2;
-        const x = centerX + Math.cos(angle) * radius - 30;
-        const y = centerY + Math.sin(angle) * radius - 30;
+    var personPositions = {};
+    people.forEach(function(person, index) {
+        var angle = (index / people.length) * Math.PI * 2;
+        var x = centerX + Math.cos(angle) * radius - 30;
+        var y = centerY + Math.sin(angle) * radius - 30;
 
         personPositions[person] = { x: x + 30, y: y + 30 };
 
-        const node = document.createElement('div');
+        var node = document.createElement('div');
         node.className = 'connection-node';
         node.textContent = person.length > 10 ? person.substring(0, 10) + '...' : person;
-        node.style.left = `${x}px`;
-        node.style.top = `${y}px`;
+        node.style.left = x + 'px';
+        node.style.top = y + 'px';
         graphContainer.appendChild(node);
     });
 
-    connections.forEach((connection, index) => {
-        const pos1 = personPositions[connection.person1];
-        const pos2 = personPositions[connection.person2];
+    connections.forEach(function(connection) {
+        var pos1 = personPositions[connection.person1];
+        var pos2 = personPositions[connection.person2];
 
         if (pos1 && pos2) {
-            const line = document.createElement('div');
+            var line = document.createElement('div');
             line.className = 'connection-line';
 
-            const dx = pos2.x - pos1.x;
-            const dy = pos2.y - pos1.y;
-            const length = Math.sqrt(dx * dx + dy * dy);
-            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+            var dx = pos2.x - pos1.x;
+            var dy = pos2.y - pos1.y;
+            var length = Math.sqrt(dx * dx + dy * dy);
+            var angle = Math.atan2(dy, dx) * 180 / Math.PI;
 
-            line.style.width = `${length}px`;
+            line.style.width = length + 'px';
             line.style.height = '3px';
-            line.style.left = `${pos1.x}px`;
-            line.style.top = `${pos1.y}px`;
-            line.style.transform = `rotate(${angle}deg)`;
+            line.style.left = pos1.x + 'px';
+            line.style.top = pos1.y + 'px';
+            line.style.transform = 'rotate(' + angle + 'deg)';
 
             graphContainer.appendChild(line);
 
-            const label = document.createElement('div');
+            var label = document.createElement('div');
             label.className = 'connection-label';
             label.textContent = connection.connectionType;
-            label.style.left = `${(pos1.x + pos2.x) / 2}px`;
-            label.style.top = `${(pos1.y + pos2.y) / 2}px`;
+            label.style.left = ((pos1.x + pos2.x) / 2) + 'px';
+            label.style.top = ((pos1.y + pos2.y) / 2) + 'px';
             graphContainer.appendChild(label);
+        }
+    });
+}
+
+/* D3 Force-Directed Graph */
+function renderForceGraphInElement(container, opts) {
+    opts = opts || {};
+    var connections = opts.connections || [];
+    var humans = opts.humans || pazatorData.humans;
+    var others = opts.others || pazatorData.others;
+
+    var width = opts.width || container.clientWidth || 800;
+    var height = opts.height || container.clientHeight || 500;
+
+    container.innerHTML = '';
+    container.style.position = 'relative';
+    container.style.overflow = 'hidden';
+
+    /* Build node map from connections or full dataset */
+    var nodes = [];
+    var nodeMap = {};
+    var links = [];
+
+    function addNode(id, label, type, data) {
+        if (nodeMap[id]) return;
+        var threat = data && data.threatLevel ? String(data.threatLevel).toLowerCase() : '';
+        var color = '#4d9de0';
+        if (threat === 'critical') color = '#ff0000';
+        else if (threat === 'high') color = '#ff6b6b';
+        else if (threat === 'medium') color = '#ffd93d';
+        else if (threat === 'low') color = '#6bcf7f';
+        if (type === 'other') color = '#a29bfe';
+        var node = { id: id, label: label, type: type, color: color, data: data };
+        nodes.push(node);
+        nodeMap[id] = node;
+    }
+
+    if (connections.length > 0) {
+        /* Build graph from connections data */
+        connections.forEach(function(c) {
+            if (!nodeMap[c.person1]) addNode(c.person1, c.person1, 'human', null);
+            if (!nodeMap[c.person2]) addNode(c.person2, c.person2, 'human', null);
+            links.push({
+                source: c.person1,
+                target: c.person2,
+                label: c.connectionType || 'connected',
+                color: 'rgba(255,255,255,0.3)',
+                strength: c.strength || 1
+            });
+        });
+    } else {
+        /* Build full graph from data */
+        humans.forEach(function(h) { if (h && h.id) addNode(h.id, h.name || h.id, 'human', h); });
+        others.forEach(function(o) { if (o && o.id) addNode(o.name || o.id, o.name || o.id, 'other', o); });
+
+        if (window.pazatorRelationships) {
+            var rels = window.pazatorRelationships.getAll();
+            rels.forEach(function(r) {
+                var src = nodeMap[r.sourceId];
+                var tgt = nodeMap[r.targetId];
+                if (src && tgt) {
+                    var ti = window.pazatorRelationships.getTypeInfo(r.type);
+                    links.push({
+                        source: r.sourceId,
+                        target: r.targetId,
+                        label: ti.label,
+                        color: ti.color,
+                        strength: r.strength || 1,
+                        type: r.type
+                    });
+                }
+            });
+        }
+
+        /* Add shared-attribute connections */
+        var attrFields = ['workplace', 'nationality', 'religion', 'countryOfOrigin', 'politicalView', 'ethnicity'];
+        var attrIndex = {};
+        humans.forEach(function(h) {
+            if (!h || !h.id) return;
+            attrFields.forEach(function(f) {
+                var val = h[f];
+                if (!val) return;
+                if (!attrIndex[f]) attrIndex[f] = {};
+                if (!attrIndex[f][val]) attrIndex[f][val] = [];
+                attrIndex[f][val].push(h.id);
+            });
+        });
+        Object.keys(attrIndex).forEach(function(field) {
+            Object.keys(attrIndex[field]).forEach(function(val) {
+                var ids = attrIndex[field][val];
+                if (ids.length < 2) return;
+                for (var i = 0; i < Math.min(ids.length, 10); i++) {
+                    for (var j = i + 1; j < Math.min(ids.length, 10); j++) {
+                        var alreadyLinked = links.some(function(l) {
+                            return (l.source === ids[i] && l.target === ids[j]) || (l.source === ids[j] && l.target === ids[i]);
+                        });
+                        if (!alreadyLinked) {
+                            links.push({
+                                source: ids[i],
+                                target: ids[j],
+                                label: field,
+                                color: 'rgba(255,255,255,0.12)',
+                                strength: 0.5,
+                                dashed: true
+                            });
+                        }
+                    }
+                }
+            });
+        });
+    }
+
+    if (nodes.length === 0) {
+        container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#666;">No data to display</div>';
+        return;
+    }
+
+    try {
+        var svg = d3.select(container)
+            .append('svg')
+            .attr('width', width)
+            .attr('height', height)
+            .style('display', 'block')
+            .style('background', 'transparent');
+
+        var g = svg.append('g');
+
+        var zoom = d3.zoom()
+            .scaleExtent([0.1, 4])
+            .on('zoom', function(event) {
+                g.attr('transform', event.transform);
+            });
+        svg.call(zoom);
+
+        /* Tooltip */
+        var tooltip = d3.select(container)
+            .append('div')
+            .style('position', 'absolute')
+            .style('background', 'rgba(10,10,10,0.92)')
+            .style('color', '#eee')
+            .style('padding', '8px 12px')
+            .style('border-radius', '6px')
+            .style('font-size', '12px')
+            .style('pointer-events', 'none')
+            .style('border', '1px solid #444')
+            .style('z-index', '100')
+            .style('opacity', '0')
+            .style('max-width', '250px');
+
+        /* Arrow marker */
+        svg.append('defs').append('marker')
+            .attr('id', 'arrow')
+            .attr('viewBox', '0 -5 10 10')
+            .attr('refX', 28)
+            .attr('refY', 0)
+            .attr('markerWidth', 6)
+            .attr('markerHeight', 6)
+            .attr('orient', 'auto')
+            .append('path')
+            .attr('d', 'M0,-5L10,0L0,5')
+            .attr('fill', '#888');
+
+        /* Links */
+        var linkGroup = g.append('g').attr('class', 'links');
+        var link = linkGroup.selectAll('line')
+            .data(links)
+            .enter().append('line')
+            .attr('stroke', function(d) { return d.color || 'rgba(255,255,255,0.2)'; })
+            .attr('stroke-width', function(d) { return (d.strength || 0.5) * 2 + 0.5; })
+            .attr('stroke-opacity', 0.6)
+            .attr('stroke-dasharray', function(d) { return d.dashed ? '4,4' : null; })
+            .attr('marker-end', function(d) { return d.type ? 'url(#arrow)' : null; });
+
+        /* Link labels */
+        var linkLabelGroup = g.append('g').attr('class', 'link-labels');
+        var linkLabel = linkLabelGroup.selectAll('text')
+            .data(links)
+            .enter().append('text')
+            .text(function(d) { return d.label; })
+            .attr('font-size', '9px')
+            .attr('fill', 'rgba(255,255,255,0.4)')
+            .attr('text-anchor', 'middle')
+            .attr('dy', '-4');
+
+        /* Nodes */
+        var nodeGroup = g.append('g').attr('class', 'nodes');
+        var node = nodeGroup.selectAll('g')
+            .data(nodes)
+            .enter().append('g')
+            .attr('cursor', 'pointer')
+            .on('click', function(event, d) {
+                event.stopPropagation();
+                if (d.data && d.data.id) {
+                    if (d.type === 'human') {
+                        if (typeof openSlidePanel === 'function') openSlidePanel(d.data.id, 'human');
+                    } else {
+                        if (typeof openSlidePanel === 'function') openSlidePanel(d.data.id, 'other');
+                    }
+                } else if (d.id && !d.data) {
+                    /* Try to find by name */
+                    var found = pazatorData.humans.find(function(h) { return h.name === d.id || h.id === d.id; });
+                    if (found && typeof openSlidePanel === 'function') openSlidePanel(found.id, 'human');
+                }
+            })
+            .on('mouseenter', function(event, d) {
+                tooltip.transition().duration(200).style('opacity', 1);
+                var html = '<strong>' + escapeHtml(d.label || d.id) + '</strong>';
+                html += '<br/><span style="color:#888;">' + d.type + '</span>';
+                if (d.data && d.data.threatLevel) html += '<br/>Threat: ' + d.data.threatLevel;
+                tooltip.html(html)
+                    .style('left', (event.offsetX + 10) + 'px')
+                    .style('top', (event.offsetY - 10) + 'px');
+                d3.select(this).select('circle').transition().duration(200).attr('r', function(d) {
+                    return d.type === 'human' ? 10 : 8;
+                });
+            })
+            .on('mousemove', function(event) {
+                tooltip.style('left', (event.offsetX + 10) + 'px').style('top', (event.offsetY - 10) + 'px');
+            })
+            .on('mouseleave', function() {
+                tooltip.transition().duration(300).style('opacity', 0);
+                d3.select(this).select('circle').transition().duration(200).attr('r', function(d) {
+                    return d.type === 'human' ? 7 : 5;
+                });
+            })
+            .call(d3.drag()
+                .on('start', function(event, d) {
+                    if (!event.active) simulation.alphaTarget(0.3).restart();
+                    d.fx = d.x;
+                    d.fy = d.y;
+                })
+                .on('drag', function(event, d) {
+                    d.fx = event.x;
+                    d.fy = event.y;
+                })
+                .on('end', function(event, d) {
+                    if (!event.active) simulation.alphaTarget(0);
+                    d.fx = null;
+                    d.fy = null;
+                })
+            );
+
+        node.append('circle')
+            .attr('r', function(d) { return d.type === 'human' ? 7 : 5; })
+            .attr('fill', function(d) { return d.color || '#666'; })
+            .attr('stroke', 'rgba(255,255,255,0.3)')
+            .attr('stroke-width', 1.5);
+
+        node.append('text')
+            .text(function(d) { return (d.label || d.id).length > 12 ? (d.label || d.id).substring(0, 12) + '...' : (d.label || d.id); })
+            .attr('dx', function(d) { return d.type === 'human' ? 12 : 10; })
+            .attr('dy', 4)
+            .attr('font-size', function(d) { return d.type === 'human' ? '10px' : '9px'; })
+            .attr('fill', 'rgba(255,255,255,0.7)')
+            .style('pointer-events', 'none')
+            .style('text-shadow', '0 1px 3px rgba(0,0,0,0.8)');
+
+        /* Force simulation */
+        var simulation = d3.forceSimulation(nodes)
+            .force('link', d3.forceLink(links).id(function(d) { return d.id; }).distance(80).strength(function(d) { return d.strength || 0.5; }))
+            .force('charge', d3.forceManyBody().strength(-200))
+            .force('center', d3.forceCenter(width / 2, height / 2))
+            .force('collision', d3.forceCollide().radius(function(d) { return d.type === 'human' ? 15 : 12; }))
+            .on('tick', function() {
+                link
+                    .attr('x1', function(d) { return d.source.x; })
+                    .attr('y1', function(d) { return d.source.y; })
+                    .attr('x2', function(d) { return d.target.x; })
+                    .attr('y2', function(d) { return d.target.y; });
+                linkLabel
+                    .attr('x', function(d) { return (d.source.x + d.target.x) / 2; })
+                    .attr('y', function(d) { return (d.source.y + d.target.y) / 2; });
+                node.attr('transform', function(d) { return 'translate(' + d.x + ',' + d.y + ')'; });
+            });
+
+        /* Initial zoom to fit */
+        var initialTransform = d3.zoomIdentity.translate(0, 0).scale(1);
+        svg.call(zoom.transform, initialTransform);
+
+        /* Resize observer */
+        var resizeObserver = new ResizeObserver(function() {
+            var w = container.clientWidth;
+            var h = container.clientHeight;
+            if (w > 0 && h > 0) {
+                svg.attr('width', w).attr('height', h);
+                simulation.force('center', d3.forceCenter(w / 2, h / 2));
+                simulation.alpha(0.3).restart();
+            }
+        });
+        resizeObserver.observe(container);
+
+        /* Expose for cleanup and path highlighting */
+        container._simulation = simulation;
+        container._resizeObserver = resizeObserver;
+        container._linkSelection = link;
+        container._nodeSelection = node;
+
+    } catch (e) {
+        console.warn('D3 force graph error, falling back:', e);
+        container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#666;">Graph render error</div>';
+    }
+}
+
+/* ===== PATH FINDING (BFS over relationship graph) ===== */
+
+function getEntityNameById(id) {
+    if (!id) return 'Unknown';
+    var h = pazatorData.humans.find(function(x) { return x.id === id; });
+    if (h) return h.name;
+    var o = pazatorData.others.find(function(x) { return x.id === id; });
+    return o ? o.name : id;
+}
+
+function findPath(startId, endId) {
+    if (!window.pazatorRelationships) {
+        showFloatingNotification('Relationship system not available', 'error');
+        return null;
+    }
+    if (startId === endId) {
+        return [{ nodeId: startId, relType: null, relLabel: '' }];
+    }
+    var visited = new Set();
+    var queue = [{ nodeId: startId, path: [{ nodeId: startId, relType: null, relLabel: '' }] }];
+    visited.add(startId);
+
+    while (queue.length > 0) {
+        var current = queue.shift();
+        var rels = window.pazatorRelationships.getForEntity(current.nodeId);
+        for (var i = 0; i < rels.length; i++) {
+            var rel = rels[i];
+            var neighborId = rel.sourceId === current.nodeId ? rel.targetId : rel.sourceId;
+            if (visited.has(neighborId)) continue;
+            visited.add(neighborId);
+            var typeInfo = window.pazatorRelationships.getTypeInfo(rel.type);
+            var newPath = current.path.concat([{ nodeId: neighborId, relType: rel.type, relLabel: typeInfo.label }]);
+            if (neighborId === endId) return newPath;
+            queue.push({ nodeId: neighborId, path: newPath });
+        }
+    }
+    return null;
+}
+
+function highlightPathOnGraph(container, path) {
+    if (!container || !path || path.length < 2) return;
+    var linkSel = container._linkSelection;
+    var nodeSel = container._nodeSelection;
+    if (!linkSel || !nodeSel) return;
+
+    linkSel.attr('stroke', function(d) { return d.color || 'rgba(255,255,255,0.2)'; })
+        .attr('stroke-width', function(d) { return (d.strength || 0.5) * 2 + 0.5; })
+        .attr('stroke-opacity', 0.6);
+    nodeSel.select('circle').attr('stroke', 'rgba(255,255,255,0.3)').attr('stroke-width', 1.5);
+    linkSel.attr('stroke-dasharray', function(d) { return d.dashed ? '4,4' : null; });
+
+    var pathNodeIds = new Set();
+    var pathEdges = [];
+    for (var i = 0; i < path.length; i++) {
+        pathNodeIds.add(path[i].nodeId);
+    }
+    for (var i = 1; i < path.length; i++) {
+        var a = path[i - 1].nodeId, b = path[i].nodeId;
+        pathEdges.push(a < b ? a + '|' + b : b + '|' + a);
+    }
+    var edgeSet = new Set(pathEdges);
+
+    nodeSel.each(function(d) {
+        var circle = d3.select(this).select('circle');
+        if (pathNodeIds.has(d.id)) {
+            circle.attr('stroke', '#00ff88').attr('stroke-width', 3);
+        }
+    });
+    linkSel.each(function(d) {
+        var sid = typeof d.source === 'object' ? d.source.id : d.source;
+        var tid = typeof d.target === 'object' ? d.target.id : d.target;
+        var key = sid < tid ? sid + '|' + tid : tid + '|' + sid;
+        if (edgeSet.has(key)) {
+            d3.select(this).attr('stroke', '#00ff88').attr('stroke-width', 3).attr('stroke-opacity', 1).attr('stroke-dasharray', null);
+        }
+    });
+}
+
+function clearPathHighlightFromGraph(container) {
+    if (!container) return;
+    var linkSel = container._linkSelection;
+    var nodeSel = container._nodeSelection;
+    if (!linkSel || !nodeSel) return;
+    linkSel.attr('stroke', function(d) { return d.color || 'rgba(255,255,255,0.2)'; })
+        .attr('stroke-width', function(d) { return (d.strength || 0.5) * 2 + 0.5; })
+        .attr('stroke-opacity', 0.6)
+        .attr('stroke-dasharray', function(d) { return d.dashed ? '4,4' : null; });
+    nodeSel.select('circle').attr('stroke', 'rgba(255,255,255,0.3)').attr('stroke-width', 1.5);
+    var resultEl = container._pathResultEl;
+    if (resultEl) resultEl.innerHTML = '';
+}
+
+function buildPathText(path) {
+    if (!path || path.length === 0) return 'No path found.';
+    var parts = [];
+    for (var i = 0; i < path.length; i++) {
+        var name = getEntityNameById(path[i].nodeId);
+        if (i === 0) {
+            parts.push(name);
+        } else {
+            parts.push(' → <span class="path-rel">' + path[i].relLabel + '</span> → ' + name);
+        }
+    }
+    return parts.join('');
+}
+
+function populateGraphEntitySelect(selectId, excludeId) {
+    var sel = document.getElementById(selectId);
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Select entity...</option>';
+    pazatorData.humans.forEach(function(h) {
+        if (h.id !== excludeId) {
+            var opt = document.createElement('option');
+            opt.value = h.id;
+            opt.textContent = h.name + ' (Human)';
+            sel.appendChild(opt);
+        }
+    });
+    pazatorData.others.forEach(function(o) {
+        if (o.id !== excludeId) {
+            var opt = document.createElement('option');
+            opt.value = o.id;
+            opt.textContent = o.name + ' (Entity)';
+            sel.appendChild(opt);
+        }
+    });
+}
+
+function findAndHighlightPath() {
+    var container = document.getElementById('fullGraphContainer');
+    if (!container) return;
+    var startId = document.getElementById('pathStartSelect')?.value;
+    var endId = document.getElementById('pathEndSelect')?.value;
+    if (!startId || !endId) {
+        showFloatingNotification('Select both start and end entities', 'warning');
+        return;
+    }
+    if (startId === endId) {
+        showFloatingNotification('Start and end entities are the same', 'info');
+        return;
+    }
+    clearPathHighlightFromGraph(container);
+    var path = findPath(startId, endId);
+    var resultEl = document.getElementById('pathResult');
+    if (!path) {
+        if (resultEl) resultEl.innerHTML = '<span style="color:#ff6b6b;">No connecting path found between these entities.</span>';
+        return;
+    }
+    highlightPathOnGraph(container, path);
+    if (resultEl) {
+        resultEl.innerHTML = '<div style="margin-bottom:4px;color:#00ff88;font-weight:600;">✓ Path found (' + (path.length - 1) + ' hops)</div>' +
+            '<div class="path-text">' + buildPathText(path) + '</div>';
+    }
+}
+
+function clearGraphPath() {
+    var container = document.getElementById('fullGraphContainer');
+    if (container) clearPathHighlightFromGraph(container);
+}
+
+function openGraphView() {
+    if (typeof d3 === 'undefined') {
+        showAlert('D3.js library not loaded. Please check your internet connection and refresh.', 'Graph Unavailable', 'error');
+        return;
+    }
+
+    var modal = document.getElementById('fullGraphModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'fullGraphModal';
+        modal.className = 'modal';
+        modal.innerHTML =
+            '<div class="modal-content" style="width:90vw;height:90vh;max-width:1400px;display:flex;flex-direction:column;">' +
+            '<button class="close" onclick="closeGraphView()">&times;</button>' +
+            '<div class="modal-header"><h2>Entity Graph View</h2></div>' +
+            '<div class="graph-path-bar">' +
+            '<div class="path-bar-row">' +
+            '<div class="path-select-group"><label>Start</label><select id="pathStartSelect" class="path-select"></select></div>' +
+            '<div class="path-select-group"><label>End</label><select id="pathEndSelect" class="path-select"></select></div>' +
+            '<button class="btn btn-primary" onclick="findAndHighlightPath()" style="flex:none;padding:6px 16px;font-size:12px;white-space:nowrap;"><i class="fas fa-route"></i> Find Path</button>' +
+            '<button class="btn glass-btn" onclick="clearGraphPath()" style="flex:none;padding:6px 16px;font-size:12px;white-space:nowrap;"><i class="fas fa-times"></i> Clear</button>' +
+            '</div>' +
+            '<div id="pathResult" class="path-result"></div>' +
+            '</div>' +
+            '<div id="fullGraphContainer" style="flex:1;min-height:80px;border-radius:8px;background:rgba(10,10,10,0.3);margin:0 10px;border:1px solid rgba(255,255,255,0.06);"></div>' +
+            '<div style="padding:8px 16px;display:flex;gap:16px;align-items:center;font-size:12px;color:#888;border-top:1px solid rgba(255,255,255,0.06);">' +
+            '<span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#4d9de0;margin-right:4px;"></span> Human</span>' +
+            '<span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#a29bfe;margin-right:4px;"></span> Entity</span>' +
+            '<span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ff6b6b;margin-right:4px;"></span> High Risk</span>' +
+            '<span style="margin-left:auto;">Drag to pan · Scroll to zoom · Click to inspect</span>' +
+            '</div></div>';
+        document.body.appendChild(modal);
+    }
+    modal.style.display = 'flex';
+    modal.style.zIndex = '10000';
+
+    populateGraphEntitySelect('pathStartSelect');
+    populateGraphEntitySelect('pathEndSelect');
+
+    var container = document.getElementById('fullGraphContainer');
+    if (!container) return;
+    container._pathResultEl = document.getElementById('pathResult');
+
+    requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+            var w = container.clientWidth || 800;
+            var h = container.clientHeight || 600;
+            renderForceGraphInElement(container, {
+                humans: pazatorData.humans,
+                others: pazatorData.others,
+                width: w,
+                height: h
+            });
+        });
+    });
+}
+
+function closeGraphView() {
+    var modal = document.getElementById('fullGraphModal');
+    if (modal) modal.style.display = 'none';
+    var container = document.getElementById('fullGraphContainer');
+    if (container && container._simulation) {
+        container._simulation.stop();
+        container._simulation = null;
+    }
+    if (container && container._resizeObserver) {
+        container._resizeObserver.disconnect();
+        container._resizeObserver = null;
+    }
+}
+
+/* Relationship Management */
+function showAddRelationship(entityId, entityType) {
+    entityType = entityType || 'human';
+    var existing = document.getElementById('relManagerModal');
+    if (existing) existing.remove();
+
+    var modal = document.createElement('div');
+    modal.id = 'relManagerModal';
+    modal.className = 'modal';
+    modal.style.display = 'flex';
+    modal.style.zIndex = '10001';
+
+    var types = window.pazatorRelationships ? window.pazatorRelationships.getTypes() : [];
+    var entityName = 'Unknown';
+    if (entityType === 'human') entityName = getHumanNameById(entityId);
+    else {
+        var e = pazatorData.others.find(function(o) { return o.id === entityId; });
+        if (e) entityName = e.name;
+    }
+
+    var candidateOptions = '';
+    pazatorData.humans.forEach(function(h) {
+        if (h.id !== entityId) {
+            candidateOptions += '<option value="' + h.id + '">' + escapeHtml(h.name) + ' (Human)</option>';
+        }
+    });
+    pazatorData.others.forEach(function(o) {
+        if (o.id !== entityId) {
+            candidateOptions += '<option value="' + o.id + '" data-type="other">' + escapeHtml(o.name) + ' (Entity)</option>';
+        }
+    });
+
+    var typeOptions = '';
+    types.forEach(function(t) {
+        typeOptions += '<option value="' + t.key + '" style="color:' + t.color + ';">' + t.label + '</option>';
+    });
+
+    modal.innerHTML =
+        '<div class="modal-content" style="max-width:500px;">' +
+        '<button class="close" onclick="document.getElementById(\'relManagerModal\').remove()">&times;</button>' +
+        '<div class="modal-header"><h2>Add Relationship</h2></div>' +
+        '<div class="modal-body">' +
+        '<p style="color:#888;margin-bottom:16px;">Creating relationship for <strong>' + escapeHtml(entityName) + '</strong></p>' +
+        '<div class="form-group">' +
+        '<label>Target Entity</label>' +
+        '<select id="relTargetSelect" class="form-control">' + candidateOptions + '</select>' +
+        '</div>' +
+        '<div class="form-group">' +
+        '<label>Relationship Type</label>' +
+        '<select id="relTypeSelect" class="form-control">' + typeOptions + '</select>' +
+        '</div>' +
+        '<div class="form-group">' +
+        '<label>Strength (1-5)</label>' +
+        '<input type="range" id="relStrength" min="1" max="5" value="3" style="width:100%;">' +
+        '<div style="display:flex;justify-content:space-between;font-size:11px;color:#666;"><span>Weak</span><span>Strong</span></div>' +
+        '</div>' +
+        '<div class="form-group">' +
+        '<label>Notes (optional)</label>' +
+        '<textarea id="relNotes" class="form-control" rows="2" placeholder="Context about this relationship..."></textarea>' +
+        '</div>' +
+        '</div>' +
+        '<div class="form-actions-horizontal">' +
+        '<button class="btn-enhanced glass-btn" onclick="document.getElementById(\'relManagerModal\').remove()">Cancel</button>' +
+        '<button class="btn-enhanced btn-primary" onclick="confirmAddRelationship(\'' + entityId + '\',\'' + entityType + '\')"><i class="fas fa-link"></i> Add Relationship</button>' +
+        '</div></div>';
+
+    document.body.appendChild(modal);
+}
+
+function confirmAddRelationship(entityId, entityType) {
+    var targetSelect = document.getElementById('relTargetSelect');
+    var typeSelect = document.getElementById('relTypeSelect');
+    var strength = parseInt(document.getElementById('relStrength').value) || 3;
+    var notes = document.getElementById('relNotes').value || '';
+
+    var targetId = targetSelect.value;
+    if (!targetId) {
+        showAlert('Please select a target entity', 'Error', 'error');
+        return;
+    }
+    var targetOption = targetSelect.options[targetSelect.selectedIndex];
+    var targetType = targetOption.getAttribute('data-type') || 'human';
+    var relType = typeSelect.value;
+
+    if (window.pazatorRelationships) {
+        var existing = window.pazatorRelationships.getForEntity(entityId, entityType);
+        var alreadyExists = existing.some(function(r) {
+            return (r.sourceId === entityId && r.targetId === targetId) ||
+                   (r.sourceId === targetId && r.targetId === entityId);
+        });
+        if (alreadyExists) {
+            showAlert('A relationship between these entities already exists', 'Error', 'error');
+            return;
+        }
+        window.pazatorRelationships.add({
+            sourceId: entityId,
+            sourceType: entityType,
+            targetId: targetId,
+            targetType: targetType,
+            type: relType,
+            strength: strength,
+            notes: notes
+        });
+    }
+
+    var modal = document.getElementById('relManagerModal');
+    if (modal) modal.remove();
+    showAlert('Relationship added', 'Success', 'success');
+    refreshDetailView();
+}
+
+function removeRelationship(relId) {
+    if (!window.pazatorRelationships) return;
+    if (!confirm('Remove this relationship?')) return;
+    window.pazatorRelationships.remove(relId);
+    refreshDetailView();
+}
+
+function refreshDetailView() {
+    var modal = document.getElementById('detailViewModal');
+    if (modal && modal.style.display === 'flex' && document.currentDetailData) {
+        showDetailView(document.currentDetailData, document.currentDetailData.type);
+    }
+}
+
+/* Listen for relationship changes to refresh UI */
+if (window.pazatorRelationships) {
+    window.pazatorRelationships.on('changed', function() {
+        if (window.pazatorStore) {
+            window.pazatorStore.markDirty('relationships');
         }
     });
 }
@@ -8360,12 +10312,12 @@ function renderConnectionsList(connections, listContainer) {
         item.className = 'connection-item';
 
         item.innerHTML = `
-                    <div class="connection-item-header">
-                        <strong>${connection.person1} ↔ ${connection.person2}</strong>
-                        <span class="connection-type">${connection.connectionType}</span>
-                    </div>
-                    <p>${connection.reason}</p>
-                `;
+            <div class="connection-item-header">
+                <strong>${connection.person1} <-> ${connection.person2}</strong>
+                <span class="connection-type">${connection.connectionType}</span>
+            </div>
+            <p>${connection.reason}</p>
+        `;
 
         listContainer.appendChild(item);
     });
@@ -9837,151 +11789,256 @@ function initializeSearch() {
             if (query) performSearch(query);
         });
     });
+
+    document.querySelectorAll('.search-chip input[type="checkbox"]').forEach(function (cb) {
+        cb.addEventListener('change', function () {
+            var query = searchInput.value.trim();
+            if (query) performSearch(query);
+        });
+    });
+
+    var saveBtn = document.getElementById('searchSaveBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', function () {
+            if (!window.pazatorFacets) return;
+            var query = searchInput.value.trim();
+            var name = prompt('Name this saved search:', query || 'untitled');
+            if (!name || !name.trim()) return;
+            var saved = pazatorFacets.addSaved(name.trim(), query, JSON.parse(JSON.stringify(_activeFacets)));
+            renderSavedSearches();
+            PazatorUI.showFloatingNotification('Saved search "' + name.trim() + '"', 'success');
+        });
+    }
 }
+
+var _activeFacets = {};
+var _searchPage = 1;
+var _searchPageSize = 30;
+var _lastSearchQuery = '';
+var _lastSearchResults = [];
 
 function performSearch(query) {
     const resultsContainer = document.getElementById('searchResultsContainer');
     const resultsCount = document.getElementById('searchResultsCount');
+    if (query !== _lastSearchQuery) _searchPage = 1;
+    _lastSearchQuery = query || '';
 
     if (!query) {
         renderRecentSearches();
-        resultsContainer.innerHTML = `
-            <div class="search-empty-state">
-                <i class="fas fa-search search-empty-icon"></i>
-                <p class="search-empty-title">Start typing to search</p>
-                <p class="search-empty-hint">Results will appear here</p>
-            </div>
-        `;
-        if (resultsCount) resultsCount.textContent = '';
-        return;
+        renderSavedSearches();
+        if (Object.keys(_activeFacets).length === 0) {
+            resultsContainer.innerHTML = `
+                <div class="search-empty-state">
+                    <i class="fas fa-search search-empty-icon"></i>
+                    <p class="search-empty-title">Start typing to search</p>
+                    <p class="search-empty-hint">Results will appear here</p>
+                </div>
+            `;
+            if (resultsCount) resultsCount.textContent = '';
+            _lastSearchResults = [];
+            renderFacetBar([]);
+            return;
+        }
     }
 
     addRecentSearch(query);
     renderRecentSearches();
+    renderSavedSearches();
 
     if (window.Tastur) {
         Tastur.emit('search_performed', { query: query });
     }
 
-    const searchNames = document.getElementById('searchNames')?.checked ?? true;
-    const searchJobs = document.getElementById('searchJobs')?.checked ?? true;
-    const searchDates = document.getElementById('searchDates')?.checked ?? true;
-    const searchNotes = document.getElementById('searchNotes')?.checked ?? true;
-    const searchTags = document.getElementById('searchTags')?.checked ?? true;
-    const searchRelationships = document.getElementById('searchRelationships')?.checked ?? true;
+    var searchNames = document.getElementById('searchNames')?.checked ?? true;
+    var searchJobs = document.getElementById('searchJobs')?.checked ?? true;
+    var searchDates = document.getElementById('searchDates')?.checked ?? true;
+    var searchNotes = document.getElementById('searchNotes')?.checked ?? true;
+    var searchTags = document.getElementById('searchTags')?.checked ?? true;
+    var searchRelationships = document.getElementById('searchRelationships')?.checked ?? true;
 
-    const activePill = document.querySelector('.search-pill.active');
-    const typeFilter = activePill ? activePill.getAttribute('data-type') : 'all';
+    var activePill = document.querySelector('.search-pill.active');
+    var typeFilter = activePill ? activePill.getAttribute('data-type') : 'all';
 
-    const results = [];
-    const queryLower = query.toLowerCase();
+    var queryLower = query.toLowerCase();
+    var results = [];
+    var seenIds = new Set();
 
-    if (typeFilter === 'all' || typeFilter === 'human') {
-        pazatorData.humans.forEach(person => {
-            const matches = [];
-
-            if (person.id && String(person.id).toLowerCase().includes(queryLower)) {
-                matches.push({ field: 'ID', value: String(person.id) });
-            }
-
-            if (searchNames && person.name && person.name.toLowerCase().includes(queryLower)) {
-                matches.push({ field: 'Name', value: person.name });
-            }
-
-            if (searchJobs && person.workplace && person.workplace.toLowerCase().includes(queryLower)) {
-                matches.push({ field: 'Workplace', value: person.workplace });
-            }
-
-            if (searchDates) {
-                if (person.birthDate && person.birthDate.toLowerCase().includes(queryLower)) {
-                    matches.push({ field: 'Birth Date', value: person.birthDate });
-                }
-            }
-
-            if (searchNotes && person.extraNotes && person.extraNotes.toLowerCase().includes(queryLower)) {
-                matches.push({ field: 'Notes', value: person.extraNotes.substring(0, 100) + (person.extraNotes.length > 100 ? '...' : '') });
-            }
-
-            if (searchTags && person.tags && person.tags.some(tag => tag.toLowerCase().includes(queryLower))) {
-                const matchingTags = person.tags.filter(tag => tag.toLowerCase().includes(queryLower));
-                matches.push({ field: 'Tags', value: matchingTags.join(', ') });
-            }
-
-            if (searchRelationships) {
-                if (person.friends && person.friends.some(friendId => {
-                    const friend = pazatorData.humans.find(h => h.id === friendId);
-                    return friend && friend.name.toLowerCase().includes(queryLower);
-                })) {
-                    const matchingFriends = person.friends
-                        .map(id => pazatorData.humans.find(h => h.id === id)?.name)
-                        .filter(name => name && name.toLowerCase().includes(queryLower));
-                    if (matchingFriends.length > 0) {
-                        matches.push({ field: 'Friends', value: matchingFriends.join(', ') });
-                    }
-                }
-
-                if (person.family && person.family.some(familyId => {
-                    const familyMember = pazatorData.humans.find(h => h.id === familyId);
-                    return familyMember && familyMember.name.toLowerCase().includes(queryLower);
-                })) {
-                    const matchingFamily = person.family
-                        .map(id => pazatorData.humans.find(h => h.id === id)?.name)
-                        .filter(name => name && name.toLowerCase().includes(queryLower));
-                    if (matchingFamily.length > 0) {
-                        matches.push({ field: 'Family', value: matchingFamily.join(', ') });
-                    }
-                }
-            }
-
-            if (matches.length > 0) {
-                results.push({
-                    type: 'human',
-                    data: person,
-                    matches: matches
-                });
-            }
-        });
-    }
-
-    if (typeFilter === 'all' || typeFilter === 'other') {
-        pazatorData.others.forEach(item => {
-            const matches = [];
-
+    function addMatches(items, src) {
+        items.forEach(function (item) {
+            if (seenIds.has(item.id)) return;
+            var matches = [];
             if (item.id && String(item.id).toLowerCase().includes(queryLower)) {
                 matches.push({ field: 'ID', value: String(item.id) });
             }
-
             if (searchNames && item.name && item.name.toLowerCase().includes(queryLower)) {
                 matches.push({ field: 'Name', value: item.name });
             }
-
-            const otherNotes = (item.note || item.extraNotes || '').toLowerCase();
-            if (searchNotes && otherNotes.includes(queryLower)) {
-                const originalNote = item.note || item.extraNotes || '';
-                matches.push({ field: 'Notes', value: originalNote.substring(0, 100) + (originalNote.length > 100 ? '...' : '') });
+            if (searchJobs && item.workplace && item.workplace.toLowerCase().includes(queryLower)) {
+                matches.push({ field: 'Workplace', value: item.workplace });
             }
-
-            if (searchTags && item.tags && item.tags.some(tag => tag.toLowerCase().includes(queryLower))) {
-                const matchingTags = item.tags.filter(tag => tag.toLowerCase().includes(queryLower));
-                matches.push({ field: 'Tags', value: matchingTags.join(', ') });
+            if (searchDates && item.birthDate && item.birthDate.toLowerCase().includes(queryLower)) {
+                matches.push({ field: 'Birth Date', value: item.birthDate });
             }
-
-            if (matches.length > 0) {
-                results.push({
-                    type: 'other',
-                    data: item,
-                    matches: matches
+            if (searchNotes) {
+                var note = item.extraNotes || item.note || '';
+                if (note.toLowerCase().includes(queryLower)) {
+                    matches.push({ field: 'Notes', value: note.substring(0, 100) + (note.length > 100 ? '...' : '') });
+                }
+            }
+            if (searchTags && item.tags && item.tags.some(function (t) { return t.toLowerCase().includes(queryLower); })) {
+                var matching = item.tags.filter(function (t) { return t.toLowerCase().includes(queryLower); });
+                matches.push({ field: 'Tags', value: matching.join(', ') });
+            }
+            if (searchRelationships && src === 'human') {
+                (item.friends || []).forEach(function (fid) {
+                    var f = pazatorData.humans.find(function (h) { return h.id === fid; });
+                    if (f && f.name && f.name.toLowerCase().includes(queryLower)) {
+                        matches.push({ field: 'Friends', value: f.name });
+                    }
                 });
+                (item.family || []).forEach(function (fid) {
+                    var f = pazatorData.humans.find(function (h) { return h.id === fid; });
+                    if (f && f.name && f.name.toLowerCase().includes(queryLower)) {
+                        matches.push({ field: 'Family', value: f.name });
+                    }
+                });
+            }
+            if (matches.length > 0) {
+                seenIds.add(item.id);
+                results.push({ type: src, data: item, matches: matches });
             }
         });
     }
 
-    displaySearchResults(results, query);
-    if (resultsCount) resultsCount.textContent = `${results.length} result${results.length !== 1 ? 's' : ''} found`;
+    if (typeFilter === 'all' || typeFilter === 'human') addMatches(pazatorData.humans, 'human');
+    if (typeFilter === 'all' || typeFilter === 'other') addMatches(pazatorData.others, 'other');
+
+    results.sort(function (a, b) { return b.matches.length - a.matches.length; });
+
+    var facetFiltered = applyFacetFilters(results);
+    _lastSearchResults = facetFiltered;
+    renderFacetBar(results);
+    displaySearchResults(facetFiltered, query);
+    if (resultsCount) {
+        resultsCount.textContent = facetFiltered.length + ' result' + (facetFiltered.length !== 1 ? 's' : '') + ' found' +
+            (facetFiltered.length !== results.length ? ' (filtered from ' + results.length + ')' : '');
+    }
 }
 
-var _searchPage = 1;
-var _searchPageSize = 30;
+function applyFacetFilters(results) {
+    if (Object.keys(_activeFacets).length === 0) return results;
+    return results.filter(function (r) {
+        for (var facet in _activeFacets) {
+            var selected = _activeFacets[facet];
+            if (!selected || selected.length === 0) continue;
+            var item = r.data;
+            var values = [];
+            if (facet === 'tag') {
+                values = (item.tags || []).map(function (t) { return t.toLowerCase().trim(); });
+            } else {
+                var v = item[facet];
+                if (Array.isArray(v)) {
+                    values = v.map(function (x) { return String(x).toLowerCase().trim(); });
+                } else if (v) {
+                    values = [String(v).toLowerCase().trim()];
+                }
+            }
+            if (!selected.some(function (s) { return values.indexOf(s.toLowerCase().trim()) !== -1; })) {
+                return false;
+            }
+        }
+        return true;
+    });
+}
+
+function toggleFacet(facet, value) {
+    if (!_activeFacets[facet]) _activeFacets[facet] = [];
+    var arr = _activeFacets[facet];
+    var idx = arr.indexOf(value);
+    if (idx !== -1) {
+        arr.splice(idx, 1);
+        if (arr.length === 0) delete _activeFacets[facet];
+    } else {
+        arr.push(value);
+    }
+    performSearch(_lastSearchQuery);
+}
+
+function clearAllFacets() {
+    _activeFacets = {};
+    performSearch(_lastSearchQuery);
+}
+
+function renderFacetBar(results) {
+    var bar = document.getElementById('facetBar');
+    var inner = document.getElementById('facetBarInner');
+    var clearBtn = document.getElementById('facetClearBtn');
+    if (!bar || !inner) return;
+
+    var hasActiveFacets = Object.keys(_activeFacets).length > 0;
+
+    if (!results || results.length === 0) {
+        bar.style.display = 'none';
+        clearBtn.style.display = 'none';
+        return;
+    }
+
+    bar.style.display = 'flex';
+
+    var facetCounts = {};
+    results.forEach(function (r) {
+        var item = r.data;
+        function count(facet, val) {
+            if (!val) return;
+            var k = String(val).toLowerCase().trim();
+            if (!facetCounts[facet]) facetCounts[facet] = {};
+            if (!facetCounts[facet][k]) facetCounts[facet][k] = 0;
+            facetCounts[facet][k]++;
+        }
+        var facets = ['threatLevel', 'nationality', 'religion', 'occupation', 'ethnicity', 'gender', 'immigrationStatus', 'socialClass', 'incomeLevel'];
+        facets.forEach(function (f) {
+            var v = item[f];
+            if (Array.isArray(v)) v.forEach(function (x) { count(f, x); });
+            else count(f, v);
+        });
+        (item.tags || []).forEach(function (t) { count('tag', t); });
+    });
+
+    var html = '';
+    var facetOrder = ['threatLevel', 'nationality', 'religion', 'occupation', 'tag'];
+    facetOrder.forEach(function (facet) {
+        var counts = facetCounts[facet];
+        if (!counts) return;
+        var entries = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; }).slice(0, 8);
+        if (entries.length === 0) return;
+        var label = (window.pazatorFacets && pazatorFacets.FACET_LABELS[facet]) || facet;
+        var isActive = _activeFacets[facet] && _activeFacets[facet].length > 0;
+        html += '<div class="facet-group">';
+        html += '<span class="facet-label">' + label + '</span>';
+        html += '<div class="facet-options">';
+        entries.forEach(function (key) {
+            var active = _activeFacets[facet] && _activeFacets[facet].indexOf(key) !== -1;
+            html += '<button class="facet-pill' + (active ? ' active' : '') + '" data-facet="' + facet + '" data-value="' + encodeURIComponent(key) + '">' +
+                escapeHtml(key) + ' <span class="facet-count">' + counts[key] + '</span></button>';
+        });
+        html += '</div></div>';
+    });
+
+    if (html) {
+        inner.innerHTML = html;
+        inner.querySelectorAll('.facet-pill').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var f = this.getAttribute('data-facet');
+                var v = decodeURIComponent(this.getAttribute('data-value'));
+                toggleFacet(f, v);
+            });
+        });
+    } else {
+        inner.innerHTML = '';
+    }
+
+    clearBtn.style.display = hasActiveFacets ? '' : 'none';
+}
 
 function displaySearchResults(results, query) {
     const resultsContainer = document.getElementById('searchResultsContainer');
@@ -9990,7 +12047,7 @@ function displaySearchResults(results, query) {
         resultsContainer.innerHTML = `
             <div class="search-empty-state">
                 <i class="fas fa-frown search-empty-icon"></i>
-                <p class="search-empty-title">No results found for "${query}"</p>
+                <p class="search-empty-title">No results found${query ? ' for "' + escapeHtml(query) + '"' : ''}</p>
                 <p class="search-empty-hint">Try different keywords or check the field filters above</p>
             </div>
         `;
@@ -10048,11 +12105,11 @@ function displaySearchResults(results, query) {
             }
 
             const matchTags = result.matches.slice(0, 4).map(m =>
-                `<span class="search-match-tag">${m.field}: ${m.value.substring(0, 30)}${m.value.length > 30 ? '...' : ''}</span>`
+                `<span class="search-match-tag">${escapeHtml(m.field)}: ${escapeHtml(m.value.substring(0, 30))}${m.value.length > 30 ? '...' : ''}</span>`
             ).join('');
 
             const tags = (item.tags || []).slice(0, 8).map(t =>
-                `<span class="search-card-tag">${t}</span>`
+                `<span class="search-card-tag">${escapeHtml(t)}</span>`
             ).join('');
 
             const typeLabel = isHuman ? 'P' : 'E';
@@ -10063,7 +12120,7 @@ function displaySearchResults(results, query) {
                 <div class="search-card-type ${typeClass}">${typeLabel}</div>
                 <div class="search-card-body">
                     <div class="search-card-top">
-                        <span class="search-card-name">[${item.id}] ${item.name}</span>
+                        <span class="search-card-name">${escapeHtml(item.name)}</span>
                         <div class="search-card-badges">${threatBadge}${creditBadge}</div>
                     </div>
                     ${detailHtml ? `<div class="search-card-detail">${detailHtml}</div>` : ''}
@@ -10088,6 +12145,32 @@ function displaySearchResults(results, query) {
     resultsContainer.innerHTML = html;
 }
 
+function renderSavedSearches() {
+    var container = document.getElementById('savedSearchesContainer');
+    if (!container) return;
+    if (!window.pazatorFacets) { container.innerHTML = ''; return; }
+    var saved = pazatorFacets.getSaved();
+    if (saved.length === 0) { container.innerHTML = ''; return; }
+
+    container.innerHTML = '<span class="saved-searches-label"><i class="fas fa-bookmark"></i></span> ' +
+        saved.slice(0, 8).map(function (s) {
+            var safe = escapeHtml(s.name);
+            return '<button type="button" class="saved-chip" data-name="' + encodeURIComponent(s.name) + '"><i class="fas fa-bookmark"></i>' + safe + '</button>';
+        }).join('');
+
+    container.querySelectorAll('.saved-chip').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var name = decodeURIComponent(this.getAttribute('data-name'));
+            var saved = pazatorFacets.getSaved();
+            var found = saved.find(function (s) { return s.name === name; });
+            if (!found) return;
+            var input = document.getElementById('universalSearchInput');
+            if (input) input.value = found.query || '';
+            _activeFacets = found.facets || {};
+            performSearch(found.query || '');
+        });
+    });
+}
 
 function initSearchTab() {
     if (!searchTabInitialized) {
@@ -10095,6 +12178,12 @@ function initSearchTab() {
         searchTabInitialized = true;
     }
     renderRecentSearches();
+    renderSavedSearches();
+    var bar = document.getElementById('facetBar');
+    var clearBtn = document.getElementById('facetClearBtn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', clearAllFacets);
+    }
 }
 
 function showToast(title, message, type, duration) {
@@ -10300,7 +12389,7 @@ function renderCaseEntities(caseData) {
     const container = document.getElementById('caseEntitiesList');
 
     if (caseData.entities.length === 0) {
-        container.innerHTML = '<span class="case-empty-entities">No entities tracked yet</span>';
+        container.innerHTML = '<div class="case-empty-entities"><i class="fas fa-users"></i><span>No entities tracked yet</span></div>';
         return;
     }
 
@@ -10339,7 +12428,7 @@ function renderCaseTimeline(caseData) {
     const container = document.getElementById('caseTimeline');
 
     if (caseData.timeline.length === 0) {
-        container.innerHTML = '<div class="case-empty-timeline">No activity logged yet</div>';
+        container.innerHTML = '<div class="case-empty-timeline"><i class="fas fa-stream"></i><span>No activity logged yet</span></div>';
         return;
     }
 
@@ -10885,7 +12974,7 @@ function renderCaseEvidence(caseData) {
     if (!container) return;
 
     if (!caseData.evidence || caseData.evidence.length === 0) {
-        container.innerHTML = '<span class="case-empty-evidence">No evidence attached</span>';
+        container.innerHTML = '<div class="case-empty-evidence"><i class="fas fa-gavel"></i><span>No evidence attached</span></div>';
         return;
     }
 
@@ -11916,6 +14005,32 @@ const ZorTools = {
                 var id = pazatorObjects.getOrCreate(type, name);
                 var obj = pazatorObjects.getById(id);
                 return { success: true, object: obj, message: 'Object "' + name + '" (' + type + ') is ready' };
+            }
+        },
+        heur_detect_aliases: {
+            description: 'Scan the database to automatically identify duplicate entities, aliases, and shadow profiles based on birthdates, name similarity, and shared attributes.',
+            parameters: {},
+            handler: function() {
+                if (!window.pazatorHeuristics) return { count: 0, duplicates: [], error: 'Heuristics system not loaded' };
+                var results = pazatorHeuristics.scan(pazatorData.humans);
+                return { count: results.length, duplicates: results };
+            }
+        },
+        trac_get_timeline: {
+            description: 'Get a comprehensive chronological timeline of all activities, case involvements, relationship logs, and communication intercepts for a specific entity.',
+            parameters: { id: 'Person ID or exactly matching name' },
+            handler: function(params) {
+                if (!window.pazatorTimeline) return { error: 'Timeline system not loaded' };
+                var targetId = params.id;
+                if (!targetId && window.pazatorStore) {
+                    return { error: 'Entity ID or name is required' };
+                }
+                // If it looks like a name instead of ID, try to find ID
+                if (targetId && isNaN(targetId) && targetId.length > 4 && window.pazatorStore) {
+                    var match = pazatorStore.getHumanByName(targetId);
+                    if (match) targetId = match.id;
+                }
+                return pazatorTimeline.getEvents(targetId);
             }
         }
     },

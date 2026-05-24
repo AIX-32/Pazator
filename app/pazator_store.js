@@ -11,7 +11,8 @@
             others: [],
             tags: [],
             cases: [],
-            chats: []
+            chats: [],
+            relationships: []
         },
 
         _humanIndex: new Map(),
@@ -125,6 +126,10 @@
             p.push(eng.put('tags', { id: '_tags', list: store._data.tags }));
             if (store._data.cases.length) p.push(eng.putMany('cases', store._data.cases));
             if (store._data.chats.length) p.push(eng.putMany('chats', store._data.chats));
+            if (window.pazatorRelationships) {
+                var rels = window.pazatorRelationships.toJSON();
+                if (rels.length) p.push(eng.putMany('relationships', rels));
+            }
             return Promise.all(p).catch(function () {});
         },
 
@@ -137,7 +142,8 @@
                 eng.getAll('others'),
                 eng.get('tags', '_tags'),
                 eng.getAll('cases'),
-                eng.getAll('chats')
+                eng.getAll('chats'),
+                eng.getAll('relationships')
             ]).then(function (results) {
                 self._data.humans = results[0] || [];
                 self._data.others = results[1] || [];
@@ -145,6 +151,10 @@
                 self._data.tags = (tagData && tagData.list) || [];
                 self._data.cases = results[3] || [];
                 self._data.chats = results[4] || [];
+                var rels = results[5] || [];
+                if (rels.length && window.pazatorRelationships) {
+                    window.pazatorRelationships.fromJSON(rels);
+                }
                 self.rebuildIndexes();
                 self.emit('data_loaded', { humans: self._data.humans.length, others: self._data.others.length });
                 return self._data;
@@ -302,6 +312,13 @@
                 var sn = stores[s];
                 if (sn === 'tags') {
                     window.pazatorEngine.put('tags', { id: '_tags', list: store._data.tags }).catch(function () {});
+                } else if (sn === 'relationships') {
+                    if (window.pazatorRelationships) {
+                        var rels = window.pazatorRelationships.toJSON();
+                        if (rels.length) {
+                            window.pazatorEngine.putMany('relationships', rels).catch(function () {});
+                        }
+                    }
                 } else {
                     var data = store._data[sn];
                     if (data && data.length) {
@@ -314,7 +331,7 @@
 
     var initProxy = function () {
         var data = store._data;
-        var stores = ['humans', 'others', 'tags', 'cases', 'chats'];
+        var stores = ['humans', 'others', 'tags', 'cases', 'chats', 'relationships'];
         stores.forEach(function (key) {
             if (Array.isArray(data[key])) {
                 var originalPush = data[key].push.bind(data[key]);

@@ -1,12 +1,23 @@
 (function () {
     'use strict';
 
-    var OBJECT_TYPES = [
-        'gender', 'maritalStatus', 'nationality', 'countryOfOrigin',
-        'immigrationStatus', 'language', 'ethnicity', 'religion',
-        'politicalView', 'threatLevel', 'socialClass', 'incomeLevel',
-        'educationLevel', 'workplace', 'occupation'
-    ];
+    var DEFAULT_TYPE_CONFIGS = {
+        gender:            { label: 'Gender',              icon: 'fa-venus-mars',    color: '#ff6b9d' },
+        maritalStatus:     { label: 'Marital Status',       icon: 'fa-heart',         color: '#ff6b9d' },
+        nationality:       { label: 'Nationality',          icon: 'fa-flag',          color: '#4ecdc4' },
+        countryOfOrigin:   { label: 'Country of Origin',    icon: 'fa-globe',         color: '#4ecdc4' },
+        immigrationStatus: { label: 'Immigration Status',   icon: 'fa-passport',      color: '#ffa94d' },
+        language:          { label: 'Language',             icon: 'fa-language',      color: '#74c0fc' },
+        ethnicity:         { label: 'Ethnicity',            icon: 'fa-users',         color: '#b197fc' },
+        religion:          { label: 'Religion',             icon: 'fa-pray',          color: '#e599f7' },
+        politicalView:     { label: 'Political View',       icon: 'fa-landmark',      color: '#fcc419' },
+        threatLevel:       { label: 'Threat Level',         icon: 'fa-shield-alt',    color: '#ff6b6b' },
+        socialClass:       { label: 'Social Class',         icon: 'fa-layer-group',   color: '#ff922b' },
+        incomeLevel:       { label: 'Income Level',         icon: 'fa-coins',         color: '#20c997' },
+        educationLevel:    { label: 'Education Level',      icon: 'fa-graduation-cap',color: '#339af0' },
+        workplace:         { label: 'Workplace / Occupation',icon: 'fa-briefcase',     color: '#748ffc' },
+        occupation:        { label: 'Occupation',           icon: 'fa-briefcase',     color: '#748ffc' }
+    };
 
     var DEFAULT_OBJECTS = {
         gender: [
@@ -43,12 +54,16 @@
     };
 
     var DB_KEY = 'pazator_objects_data';
+    var TYPE_CFG_KEY = 'pazator_ontology_types';
+
+    var OBJECT_TYPES = [];
 
     var registry = {
         _objects: {},
         _dirty: false,
 
         init: function () {
+            this._loadTypeConfigs();
             var saved = localStorage.getItem(DB_KEY);
             if (saved) {
                 try {
@@ -61,9 +76,94 @@
             return this;
         },
 
+        _loadTypeConfigs: function () {
+            var saved = localStorage.getItem(TYPE_CFG_KEY);
+            if (saved) {
+                try {
+                    var parsed = JSON.parse(saved);
+                    OBJECT_TYPES.length = 0;
+                    for (var key in parsed) {
+                        OBJECT_TYPES.push(key);
+                    }
+                    this._typeConfigs = parsed;
+                    return;
+                } catch (e) {}
+            }
+            this._typeConfigs = {};
+            for (var k in DEFAULT_TYPE_CONFIGS) {
+                this._typeConfigs[k] = JSON.parse(JSON.stringify(DEFAULT_TYPE_CONFIGS[k]));
+                OBJECT_TYPES.push(k);
+            }
+            this._saveTypeConfigs();
+        },
+
+        _saveTypeConfigs: function () {
+            localStorage.setItem(TYPE_CFG_KEY, JSON.stringify(this._typeConfigs));
+        },
+
+        getTypeConfig: function (type) {
+            return this._typeConfigs[type] ? JSON.parse(JSON.stringify(this._typeConfigs[type])) : null;
+        },
+
+        setTypeConfig: function (type, config) {
+            if (!this._typeConfigs[type]) return;
+            for (var key in config) {
+                if (config.hasOwnProperty(key)) {
+                    this._typeConfigs[type][key] = config[key];
+                }
+            }
+            this._saveTypeConfigs();
+        },
+
+        createType: function (typeKey, config) {
+            if (this._typeConfigs[typeKey]) return false;
+            if (!config) config = { label: typeKey, icon: 'fa-tag', color: '#888' };
+            this._typeConfigs[typeKey] = {
+                label: config.label || typeKey,
+                icon: config.icon || 'fa-tag',
+                color: config.color || '#888'
+            };
+            OBJECT_TYPES.push(typeKey);
+            this._objects[typeKey] = this._objects[typeKey] || [];
+            this._saveTypeConfigs();
+            this._dirty = true;
+            this.save();
+            return true;
+        },
+
+        renameType: function (oldKey, newKey) {
+            if (!this._typeConfigs[oldKey] || this._typeConfigs[newKey]) return false;
+            this._typeConfigs[newKey] = this._typeConfigs[oldKey];
+            delete this._typeConfigs[oldKey];
+            var idx = OBJECT_TYPES.indexOf(oldKey);
+            if (idx !== -1) OBJECT_TYPES[idx] = newKey;
+            if (this._objects[oldKey]) {
+                this._objects[newKey] = this._objects[oldKey];
+                delete this._objects[oldKey];
+                this._objects[newKey].forEach(function (o) { o.type = newKey; });
+            }
+            this._saveTypeConfigs();
+            this._dirty = true;
+            this.save();
+            return true;
+        },
+
+        deleteType: function (typeKey) {
+            if (!this._typeConfigs[typeKey]) return false;
+            delete this._typeConfigs[typeKey];
+            var idx = OBJECT_TYPES.indexOf(typeKey);
+            if (idx !== -1) OBJECT_TYPES.splice(idx, 1);
+            delete this._objects[typeKey];
+            this._saveTypeConfigs();
+            this._dirty = true;
+            this.save();
+            return true;
+        },
+
         _ensureDefaults: function () {
             var changed = false;
-            OBJECT_TYPES.forEach(function (type) {
+            for (var t = 0; t < OBJECT_TYPES.length; t++) {
+                var type = OBJECT_TYPES[t];
                 if (!registry._objects[type]) {
                     registry._objects[type] = [];
                     changed = true;
@@ -75,18 +175,21 @@
                             return o.name.toLowerCase() === d.name.toLowerCase();
                         });
                         if (!exists) {
+                            var order = registry._objects[type].length;
                             registry._objects[type].push({
                                 id: registry._genId(type, d.name),
                                 name: d.name,
                                 type: type,
                                 usageCount: 0,
+                                order: order,
+                                parentId: null,
                                 created: Date.now()
                             });
                             changed = true;
                         }
                     });
                 }
-            });
+            }
             if (changed) this.save();
         },
 
@@ -112,6 +215,8 @@
                 name: name,
                 type: type,
                 usageCount: 1,
+                order: list.length,
+                parentId: null,
                 created: Date.now()
             };
             list.push(obj);
@@ -150,7 +255,11 @@
         },
 
         getAll: function (type) {
-            return (this._objects[type] || []).slice();
+            var list = (this._objects[type] || []).slice();
+            list.sort(function (a, b) {
+                return (a.order || 0) - (b.order || 0);
+            });
+            return list;
         },
 
         getAllByType: function () {
@@ -166,45 +275,24 @@
         },
 
         getTypeLabel: function (type) {
-            var labels = {
-                gender: 'Gender',
-                maritalStatus: 'Marital Status',
-                nationality: 'Nationality',
-                countryOfOrigin: 'Country of Origin',
-                immigrationStatus: 'Immigration Status',
-                language: 'Language',
-                ethnicity: 'Ethnicity',
-                religion: 'Religion',
-                politicalView: 'Political View',
-                threatLevel: 'Threat Level',
-                socialClass: 'Social Class',
-                incomeLevel: 'Income Level',
-                educationLevel: 'Education Level',
-                workplace: 'Workplace / Occupation',
-                occupation: 'Occupation'
-            };
-            return labels[type] || type;
+            if (this._typeConfigs && this._typeConfigs[type]) {
+                return this._typeConfigs[type].label;
+            }
+            return type;
         },
 
         getTypeIcon: function (type) {
-            var icons = {
-                gender: 'fa-venus-mars',
-                maritalStatus: 'fa-heart',
-                nationality: 'fa-flag',
-                countryOfOrigin: 'fa-globe',
-                immigrationStatus: 'fa-passport',
-                language: 'fa-language',
-                ethnicity: 'fa-users',
-                religion: 'fa-pray',
-                politicalView: 'fa-landmark',
-                threatLevel: 'fa-shield-alt',
-                socialClass: 'fa-layer-group',
-                incomeLevel: 'fa-coins',
-                educationLevel: 'fa-graduation-cap',
-                workplace: 'fa-briefcase',
-                occupation: 'fa-briefcase'
-            };
-            return icons[type] || 'fa-tag';
+            if (this._typeConfigs && this._typeConfigs[type]) {
+                return this._typeConfigs[type].icon;
+            }
+            return 'fa-tag';
+        },
+
+        getTypeColor: function (type) {
+            if (this._typeConfigs && this._typeConfigs[type]) {
+                return this._typeConfigs[type].color;
+            }
+            return '#888';
         },
 
         remove: function (id) {
@@ -284,6 +372,144 @@
             });
             stats.total = total;
             return stats;
+        },
+
+        /* --- Value management --- */
+
+        updateObject: function (id, updates) {
+            var obj = this.getById(id);
+            if (!obj) return false;
+            for (var key in updates) {
+                if (updates.hasOwnProperty(key)) {
+                    obj[key] = updates[key];
+                }
+            }
+            this._dirty = true;
+            this._debounceSave();
+            return true;
+        },
+
+        bulkCreate: function (type, names) {
+            if (!this._typeConfigs[type]) return [];
+            var created = [];
+            var list = this._objects[type] || [];
+            names.forEach(function (name) {
+                name = (name || '').trim();
+                if (!name) return;
+                var exists = list.some(function (o) {
+                    return o.name.toLowerCase() === name.toLowerCase();
+                });
+                if (exists) return;
+                var obj = {
+                    id: registry._genId(type, name),
+                    name: name,
+                    type: type,
+                    usageCount: 0,
+                    order: list.length + created.length,
+                    parentId: null,
+                    created: Date.now()
+                };
+                created.push(obj);
+            });
+            if (created.length > 0) {
+                list.push.apply(list, created);
+                this._objects[type] = list;
+                this._dirty = true;
+                this._debounceSave();
+            }
+            return created;
+        },
+
+        reorderValues: function (type, orderedIds) {
+            var list = this._objects[type] || [];
+            var map = {};
+            list.forEach(function (o) { map[o.id] = o; });
+            var reordered = [];
+            orderedIds.forEach(function (id, idx) {
+                if (map[id]) {
+                    map[id].order = idx;
+                    reordered.push(map[id]);
+                }
+            });
+            list.forEach(function (o) {
+                if (reordered.indexOf(o) === -1) {
+                    o.order = reordered.length;
+                    reordered.push(o);
+                }
+            });
+            this._objects[type] = reordered;
+            this._dirty = true;
+            this._debounceSave();
+        },
+
+        setParent: function (id, parentId) {
+            var obj = this.getById(id);
+            if (!obj) return false;
+            obj.parentId = parentId || null;
+            this._dirty = true;
+            this._debounceSave();
+            return true;
+        },
+
+        getChildren: function (id) {
+            var results = [];
+            OBJECT_TYPES.forEach(function (t) {
+                var list = registry._objects[t] || [];
+                list.forEach(function (o) {
+                    if (o.parentId === id) results.push(o);
+                });
+            });
+            return results;
+        },
+
+        renameValue: function (id, newName) {
+            var obj = this.getById(id);
+            if (!obj || !newName || !newName.trim()) return false;
+            newName = newName.trim();
+            var list = this._objects[obj.type] || [];
+            var dup = list.some(function (o) {
+                return o.id !== id && o.name.toLowerCase() === newName.toLowerCase();
+            });
+            if (dup) return false;
+            obj.name = newName;
+            this._dirty = true;
+            this._debounceSave();
+            return true;
+        },
+
+        /* --- Import / Export --- */
+
+        exportJSON: function () {
+            var types = {};
+            OBJECT_TYPES.forEach(function (t) {
+                types[t] = registry._typeConfigs[t] || { label: t, icon: 'fa-tag', color: '#888' };
+            });
+            return JSON.stringify({
+                version: 2,
+                exported: Date.now(),
+                objectTypes: OBJECT_TYPES.slice(),
+                typeConfigs: types,
+                objects: this._objects
+            }, null, 2);
+        },
+
+        importJSON: function (jsonStr) {
+            try {
+                var data = JSON.parse(jsonStr);
+                if (!data.objects || !data.typeConfigs) return { success: false, error: 'Invalid ontology format' };
+                this._objects = data.objects;
+                this._typeConfigs = data.typeConfigs;
+                OBJECT_TYPES.length = 0;
+                for (var key in data.typeConfigs) {
+                    OBJECT_TYPES.push(key);
+                }
+                this._saveTypeConfigs();
+                this._dirty = true;
+                this.save();
+                return { success: true, count: Object.keys(data.objects).length };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
         }
     };
 

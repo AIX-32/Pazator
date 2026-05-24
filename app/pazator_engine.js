@@ -14,7 +14,8 @@
         tags: 'tags',
         cases: 'cases',
         chats: 'chats',
-        meta: 'meta'
+        meta: 'meta',
+        relationships: 'relationships'
     };
 
     function openDB() {

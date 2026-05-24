@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FACETS &mdash; Faceted Search | Pazator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --black: #000; --white: #fff; --dim: #666; }
+    html { font-size: 16px; }
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: 'DM Mono', monospace;
+      overflow-x: hidden;
+      cursor: crosshair;
+    }
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 32px; height: 52px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      background: var(--black);
+    }
+    .tb-left { font-size: 9px; letter-spacing: 0.5em; color: var(--dim); }
+    .tb-center { font-family: 'Anton', sans-serif; font-size: 18px; letter-spacing: 0.12em; }
+    .tb-right { display: flex; gap: 28px; }
+    .tb-right a {
+      font-size: 9px; letter-spacing: 0.35em; color: var(--dim);
+      text-decoration: none; text-transform: uppercase; transition: color 0.2s;
+    }
+    .tb-right a:hover { color: var(--white); }
+    .hero {
+      min-height: 100vh; padding-top: 52px;
+      display: grid; grid-template-rows: auto 1fr auto;
+    }
+    .ticker-wrap {
+      overflow: hidden; white-space: nowrap; padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .ticker-inner {
+      display: inline-block;
+      animation: tick 20s linear infinite;
+      font-size: 9px; letter-spacing: 0.45em; color: var(--dim);
+    }
+    @keyframes tick { to { transform: translateX(-50%); } }
+    .content { border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .content-inner {
+      max-width: 800px; margin: 0 auto; padding: 80px 48px;
+    }
+    .content h1 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(48px, 8vw, 100px);
+      line-height: 0.85; letter-spacing: -0.03em;
+      margin-bottom: 20px;
+    }
+    .content h2 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(20px, 3vw, 36px);
+      letter-spacing: -0.01em;
+      margin-top: 60px; margin-bottom: 20px;
+    }
+    .content h3 {
+      font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--dim); margin-top: 40px; margin-bottom: 12px;
+    }
+    .content p {
+      font-size: 12px; line-height: 2;
+      color: rgba(255,255,255,0.45); margin-bottom: 20px;
+    }
+    .content code, .content .code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px; color: var(--white);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 2px 8px; border-radius: 3px;
+    }
+    .content pre {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px; color: var(--white);
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 20px 24px; border-radius: 4px;
+      overflow-x: auto; margin: 16px 0 24px; line-height: 1.7;
+    }
+    .content ul { margin: 12px 0 20px 20px; }
+    .content li {
+      font-size: 12px; line-height: 2;
+      color: rgba(255,255,255,0.45);
+    }
+    .content .label {
+      font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase;
+      color: var(--dim); margin-bottom: 16px;
+    }
+    .badge {
+      display: inline-block;
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 4px 12px; font-size: 8px; letter-spacing: 0.35em;
+      color: var(--dim); margin-bottom: 20px;
+    }
+    hr { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 40px 0; }
+    footer {
+      padding: 40px 48px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      font-size: 9px; letter-spacing: 0.3em; color: var(--dim);
+    }
+    @media(max-width:700px) {
+      .content-inner { padding: 48px 24px; }
+      .tb-right { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="tb-left">PAZATOR DOCS</div>
+    <div class="tb-center">FACETS</div>
+    <nav class="tb-right">
+      <a href="ctxod.html">CTXOD</a>
+      <a href="tastur.html">TASTUR</a>
+      <a href="timeln.html">TIMELN</a>
+      <a href="facets.html">FACETS</a>
+      <a href="dashbrd.html">DASHBRD</a>
+      <a href="../app">App</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="content">
+      <div class="content-inner">
+        <div class="badge">FEATURE &mdash; v0.May1726</div>
+        <h1>Faceted<br>Search.</h1>
+
+        <h3>What it does</h3>
+        <p>
+          Search in Pazator used to be a linear scan &mdash; take the query, loop over every person and entity,
+          check each field, return what matches. Fine when you have 50 entries. Painful when you have 500, and
+          useless when you need to narrow down by nationality, threat level, or tags without retyping your query.
+        </p>
+        <p>
+          Faceted search builds an inverted index on load and uses it to give you filter pills (facets) that
+          update their counts in real-time. Click a facet value to filter results further. The index covers all
+          the object system fields &mdash; threat level, nationality, religion, occupation, ethnicity, gender,
+          immigration status, social class, income level &mdash; plus tags.
+        </p>
+
+        <h2>How it works</h2>
+        <p>
+          On load, a <code class="code">FacetIndex</code> is built from all humans and entities. Each facet type
+          (nationality, threat level, etc.) becomes a map from value to set of IDs. When you type a query, the
+          text search runs first (still a loop, but only over the fields you selected). The results feed into
+          the facet bar, which shows the top 8 values per facet type along with how many results they match.
+        </p>
+        <p>
+          When you click a facet pill, the current results are filtered to only show items matching that value.
+          The facet counts update immediately to reflect the new filtered set. Multiple facets stack &mdash;
+          e.g., threat level = High AND nationality = Iranian shows only the intersection.
+        </p>
+
+        <pre>InvertedIndex
+  threatLevel: { "high" => Set(id1, id5, ...), "critical" => Set(...) }
+  nationality: { "iranian" => Set(id1, id3, ...), ... }
+  tag:         { "suspect" => Set(id2, id5), ... }
+
+On search: text query returns results, facet bar shows counts,
+clicking a value re-filters in O(1) per item via the index.</pre>
+
+        <h2>Facet types</h2>
+        <p>The facet bar shows up to eight values per type, sorted by count. The types are:</p>
+        <ul>
+          <li>Threat Level &mdash; None, Low, Medium, High, Critical</li>
+          <li>Nationality</li>
+          <li>Religion</li>
+          <li>Occupation</li>
+          <li>Ethnicity</li>
+          <li>Gender</li>
+          <li>Immigration Status</li>
+          <li>Social Class</li>
+          <li>Income Level</li>
+          <li>Tags &mdash; any tag applied to an entry</li>
+        </ul>
+        <p>
+          The order and visibility is determined by what values actually exist in your results. If nobody has a
+          religion set, that facet group just doesnt show. The counts next to each value tell you how many of
+          the current results match it &mdash; useful for figuring out what the data looks like before filtering.
+        </p>
+
+        <h2>Saved searches</h2>
+        <p>
+          The old recent searches still work (history chips below the search bar). On top of that, saved
+          searches are persisted in localStorage under <code class="code">pazator_saved_searches</code>. A saved
+          search stores the query string and the active facets. Clicking a saved search restores everything
+          &mdash; query + facets &mdash; in one click.
+        </p>
+        <p>
+          Saved searches appear as bookmark chips in the search results bar. Theyre shown before recent
+          searches and have a yellow tint to distinguish them. The save button appears next to the search
+          clear button when you have an active query or facets.
+        </p>
+
+        <h2>Performance</h2>
+        <p>
+          The inverted index is built synchronously at load time. For datasets under ~10,000 entries this is
+          effectively instant. The text search itself still walks every entry, but the facet filtering after
+          that is a constant-time set lookup per item. The big win is that you avoid re-querying the database
+          &mdash; once you have results, facet filtering is pure JS object lookups.
+        </p>
+
+        <h2>Code</h2>
+        <p>
+          The facet system lives in <code class="code">app/pazator_facets.js</code> as a standalone module.
+          The <code class="code">pazator_facets.FacetIndex</code> class handles building the index, filtering,
+          and count generation. Saved search CRUD is also there. The UI integration is in
+          <code class="code">app/scriptz.js</code> where <code class="code">performSearch</code> was rewritten
+          to work with facets, and <code class="code">renderFacetBar</code> handles the dynamic pill generation.
+        </p>
+
+        <hr>
+
+        <div class="label">Related</div>
+        <p>
+          Facets build on top of the object system from <code class="code">pazator_objects.js</code>. The
+          same field types used in the autocomplete fields (nationality, occupation, etc.) are the ones
+          that power the facet bar. See the <a href="../app" style="color:var(--white);">app</a> and open the
+          Search tab to try it.
+        </p>
+      </div>
+    </div>
+
+    <footer>
+      <span>PAZATOR &mdash; MASS DATA INTELLIGENCE</span>
+    </footer>
+  </section>
+</body>
+</html>

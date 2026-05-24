@@ -1,0 +1,159 @@
+=== PAZATOR CODEBASE MAP ===
+
+app/
+  index.html           (~1500 lines)  Main SPA shell. Tab UI, sidebar, chat modal,
+                                       graph view, dashboard, intel center, etc.
+                                       Scripts loaded in order:
+                                         pazator_db -> pazator_engine -> pazator_store ->
+                                         pazator_objects -> pazator_relationships ->
+                                         pazator_ui -> pazator_facets -> pazator_graphview ->
+                                         pazator_heuristics -> pazator_timeline -> stylez.css
+
+  scriptz.js           (~1414+ lines) Main orchestration. Classes: InvertedIndex (L49),
+                                       FindingDedup (L129), Semaphore (L162),
+                                       IntelligenceAgent (L189), AgentSystem (L273).
+                                       ChatParser (L969), ChatStorageManager (L1155),
+                                       ChatAnalysisService (L1352).
+
+  pazator_engine.js    (297 lines)    IndexedDB engine (PazatorV2 v2). Stores: humans,
+                                       others, tags, cases, chats, meta, relationships.
+                                       CRUD: getAll, get, put, putMany, remove, clear,
+                                       count, bulkRemove, query.
+
+  pazator_store.js     (390 lines)    In-memory store with event system. Holds humans,
+                                       others, tags, cases, chats, relationships.
+                                       Methods: init, getData, getHumanById,
+                                       getHumanByName, findHumans.
+
+  pazator_objects.js   (851 lines)    Ontology system. 20 default types (gender,
+                                       maritalStatus, nationality, etc.). Autocomplete
+                                       fields (createAutocompleteField at L522).
+                                       CRUD: getOrCreate, getById, search, getAll, remove.
+
+  pazator_relationships.js (260 lines) Relationship graph. 14 types (friend, family,
+                                       associate, employer, etc.). CRUD: add, remove,
+                                       getForEntity, getRelatedEntityIds.
+
+  pazator_ui.js        (327 lines)    UI helpers. Modal functions (showModal at L779),
+                                       drag helpers, notifications.
+
+  pazator_facets.js    (251 lines)    Faceted search. FacetIndex class (L37) with
+                                       build, getCounts, filterByFacets, search.
+                                       12 facet types + tags. Saved searches in
+                                       localStorage under pazator_saved_searches.
+
+  pazator_graphview.js (1180 lines)   D3.js force-directed graph. Canvas + SVG modes.
+                                       buildGraphData (L165), startSimulation (L831),
+                                       handleNodeClick (L772), cluster support.
+
+  pazator_heuristics.js (164 lines)   Identity resolution. Levenshtein distance (L4),
+                                       nameSimilarity (L38), checkSharedAttributes (L45),
+                                       scan (L88) - compares all pairs.
+
+  pazator_dashboard.js (622 lines)    7 widget types: entity-count, risk-pie,
+                                       activity-feed, graph-snapshot, case-status,
+                                       threat-timeline, ai-insights. Persisted layout.
+
+  pazator_timeline.js  (199 lines)    Per-entity chronological view. Builds from
+                                       relationships, cases, chats, tracker, analysis,
+                                       notes (getTimelineEvents at L12).
+
+  pazator_ai.js        (217 lines)    AI Queue system. Queue, cache, streaming
+                                       (streamChat at L131). Concurrency control.
+
+  pazator_gemini.js    (117 lines)    Google Gemini HTTP client. 9 models supported.
+                                       chat function at L36. API key in localStorage.
+
+  pazator_context.js   (143 lines)    CTXOD tool system. 16 tools (search_people,
+                                       get_person, get_stats, etc.). State snapshot,
+                                       event bus, audio alerts.
+
+  pazator_pipelines.js (612 lines)    Data Pipeline Builder. 4 connectors (CSV, JSON,
+                                       SQL, REST). Transform pipeline (filter, map,
+                                       sort, limit, dedup). Scheduled ingestion.
+                                       Run history, Pipeline/Scheduler modals.
+
+  pazator_alerts.js    (604 lines)    Real-time Alert Engine. Rule-based + threshold
+                                       triggers. WebSocket push. Webhook delivery.
+                                       Channel: notification/websocket/webhook/all.
+                                       Store event monitoring, stats, rule CRUD.
+
+  pazator_api.js       (599 lines)    REST / GraphQL API. Full CRUD on humans, others,
+                                       cases, chats, tags, relationships. GraphQL
+                                       introspection. Webhook registry. API key mgmt.
+                                       API console UI, webhook manager modal.
+
+  pazator_ontology_designer.js (701 lines) UI for managing object types. Add/rename/
+                                       delete types, edit values, import/export JSON.
+
+  pazator_worker.js    (206 lines)    Web Worker. Handlers: parse_csv (L30),
+                                       calculate_credits, find_connections,
+                                       deduplicate_chats, search.
+
+  walkthrough.js       (344 lines)    Interactive tutorial overlay. Step-by-step UI
+                                       highlighting.
+
+  stylez.css           (~1000 lines)  Dark theme styles. Tab bar, panels, cards,
+                                       graphs, chat UI, dashboard widgets.
+
+index.html             (~1555 lines)  Marketing landing page. Hero, products section
+                                       (SARPARAST, LCTX), Zor AI section, CTXOD
+                                       section, design system.
+
+roadmap.html           (~200 lines)   Development roadmap. 4 phases, 12 tasks,
+                                       reference table of 18 gaps vs Gotham.
+
+docs/
+  index.html           Hub for all docs.
+  ctxod.html           CTXOD docs (16 tools, toggle button).
+  tastur.html          TASTUR rule engine (WHEN/IF/THEN).
+  timeln.html          Entity timeline docs.
+  facets.html          Faceted search docs.
+  dashbrd.html         Dashboard docs.
+
+design/
+  index.html           Design language documentation. Colors, typography,
+                       components, emotion accents (urgent/calm/creative/success/warning).
+
+mobile/
+  index.html           Mobile companion (SHAHED). Minimal UI.
+
+ASKING/
+  index.html           Fullscreen "?" question page.
+
+=== LOAD ORDER ===
+app/index.html loads:
+  1. pazator_db.js         (legacy IndexedDB)
+  2. pazator_engine.js     (main IndexedDB engine)
+  3. pazator_store.js      (in-memory + events)
+  4. pazator_objects.js    (ontology)
+  5. pazator_relationships.js
+  6. pazator_ui.js         (modals, panels)
+  7. pazator_facets.js     (search)
+  8. pazator_graphview.js  (graph)
+  9. pazator_heuristics.js (heuristics)
+  10. pazator_timeline.js  (timeline)
+   11. stylez.css
+
+Body scripts (late):
+   12. maplibre-gl (CDN)
+   13. supabase-js (CDN)
+   14. pazator_gemini.js
+   15. pazator_ai.js
+   16. pazator_dashboard.js
+   17. pazator_ontology_designer.js
+   18. scriptz.js
+   19. pazator_context.js
+   20. pazator_sync.js
+   21. pazator_gis.js
+   22. pazator_resolver.js
+   23. pazator_pipelines.js
+   24. pazator_alerts.js
+   25. pazator_api.js
+   26. walkthrough.js
+
+Worker:           pazator_worker.js (new Worker())
+AI pipeline:      pazator_gemini.js -> pazator_ai.js -> pazator_context.js
+Dashboard:        pazator_dashboard.js (standalone)
+Ontology UI:      pazator_ontology_designer.js (standalone)
+Main app logic:   scriptz.js (loads last, uses everything)
