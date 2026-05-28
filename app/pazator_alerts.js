@@ -192,7 +192,7 @@
         if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
             try {
                 wsConnection.send(JSON.stringify({ type: 'alert', payload: alert }));
-            } catch (e) {}
+            } catch (e) { }
         }
     }
 
@@ -203,7 +203,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ type: 'alert', payload: alert })
-        }).catch(function () {});
+        }).catch(function () { });
     }
 
     function connectWebSocket(url) {
@@ -231,7 +231,7 @@
                 try {
                     var msg = JSON.parse(e.data);
                     notifyListeners('ws_message', msg);
-                } catch (err) {}
+                } catch (err) { }
             };
         } catch (e) {
             scheduleReconnect(url);
@@ -372,23 +372,23 @@
 
         var statsHtml = hasAny
             ? '<div style="display:flex;gap:8px;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);">' +
-                '  <div style="flex:1;background:rgba(244,67,54,0.08);border:1px solid rgba(244,67,54,0.2);border-radius:7px;padding:14px 16px;">' +
-                '    <div style="font-size:28px;font-weight:700;color:var(--danger);line-height:1;">' + stats.critical + '</div>' +
-                '    <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-top:4px;">Critical Alerts</div>' +
-                '  </div>' +
-                '  <div style="flex:1;background:rgba(0,0,0,0.15);border:1px solid var(--border-color);border-radius:7px;padding:14px 16px;">' +
-                '    <div style="font-size:22px;font-weight:600;color:var(--warning);line-height:1;">' + stats.unacknowledged + '</div>' +
-                '    <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-top:4px;">Unread</div>' +
-                '  </div>' +
-                '  <div style="flex:1;background:rgba(0,0,0,0.15);border:1px solid var(--border-color);border-radius:7px;padding:14px 16px;">' +
-                '    <div style="font-size:22px;font-weight:600;color:var(--text-primary);line-height:1;">' + stats.total + '</div>' +
-                '    <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-top:4px;">Total</div>' +
-                '  </div>' +
-                '  <div style="flex:1;background:rgba(0,0,0,0.15);border:1px solid var(--border-color);border-radius:7px;padding:14px 16px;">' +
-                '    <div style="font-size:22px;font-weight:600;color:var(--text-primary);line-height:1;">' + rules.length + '</div>' +
-                '    <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-top:4px;">Rules</div>' +
-                '  </div>' +
-                '</div>'
+            '  <div style="flex:1;background:rgba(244,67,54,0.08);border:1px solid rgba(244,67,54,0.2);border-radius:7px;padding:14px 16px;">' +
+            '    <div style="font-size:28px;font-weight:700;color:var(--danger);line-height:1;">' + stats.critical + '</div>' +
+            '    <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-top:4px;">Critical Alerts</div>' +
+            '  </div>' +
+            '  <div style="flex:1;background:rgba(0,0,0,0.15);border:1px solid var(--border-color);border-radius:7px;padding:14px 16px;">' +
+            '    <div style="font-size:22px;font-weight:600;color:var(--warning);line-height:1;">' + stats.unacknowledged + '</div>' +
+            '    <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-top:4px;">Unread</div>' +
+            '  </div>' +
+            '  <div style="flex:1;background:rgba(0,0,0,0.15);border:1px solid var(--border-color);border-radius:7px;padding:14px 16px;">' +
+            '    <div style="font-size:22px;font-weight:600;color:var(--text-primary);line-height:1;">' + stats.total + '</div>' +
+            '    <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-top:4px;">Total</div>' +
+            '  </div>' +
+            '  <div style="flex:1;background:rgba(0,0,0,0.15);border:1px solid var(--border-color);border-radius:7px;padding:14px 16px;">' +
+            '    <div style="font-size:22px;font-weight:600;color:var(--text-primary);line-height:1;">' + rules.length + '</div>' +
+            '    <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-top:4px;">Rules</div>' +
+            '  </div>' +
+            '</div>'
             : '';
 
         container.innerHTML =
@@ -487,33 +487,60 @@
     function showNewRule() {
         var modal = document.getElementById('cleanModal');
         if (!modal) return;
-        var title = document.getElementById('cleanModalTitle');
-        var body = document.getElementById('cleanModalBody');
-        var footer = document.getElementById('cleanModalFooter');
+        var title = document.getElementById('modalTitle');
+        var body = document.getElementById('modalBody');
+        var footer = document.getElementById('modalActions');
+        var icon = document.getElementById('modalIcon');
         if (!title || !body || !footer) return;
 
         title.textContent = 'New Alert Rule';
+        if (icon) {
+            icon.className = 'clean-modal-icon warning';
+            icon.innerHTML = '<i class="fas fa-bell"></i>';
+        }
+
         body.innerHTML =
-            '<div style="display:flex;flex-direction:column;gap:16px;">' +
-            '  <div class="form-group">' +
-            '    <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Rule Name</label>' +
-            '    <input type="text" id="ruleName" class="form-control" placeholder="e.g. High Risk Entity Detected" style="margin-top:4px;" autofocus>' +
+            '<div style="display:flex;flex-direction:column;gap:12px;">' +
+
+            '  <div style="background:rgba(0,0,0,0.15);border:1px solid var(--border-color);border-radius:8px;padding:14px 16px;">' +
+            '    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">' +
+            '      <span style="width:24px;height:24px;border-radius:5px;background:linear-gradient(145deg,#ffd93d,#e6c235);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-tag" style="font-size:11px;color:#000;"></i></span>' +
+            '      <span style="font-size:11px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">Details</span>' +
+            '    </div>' +
+            '    <div style="display:flex;gap:10px;">' +
+            '      <div style="flex:2;">' +
+            '        <label style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Rule Name</label>' +
+            '        <input type="text" id="ruleName" class="form-control" placeholder="e.g. High Risk Entity Detected" style="margin-top:3px;" autofocus>' +
+            '      </div>' +
+            '      <div style="flex:1;">' +
+            '        <label style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Severity</label>' +
+            '        <select id="ruleSeverity" class="form-control" style="margin-top:3px;">' +
+            '          <option value="info">Info</option>' +
+            '          <option value="warning">Warning</option>' +
+            '          <option value="critical">Critical</option>' +
+            '        </select>' +
+            '      </div>' +
+            '    </div>' +
+            '    <div style="margin-top:8px;">' +
+            '      <label style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Alert Message</label>' +
+            '      <input type="text" id="ruleDesc" class="form-control" placeholder="Message to show when triggered" style="margin-top:3px;">' +
+            '    </div>' +
             '  </div>' +
-            '  <div class="form-group">' +
-            '    <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Alert Message</label>' +
-            '    <input type="text" id="ruleDesc" class="form-control" placeholder="Message to show when triggered" style="margin-top:4px;">' +
-            '  </div>' +
-            '  <div class="form-group">' +
-            '    <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Threshold Condition</label>' +
-            '    <div style="display:flex;gap:8px;margin-top:4px;align-items:center;">' +
-            '      <select id="ruleField" class="form-control" style="flex:1;font-size:12px;">' +
+
+            '  <div style="background:rgba(0,0,0,0.15);border:1px solid var(--border-color);border-radius:8px;padding:14px 16px;">' +
+            '    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">' +
+            '      <span style="width:24px;height:24px;border-radius:5px;background:linear-gradient(145deg,#4d9de0,#3a7fc4);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-filter" style="font-size:11px;color:#fff;"></i></span>' +
+            '      <span style="font-size:11px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">Threshold Condition</span>' +
+            '    </div>' +
+            '    <div style="display:flex;gap:8px;align-items:center;">' +
+            '      <select id="ruleField" class="form-control" style="flex:1;">' +
             '        <option value="humans">Humans Count</option>' +
             '        <option value="others">Others Count</option>' +
             '        <option value="cases">Cases Count</option>' +
             '        <option value="chats">Chats Count</option>' +
             '        <option value="relationships">Relationships Count</option>' +
             '      </select>' +
-            '      <select id="ruleOperator" class="form-control" style="width:70px;font-size:12px;">' +
+            '      <select id="ruleOperator" class="form-control" style="width:64px;">' +
             '        <option value="gt">&gt;</option>' +
             '        <option value="gte">&gt;=</option>' +
             '        <option value="lt">&lt;</option>' +
@@ -521,21 +548,18 @@
             '        <option value="eq">=</option>' +
             '        <option value="neq">≠</option>' +
             '      </select>' +
-            '      <input type="number" id="ruleValue" class="form-control" value="0" style="width:80px;font-size:12px;">' +
+            '      <input type="number" id="ruleValue" class="form-control" value="0" style="width:72px;">' +
             '    </div>' +
             '  </div>' +
-            '  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
-            '    <div class="form-group">' +
-            '      <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Severity</label>' +
-            '      <select id="ruleSeverity" class="form-control" style="margin-top:4px;font-size:12px;">' +
-            '        <option value="info">Info</option>' +
-            '        <option value="warning">Warning</option>' +
-            '        <option value="critical">Critical</option>' +
-            '      </select>' +
+
+            '  <div style="background:rgba(0,0,0,0.15);border:1px solid var(--border-color);border-radius:8px;padding:14px 16px;">' +
+            '    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">' +
+            '      <span style="width:24px;height:24px;border-radius:5px;background:linear-gradient(145deg,#6bcf7f,#4a9e5c);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-bullhorn" style="font-size:11px;color:#fff;"></i></span>' +
+            '      <span style="font-size:11px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">Delivery</span>' +
             '    </div>' +
-            '    <div class="form-group">' +
-            '      <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Delivery Channel</label>' +
-            '      <select id="ruleChannel" class="form-control" style="margin-top:4px;font-size:12px;">' +
+            '    <div>' +
+            '      <label style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Channel</label>' +
+            '      <select id="ruleChannel" class="form-control" style="margin-top:3px;">' +
             '        <option value="notification">In-App Notification</option>' +
             '        <option value="websocket">WebSocket</option>' +
             '        <option value="webhook">Webhook</option>' +
@@ -546,10 +570,11 @@
             '</div>';
 
         footer.innerHTML =
-            '<button class="btn btn-secondary" onclick="pazatorAlerts.cancelModal()" style="padding:8px 20px;">Cancel</button>' +
-            '<button class="btn btn-primary" id="createRuleBtn" style="padding:8px 20px;"><i class="fas fa-bell"></i> Create Rule</button>';
+            '<button class="clean-modal-btn" onclick="pazatorAlerts.cancelModal()"><i class="fas fa-times"></i> Cancel</button>' +
+            '<button class="clean-modal-btn-primary" id="createRuleBtn"><i class="fas fa-bell"></i> Create Rule</button>';
 
         modal.classList.add('active');
+        modal.classList.add('wide');
 
         document.getElementById('createRuleBtn').addEventListener('click', function () {
             var name = document.getElementById('ruleName').value || 'Unnamed Rule';
@@ -575,9 +600,9 @@
     function showSettings() {
         var modal = document.getElementById('cleanModal');
         if (!modal) return;
-        var title = document.getElementById('cleanModalTitle');
-        var body = document.getElementById('cleanModalBody');
-        var footer = document.getElementById('cleanModalFooter');
+        var title = document.getElementById('modalTitle');
+        var body = document.getElementById('modalBody');
+        var footer = document.getElementById('modalActions');
         if (!title || !body || !footer) return;
 
         var wsUrl = localStorage.getItem('pazator_alert_ws_url') || '';
@@ -605,8 +630,8 @@
             '</div>';
 
         footer.innerHTML =
-            '<button class="btn btn-secondary" onclick="pazatorAlerts.cancelModal()" style="padding:8px 20px;">Cancel</button>' +
-            '<button class="btn btn-primary" id="saveAlertSettings" style="padding:8px 20px;"><i class="fas fa-save"></i> Save</button>';
+            '<button class="clean-modal-btn" onclick="pazatorAlerts.cancelModal()"><i class="fas fa-times"></i> Cancel</button>' +
+            '<button class="clean-modal-btn-primary" id="saveAlertSettings"><i class="fas fa-save"></i> Save</button>';
 
         modal.classList.add('active');
 

@@ -103,11 +103,11 @@
     function saveLayout() {
         var data = { id: LAYOUT_KEY, widgets: layout };
         if (window.pazatorEngine && window.pazatorEngine.isReady()) {
-            window.pazatorEngine.put('meta', data).catch(function () {});
+            window.pazatorEngine.put('meta', data).catch(function () { });
         }
         try {
             localStorage.setItem('pazator_' + LAYOUT_KEY, JSON.stringify(layout));
-        } catch (e) {}
+        } catch (e) { }
     }
 
     function render() {
@@ -439,7 +439,7 @@
         var highRisk = data.humans.filter(function (h) { return (h.threatLevel || 'None') === 'High' || (h.threatLevel || 'None') === 'Critical'; }).length;
         var relCount = 0;
         if (window.pazatorRelationships) {
-            try { relCount = window.pazatorRelationships.toJSON().length; } catch (e) {}
+            try { relCount = window.pazatorRelationships.toJSON().length; } catch (e) { }
         }
 
         body.innerHTML =

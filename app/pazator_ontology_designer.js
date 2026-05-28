@@ -122,16 +122,16 @@
 
     /* --- FA icon list for the select --- */
     var FA_ICONS = [
-        'fa-tag','fa-database','fa-venus-mars','fa-heart','fa-flag','fa-globe',
-        'fa-passport','fa-language','fa-users','fa-pray','fa-landmark','fa-shield-alt',
-        'fa-layer-group','fa-coins','fa-graduation-cap','fa-briefcase','fa-fingerprint',
-        'fa-mask','fa-user-secret','fa-eye','fa-crosshairs','fa-bomb','fa-skull',
-        'fa-radiation','fa-biohazard','fa-code-branch','fa-project-diagram','fa-cubes',
-        'fa-cube','fa-boxes','fa-sitemap','fa-tree','fa-leaf','fa-seedling',
-        'fa-dragon','fa-crown','fa-star','fa-gem','fa-fire','fa-water','fa-bolt',
-        'fa-moon','fa-sun','fa-comment','fa-comments','fa-phone','fa-envelope',
-        'fa-map-marker-alt','fa-road','fa-train','fa-plane','fa-car','fa-ship',
-        'fa-building','fa-home','fa-hospital','fa-university','fa-church','fa-mosque'
+        'fa-tag', 'fa-database', 'fa-venus-mars', 'fa-heart', 'fa-flag', 'fa-globe',
+        'fa-passport', 'fa-language', 'fa-users', 'fa-pray', 'fa-landmark', 'fa-shield-alt',
+        'fa-layer-group', 'fa-coins', 'fa-graduation-cap', 'fa-briefcase', 'fa-fingerprint',
+        'fa-mask', 'fa-user-secret', 'fa-eye', 'fa-crosshairs', 'fa-bomb', 'fa-skull',
+        'fa-radiation', 'fa-biohazard', 'fa-code-branch', 'fa-project-diagram', 'fa-cubes',
+        'fa-cube', 'fa-boxes', 'fa-sitemap', 'fa-tree', 'fa-leaf', 'fa-seedling',
+        'fa-dragon', 'fa-crown', 'fa-star', 'fa-gem', 'fa-fire', 'fa-water', 'fa-bolt',
+        'fa-moon', 'fa-sun', 'fa-comment', 'fa-comments', 'fa-phone', 'fa-envelope',
+        'fa-map-marker-alt', 'fa-road', 'fa-train', 'fa-plane', 'fa-car', 'fa-ship',
+        'fa-building', 'fa-home', 'fa-hospital', 'fa-university', 'fa-church', 'fa-mosque'
     ];
 
     /* --- Type list --- */

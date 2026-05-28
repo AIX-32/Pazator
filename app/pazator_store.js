@@ -86,7 +86,7 @@
             var id = store._nameIndex.get(key);
             if (id) return store._humanIndex.get(id) || null;
             var result = null;
-            store._nameIndex.forEach(function(val, k) {
+            store._nameIndex.forEach(function (val, k) {
                 if (!result && k.includes(key)) result = store._humanIndex.get(val) || null;
             });
             return result;
@@ -130,7 +130,7 @@
                 var rels = window.pazatorRelationships.toJSON();
                 if (rels.length) p.push(eng.putMany('relationships', rels));
             }
-            return Promise.all(p).catch(function () {});
+            return Promise.all(p).catch(function () { });
         },
 
         loadFromEngine: function () {
@@ -182,7 +182,7 @@
             var d = this._data;
             var humans = d.humans || [];
             var others = d.others || [];
-            var threatScore = function(h) {
+            var threatScore = function (h) {
                 var t = h.threatLevel;
                 return t === 'Critical' ? 4 : t === 'High' ? 3 : t === 'Medium' ? 2 : t === 'Low' ? 1 : 0;
             };
@@ -311,18 +311,18 @@
             for (var s = 0; s < stores.length; s++) {
                 var sn = stores[s];
                 if (sn === 'tags') {
-                    window.pazatorEngine.put('tags', { id: '_tags', list: store._data.tags }).catch(function () {});
+                    window.pazatorEngine.put('tags', { id: '_tags', list: store._data.tags }).catch(function () { });
                 } else if (sn === 'relationships') {
                     if (window.pazatorRelationships) {
                         var rels = window.pazatorRelationships.toJSON();
                         if (rels.length) {
-                            window.pazatorEngine.putMany('relationships', rels).catch(function () {});
+                            window.pazatorEngine.putMany('relationships', rels).catch(function () { });
                         }
                     }
                 } else {
                     var data = store._data[sn];
                     if (data && data.length) {
-                        window.pazatorEngine.putMany(sn, data).catch(function () {});
+                        window.pazatorEngine.putMany(sn, data).catch(function () { });
                     }
                 }
             }

@@ -202,8 +202,31 @@
         }).catch(function () { return []; });
     }
 
+    function getSyncServerUrl() {
+        try {
+            var cfg = JSON.parse(localStorage.getItem('pazator_sync_config') || 'null');
+            if (cfg && cfg.url) return cfg.url.replace(/\/$/, '');
+        } catch (e) {}
+        return 'http://localhost:3456';
+    }
+
     function fetchSQL(connectionString, query) {
-        return Promise.resolve([]);
+        if (!connectionString || !query) return Promise.resolve([]);
+        var url = getSyncServerUrl();
+        return fetch(url + '/api/query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ connectionString: connectionString, query: query })
+        }).then(function (res) {
+            if (!res.ok) return res.json().then(function (e) { throw new Error(e.error || 'HTTP ' + res.status); });
+            return res.json();
+        }).then(function (data) {
+            if (!data.success) throw new Error(data.error || 'Query failed');
+            return data.rows || [];
+        }).catch(function (err) {
+            console.error('[SQL Connector]', err.message);
+            return [];
+        });
     }
 
     function fetchREST(url, method, headers, body) {
@@ -451,43 +474,45 @@
     function showNewPipeline() {
         var modal = document.getElementById('cleanModal');
         if (!modal) return;
-        var title = document.getElementById('cleanModalTitle');
-        var body = document.getElementById('cleanModalBody');
-        var footer = document.getElementById('cleanModalFooter');
+        var title = document.getElementById('modalTitle');
+        var body = document.getElementById('modalBody');
+        var footer = document.getElementById('modalActions');
         if (!title || !body || !footer) return;
 
         title.textContent = 'New Data Pipeline';
         var connTypes = getConnectorTypes();
         var connCards = connTypes.map(function (ct) {
-            return '<button class="pipe-conn-btn" data-type="' + ct.key + '" style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--card-bg);border:1px solid var(--border-color);border-radius:7px;color:var(--text-primary);cursor:pointer;text-align:left;font-family:var(--font-body);font-size:13px;width:100%;">' +
-                '  <span style="width:36px;height:36px;border-radius:6px;background:rgba(77,157,224,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas ' + ct.icon + '" style="color:var(--info);font-size:14px;"></i></span>' +
-                '  <div style="flex:1;">' +
-                '    <div style="font-weight:500;">' + ct.label + '</div>' +
-                '    <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">' + ct.fields.join(', ') + '</div>' +
+            return '<button class="pipe-conn-btn" data-type="' + ct.key + '" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card-bg);border:1px solid var(--border-color);border-radius:7px;color:var(--text-primary);cursor:pointer;text-align:left;font-family:var(--font-body);font-size:12px;">' +
+                '  <span style="width:30px;height:30px;border-radius:6px;background:rgba(77,157,224,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas ' + ct.icon + '" style="color:var(--info);font-size:12px;"></i></span>' +
+                '  <div style="flex:1;min-width:0;">' +
+                '    <div style="font-weight:500;font-size:12px;">' + ct.label + '</div>' +
+                '    <div style="font-size:9px;color:var(--text-muted);margin-top:1px;">' + ct.fields.join(', ') + '</div>' +
                 '  </div>' +
-                '  <i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:10px;"></i>' +
+                '  <i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:8px;"></i>' +
                 '</button>';
         }).join('');
 
         body.innerHTML =
-            '<div style="display:flex;flex-direction:column;gap:16px;">' +
-            '  <div class="form-group">' +
-            '    <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Pipeline Name</label>' +
-            '    <input type="text" id="newPipeName" class="form-control" placeholder="e.g. Import Citizens CSV" style="margin-top:4px;" autofocus>' +
+            '<div style="display:flex;flex-direction:column;gap:10px;">' +
+            '  <div style="display:flex;gap:10px;">' +
+            '    <div style="flex:2;">' +
+            '      <label style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Pipeline Name</label>' +
+            '      <input type="text" id="newPipeName" class="form-control" placeholder="e.g. Import Citizens CSV" style="margin-top:3px;" autofocus>' +
+            '    </div>' +
+            '    <div style="flex:1;">' +
+            '      <label style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Target Store</label>' +
+            '      <select id="newPipeTarget" class="form-control" style="margin-top:3px;">' +
+            '        <option value="humans">Humans</option>' +
+            '        <option value="others">Others</option>' +
+            '        <option value="chats">Chats</option>' +
+            '      </select>' +
+            '    </div>' +
             '  </div>' +
-            '  <div class="form-group">' +
-            '    <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Data Source</label>' +
-            '    <div id="pipeConnectorList" style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">' + connCards + '</div>' +
+            '  <div>' +
+            '    <label style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Data Source</label>' +
+            '    <div id="pipeConnectorList" style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:3px;">' + connCards + '</div>' +
             '  </div>' +
             '  <div id="pipeConnectorConfig" style="display:none;"></div>' +
-            '  <div class="form-group">' +
-            '    <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Target Store</label>' +
-            '    <select id="newPipeTarget" class="form-control" style="margin-top:4px;">' +
-            '      <option value="humans">Humans</option>' +
-            '      <option value="others">Others</option>' +
-            '      <option value="chats">Chats</option>' +
-            '    </select>' +
-            '  </div>' +
             '</div>';
 
         footer.innerHTML =
@@ -495,6 +520,7 @@
             '<button class="btn btn-primary" id="createPipeBtn" style="padding:8px 20px;"><i class="fas fa-play"></i> Create & Run</button>';
 
         modal.classList.add('active');
+        modal.classList.add('wide');
 
         var selectedType = null;
         document.querySelectorAll('.pipe-conn-btn').forEach(function (btn) {
@@ -580,9 +606,9 @@
     function showScheduler() {
         var modal = document.getElementById('cleanModal');
         if (!modal) return;
-        var title = document.getElementById('cleanModalTitle');
-        var body = document.getElementById('cleanModalBody');
-        var footer = document.getElementById('cleanModalFooter');
+        var title = document.getElementById('modalTitle');
+        var body = document.getElementById('modalBody');
+        var footer = document.getElementById('modalActions');
         if (!title || !body || !footer) return;
 
         title.textContent = 'Pipeline Scheduler';
@@ -629,6 +655,7 @@
 
         footer.innerHTML = '<button class="btn btn-secondary" onclick="pazatorPipelines.cancelModal()" style="padding:8px 20px;">Close</button>';
         modal.classList.add('active');
+        modal.classList.add('wide');
 
         document.getElementById('addSchedBtn').addEventListener('click', function () {
             var pid = document.getElementById('schedPipeSelect').value;

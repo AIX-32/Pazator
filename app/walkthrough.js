@@ -233,19 +233,19 @@
 
     var vis = r.top >= 0 && r.left >= 0 && r.bottom <= window.innerHeight && r.right <= window.innerWidth;
     if (!vis) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setTimeout(function () {
-          if (el) {
-            var r2 = el.getBoundingClientRect();
-            highlight.style.left = (r2.left - 4) + 'px';
-            highlight.style.top = (r2.top - 4) + 'px';
-            highlight.style.width = (r2.width + 8) + 'px';
-            highlight.style.height = (r2.height + 8) + 'px';
-            positionCard(el);
-          }
-        }, 350);
-      }
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(function () {
+        if (el) {
+          var r2 = el.getBoundingClientRect();
+          highlight.style.left = (r2.left - 4) + 'px';
+          highlight.style.top = (r2.top - 4) + 'px';
+          highlight.style.width = (r2.width + 8) + 'px';
+          highlight.style.height = (r2.height + 8) + 'px';
+          positionCard(el);
+        }
+      }, 350);
     }
+  }
   function positionCard(el) {
     var r = el.getBoundingClientRect();
     var cw = Math.min(360, window.innerWidth - 32);

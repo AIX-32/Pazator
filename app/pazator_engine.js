@@ -78,27 +78,27 @@
                         if (data && data.pazatorData) {
                             if (Array.isArray(data.pazatorData.humans)) {
                                 data.pazatorData.humans.forEach(function (h) {
-                                    if (h && h.id) engine.put('humans', h).catch(function () {});
+                                    if (h && h.id) engine.put('humans', h).catch(function () { });
                                 });
                             }
                             if (Array.isArray(data.pazatorData.others)) {
                                 data.pazatorData.others.forEach(function (o) {
-                                    if (o && o.id) engine.put('others', o).catch(function () {});
+                                    if (o && o.id) engine.put('others', o).catch(function () { });
                                 });
                             }
                             if (Array.isArray(data.tags)) {
-                                engine.put('tags', { id: '_tags', list: data.tags }).catch(function () {});
+                                engine.put('tags', { id: '_tags', list: data.tags }).catch(function () { });
                             }
                             if (Array.isArray(data.cases)) {
                                 data.cases.forEach(function (c) {
-                                    if (c && c.id) engine.put('cases', c).catch(function () {});
+                                    if (c && c.id) engine.put('cases', c).catch(function () { });
                                 });
                             }
                         }
                         var delTx = db.transaction('kv', 'readwrite');
                         delTx.objectStore('kv').delete('pazatorData');
-                        delTx.oncomplete = function() { resolve(); };
-                        delTx.onerror = function() { resolve(); };
+                        delTx.oncomplete = function () { resolve(); };
+                        delTx.onerror = function () { resolve(); };
                     } catch (parseErr) { resolve(); }
                 };
                 req.onerror = function () { resolve(); };
@@ -175,7 +175,7 @@
         getPage: function (storeName, page, pageSize, filterFn, sortFn) {
             page = Math.max(1, page);
             pageSize = Math.min(100, Math.max(1, pageSize));
-            return dbGetAll(storeName).then(function(all) {
+            return dbGetAll(storeName).then(function (all) {
                 if (filterFn) all = all.filter(filterFn);
                 if (sortFn) all.sort(sortFn);
                 var total = all.length;

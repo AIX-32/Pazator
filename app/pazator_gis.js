@@ -1,4 +1,4 @@
-(function() {
+(function () {
   const GIS_CONFIG_KEY = 'pazator_gis_config';
   let gisLayers = {};
   let gisSourcesAdded = false;
@@ -118,7 +118,7 @@
           for (const l of style.layers) existingLayerIds.push(l.id);
         }
       }
-    } catch (e) {}
+    } catch (e) { }
 
     if (!existingLayerIds.includes('pazator-clusters')) {
       map.addLayer({
@@ -257,7 +257,7 @@
           map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none');
         }
       });
-    } catch (e) {}
+    } catch (e) { }
   }
 
   function refreshEntities() {
@@ -284,7 +284,7 @@
           }))
         });
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   async function geocode(query) {
@@ -382,13 +382,13 @@
       sidebar.appendChild(panel);
     }
 
-    document.getElementById('gisHeatmapToggle').addEventListener('change', function() {
+    document.getElementById('gisHeatmapToggle').addEventListener('change', function () {
       toggleHeatmap(this.checked);
     });
-    document.getElementById('gisClustersToggle').addEventListener('change', function() {
+    document.getElementById('gisClustersToggle').addEventListener('change', function () {
       toggleClusters(this.checked);
     });
-    document.getElementById('gisRefreshBtn').addEventListener('click', function() {
+    document.getElementById('gisRefreshBtn').addEventListener('click', function () {
       refreshEntities();
       updateEntityCount();
       window.PazatorUI && window.PazatorUI.showFloatingNotification('GIS data refreshed', 'info', 1500);
@@ -418,7 +418,7 @@
         </div>
       `).join('');
       geocodeResults.querySelectorAll('.gis-geocode-item').forEach(el => {
-        el.addEventListener('click', function() {
+        el.addEventListener('click', function () {
           const lat = parseFloat(this.dataset.lat);
           const lon = parseFloat(this.dataset.lon);
           flyTo(lat, lon, 14);
@@ -429,10 +429,10 @@
     }
 
     geocodeBtn.addEventListener('click', doGeocode);
-    geocodeInput.addEventListener('keydown', function(e) {
+    geocodeInput.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') doGeocode();
     });
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
       if (!e.target.closest('#gisGeocodeResults') && !e.target.closest('#gisGeocodeInput') && !e.target.closest('#gisGeocodeBtn')) {
         geocodeResults.style.display = 'none';
       }
@@ -453,7 +453,7 @@
     if (map._pazatorClickHandler) return;
     map._pazatorClickHandler = true;
 
-    map.on('click', 'pazator-entity-points', function(e) {
+    map.on('click', 'pazator-entity-points', function (e) {
       if (!e.features || e.features.length === 0) return;
       const feature = e.features[0];
       const props = feature.properties;
@@ -471,13 +471,13 @@
       }
     });
 
-    map.on('click', 'pazator-clusters', function(e) {
+    map.on('click', 'pazator-clusters', function (e) {
       if (!e.features || e.features.length === 0) return;
       const feature = e.features[0];
       const clusterId = feature.properties.cluster_id;
       const source = map.getSource('pazator-entities');
       if (source) {
-        source.getClusterExpansionZoom(clusterId, function(err, zoom) {
+        source.getClusterExpansionZoom(clusterId, function (err, zoom) {
           if (err) return;
           const geometry = feature.geometry;
           if (geometry) {
@@ -491,10 +491,10 @@
       }
     });
 
-    map.on('mouseenter', 'pazator-entity-points', function() {
+    map.on('mouseenter', 'pazator-entity-points', function () {
       map.getCanvas().style.cursor = 'pointer';
     });
-    map.on('mouseleave', 'pazator-entity-points', function() {
+    map.on('mouseleave', 'pazator-entity-points', function () {
       map.getCanvas().style.cursor = '';
     });
   }
@@ -508,14 +508,14 @@
     initGISPanel();
   }
 
-  const origEnsure = window.ensureTrackerTabReady || function(){};
-  window.ensureTrackerTabReady = function() {
+  const origEnsure = window.ensureTrackerTabReady || function () { };
+  window.ensureTrackerTabReady = function () {
     origEnsure();
     setTimeout(init, 500);
   };
 
-  document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(function() {
+  document.addEventListener('DOMContentLoaded', function () {
+    setTimeout(function () {
       const map = getTrackerMap();
       if (map) {
         addLayers(map);

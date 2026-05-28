@@ -359,16 +359,18 @@
 
     function buildIntrospection() {
         var types = [
-            { kind: 'OBJECT', name: 'Query', fields: [
-                { name: 'humans', args: [{ name: 'id', type: { kind: 'SCALAR', name: 'String' } }], type: { kind: 'OBJECT', name: 'Human' } },
-                { name: 'others', args: [{ name: 'id', type: { kind: 'SCALAR', name: 'String' } }], type: { kind: 'OBJECT', name: 'Other' } },
-                { name: 'cases', args: [{ name: 'id', type: { kind: 'SCALAR', name: 'String' } }], type: { kind: 'OBJECT', name: 'Case' } },
-                { name: 'chats', args: [{ name: 'id', type: { kind: 'SCALAR', name: 'String' } }], type: { kind: 'OBJECT', name: 'Chat' } },
-                { name: 'tags', type: { kind: 'LIST', ofType: { kind: 'SCALAR', name: 'String' } } },
-                { name: 'relationships', args: [{ name: 'entityId', type: { kind: 'SCALAR', name: 'String' } }], type: { kind: 'LIST', ofType: { kind: 'OBJECT', name: 'Relationship' } } },
-                { name: 'stats', type: { kind: 'OBJECT', name: 'Stats' } },
-                { name: 'search', args: [{ name: 'q', type: { kind: 'NON_NULL', ofType: { kind: 'SCALAR', name: 'String' } } }], type: { kind: 'LIST', ofType: { kind: 'OBJECT', name: 'SearchResult' } } }
-            ]}
+            {
+                kind: 'OBJECT', name: 'Query', fields: [
+                    { name: 'humans', args: [{ name: 'id', type: { kind: 'SCALAR', name: 'String' } }], type: { kind: 'OBJECT', name: 'Human' } },
+                    { name: 'others', args: [{ name: 'id', type: { kind: 'SCALAR', name: 'String' } }], type: { kind: 'OBJECT', name: 'Other' } },
+                    { name: 'cases', args: [{ name: 'id', type: { kind: 'SCALAR', name: 'String' } }], type: { kind: 'OBJECT', name: 'Case' } },
+                    { name: 'chats', args: [{ name: 'id', type: { kind: 'SCALAR', name: 'String' } }], type: { kind: 'OBJECT', name: 'Chat' } },
+                    { name: 'tags', type: { kind: 'LIST', ofType: { kind: 'SCALAR', name: 'String' } } },
+                    { name: 'relationships', args: [{ name: 'entityId', type: { kind: 'SCALAR', name: 'String' } }], type: { kind: 'LIST', ofType: { kind: 'OBJECT', name: 'Relationship' } } },
+                    { name: 'stats', type: { kind: 'OBJECT', name: 'Stats' } },
+                    { name: 'search', args: [{ name: 'q', type: { kind: 'NON_NULL', ofType: { kind: 'SCALAR', name: 'String' } } }], type: { kind: 'LIST', ofType: { kind: 'OBJECT', name: 'SearchResult' } } }
+                ]
+            }
         ];
         return { data: { __schema: { queryType: { name: 'Query' }, types: types } } };
     }

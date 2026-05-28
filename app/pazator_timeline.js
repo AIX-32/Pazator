@@ -17,7 +17,7 @@
         var cases = window.cases || [];
 
         var entity = humans.find(function (h) { return String(h.id) === String(entityId); }) ||
-                     others.find(function (o) { return String(o.id) === String(entityId); });
+            others.find(function (o) { return String(o.id) === String(entityId); });
 
         if (!entity) return { entityName: 'Unknown', events: [] };
 
@@ -71,7 +71,7 @@
             var isMentioned = false;
             if (c.description && c.description.toLowerCase().includes(nameLower)) isMentioned = true;
             if (c.entities && c.entities.indexOf(entityName) !== -1) isMentioned = true;
-            
+
             if (isMentioned) {
                 var daysAgo = 15 - (index % 3) * 4;
                 var cDate = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
@@ -155,7 +155,7 @@
             }
 
             html += '<div class="trac-timeline-item" style="position:relative;margin-bottom:20px;">';
-            
+
             // Dot/Icon connector
             html += '<div class="trac-timeline-dot" style="position:absolute;left:-32px;top:2px;width:16px;height:16px;border-radius:50%;background:#0f0f0f;border:2px solid ' + e.color + ';display:flex;align-items:center;justify-content:center;z-index:2;box-shadow:0 0 8px ' + e.color + '44;">';
             html += '<i class="fas ' + e.icon + '" style="font-size:7px;color:' + e.color + ';"></i>';

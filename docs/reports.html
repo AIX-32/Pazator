@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CTXOD — Context On Demand | Pazator</title>
+  <title>REPORTS — Advanced Reporting | Pazator</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root { --black: #000; --white: #fff; --dim: #666; }
@@ -47,9 +48,7 @@
       font-size: 9px; letter-spacing: 0.45em; color: var(--dim);
     }
     @keyframes tick { to { transform: translateX(-50%); } }
-    .content {
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
+    .content { border-bottom: 1px solid rgba(255,255,255,0.1); }
     .content-inner {
       max-width: 800px; margin: 0 auto; padding: 80px 48px;
     }
@@ -103,6 +102,24 @@
       padding: 4px 12px; font-size: 8px; letter-spacing: 0.35em;
       color: var(--dim); margin-bottom: 20px;
     }
+    .tbl {
+      display: grid; grid-template-columns: 1fr 2fr;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      margin: 12px 0 20px;
+    }
+    .tbl-item { display: contents; }
+    .tbl-item > * {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 11px;
+    }
+    .tbl-item > .key {
+      color: var(--white);
+      font-family: 'Courier New', Courier, monospace;
+    }
+    .tbl-item > .val {
+      color: rgba(255,255,255,0.45);
+    }
     hr { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 40px 0; }
     footer {
       padding: 40px 48px;
@@ -118,79 +135,77 @@
 <body>
   <header class="topbar">
     <div class="tb-left">PAZATOR DOCS</div>
-    <div class="tb-center">CTXOD</div>
+    <div class="tb-center">REPORTS</div>
 
   </header>
 
   <section class="hero">
     <div class="content">
       <div class="content-inner">
-        <div class="badge">FEATURE; v0.May1526</div>
-        <h1>Context<br>On Demand.</h1>
+        <div class="badge">FEATURE &mdash; v0.May2626</div>
+        <h1>REPORTS<br>Builder &amp; Exports.</h1>
 
-        <h3>Why CTXOD</h3>
+        <h3>What it is</h3>
         <p>
-          By default, Pazator feeds Zor a full database summary with every message -; counts, top risks, stats.
-          This works, but it's wasteful: Zor gets the same summary even when asking something simple like <em>"what's John's threat level?"</em>
-          CTXOD flips the model -; instead of dumping everything upfront, Zor fetches only what he needs using tools.
+          The Advanced Reporting system lets you build structured report templates by
+          composing data widgets. Each template can be run to preview live data, exported
+          as PDF or CSV, or scheduled for automatic export at a recurring interval.
         </p>
 
-        <h2>How It Works</h2>
+        <h2>Widget Types</h2>
+        <p>Each report template is a collection of widgets. Available widget types:</p>
+
+        <div class="tbl">
+          <div class="tbl-item"><span class="key">Entity Count</span><span class="val">Count of humans, companies, cases, tags, and chats.</span></div>
+          <div class="tbl-item"><span class="key">Risk Pie Chart</span><span class="val">Threat level distribution (low/medium/high/critical).</span></div>
+          <div class="tbl-item"><span class="key">Recent Activity</span><span class="val">Latest audit log entries (requires collab module).</span></div>
+          <div class="tbl-item"><span class="key">Data Table</span><span class="val">Filterable entity table (up to 100 humans).</span></div>
+          <div class="tbl-item"><span class="key">Tag Cloud</span><span class="val">Top 30 most-used tags with counts.</span></div>
+          <div class="tbl-item"><span class="key">Relationship Stats</span><span class="val">Counts per relationship type.</span></div>
+        </div>
+
+        <h2>Export Formats</h2>
         <p>
-          CTXOD stands for <strong>Context On Demand</strong>. When enabled, Zor stops receiving the full context dump.
-          Instead, he gets a system prompt listing available tools and their parameters. When he needs data, he responds
-          with a JSON tool call, the app executes it, and the result is fed back to him -; all in the same conversation round.
+          <strong>PDF</strong> &mdash; Generated via jsPDF. Each widget becomes a section with
+          headers and key-value data. Multi-page if needed.<br>
+          <strong>CSV</strong> &mdash; Flat format with columns: Widget, Key, Value. Each
+          widget's data is flattened into rows.
         </p>
 
-        <pre>User:  "Show me everyone with a credit score under 100"
-Zor:   {"tool": "search_people", "params": {"query": "credit"}}
-       → tool returns matching people
-       → Zor reads results and answers naturally</pre>
+        <h2>Scheduled Exports</h2>
+        <p>
+          Any report template can be scheduled for automatic export. Configure an interval
+          (5m, 15m, 30m, 1h, 6h, 12h, daily) and format (PDF or CSV). The scheduler uses
+          JavaScript timers — exports run as long as the browser tab is open.
+        </p>
 
-        <h2>Available Tools</h2>
-        <p>When CTXOD is active, Zor has access to these tools:</p>
-
+        <h2>Usage</h2>
+        <p>
+          Open the <strong>Reports</strong> tab from the top menu bar. Click
+          <strong>New Report</strong>, give it a name, and add widgets by clicking the widget
+          type buttons. Save the template, then use the action buttons on each template card:
+        </p>
         <ul>
-          <li><code class="code">search_people</code> -; search by name or any field</li>
-          <li><code class="code">get_person</code> -; full details by ID or exact name</li>
-          <li><code class="code">list_all_people</code> -; lightweight list of all entries</li>
-          <li><code class="code">list_all_entities</code> ; all non-person entries</li>
-          <li><code class="code">get_tags</code> -; list all tags</li>
-          <li><code class="code">search_by_tag</code> -; find people by tag</li>
-          <li><code class="code">get_stats</code> -; database statistics</li>
-          <li><code class="code">get_risk_summary</code> -; threat level distribution</li>
-          <li><code class="code">list_cases</code> -; all open cases</li>
-          <li><code class="code">search_chats</code> -; search chat history</li>
-          <li><code class="code">find_connections</code> -; shared attributes between people</li>
-          <li><code class="code">list_object_types</code> -; object system categories with counts</li>
-          <li><code class="code">get_objects_by_type</code> -; all values for a given object type</li>
-          <li><code class="code">get_object_detail</code> -; details and connected humans for one object</li>
-          <li><code class="code">search_objects</code> -; search across all object types</li>
-          <li><code class="code">add_object</code> -; create a new object explicitly</li>
+          <li><strong>Play</strong> &mdash; Run and preview the report with live data</li>
+          <li><strong>PDF</strong> &mdash; Export directly to PDF</li>
+          <li><strong>CSV</strong> &mdash; Export directly to CSV</li>
+          <li><strong>Clock</strong> &mdash; Set up a scheduled auto-export</li>
+          <li><strong>Trash</strong> &mdash; Delete the template</li>
         </ul>
 
-        <h2>When to Use CTXOD</h2>
-        <p>
-          CTXOD is ideal when you're asking targeted questions or performing specific actions.
-          It saves tokens (and therefore cost) and keeps Zor focused. For broad analysis that needs
-          the full picture, switch back to Full Context mode.
-        </p>
-
-        <h2>Toggle</h2>
-        <p>
-          The CTXOD toggle is in the Zor main panel, the button named "CTXOD" if you havent guessed that.
-        </p>
-
         <hr>
-        <h2>Future Plans</h2>
+
+        <div class="label">Source</div>
         <p>
-          This is just the beginning for CTXOD. Soon CTXOD will use the more object based system to find better context, and we'll be adding more tools based on user feedback. The goal is to make Zor's context fetching smarter and more efficient over time.
+          <code class="code">app/pazator_reports.js</code> &mdash; IIFE module. Requires
+          <code class="code">jspdf</code> CDN for PDF export. Exposes
+          <code class="code">window.pazatorReports</code>.
         </p>
       </div>
     </div>
 
     <footer>
-      <span>PAZATOR -; MASS DATA INTELLIGENCE</span>
+      <span>PAZATOR &mdash; MASS DATA INTELLIGENCE</span>
     </footer>
   </section>
 </body>

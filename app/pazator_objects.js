@@ -2,21 +2,21 @@
     'use strict';
 
     var DEFAULT_TYPE_CONFIGS = {
-        gender:            { label: 'Gender',              icon: 'fa-venus-mars',    color: '#ff6b9d' },
-        maritalStatus:     { label: 'Marital Status',       icon: 'fa-heart',         color: '#ff6b9d' },
-        nationality:       { label: 'Nationality',          icon: 'fa-flag',          color: '#4ecdc4' },
-        countryOfOrigin:   { label: 'Country of Origin',    icon: 'fa-globe',         color: '#4ecdc4' },
-        immigrationStatus: { label: 'Immigration Status',   icon: 'fa-passport',      color: '#ffa94d' },
-        language:          { label: 'Language',             icon: 'fa-language',      color: '#74c0fc' },
-        ethnicity:         { label: 'Ethnicity',            icon: 'fa-users',         color: '#b197fc' },
-        religion:          { label: 'Religion',             icon: 'fa-pray',          color: '#e599f7' },
-        politicalView:     { label: 'Political View',       icon: 'fa-landmark',      color: '#fcc419' },
-        threatLevel:       { label: 'Threat Level',         icon: 'fa-shield-alt',    color: '#ff6b6b' },
-        socialClass:       { label: 'Social Class',         icon: 'fa-layer-group',   color: '#ff922b' },
-        incomeLevel:       { label: 'Income Level',         icon: 'fa-coins',         color: '#20c997' },
-        educationLevel:    { label: 'Education Level',      icon: 'fa-graduation-cap',color: '#339af0' },
-        workplace:         { label: 'Workplace / Occupation',icon: 'fa-briefcase',     color: '#748ffc' },
-        occupation:        { label: 'Occupation',           icon: 'fa-briefcase',     color: '#748ffc' }
+        gender: { label: 'Gender', icon: 'fa-venus-mars', color: '#ff6b9d' },
+        maritalStatus: { label: 'Marital Status', icon: 'fa-heart', color: '#ff6b9d' },
+        nationality: { label: 'Nationality', icon: 'fa-flag', color: '#4ecdc4' },
+        countryOfOrigin: { label: 'Country of Origin', icon: 'fa-globe', color: '#4ecdc4' },
+        immigrationStatus: { label: 'Immigration Status', icon: 'fa-passport', color: '#ffa94d' },
+        language: { label: 'Language', icon: 'fa-language', color: '#74c0fc' },
+        ethnicity: { label: 'Ethnicity', icon: 'fa-users', color: '#b197fc' },
+        religion: { label: 'Religion', icon: 'fa-pray', color: '#e599f7' },
+        politicalView: { label: 'Political View', icon: 'fa-landmark', color: '#fcc419' },
+        threatLevel: { label: 'Threat Level', icon: 'fa-shield-alt', color: '#ff6b6b' },
+        socialClass: { label: 'Social Class', icon: 'fa-layer-group', color: '#ff922b' },
+        incomeLevel: { label: 'Income Level', icon: 'fa-coins', color: '#20c997' },
+        educationLevel: { label: 'Education Level', icon: 'fa-graduation-cap', color: '#339af0' },
+        workplace: { label: 'Workplace / Occupation', icon: 'fa-briefcase', color: '#748ffc' },
+        occupation: { label: 'Occupation', icon: 'fa-briefcase', color: '#748ffc' }
     };
 
     var DEFAULT_OBJECTS = {
@@ -87,7 +87,7 @@
                     }
                     this._typeConfigs = parsed;
                     return;
-                } catch (e) {}
+                } catch (e) { }
             }
             this._typeConfigs = {};
             for (var k in DEFAULT_TYPE_CONFIGS) {

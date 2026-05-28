@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CTXOD — Context On Demand | Pazator</title>
+  <title>COLLAB — Collaboration & Permissions | Pazator</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root { --black: #000; --white: #fff; --dim: #666; }
@@ -47,9 +48,7 @@
       font-size: 9px; letter-spacing: 0.45em; color: var(--dim);
     }
     @keyframes tick { to { transform: translateX(-50%); } }
-    .content {
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
+    .content { border-bottom: 1px solid rgba(255,255,255,0.1); }
     .content-inner {
       max-width: 800px; margin: 0 auto; padding: 80px 48px;
     }
@@ -103,6 +102,24 @@
       padding: 4px 12px; font-size: 8px; letter-spacing: 0.35em;
       color: var(--dim); margin-bottom: 20px;
     }
+    .tbl {
+      display: grid; grid-template-columns: 1fr 2fr;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      margin: 12px 0 20px;
+    }
+    .tbl-item { display: contents; }
+    .tbl-item > * {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 11px;
+    }
+    .tbl-item > .key {
+      color: var(--white);
+      font-family: 'Courier New', Courier, monospace;
+    }
+    .tbl-item > .val {
+      color: rgba(255,255,255,0.45);
+    }
     hr { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 40px 0; }
     footer {
       padding: 40px 48px;
@@ -118,79 +135,84 @@
 <body>
   <header class="topbar">
     <div class="tb-left">PAZATOR DOCS</div>
-    <div class="tb-center">CTXOD</div>
+    <div class="tb-center">COLLAB</div>
 
   </header>
 
   <section class="hero">
     <div class="content">
       <div class="content-inner">
-        <div class="badge">FEATURE; v0.May1526</div>
-        <h1>Context<br>On Demand.</h1>
+        <div class="badge">FEATURE &mdash; v0.May2626</div>
+        <h1>COLLAB<br>Access &amp; Audit.</h1>
 
-        <h3>Why CTXOD</h3>
+        <h3>What it is</h3>
         <p>
-          By default, Pazator feeds Zor a full database summary with every message -; counts, top risks, stats.
-          This works, but it's wasteful: Zor gets the same summary even when asking something simple like <em>"what's John's threat level?"</em>
-          CTXOD flips the model -; instead of dumping everything upfront, Zor fetches only what he needs using tools.
+          Collaboration &amp; Permissions brings multi-user awareness to Pazator. It provides
+          role-based access control (RBAC) with four roles, an audit trail of all user actions,
+          entity-level commenting, and shared workspaces for organizing data.
         </p>
 
-        <h2>How It Works</h2>
+        <h2>Roles &amp; Permissions</h2>
         <p>
-          CTXOD stands for <strong>Context On Demand</strong>. When enabled, Zor stops receiving the full context dump.
-          Instead, he gets a system prompt listing available tools and their parameters. When he needs data, he responds
-          with a JSON tool call, the app executes it, and the result is fed back to him -; all in the same conversation round.
+          Four built-in roles control what a user can do. Everyone starts as the default
+          <code class="code">admin</code> user. Switch between users from the Collaboration tab
+          to test different permission levels.
         </p>
 
-        <pre>User:  "Show me everyone with a credit score under 100"
-Zor:   {"tool": "search_people", "params": {"query": "credit"}}
-       → tool returns matching people
-       → Zor reads results and answers naturally</pre>
+        <div class="tbl">
+          <div class="tbl-item"><span class="key">admin</span><span class="val">Full access — view, search, create, edit, delete, export, comment, manage users</span></div>
+          <div class="tbl-item"><span class="key">editor</span><span class="val">Read/write — view, search, create, edit, delete, export, comment</span></div>
+          <div class="tbl-item"><span class="key">analyst</span><span class="val">Read + light write — view, search, export, comment</span></div>
+          <div class="tbl-item"><span class="key">viewer</span><span class="val">Read-only — view, search</span></div>
+        </div>
 
-        <h2>Available Tools</h2>
-        <p>When CTXOD is active, Zor has access to these tools:</p>
-
-        <ul>
-          <li><code class="code">search_people</code> -; search by name or any field</li>
-          <li><code class="code">get_person</code> -; full details by ID or exact name</li>
-          <li><code class="code">list_all_people</code> -; lightweight list of all entries</li>
-          <li><code class="code">list_all_entities</code> ; all non-person entries</li>
-          <li><code class="code">get_tags</code> -; list all tags</li>
-          <li><code class="code">search_by_tag</code> -; find people by tag</li>
-          <li><code class="code">get_stats</code> -; database statistics</li>
-          <li><code class="code">get_risk_summary</code> -; threat level distribution</li>
-          <li><code class="code">list_cases</code> -; all open cases</li>
-          <li><code class="code">search_chats</code> -; search chat history</li>
-          <li><code class="code">find_connections</code> -; shared attributes between people</li>
-          <li><code class="code">list_object_types</code> -; object system categories with counts</li>
-          <li><code class="code">get_objects_by_type</code> -; all values for a given object type</li>
-          <li><code class="code">get_object_detail</code> -; details and connected humans for one object</li>
-          <li><code class="code">search_objects</code> -; search across all object types</li>
-          <li><code class="code">add_object</code> -; create a new object explicitly</li>
-        </ul>
-
-        <h2>When to Use CTXOD</h2>
+        <h2>Audit Trail</h2>
         <p>
-          CTXOD is ideal when you're asking targeted questions or performing specific actions.
-          It saves tokens (and therefore cost) and keeps Zor focused. For broad analysis that needs
-          the full picture, switch back to Full Context mode.
+          Every meaningful action is logged: user switches, data changes, comments, workspace
+          operations. The audit log stores up to 5,000 recent entries and can be viewed or
+          cleared from the Collaboration tab. Each entry records the timestamp, user, action,
+          and details payload.
         </p>
 
-        <h2>Toggle</h2>
+        <pre>Example audit entry:
+2026-05-27 14:32:01  admin  user_created  {"name": "Jane", "role": "analyst"}
+2026-05-27 14:33:15  Jane   comment_added {"entityType": "human", "entityId": "abc123"}</pre>
+
+        <h2>Comments</h2>
         <p>
-          The CTXOD toggle is in the Zor main panel, the button named "CTXOD" if you havent guessed that.
+          Comments can be attached to any entity (humans, companies, cases) from their detail
+          view. Each comment stores the author, timestamp, and text. All comments are visible
+          to every user and appear in a chronological feed on the Collaboration tab.
+        </p>
+
+        <h2>Workspaces</h2>
+        <p>
+          Workspaces are named groups that collect entities together. A workspace tracks which
+          humans, companies, and cases belong to it. Currently local-only — workspaces persist
+          to localStorage and can be created, renamed, or deleted from the Collaboration tab.
+          Future versions will support server-side shared workspaces.
+        </p>
+
+        <h2>Usage</h2>
+        <p>
+          Open the <strong>Collaboration</strong> tab from the top menu bar. The main panel
+          shows a user switcher, action buttons (Manage Users, Audit Log), and three sub-panels:
+          Workspaces, Comments, and Role Permissions. Switch the active user to immediately
+          see how the app behaves under a different role.
         </p>
 
         <hr>
-        <h2>Future Plans</h2>
+
+        <div class="label">Source</div>
         <p>
-          This is just the beginning for CTXOD. Soon CTXOD will use the more object based system to find better context, and we'll be adding more tools based on user feedback. The goal is to make Zor's context fetching smarter and more efficient over time.
+          <code class="code">app/pazator_collab.js</code> &mdash; IIFE module, loaded after
+          the core app scripts. Exposes <code class="code">window.pazatorCollab</code>.
         </p>
       </div>
     </div>
 
     <footer>
-      <span>PAZATOR -; MASS DATA INTELLIGENCE</span>
+      <span>PAZATOR &mdash; MASS DATA INTELLIGENCE</span>
     </footer>
   </section>
 </body>

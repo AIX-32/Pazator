@@ -1,4 +1,4 @@
-(function() {
+(function () {
   const RESOLVER_CACHE_KEY = 'pazator_resolver_cache';
   const RESOLVER_HISTORY_KEY = 'pazator_resolver_history';
 
@@ -240,13 +240,13 @@
     `;
 
     panel.querySelectorAll('.resolver-merge-btn').forEach(btn => {
-      btn.addEventListener('click', function() {
+      btn.addEventListener('click', function () {
         const idx = parseInt(this.dataset.idx);
         mergeEntities(resolverResults[idx]);
       });
     });
     panel.querySelectorAll('.resolver-dismiss-btn').forEach(btn => {
-      btn.addEventListener('click', function() {
+      btn.addEventListener('click', function () {
         const idx = parseInt(this.dataset.idx);
         resolverResults.splice(idx, 1);
         renderResults(resolverResults);
@@ -255,7 +255,7 @@
 
     const mergeAllBtn = document.getElementById('resolverMergeAllBtn');
     if (mergeAllBtn) {
-      mergeAllBtn.addEventListener('click', function() {
+      mergeAllBtn.addEventListener('click', function () {
         if (confirm(`Merge all ${resolverResults.length} pairs? This will consolidate duplicate entities.`)) {
           for (const r of [...resolverResults]) {
             mergeEntities(r);
@@ -318,8 +318,8 @@
 
   function escapeHtml(str) {
     if (!str) return '';
-    return String(str).replace(/[&<>"']/g, function(c) {
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    return String(str).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
 
@@ -389,11 +389,11 @@
 
     const thresholdInput = document.getElementById('resolverThreshold');
     const thresholdValue = document.getElementById('resolverThresholdValue');
-    thresholdInput.addEventListener('input', function() {
+    thresholdInput.addEventListener('input', function () {
       thresholdValue.textContent = Math.round(parseFloat(this.value) * 100) + '%';
     });
 
-    document.getElementById('resolverScanBtn').addEventListener('click', async function() {
+    document.getElementById('resolverScanBtn').addEventListener('click', async function () {
       const useRemote = document.getElementById('resolverUseRemote').checked;
       this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
       this.disabled = true;
@@ -402,7 +402,7 @@
       this.disabled = false;
     });
 
-    document.getElementById('resolverCacheBtn').addEventListener('click', function() {
+    document.getElementById('resolverCacheBtn').addEventListener('click', function () {
       const cached = loadCache();
       if (cached.length === 0) {
         window.PazatorUI && window.PazatorUI.showFloatingNotification('No cached results', 'info', 2000);
@@ -414,7 +414,7 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', function () {
     const cached = loadCache();
     if (cached.length > 0) {
       resolverResults = cached;
@@ -422,7 +422,7 @@
 
     const resolverBtn = document.getElementById('intelResolverBtn');
     if (resolverBtn) {
-      resolverBtn.addEventListener('click', function() {
+      resolverBtn.addEventListener('click', function () {
         showResolverModal();
       });
     }

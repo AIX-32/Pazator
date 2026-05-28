@@ -199,7 +199,7 @@
         try {
             resizeObserver = new ResizeObserver(function () { render(); });
             resizeObserver.observe(container);
-        } catch (e) {}
+        } catch (e) { }
 
         return {
             update: update,
@@ -216,7 +216,7 @@
         if (!container) return null;
         var opts = options || {};
         var pageSize = opts.pageSize || 50;
-        var onPageChange = opts.onPageChange || function () {};
+        var onPageChange = opts.onPageChange || function () { };
         var totalItems = 0;
         var currentPage = 1;
         var totalPages = 0;

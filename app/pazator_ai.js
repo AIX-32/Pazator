@@ -204,7 +204,7 @@
                                     if (onChunk) onChunk(text, fullText);
                                 }
                             }
-                        } catch (e) {}
+                        } catch (e) { }
                     }
                 }
             }

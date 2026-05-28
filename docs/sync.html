@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYNC — Server Setup | Pazator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --black: #000; --white: #fff; --dim: #666; }
+    html { font-size: 16px; }
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: 'DM Mono', monospace;
+      overflow-x: hidden;
+      cursor: crosshair;
+    }
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 32px; height: 52px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      background: var(--black);
+    }
+    .tb-left { font-size: 9px; letter-spacing: 0.5em; color: var(--dim); }
+    .tb-center { font-family: 'Anton', sans-serif; font-size: 18px; letter-spacing: 0.12em; }
+    .tb-right { display: flex; gap: 28px; }
+    .tb-right a {
+      font-size: 9px; letter-spacing: 0.35em; color: var(--dim);
+      text-decoration: none; text-transform: uppercase; transition: color 0.2s;
+    }
+    .tb-right a:hover { color: var(--white); }
+    .hero {
+      min-height: 100vh; padding-top: 52px;
+      display: grid; grid-template-rows: auto 1fr auto;
+    }
+    .ticker-wrap {
+      overflow: hidden; white-space: nowrap; padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .ticker-inner {
+      display: inline-block;
+      animation: tick 20s linear infinite;
+      font-size: 9px; letter-spacing: 0.45em; color: var(--dim);
+    }
+    @keyframes tick { to { transform: translateX(-50%); } }
+    .content { border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .content-inner {
+      max-width: 800px; margin: 0 auto; padding: 80px 48px;
+    }
+    .content h1 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(48px, 8vw, 100px);
+      line-height: 0.85; letter-spacing: -0.03em;
+      margin-bottom: 40px;
+    }
+    .content h2 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(20px, 3vw, 36px);
+      letter-spacing: -0.01em;
+      margin-top: 60px; margin-bottom: 20px;
+    }
+    .content h3 {
+      font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--dim); margin-top: 40px; margin-bottom: 12px;
+    }
+    .content p {
+      font-size: 12px; line-height: 2;
+      color: rgba(255,255,255,0.45); margin-bottom: 20px;
+    }
+    .content code, .content .code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px; color: var(--white);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 2px 8px; border-radius: 3px;
+    }
+    .content pre {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px; color: var(--white);
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 20px 24px; border-radius: 4px;
+      overflow-x: auto; margin: 16px 0 24px; line-height: 1.7;
+    }
+    .content ul { margin: 12px 0 20px 20px; }
+    .content li {
+      font-size: 12px; line-height: 2;
+      color: rgba(255,255,255,0.45);
+    }
+    .content .label {
+      font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase;
+      color: var(--dim); margin-bottom: 16px;
+    }
+    .badge {
+      display: inline-block;
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 4px 12px; font-size: 8px; letter-spacing: 0.35em;
+      color: var(--dim); margin-bottom: 20px;
+    }
+    .tbl {
+      display: grid; grid-template-columns: 1fr 2fr;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      margin: 12px 0 20px;
+    }
+    .tbl-item { display: contents; }
+    .tbl-item > * {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 11px;
+    }
+    .tbl-item > .key {
+      color: var(--white);
+      font-family: 'Courier New', Courier, monospace;
+    }
+    .tbl-item > .val {
+      color: rgba(255,255,255,0.45);
+    }
+    .step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px; border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.2);
+      font-size: 10px; color: var(--dim); margin-right: 10px; flex-shrink: 0;
+    }
+    .step {
+      display: flex; align-items: flex-start; gap: 8px;
+      margin-bottom: 16px;
+    }
+    .step-body { flex: 1; }
+    .step-body p { margin-bottom: 4px; }
+    hr { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 40px 0; }
+    footer {
+      padding: 40px 48px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      font-size: 9px; letter-spacing: 0.3em; color: var(--dim);
+    }
+    @media(max-width:700px) {
+      .content-inner { padding: 48px 24px; }
+      .tb-right { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="tb-left">PAZATOR DOCS</div>
+    <div class="tb-center">SYNC</div>
+    <nav class="tb-right"><a href="index.html">Docs</a></nav>
+  </header>
+
+  <section class="hero">
+    <div class="content">
+      <div class="content-inner">
+        <div class="badge">INFRASTRUCTURE &mdash; v0.May1726</div>
+        <h1>Sync<br>Server.</h1>
+
+        <p>
+          PZLS (Pazator Sync Server) is a lightweight Node.js backend that provides data sync,
+          account management, entity resolution, and remote SQL query execution. It lets you
+          push and pull your Pazator data across devices with per-user isolation and
+          token-based authentication.
+        </p>
+
+        <h2>Quick Start</h2>
+
+        <div class="step">
+          <span class="step-num">1</span>
+          <div class="step-body">
+            <p>Clone and install.</p>
+            <pre>git clone https://github.com/AIX-32/PZLS.git
+cd PZLS
+npm install</pre>
+          </div>
+        </div>
+
+        <div class="step">
+          <span class="step-num">2</span>
+          <div class="step-body">
+            <p>Start the server.</p>
+            <pre>npm start</pre>
+            <p>Runs on <code class="code">http://localhost:3456</code> by default. Set <code class="code">PORT</code> to change it:</p>
+            <pre>PORT=8080 npm start</pre>
+          </div>
+        </div>
+
+        <div class="step">
+          <span class="step-num">3</span>
+          <div class="step-body">
+            <p>Configure Pazator to connect. Click the logo &rarr; <strong>Sync Config</strong> &rarr; enter the server URL &rarr; <strong>Test Connection</strong>.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <span class="step-num">4</span>
+          <div class="step-body">
+            <p>Create your account. Type a username + password (6+ chars) and click <strong>Register</strong>. The first user is <strong>admin</strong>; everyone after is <strong>analyst</strong>.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <span class="step-num">5</span>
+          <div class="step-body">
+            <p>Push your data. Logo &rarr; <strong>Push</strong> uploads your local data to the server. <strong>Pull</strong> downloads server data to your local app.</p>
+          </div>
+        </div>
+
+        <h2>Account System</h2>
+        <p>
+          Authentication is handled via Bearer tokens. Register once, then login from any
+          Pazator instance to access your data. Tokens persist in <code class="code">localStorage</code>
+          and auto-renew on page load.
+        </p>
+
+        <div class="tbl">
+          <div class="tbl-item"><span class="key">POST /api/auth/register</span><span class="val">Create account &mdash; <code class="code">{username, password}</code></span></div>
+          <div class="tbl-item"><span class="key">POST /api/auth/login</span><span class="val">Login &mdash; <code class="code">{username, password}</code> &rarr; <code class="code">{token, user}</code></span></div>
+          <div class="tbl-item"><span class="key">POST /api/auth/logout</span><span class="val">Invalidate session token</span></div>
+          <div class="tbl-item"><span class="key">GET /api/auth/me</span><span class="val">Get current user info</span></div>
+          <div class="tbl-item"><span class="key">POST /api/auth/change-password</span><span class="val">Change password &mdash; <code class="code">{currentPassword, newPassword}</code></span></div>
+        </div>
+
+        <p>
+          Passwords are hashed with <strong>scrypt</strong> + a random salt. Tokens are UUIDs
+          stored in <code class="code">data/tokens.json</code>.
+        </p>
+
+        <h2>Data Sync</h2>
+        <p>
+          Each user gets their own isolated data namespace. Sync operations only affect the
+          authenticated user's data.
+        </p>
+
+        <div class="tbl">
+          <div class="tbl-item"><span class="key">GET /api/sync</span><span class="val">Pull all data for the authenticated user</span></div>
+          <div class="tbl-item"><span class="key">POST /api/sync</span><span class="val">Push data &mdash; <code class="code">{clientVersion, stores: {...}}</code></span></div>
+          <div class="tbl-item"><span class="key">GET /api/sync/changes?since=N</span><span class="val">List changelog entries after version N</span></div>
+          <div class="tbl-item"><span class="key">GET /api/sync/status</span><span class="val">Server health + account stats (partial info without auth)</span></div>
+        </div>
+
+        <p>All sync endpoints require a valid Bearer token:</p>
+        <pre>Authorization: Bearer &lt;your-token&gt;</pre>
+
+        <h3>Push format</h3>
+        <pre>{
+  "clientVersion": 0,
+  "stores": {
+    "humans": { "id1": { "name": "..." } },
+    "others": {},
+    "tags": {},
+    "cases": {},
+    "chats": {},
+    "relationships": {}
+  }
+}</pre>
+
+        <h2>Other Endpoints</h2>
+
+        <div class="tbl">
+          <div class="tbl-item"><span class="key">GET /api/resolve?threshold=0.6</span><span class="val">Jaro-Winkler entity resolution against user's data</span></div>
+          <div class="tbl-item"><span class="key">POST /api/query</span><span class="val">Execute SQL &mdash; <code class="code">{connectionString, query}</code> (MySQL/Postgres)</span></div>
+          <div class="tbl-item"><span class="key">GET /api/admin/users</span><span class="val">List all users (admin only)</span></div>
+          <div class="tbl-item"><span class="key">DELETE /api/admin/users/:id</span><span class="val">Delete a user (admin only)</span></div>
+        </div>
+
+        <h2>Architecture</h2>
+        <p>
+          The server stores everything as flat JSON files in a <code class="code">data/</code> directory.
+          No database required.
+        </p>
+
+        <pre>PZLS/
+  server.js              # Main server
+  package.json
+  README.md
+  data/                  # Created on first run (gitignored)
+    users.json           # Registered users
+    tokens.json          # Active session tokens
+    repo.json            # Legacy — migrated to per-user on first registration
+    repo_&lt;userId&gt;.json    # Per-user data stores
+    changelog_&lt;userId&gt;.json</pre>
+
+        <p>
+          If you were running the old (pre-auth) server with a <code class="code">repo.json</code>,
+          it will be automatically migrated to the first registered user's namespace.
+        </p>
+
+        <h2>From Pazator</h2>
+        <p>
+          The logo menu in the app shows your connection status at a glance:
+        </p>
+        <ul>
+          <li><strong style="color:#4caf50;">Green</strong> &mdash; logged in and connected</li>
+          <li><strong style="color:#ff9800;">Orange</strong> &mdash; connected but not logged in</li>
+          <li><strong style="color:#666;">Grey</strong> &mdash; not configured</li>
+        </ul>
+        <p>
+          Click <strong>Sync Config</strong> to change server URL, login, register, or logout.
+          Use <strong>Push</strong> and <strong>Pull</strong> to transfer data on demand.
+        </p>
+
+        <hr>
+
+        <div class="label">Related</div>
+        <p>
+          See the <a href="collab.html" style="color:var(--white);">COLLAB docs</a> for
+          the local user role system and permissions. The sync server account system
+          is separate &mdash; it controls <em>server access</em>, while COLLAB controls
+          <em>in-app permissions</em>.
+        </p>
+      </div>
+    </div>
+
+    <footer>
+      <span>PAZATOR &mdash; MASS DATA INTELLIGENCE</span>
+    </footer>
+  </section>
+</body>
+</html>

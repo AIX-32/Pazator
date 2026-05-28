@@ -31,717 +31,11 @@ let selectedCaseId = null;
 
 let logoBase64 = null;
 
-const AGENT_CONFIG = {
-    CHUNK_SIZE: 20,
-    MAX_CONCURRENT: 2,
-    AI_CALL_DELAY: 1500,
-    SCORE_THRESHOLD: 3,
-    TOP_CANDIDATE_PCT: 0.15,
-    MAX_FINDINGS_PER_TYPE: 200,
-    STATUS: {
-        IDLE: 'idle',
-        WORKING: 'working',
-        COMPLETED: 'completed',
-        ERROR: 'error'
-    }
-};
-
-class InvertedIndex {
-    constructor(people) {
-        this.indexes = {
-            workplace: new Map(),
-            nationality: new Map(),
-            countryOfOrigin: new Map(),
-            religion: new Map(),
-            politicalViews: new Map(),
-            ethnicity: new Map(),
-            immigrationStatus: new Map(),
-            threatLevel: new Map(),
-            occupation: new Map(),
-            educationLevel: new Map(),
-            maritalStatus: new Map(),
-            socialClass: new Map(),
-            incomeLevel: new Map(),
-            tag: new Map()
-        };
-        this.byName = new Map();
-        this.byId = new Map();
-        this.build(people);
-    }
-
-    build(people) {
-        people.forEach(p => {
-            if (p.id) this.byId.set(p.id, p);
-            if (p.name) this.byName.set(p.name.toLowerCase(), p);
-
-            this._add('workplace', p.workplace, p.id);
-            this._add('nationality', p.nationality, p.id);
-            this._add('countryOfOrigin', p.countryOfOrigin, p.id);
-            this._add('religion', p.religion, p.id);
-            this._add('politicalViews', p.politicalViews, p.id);
-            this._add('ethnicity', p.ethnicity, p.id);
-            this._add('immigrationStatus', p.immigrationStatus, p.id);
-            this._add('threatLevel', p.threatLevel, p.id);
-            this._add('occupation', p.occupation, p.id);
-            this._add('educationLevel', p.educationLevel, p.id);
-            this._add('maritalStatus', p.maritalStatus, p.id);
-            this._add('socialClass', p.socialClass, p.id);
-            this._add('incomeLevel', p.incomeLevel, p.id);
-
-            (p.tags || []).forEach(t => {
-                this._addToMap(this.indexes.tag, (t || '').toLowerCase(), p.id);
-            });
-        });
-    }
-
-    _add(key, value, id) {
-        if (value) this._addToMap(this.indexes[key], value.toLowerCase().trim(), id);
-    }
-
-    _addToMap(map, key, id) {
-        if (!key) return;
-        if (!map.has(key)) map.set(key, new Set());
-        map.get(key).add(id);
-    }
-
-    lookup(indexKey, value) {
-        const idx = this.indexes[indexKey];
-        if (!idx) return new Set();
-        return idx.get((value || '').toLowerCase().trim()) || new Set();
-    }
-
-    getById(id) { return this.byId.get(id); }
-    getByName(name) { return this.byName.get((name || '').toLowerCase()); }
-
-    getBuckets() {
-        const buckets = [];
-        Object.entries(this.indexes).forEach(([key, map]) => {
-            map.forEach((ids, value) => {
-                if (ids.size >= 2) {
-                    buckets.push({ indexKey: key, value, ids: [...ids] });
-                }
-            });
-        });
-        return buckets;
-    }
-}
-
-class FindingDedup {
-    constructor() {
-        this.seen = new Map();
-        this.findings = [];
-    }
-
-    add(finding) {
-        const key = this._hash(finding);
-        if (this.seen.has(key)) {
-            const existing = this.seen.get(key);
-            existing.count = (existing.count || 1) + 1;
-            if (finding.evidence && !existing.evidence.includes(finding.evidence)) {
-                existing.evidence += '; ' + finding.evidence;
-            }
-            return false;
-        }
-        finding.count = 1;
-        this.seen.set(key, finding);
-        this.findings.push(finding);
-        return true;
-    }
-
-    _hash(f) {
-        const subj = (f.subject || '').toLowerCase().trim();
-        const content = (f.content || '').toLowerCase().trim().substring(0, 60);
-        return subj + '|' + content;
-    }
-
-    getFindings() {
-        return this.findings.slice(0, AGENT_CONFIG.MAX_FINDINGS_PER_TYPE);
-    }
-}
-
-class Semaphore {
-    constructor(limit) {
-        this.limit = limit;
-        this.active = 0;
-        this.queue = [];
-    }
-
-    async acquire() {
-        if (this.active < this.limit) {
-            this.active++;
-            return Promise.resolve();
-        }
-        return new Promise(resolve => {
-            this.queue.push(resolve);
-        });
-    }
-
-    release() {
-        if (this.queue.length > 0) {
-            const resolve = this.queue.shift();
-            resolve();
-        } else {
-            this.active--;
-        }
-    }
-}
-
-class IntelligenceAgent {
-    constructor(name, type, color) {
-        this.name = name;
-        this.type = type;
-        this.color = color;
-        this.status = AGENT_CONFIG.STATUS.IDLE;
-        this.progress = 0;
-        this.total = 0;
-        this.processed = 0;
-        this.findingCount = 0;
-        this.onFinding = null;
-        this.semaphore = null;
-    }
-
-    setSemaphore(sem) { this.semaphore = sem; }
-
-    setStatus(status) {
-        this.status = status;
-        this.renderPanel();
-    }
-
-    updateProgress(processed, total) {
-        this.processed = processed;
-        this.total = total;
-        this.progress = total > 0 ? Math.round((processed / total) * 100) : 0;
-        this.renderPanel();
-    }
-
-    emitFinding(finding) {
-        this.findingCount++;
-        if (this.onFinding) this.onFinding(finding);
-    }
-
-    async processChunk(chunk, promptFn) {
-        if (this.semaphore) await this.semaphore.acquire();
-        try {
-            await this._delay(AGENT_CONFIG.AI_CALL_DELAY);
-            const prompt = promptFn(chunk);
-            const response = await geminiChat([
-                { role: 'system', content: 'You are a specialized intelligence agent. Output ONLY valid JSON.' },
-                { role: 'user', content: prompt }
-            ]);
-            const text = response.content || response;
-            const results = extractJSONFromResponse(text);
-            if (Array.isArray(results)) {
-                results.forEach(r => this.emitFinding(r));
-            }
-            return results || [];
-        } catch (e) {
-            return [];
-        } finally {
-            if (this.semaphore) this.semaphore.release();
-        }
-    }
-
-    _delay(ms) {
-        return new Promise(r => setTimeout(r, ms));
-    }
-
-    renderPanel() {
-        const el = document.getElementById('agent-row-' + this.type);
-        if (!el) return;
-        const dot = el.querySelector('.agent-panel-dot');
-        const status = el.querySelector('.agent-panel-status');
-        const fill = el.querySelector('.agent-panel-bar-fill');
-        const nameEl = el.querySelector('.agent-panel-name');
-        if (dot) dot.className = 'agent-panel-dot ' + this.status;
-        if (status) status.textContent = this.status.charAt(0).toUpperCase() + this.status.slice(1);
-        if (fill) {
-            fill.style.width = this.progress + '%';
-            fill.className = 'agent-panel-bar-fill' + (this.status === AGENT_CONFIG.STATUS.COMPLETED ? ' completed' : this.status === AGENT_CONFIG.STATUS.ERROR ? ' error' : '');
-        }
-        if (nameEl) nameEl.textContent = this.name + ' (' + this.findingCount + ')';
-    }
-
-    reset() {
-        this.status = AGENT_CONFIG.STATUS.IDLE;
-        this.progress = 0;
-        this.total = 0;
-        this.processed = 0;
-        this.findingCount = 0;
-    }
-}
-
-class AgentSystem {
-    constructor() {
-        this.agents = {
-            threat: new IntelligenceAgent('Threat', 'threat', '#ff6b6b'),
-            risk: new IntelligenceAgent('Risk', 'risk', '#ffd93d'),
-            intel: new IntelligenceAgent('Intel', 'intel', '#6bcf7f'),
-            connection: new IntelligenceAgent('Connection', 'connection', '#4d9de0')
-        };
-        this.running = false;
-        this.panelVisible = false;
-        this.semaphore = new Semaphore(AGENT_CONFIG.MAX_CONCURRENT);
-        Object.values(this.agents).forEach(a => a.setSemaphore(this.semaphore));
-        this.dedup = new FindingDedup();
-    }
-
-    showPanel() {
-        const panel = document.getElementById('agentPanel');
-        if (!panel) return;
-        panel.style.display = 'block';
-        this.panelVisible = true;
-        this.renderAllRows();
-    }
-
-    renderAllRows() {
-        const body = document.getElementById('agentPanelBody');
-        if (!body) return;
-        body.innerHTML = '';
-        Object.values(this.agents).forEach(agent => {
-            const row = document.createElement('div');
-            row.className = 'agent-panel-agent';
-            row.id = 'agent-row-' + agent.type;
-            row.innerHTML = `
-                <div class="agent-panel-dot ${agent.status}"></div>
-                <div class="agent-panel-info">
-                    <div class="agent-panel-name">${agent.name}</div>
-                    <div class="agent-panel-status">${agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}</div>
-                </div>
-                <div class="agent-panel-bar">
-                    <div class="agent-panel-bar-bg">
-                        <div class="agent-panel-bar-fill" style="width: ${agent.progress}%"></div>
-                    </div>
-                </div>
-            `;
-            body.appendChild(row);
-        });
-    }
-
-    getPersonData() {
-        return pazatorData.humans.map(h => ({
-            id: h.id, name: h.name, gender: h.gender, birthDate: h.birthDate,
-            workplace: h.workplace, occupation: h.occupation,
-            nationality: h.nationality, countryOfOrigin: h.countryOfOrigin,
-            immigrationStatus: h.immigrationStatus, languages: h.languages || [],
-            ethnicity: h.ethnicity, religion: h.religion,
-            politicalViews: h.politicalViews, threatLevel: h.threatLevel,
-            socialClass: h.socialClass, incomeLevel: h.incomeLevel,
-            educationLevel: h.educationLevel, maritalStatus: h.maritalStatus,
-            credit: h.credit, tags: h.tags || [],
-            friends: h.friends || [], family: h.family || [],
-            extraNotes: h.extraNotes || '', chats: h.chats || []
-        }));
-    }
-
-    getEntityData() {
-        return pazatorData.others.map(o => ({ id: o.id, name: o.name, note: o.note || '', tags: o.tags || [] }));
-    }
-
-    async runAll() {
-        if (this.running) return;
-        this.running = true;
-
-        this.showPanel();
-        const closeBtn = document.getElementById('agentPanelClose');
-        if (closeBtn) closeBtn.style.display = 'none';
-
-        const btn = document.getElementById('intelAnalyzeBtn');
-        if (btn) {
-            btn.disabled = true;
-            btn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Deploying...';
-        }
-
-        const people = this.getPersonData();
-        const entities = this.getEntityData();
-        const index = new InvertedIndex(people);
-
-        this.dedup = new FindingDedup();
-
-        Object.values(this.agents).forEach(a => {
-            a.reset();
-            a.onFinding = (f) => {
-                const isNew = this.dedup.add(f);
-                if (isNew) a.renderPanel();
-            };
-        });
-        this.renderAllRows();
-
-        try {
-            const threatPromise = this.runThreatAgent(people, entities, index);
-            const riskPromise = this.runRiskAgent(people, entities, index);
-            const intelPromise = this.runIntelAgent(people, entities, index);
-            const connectionPromise = this.runConnectionAgent(people, index);
-
-            await Promise.all([threatPromise, riskPromise, intelPromise, connectionPromise]);
-
-            this.collectAllFindings();
-        } catch (e) {
-            console.error('Agent system error:', e);
-        } finally {
-            this.running = false;
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-play"></i> Deploy Agents';
-            }
-            if (closeBtn) closeBtn.style.display = 'flex';
-        }
-    }
-
-    _scoreThreat(p) {
-        let score = 0;
-        const tl = (p.threatLevel || '').toLowerCase();
-        if (tl === 'critical') score += 10;
-        else if (tl === 'high') score += 7;
-        else if (tl === 'medium') score += 4;
-        else if (tl === 'low') score += 2;
-
-        const tags = (p.tags || []).map(t => t.toLowerCase());
-        const dangerous = ['dangerous', 'violent', 'extremist', 'weapon', 'bomb', 'threat', 'criminal', 'wanted', 'suspect', 'terrorist', 'militant', 'radical'];
-        tags.forEach(t => { if (dangerous.some(d => t.includes(d))) score += 3; });
-
-        const notes = (p.extraNotes || '').toLowerCase();
-        if (notes.includes('threat') || notes.includes('danger') || notes.includes('violent') || notes.includes('weapon')) score += 4;
-        if (notes.includes('extremist') || notes.includes('radical') || notes.includes('militant')) score += 5;
-
-        return score;
-    }
-
-    _scoreRisk(p) {
-        let score = 0;
-        const credit = p.credit || 185;
-        if (credit < 100) score += 5;
-        else if (credit < 150) score += 3;
-
-        const imm = (p.immigrationStatus || '').toLowerCase();
-        if (imm.includes('visa') || imm.includes('temporary') || imm.includes('expired') || imm.includes('overstay')) score += 3;
-        if (imm.includes('undocumented') || imm.includes('illegal')) score += 5;
-
-        const tags = (p.tags || []).map(t => t.toLowerCase());
-        const risky = ['suspicious', 'fraud', 'debt', 'bankrupt', 'unstable', 'unemployed', 'untrusted', 'scam'];
-        tags.forEach(t => { if (risky.some(r => t.includes(r))) score += 3; });
-
-        const income = (p.incomeLevel || '').toLowerCase();
-        if (income === 'low' || income === 'none') score += 2;
-
-        const notes = (p.extraNotes || '').toLowerCase();
-        if (notes.includes('suspicious') || notes.includes('fraud') || notes.includes('debt')) score += 3;
-        if (notes.includes('unstable') || notes.includes('risk')) score += 2;
-
-        return score;
-    }
-
-    _scoreIntel(p) {
-        let score = 0;
-        if (p.languages && p.languages.length > 2) score += 2;
-        if (p.educationLevel && (p.educationLevel.includes('university') || p.educationLevel.includes('master') || p.educationLevel.includes('phd'))) score += 2;
-        if (p.nationality && p.countryOfOrigin && p.nationality !== p.countryOfOrigin) score += 2;
-        const tags = (p.tags || []).map(t => t.toLowerCase());
-        const notable = ['leader', 'owner', 'manager', 'doctor', 'engineer', 'investor', 'executive', 'professional', 'veteran', 'expert', 'specialist'];
-        tags.forEach(t => { if (notable.some(n => t.includes(n))) score += 2; });
-        if (p.chats && p.chats.length > 5) score += 1;
-        return score;
-    }
-
-    async runThreatAgent(people, entities, index) {
-        const agent = this.agents.threat;
-        agent.setStatus(AGENT_CONFIG.STATUS.WORKING);
-
-        const scored = people.map(p => ({ person: p, score: this._scoreThreat(p) }));
-        const threshold = Math.max(AGENT_CONFIG.SCORE_THRESHOLD, this._percentile(scored.map(s => s.score), 1 - AGENT_CONFIG.TOP_CANDIDATE_PCT));
-        const candidates = scored.filter(s => s.score >= threshold).map(s => s.person);
-        const chunks = this._chunkArray(candidates, AGENT_CONFIG.CHUNK_SIZE);
-
-        agent.updateProgress(0, chunks.length);
-
-        if (chunks.length === 0) {
-            agent.setStatus(AGENT_CONFIG.STATUS.COMPLETED);
-            return;
-        }
-
-        const tasks = chunks.map((chunk, i) =>
-            this._runAIAnalysis(agent, chunk, i, 'threat', (c) => {
-                const peopleBrief = c.map(p => ({
-                    id: p.id, name: p.name, threatLevel: p.threatLevel,
-                    politicalViews: p.politicalViews, religion: p.religion,
-                    tags: p.tags, extraNotes: p.extraNotes,
-                    workplace: p.workplace, occupation: p.occupation,
-                    credit: p.credit
-                }));
-                return `Analyze these HIGH-PRIORITY people for threats and security concerns.
-People: ${JSON.stringify(peopleBrief, null, 2)}
-Return JSON: [{"type":"threat","subject":"name","content":"description","evidence":"specific data point","tags":["tag"]}]
-Focus on: dangerous behavior, extremist indicators, violent tendencies, security risks.
-Only genuine threats. Return ONLY JSON.`;
-            })
-        );
-
-        await Promise.all(tasks);
-        agent.setStatus(AGENT_CONFIG.STATUS.COMPLETED);
-    }
-
-    async runRiskAgent(people, entities, index) {
-        const agent = this.agents.risk;
-        agent.setStatus(AGENT_CONFIG.STATUS.WORKING);
-
-        const scored = people.map(p => ({ person: p, score: this._scoreRisk(p) }));
-        const threshold = Math.max(AGENT_CONFIG.SCORE_THRESHOLD, this._percentile(scored.map(s => s.score), 1 - AGENT_CONFIG.TOP_CANDIDATE_PCT));
-        const candidates = scored.filter(s => s.score >= threshold).map(s => s.person);
-        const chunks = this._chunkArray(candidates, AGENT_CONFIG.CHUNK_SIZE);
-
-        agent.updateProgress(0, chunks.length);
-
-        if (chunks.length === 0) {
-            agent.setStatus(AGENT_CONFIG.STATUS.COMPLETED);
-            return;
-        }
-
-        const tasks = chunks.map((chunk, i) =>
-            this._runAIAnalysis(agent, chunk, i, 'risk', (c) => {
-                const peopleBrief = c.map(p => ({
-                    id: p.id, name: p.name, credit: p.credit, incomeLevel: p.incomeLevel,
-                    socialClass: p.socialClass, educationLevel: p.educationLevel,
-                    immigrationStatus: p.immigrationStatus, tags: p.tags,
-                    extraNotes: p.extraNotes, workplace: p.workplace,
-                    occupation: p.occupation, maritalStatus: p.maritalStatus
-                }));
-                return `Analyze these people for risks and vulnerabilities.
-People: ${JSON.stringify(peopleBrief, null, 2)}
-Return JSON: [{"type":"risk","subject":"name","content":"description","evidence":"specific data","tags":["tag"]}]
-Focus on: financial risks, immigration issues, social vulnerabilities, instability.
-Only genuine risks. Return ONLY JSON.`;
-            })
-        );
-
-        await Promise.all(tasks);
-        agent.setStatus(AGENT_CONFIG.STATUS.COMPLETED);
-    }
-
-    async runIntelAgent(people, entities, index) {
-        const agent = this.agents.intel;
-        agent.setStatus(AGENT_CONFIG.STATUS.WORKING);
-
-        const scored = people.map(p => ({ person: p, score: this._scoreIntel(p) }));
-        const threshold = Math.max(AGENT_CONFIG.SCORE_THRESHOLD, this._percentile(scored.map(s => s.score), 1 - AGENT_CONFIG.TOP_CANDIDATE_PCT));
-        const candidates = scored.filter(s => s.score >= threshold).map(s => s.person);
-        const chunks = this._chunkArray(candidates, AGENT_CONFIG.CHUNK_SIZE);
-
-        agent.updateProgress(0, chunks.length);
-
-        if (chunks.length === 0) {
-            agent.setStatus(AGENT_CONFIG.STATUS.COMPLETED);
-            return;
-        }
-
-        const tasks = chunks.map((chunk, i) =>
-            this._runAIAnalysis(agent, chunk, i, 'intel', (c) => {
-                const peopleBrief = c.map(p => ({
-                    id: p.id, name: p.name, nationality: p.nationality,
-                    countryOfOrigin: p.countryOfOrigin, languages: p.languages,
-                    ethnicity: p.ethnicity, religion: p.religion,
-                    educationLevel: p.educationLevel, occupation: p.occupation,
-                    workplace: p.workplace, tags: p.tags, extraNotes: p.extraNotes,
-                    credit: p.credit
-                }));
-                return `Analyze these people for intelligence patterns and notable observations.
-People: ${JSON.stringify(peopleBrief, null, 2)}
-Return JSON: [{"type":"positive|info","subject":"name","content":"description","evidence":"data","tags":["tag"]}]
-Focus on: unique backgrounds, positive indicators, noteworthy patterns, demographic insights.
-Return ONLY JSON.`;
-            })
-        );
-
-        await Promise.all(tasks);
-        agent.setStatus(AGENT_CONFIG.STATUS.COMPLETED);
-    }
-
-    async _runAIAnalysis(agent, chunk, index, type, promptFn) {
-        agent.updateProgress(index, agent.total);
-        try {
-            await agent.processChunk(chunk, promptFn);
-        } catch (e) {
-            // retry once after delay
-            await agent._delay(AGENT_CONFIG.AI_CALL_DELAY * 2);
-            try {
-                await agent.processChunk(chunk, promptFn);
-            } catch (e2) {
-                // skip on second failure
-            }
-        }
-        agent.updateProgress(index + 1, agent.total);
-    }
-
-    _chunkArray(arr, size) {
-        const chunks = [];
-        for (let i = 0; i < arr.length; i += size) {
-            chunks.push(arr.slice(i, i + size));
-        }
-        return chunks;
-    }
-
-    _percentile(values, p) {
-        if (values.length === 0) return 0;
-        const sorted = [...values].sort((a, b) => a - b);
-        const idx = Math.floor(p * (sorted.length - 1));
-        return sorted[idx];
-    }
-
-    async runConnectionAgent(people, index) {
-        const agent = this.agents.connection;
-        agent.setStatus(AGENT_CONFIG.STATUS.WORKING);
-
-        const buckets = index.getBuckets();
-        const connections = new Map();
-        const processed = new Set();
-
-        const totalWork = buckets.length;
-        agent.updateProgress(0, totalWork);
-
-        for (let i = 0; i < buckets.length; i++) {
-            const bucket = buckets[i];
-            const ids = [...bucket.ids];
-
-            for (let j = 0; j < ids.length; j++) {
-                for (let k = j + 1; k < ids.length; k++) {
-                    const pairKey = [ids[j], ids[k]].sort().join('|');
-                    if (processed.has(pairKey)) continue;
-                    processed.add(pairKey);
-
-                    const p1 = index.getById(ids[j]);
-                    const p2 = index.getById(ids[k]);
-                    if (!p1 || !p2) continue;
-                    if (p1.friends?.includes(p2.id) || p1.family?.includes(p2.id)) continue;
-
-                    const shared = this._findSharedAttributes(p1, p2, bucket.indexKey, bucket.value);
-                    if (shared.length > 0) {
-                        const connKey = [p1.name, p2.name].sort().join('|');
-                        if (!connections.has(connKey)) {
-                            connections.set(connKey, { person1: p1.name, person2: p2.name, reasons: [], types: new Set() });
-                        }
-                        const conn = connections.get(connKey);
-                        shared.forEach(s => conn.reasons.push(s));
-                        conn.types.add(bucket.indexKey);
-                    }
-                }
-            }
-
-            if (i % 10 === 0 || i === buckets.length - 1) {
-                agent.updateProgress(i + 1, totalWork);
-            }
-        }
-
-        const strongConnections = [...connections.values()]
-            .filter(c => c.reasons.length >= 2)
-            .sort((a, b) => b.reasons.length - a.reasons.length)
-            .slice(0, 200);
-
-        const aiChunks = this._chunkArray(strongConnections.slice(0, 100), AGENT_CONFIG.CHUNK_SIZE);
-        agent.total = aiChunks.length;
-        agent.updateProgress(0, aiChunks.length);
-
-        if (aiChunks.length > 0) {
-            const tasks = aiChunks.map((chunk, i) =>
-                this._runAIAnalysis(agent, chunk, i, 'connection', (c) => {
-                    const peopleBrief = c.map(conn => ({
-                        person1: conn.person1,
-                        person2: conn.person2,
-                        sharedAttributes: conn.reasons,
-                        connectionTypes: [...conn.types]
-                    }));
-                    return `Evaluate these potential connections for significance.
-Connections: ${JSON.stringify(peopleBrief, null, 2)}
-Return JSON: [{"type":"connection","subject":"person1 <-> person2","content":"why this connection matters","evidence":"key shared attribute","tags":["type"]}]
-Focus on connections that could indicate hidden networks, collusion, or coordinated behavior.
-Return ONLY JSON.`;
-                })
-            );
-
-            await Promise.all(tasks);
-        }
-
-        for (const conn of strongConnections.slice(0, 50)) {
-            agent.emitFinding({
-                type: 'connection',
-                subject: conn.person1 + ' <-> ' + conn.person2,
-                content: 'Shares ' + conn.reasons.length + ' attributes: ' + conn.reasons.join('; '),
-                evidence: 'Types: ' + [...conn.types].join(', '),
-                tags: [...conn.types].slice(0, 3)
-            });
-        }
-
-        agent.updateProgress(agent.total, agent.total);
-        agent.setStatus(AGENT_CONFIG.STATUS.COMPLETED);
-    }
-
-    _findSharedAttributes(p1, p2, bucketKey, bucketValue) {
-        const shared = [];
-        const checks = [
-            ['workplace', 'Same workplace'],
-            ['nationality', 'Same nationality'],
-            ['countryOfOrigin', 'Same country of origin'],
-            ['religion', 'Same religion'],
-            ['politicalViews', 'Same political views'],
-            ['ethnicity', 'Same ethnicity'],
-            ['immigrationStatus', 'Same immigration status'],
-            ['occupation', 'Same occupation'],
-            ['educationLevel', 'Same education level'],
-            ['maritalStatus', 'Same marital status'],
-            ['socialClass', 'Same social class'],
-            ['incomeLevel', 'Same income level'],
-        ];
-
-        checks.forEach(([key, label]) => {
-            if (key === bucketKey) return;
-            const v1 = (p1[key] || '').toLowerCase().trim();
-            const v2 = (p2[key] || '').toLowerCase().trim();
-            if (v1 && v2 && v1 === v2) {
-                shared.push(label + ': ' + v1);
-            }
-        });
-
-        const tags1 = new Set((p1.tags || []).map(t => t.toLowerCase()));
-        const tags2 = new Set((p2.tags || []).map(t => t.toLowerCase()));
-        const commonTags = [...tags1].filter(t => tags2.has(t));
-        if (commonTags.length > 0) {
-            shared.push('Shared tags: ' + commonTags.slice(0, 3).join(', '));
-        }
-
-        const mutualFriends = (p1.friends || []).filter(f => (p2.friends || []).includes(f));
-        if (mutualFriends.length > 0) {
-            shared.push(mutualFriends.length + ' mutual friends');
-        }
-
-        const mutualFamily = (p1.family || []).filter(f => (p2.family || []).includes(f));
-        if (mutualFamily.length > 0) {
-            shared.push(mutualFamily.length + ' mutual family');
-        }
-
-        return shared;
-    }
-
-    collectAllFindings() {
-        const allFindings = this.dedup.getFindings();
-        if (allFindings.length > 0) {
-            renderFindingsToCards(allFindings);
-            const countEl = document.getElementById('intelFindingsCount');
-            if (countEl) countEl.textContent = allFindings.length;
-            const lastEl = document.getElementById('intelLastAnalysis');
-            if (lastEl) lastEl.textContent = new Date().toLocaleTimeString();
-
-            const title = 'Agent Analysis - ' + new Date().toLocaleString();
-            const saved = storeAnalysisResult('intelligence', title, allFindings);
-            window._lastIntelAnalysisId = saved.id;
-            showFloatingNotification('Agent analysis complete. ' + allFindings.length + ' findings across 4 agents.', 'success');
-        } else {
-            showFloatingNotification('Analysis complete. No significant findings.', 'info');
-        }
-    }
-}
-
 let agentSystem = null;
 
 function initAgentSystem() {
     if (!agentSystem) {
-        agentSystem = new AgentSystem();
+        agentSystem = new window.AgentSystem();
     }
     return agentSystem;
 }
@@ -784,11 +78,11 @@ function showModal({ title, message, html, type = 'info', buttons = [] }) {
         error: 'fa-times-circle',
         question: 'fa-question-circle'
     };
-    
+
     modalIcon.className = `clean-modal-icon ${type}`;
     modalIcon.innerHTML = `<i class="fas ${icons[type] || 'fa-info-circle'}"></i>`;
     modalTitle.textContent = title;
-    
+
     if (html) {
         modalBody.innerHTML = html;
         modalBody.classList.add('html-content');
@@ -796,7 +90,7 @@ function showModal({ title, message, html, type = 'info', buttons = [] }) {
         modalBody.textContent = message || '';
         modalBody.classList.remove('html-content');
     }
-    
+
     modalActions.innerHTML = '';
     buttons.forEach(btn => {
         const button = document.createElement('button');
@@ -809,7 +103,7 @@ function showModal({ title, message, html, type = 'info', buttons = [] }) {
         };
         modalActions.appendChild(button);
     });
-    
+
     cleanModal.classList.add('active');
     if (html) {
         cleanModal.classList.add('wide');
@@ -849,7 +143,7 @@ const STORAGE_WARNING_THRESHOLD = 4 * 1024 * 1024;
 var PazatorCompress = {
     _prefix: 'PZC1:',
 
-    compress: function(text) {
+    compress: function (text) {
         if (!text || text.length < 200) return text;
         try {
             var encoded = btoa(unescape(encodeURIComponent(text)));
@@ -862,7 +156,7 @@ var PazatorCompress = {
         }
     },
 
-    decompress: function(text) {
+    decompress: function (text) {
         if (!text || typeof text !== 'string') return text;
         if (text.substring(0, 5) === this._prefix) {
             try {
@@ -874,7 +168,7 @@ var PazatorCompress = {
         return text;
     },
 
-    compressObject: function(obj) {
+    compressObject: function (obj) {
         if (!obj || typeof obj !== 'object') return obj;
         var result = Array.isArray(obj) ? [] : {};
         for (var key in obj) {
@@ -890,7 +184,7 @@ var PazatorCompress = {
         return result;
     },
 
-    decompressObject: function(obj) {
+    decompressObject: function (obj) {
         if (!obj || typeof obj !== 'object') return obj;
         var result = Array.isArray(obj) ? [] : {};
         for (var key in obj) {
@@ -1020,7 +314,7 @@ const ChatParser = {
         for (const line of lines) {
             let match = line.match(datePattern);
             if (!match) match = line.match(altPattern);
-            
+
             if (match) {
                 const [, date, time, sender, message] = match;
                 participantSet.add(sender.trim());
@@ -1132,13 +426,13 @@ const ChatParser = {
         for (const msg of messages) {
             const matches = msg.message.match(urlPattern);
             if (matches) matches.forEach(m => entities.urls.add(m));
-            
+
             const emails = msg.message.match(emailPattern);
             if (emails) emails.forEach(e => entities.emails.add(e));
-            
+
             const phones = msg.message.match(phonePattern);
             if (phones) phones.forEach(p => entities.phones.add(p));
-            
+
             const mentions = msg.message.match(mentionPattern);
             if (mentions) mentions.forEach(m => entities.mentions.add(m));
         }
@@ -1214,11 +508,11 @@ const ChatStorageManager = {
             var compressed = PazatorCompress.compressObject(data);
             const serialized = JSON.stringify(compressed);
             const size = new Blob([serialized]).size;
-            
+
             if (size > STORAGE_WARNING_THRESHOLD) {
                 console.warn(`Chat storage approaching limit: ${(size / 1024 / 1024).toFixed(2)}MB`);
             }
-            
+
             localStorage.setItem(key, serialized);
         } catch (e) {
             if (e.name === 'QuotaExceededError') {
@@ -1331,10 +625,10 @@ const ChatStorageManager = {
     getStorageStats() {
         const history = this.getChatHistory();
         const aiContext = this.getAIContext();
-        
+
         const historySize = new Blob([JSON.stringify(history)]).size;
         const aiContextSize = new Blob([JSON.stringify(aiContext)]).size;
-        
+
         return {
             totalChats: history.length,
             totalAIContexts: aiContext.length,
@@ -1385,7 +679,7 @@ const ChatAnalysisService = {
                 { role: "system", content: context },
                 { role: "user", content: "Analyze this chat for suspicious activity and provide your findings in JSON format." }
             ]),
-            new Promise((_, reject) => 
+            new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Analysis timeout')), this.ANALYSIS_TIMEOUT)
             )
         ]);
@@ -1473,7 +767,7 @@ Provide your analysis in this EXACT JSON format:
         for (let i = 0; i < chats.length; i += concurrency) {
             const batch = chats.slice(i, i + concurrency);
             const batchResults = await Promise.all(
-                batch.map((chat, idx) => 
+                batch.map((chat, idx) =>
                     this.analyze(chat.content, chat.source, options)
                         .then(result => {
                             const chatResult = {
@@ -1580,11 +874,11 @@ var PazatorVectorSearch = {
     _index: null,
     _docCount: 0,
 
-    _tokenize: function(text) {
+    _tokenize: function (text) {
         return (text || '').toLowerCase().split(/[^a-zA-Z0-9\u0600-\u06FF\s]+/).filter(Boolean);
     },
 
-    _computeTF: function(tokens) {
+    _computeTF: function (tokens) {
         var tf = {};
         for (var i = 0; i < tokens.length; i++) {
             tf[tokens[i]] = (tf[tokens[i]] || 0) + 1;
@@ -1597,7 +891,7 @@ var PazatorVectorSearch = {
         return tf;
     },
 
-    buildIndex: function(documents) {
+    buildIndex: function (documents) {
         this._index = {};
         this._docCount = documents.length;
         var df = {};
@@ -1631,7 +925,7 @@ var PazatorVectorSearch = {
         }
     },
 
-    search: function(query, topK) {
+    search: function (query, topK) {
         if (!this._index || this._docCount === 0) return [];
         topK = topK || 10;
         var queryTokens = this._tokenize(query);
@@ -1652,11 +946,11 @@ var PazatorVectorSearch = {
             var score = (magA > 0 && magB > 0) ? dot / (magA * magB) : 0;
             scores.push({ index: di, score: score });
         }
-        scores.sort(function(a, b) { return b.score - a.score; });
-        return scores.slice(0, topK).filter(function(s) { return s.score > 0.05; });
+        scores.sort(function (a, b) { return b.score - a.score; });
+        return scores.slice(0, topK).filter(function (s) { return s.score > 0.05; });
     },
 
-    findSimilar: function(docIndex, topK) {
+    findSimilar: function (docIndex, topK) {
         if (!this._index || !this._index[docIndex]) return [];
         topK = topK || 5;
         var queryVector = this._index[docIndex];
@@ -1677,8 +971,8 @@ var PazatorVectorSearch = {
             var score = (magA > 0 && magB > 0) ? dot / (magA * magB) : 0;
             scores.push({ index: di, score: score });
         }
-        scores.sort(function(a, b) { return b.score - a.score; });
-        return scores.slice(0, topK).filter(function(s) { return s.score > 0.1; });
+        scores.sort(function (a, b) { return b.score - a.score; });
+        return scores.slice(0, topK).filter(function (s) { return s.score > 0.1; });
     }
 };
 
@@ -1686,12 +980,12 @@ var PazatorWorker = {
     _worker: null,
     _callbacks: {},
     _idCounter: 0,
-    _ensureWorker: function() {
+    _ensureWorker: function () {
         if (this._worker) return;
         try {
             this._worker = new Worker('pazator_worker.js');
             var self = this;
-            this._worker.onmessage = function(e) {
+            this._worker.onmessage = function (e) {
                 var msg = e.data;
                 var cb = self._callbacks[msg.id];
                 if (cb) {
@@ -1703,7 +997,7 @@ var PazatorWorker = {
                     }
                 }
             };
-            this._worker.onerror = function(e) {
+            this._worker.onerror = function (e) {
                 console.error('Worker error:', e);
             };
         } catch (e) {
@@ -1712,8 +1006,8 @@ var PazatorWorker = {
         }
     },
 
-    _post: function(msg) {
-        return new Promise(function(resolve, reject) {
+    _post: function (msg) {
+        return new Promise(function (resolve, reject) {
             if (!PazatorWorker._worker) {
                 reject(new Error('Worker not available'));
                 return;
@@ -1725,37 +1019,37 @@ var PazatorWorker = {
         });
     },
 
-    parseCSV: function(text) {
+    parseCSV: function (text) {
         this._ensureWorker();
         if (!this._worker) return Promise.resolve(this._fallbackParseCSV(text));
         return this._post({ type: 'parse_csv', text: text });
     },
 
-    calculateCredits: function(humans) {
+    calculateCredits: function (humans) {
         this._ensureWorker();
         if (!this._worker) return Promise.resolve(this._fallbackCalculateCredits(humans));
         return this._post({ type: 'calculate_credits', humans: humans });
     },
 
-    findConnections: function(humans, personName) {
+    findConnections: function (humans, personName) {
         this._ensureWorker();
         if (!this._worker) return Promise.resolve(this._fallbackFindConnections(humans, personName));
         return this._post({ type: 'find_connections', humans: humans, personName: personName });
     },
 
-    deduplicateChats: function(chats) {
+    deduplicateChats: function (chats) {
         this._ensureWorker();
         if (!this._worker) return Promise.resolve(this._fallbackDeduplicateChats(chats));
         return this._post({ type: 'deduplicate_chats', chats: chats });
     },
 
-    search: function(data, query, fields) {
+    search: function (data, query, fields) {
         this._ensureWorker();
         if (!this._worker) return Promise.resolve(this._fallbackSearch(data, query, fields));
         return this._post({ type: 'search', data: data, query: query, fields: fields });
     },
 
-    terminate: function() {
+    terminate: function () {
         if (this._worker) {
             this._worker.terminate();
             this._worker = null;
@@ -1763,13 +1057,13 @@ var PazatorWorker = {
         this._callbacks = {};
     },
 
-    _fallbackParseCSV: function(text) {
-        var lines = text.split('\n').filter(function(l) { return l.trim(); });
+    _fallbackParseCSV: function (text) {
+        var lines = text.split('\n').filter(function (l) { return l.trim(); });
         if (!lines.length) return { headers: [], rows: [] };
-        var headers = lines[0].split(',').map(function(h) { return h.trim(); });
+        var headers = lines[0].split(',').map(function (h) { return h.trim(); });
         var rows = [];
         for (var i = 1; i < lines.length; i++) {
-            var vals = lines[i].split(',').map(function(v) { return v.trim(); });
+            var vals = lines[i].split(',').map(function (v) { return v.trim(); });
             if (vals.length === headers.length) {
                 var obj = {};
                 for (var j = 0; j < headers.length; j++) {
@@ -1781,15 +1075,15 @@ var PazatorWorker = {
         return { headers: headers, rows: rows, total: lines.length - 1 };
     },
 
-    _fallbackCalculateCredits: function(humans) {
-        return (humans || []).map(function(h) {
+    _fallbackCalculateCredits: function (humans) {
+        return (humans || []).map(function (h) {
             return { id: h.id, credit: typeof calculateCreditScore === 'function' ? calculateCreditScore(h) : 185 };
         });
     },
 
-    _fallbackFindConnections: function(humans, personName) {
+    _fallbackFindConnections: function (humans, personName) {
         var name = (personName || '').toLowerCase();
-        var people = name ? humans.filter(function(h) { return h.name && h.name.toLowerCase().includes(name); }) : humans;
+        var people = name ? humans.filter(function (h) { return h.name && h.name.toLowerCase().includes(name); }) : humans;
         var connections = [];
         var limit = Math.min(people.length, 20);
         for (var i = 0; i < limit; i++) {
@@ -1799,17 +1093,17 @@ var PazatorWorker = {
                 if (a.workplace && b.workplace && a.workplace.toLowerCase() === b.workplace.toLowerCase()) reasons.push('same workplace: ' + a.workplace);
                 if (a.nationality && b.nationality && a.nationality.toLowerCase() === b.nationality.toLowerCase()) reasons.push('same nationality: ' + a.nationality);
                 if (a.tags && b.tags) {
-                    var shared = a.tags.filter(function(t) { return b.tags.indexOf(t) !== -1; });
+                    var shared = a.tags.filter(function (t) { return b.tags.indexOf(t) !== -1; });
                     if (shared.length > 0) reasons.push('shared tags: ' + shared.join(', '));
                 }
                 if (reasons.length > 0) connections.push({ person_a: a.name, person_b: b.name, reasons: reasons, strength: reasons.length });
             }
         }
-        connections.sort(function(x, y) { return y.strength - x.strength; });
+        connections.sort(function (x, y) { return y.strength - x.strength; });
         return { count: connections.length, connections: connections.slice(0, 20) };
     },
 
-    _fallbackDeduplicateChats: function(chats) {
+    _fallbackDeduplicateChats: function (chats) {
         var seen = new Set();
         var unique = [];
         var removed = 0;
@@ -1821,7 +1115,7 @@ var PazatorWorker = {
         return { unique: unique, removed: removed };
     },
 
-    _fallbackSearch: function(data, query, fields) {
+    _fallbackSearch: function (data, query, fields) {
         var q = (query || '').toLowerCase();
         if (!q) return data.slice();
         var results = [];
@@ -1862,7 +1156,7 @@ function setAiSendLoading(isLoading) {
     const icon = aiSendBtn.querySelector('i, .loader');
     const statusIndicator = document.querySelector('.status-indicator');
     const statusText = document.querySelector('.status-text');
-    
+
     aiSendBtn.classList.toggle('loading', !!isLoading);
     if (isLoading) {
         if (icon && icon.tagName === 'I') {
@@ -1874,7 +1168,7 @@ function setAiSendLoading(isLoading) {
             loader.outerHTML = '<i class="fas fa-paper-plane"></i>';
         }
     }
-    
+
     if (statusIndicator) {
         if (isLoading) {
             statusIndicator.style.background = '#ff9800';
@@ -1886,7 +1180,7 @@ function setAiSendLoading(isLoading) {
             statusIndicator.classList.remove('processing');
         }
     }
-    
+
     if (statusText) {
         statusText.textContent = isLoading ? 'Processing...' : 'Context ready';
     }
@@ -1933,7 +1227,6 @@ const intelClearResults = document.getElementById('intelClearResults');
 const intelHeurBtn = document.getElementById('intelHeurBtn');
 const heurModal = document.getElementById('heurModal');
 
-const chatControlBtn = document.getElementById('chatControlBtn');
 const analyzeAllChatsBtn = document.getElementById('analyzeAllChatsBtn');
 const refreshChatListBtn = document.getElementById('refreshChatListBtn');
 const exportChatReportBtn = document.getElementById('exportChatReportBtn');
@@ -2223,7 +1516,7 @@ function switchTab(tabId) {
     } else if (tabId === 'graphview') {
         if (window.pazatorGraphView) {
             if (!window.pazatorGraphView._initialized) {
-                setTimeout(function() {
+                setTimeout(function () {
                     window.pazatorGraphView.init();
                     window.pazatorGraphView._initialized = true;
                 }, 50);
@@ -2267,6 +1560,22 @@ function switchTab(tabId) {
                 window.pazatorAPI._initialized = true;
             }
             window.pazatorAPI.renderAPIConsole('apiTabContent');
+        }
+    } else if (tabId === 'workflow') {
+        if (window.pazatorWorkflow) {
+            if (!window.pazatorWorkflow._initialized) {
+                window.pazatorWorkflow.init();
+                window.pazatorWorkflow._initialized = true;
+            }
+            window.pazatorWorkflow.renderWorkflowEngine('workflowTabContent');
+        }
+    } else if (tabId === 'reports') {
+        if (window.pazatorReports) {
+            if (!window.pazatorReports._initialized) {
+                window.pazatorReports.init();
+                window.pazatorReports._initialized = true;
+            }
+            window.pazatorReports.renderReportBuilder('reportsTabContent');
         }
     }
 
@@ -2342,10 +1651,10 @@ function saveData(immediate = false) {
 
         var saveFn = window.pazatorDB
             ? window.pazatorDB.setItem.bind(window.pazatorDB)
-            : function(k, v) { try { localStorage.setItem(k, v); } catch(e) {} };
+            : function (k, v) { try { localStorage.setItem(k, v); } catch (e) { } };
 
-        saveFn('pazatorData_backup', localStorage.getItem('pazatorData')).catch(function() {});
-        saveFn('pazatorData', JSON.stringify(dataToSave)).catch(function(e) {
+        saveFn('pazatorData_backup', localStorage.getItem('pazatorData')).catch(function () { });
+        saveFn('pazatorData', JSON.stringify(dataToSave)).catch(function (e) {
             console.error('pazatorDB save failed', e);
         });
 
@@ -2355,7 +1664,7 @@ function saveData(immediate = false) {
             pazatorStore.getData().tags = tags;
             pazatorStore.getData().cases = cases;
             pazatorStore.rebuildIndexes();
-            pazatorStore.syncToEngine().catch(function(err) {
+            pazatorStore.syncToEngine().catch(function (err) {
                 console.warn('Background engine sync failed:', err);
             });
         }
@@ -2545,9 +1854,9 @@ function loadData() {
 
         var storedData = localStorage.getItem('pazatorData');
         if (window.pazatorDB) {
-            window.pazatorDB.getItem('pazatorData').then(function(dbData) {
+            window.pazatorDB.getItem('pazatorData').then(function (dbData) {
                 if (dbData) storedData = dbData;
-            }).catch(function() {});
+            }).catch(function () { });
         }
 
         if (storedData) {
@@ -2618,7 +1927,7 @@ function loadData() {
     updatePersistenceIndicator('online', `Loaded (${totalItems} items)`);
     if (loadIndicator) {
         loadIndicator.style.display = 'none';
-        setTimeout(function() { loadIndicator.style.display = 'none'; }, 500);
+        setTimeout(function () { loadIndicator.style.display = 'none'; }, 500);
     }
     showFloatingNotification(`Loaded ${totalItems} items`, 'success');
 }
@@ -2722,7 +2031,7 @@ function renderVirtualTable(allData) {
         var credit = item.credit !== undefined ? item.credit : 185;
         var creditClass = credit >= 250 ? 'high' : credit >= 125 ? 'medium' : 'low';
         var tags = (item.tags || []).slice(0, 5);
-        var tagsHtml = tags.length > 0 ? tags.map(function(t) { return '<span class="vt-tag">' + escapeHtml(t) + '</span>'; }).join('') : '<span style="color:#666;font-size:0.75rem;">—</span>';
+        var tagsHtml = tags.length > 0 ? tags.map(function (t) { return '<span class="vt-tag">' + escapeHtml(t) + '</span>'; }).join('') : '<span style="color:#666;font-size:0.75rem;">—</span>';
         var isSelected = _vtSelected.has(item.id);
         var chatCount = (item.chats || []).length;
         var caseCount = (item.cases || []).length;
@@ -2761,7 +2070,7 @@ function renderVirtualTable(allData) {
     }
 
     // Build header
-    var headerEl = container.querySelector('.virtual-table-header') || (function() {
+    var headerEl = container.querySelector('.virtual-table-header') || (function () {
         var h = document.createElement('div');
         h.className = 'virtual-table-header';
         container.insertBefore(h, body);
@@ -2804,15 +2113,15 @@ function renderVirtualTable(allData) {
                 '<span>Page ' + page + ' of ' + totalPages + ' (' + sortedData.length + ' total)</span>' +
                 '<button class="vt-page-btn" data-page="next" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#ccc;padding:4px 14px;border-radius:4px;cursor:pointer;' + (page >= totalPages ? 'opacity:0.4;cursor:default;' : '') + '">Next ›</button>' +
                 '</div>';
-            body.querySelectorAll('.vt-row').forEach(function(row) {
-                row.addEventListener('click', function(e) {
+            body.querySelectorAll('.vt-row').forEach(function (row) {
+                row.addEventListener('click', function (e) {
                     var idx = Array.prototype.indexOf.call(body.children, row) + start;
                     var item = sortedData[idx];
                     if (item) handleItemClick(item, idx, e);
                 });
             });
-            pagination.querySelectorAll('.vt-page-btn').forEach(function(btn) {
-                btn.addEventListener('click', function() {
+            pagination.querySelectorAll('.vt-page-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
                     if (btn.dataset.page === 'prev' && page > 1) { page--; renderPage(); }
                     if (btn.dataset.page === 'next' && page < totalPages) { page++; renderPage(); }
                 });
@@ -2825,7 +2134,7 @@ function renderVirtualTable(allData) {
     var fitTimer = setTimeout(fitBodyHeight, 100);
 
     if (webContainer) {
-        body._vtCleanup = function() {
+        body._vtCleanup = function () {
             clearTimeout(fitTimer);
             body.style.height = '';
             body.style.maxHeight = '';
@@ -2848,7 +2157,7 @@ function toggleSort(field) {
 
 function sortData(data, field, dir) {
     var sorted = [].concat(data);
-    sorted.sort(function(a, b) {
+    sorted.sort(function (a, b) {
         var va = a[field], vb = b[field];
         if (field === 'credit') {
             va = va !== undefined ? va : 185;
@@ -2880,7 +2189,7 @@ function toggleBulkSelect(id) {
 function toggleSelectAll(checked) {
     _vtSelected.clear();
     if (checked) {
-        _vtData.forEach(function(item) { _vtSelected.add(item.id); });
+        _vtData.forEach(function (item) { _vtSelected.add(item.id); });
     }
     renderWebNodes();
 }
@@ -2906,8 +2215,8 @@ function renderBulkBar(container) {
 async function bulkSetCredit(val) {
     const confirmed = await showConfirm(`Set credit to ${val} for ${_vtSelected.size} selected entries?`, 'Bulk Update', 'question');
     if (!confirmed) return;
-    _vtSelected.forEach(function(id) {
-        var human = pazatorData.humans.find(function(h) { return h.id === id; });
+    _vtSelected.forEach(function (id) {
+        var human = pazatorData.humans.find(function (h) { return h.id === id; });
         if (human) { human.credit = val; }
     });
     markDataChanged();
@@ -2917,8 +2226,8 @@ async function bulkSetCredit(val) {
 async function bulkSetThreat(level) {
     const confirmed = await showConfirm(`Set threat to "${level}" for ${_vtSelected.size} selected entries?`, 'Bulk Update', 'question');
     if (!confirmed) return;
-    _vtSelected.forEach(function(id) {
-        var human = pazatorData.humans.find(function(h) { return h.id === id; });
+    _vtSelected.forEach(function (id) {
+        var human = pazatorData.humans.find(function (h) { return h.id === id; });
         if (human) { human.threatLevel = level; }
     });
     markDataChanged();
@@ -2929,10 +2238,10 @@ async function bulkDeleteSelected() {
     const count = _vtSelected.size;
     const confirmed = await showConfirm(`Delete ${count} selected entr${count === 1 ? 'y' : 'ies'}? This cannot be undone.`, 'Bulk Delete', 'warning');
     if (!confirmed) return;
-    _vtSelected.forEach(function(id) {
-        var idx = pazatorData.humans.findIndex(function(h) { return h.id === id; });
+    _vtSelected.forEach(function (id) {
+        var idx = pazatorData.humans.findIndex(function (h) { return h.id === id; });
         if (idx !== -1) { pazatorData.humans.splice(idx, 1); return; }
-        idx = pazatorData.others.findIndex(function(o) { return o.id === id; });
+        idx = pazatorData.others.findIndex(function (o) { return o.id === id; });
         if (idx !== -1) { pazatorData.others.splice(idx, 1); }
     });
     _vtSelected.clear();
@@ -2955,21 +2264,21 @@ function bulkAddTag() {
     overlay.className = 'bulk-tag-popup-overlay';
     overlay.innerHTML =
         '<div class="bulk-tag-popup">' +
-            '<div class="bulk-popup-header">' +
-                '<h3><i class="fas fa-tag"></i> Add Tags to ' + _vtSelected.size + ' Selected</h3>' +
-                '<button class="bulk-popup-close">&times;</button>' +
-            '</div>' +
-            '<div class="bulk-popup-body">' +
-                '<div class="bulk-tag-input-row">' +
-                    '<input type="text" class="bulk-tag-input" placeholder="Type a tag name and press Enter..." autofocus>' +
-                    '<button class="bulk-tag-add-btn">Add</button>' +
-                '</div>' +
-                '<div class="bulk-tag-suggestions-label">Existing tags</div>' +
-                '<div class="bulk-tag-list"></div>' +
-            '</div>' +
-            '<div class="bulk-popup-footer">' +
-                '<span class="bulk-popup-hint">Click a tag or type a new one to add to all selected entries</span>' +
-            '</div>' +
+        '<div class="bulk-popup-header">' +
+        '<h3><i class="fas fa-tag"></i> Add Tags to ' + _vtSelected.size + ' Selected</h3>' +
+        '<button class="bulk-popup-close">&times;</button>' +
+        '</div>' +
+        '<div class="bulk-popup-body">' +
+        '<div class="bulk-tag-input-row">' +
+        '<input type="text" class="bulk-tag-input" placeholder="Type a tag name and press Enter..." autofocus>' +
+        '<button class="bulk-tag-add-btn">Add</button>' +
+        '</div>' +
+        '<div class="bulk-tag-suggestions-label">Existing tags</div>' +
+        '<div class="bulk-tag-list"></div>' +
+        '</div>' +
+        '<div class="bulk-popup-footer">' +
+        '<span class="bulk-popup-hint">Click a tag or type a new one to add to all selected entries</span>' +
+        '</div>' +
         '</div>';
     document.body.appendChild(overlay);
 
@@ -3044,7 +2353,7 @@ function bulkChangeThreat() {
         title: 'Change Threat Level',
         html: html,
         type: 'question',
-        buttons: [{ text: 'Cancel', primary: false, onClick: function () {} }]
+        buttons: [{ text: 'Cancel', primary: false, onClick: function () { } }]
     });
 
     // Wire up threat buttons after modal renders
@@ -3081,16 +2390,16 @@ function bulkAddToCase() {
     overlay.className = 'bulk-case-popup-overlay';
     overlay.innerHTML =
         '<div class="bulk-case-popup">' +
-            '<div class="bulk-popup-header">' +
-                '<h3><i class="fas fa-folder"></i> Add ' + _vtSelected.size + ' Selected to Case</h3>' +
-                '<button class="bulk-popup-close">&times;</button>' +
-            '</div>' +
-            '<div class="bulk-popup-body">' +
-                '<div class="bulk-case-list"></div>' +
-            '</div>' +
-            '<div class="bulk-popup-footer">' +
-                '<span class="bulk-popup-hint">Select a case to add all selected entries</span>' +
-            '</div>' +
+        '<div class="bulk-popup-header">' +
+        '<h3><i class="fas fa-folder"></i> Add ' + _vtSelected.size + ' Selected to Case</h3>' +
+        '<button class="bulk-popup-close">&times;</button>' +
+        '</div>' +
+        '<div class="bulk-popup-body">' +
+        '<div class="bulk-case-list"></div>' +
+        '</div>' +
+        '<div class="bulk-popup-footer">' +
+        '<span class="bulk-popup-hint">Select a case to add all selected entries</span>' +
+        '</div>' +
         '</div>';
     document.body.appendChild(overlay);
 
@@ -3237,15 +2546,15 @@ function inlineEditCredit(el, id) {
     input.type = 'number';
     input.className = 'vt-inline-edit';
     input.value = current;
-    input.addEventListener('blur', function() {
+    input.addEventListener('blur', function () {
         var val = parseInt(input.value);
         if (!isNaN(val) && val >= 0) {
-            var human = pazatorData.humans.find(function(h) { return h.id === id; });
+            var human = pazatorData.humans.find(function (h) { return h.id === id; });
             if (human) { human.credit = val; _pendingChanges(); }
         }
         renderWebNodes();
     });
-    input.addEventListener('keydown', function(e) {
+    input.addEventListener('keydown', function (e) {
         if (e.key === 'Enter') input.blur();
         if (e.key === 'Escape') renderWebNodes();
     });
@@ -3260,19 +2569,19 @@ function inlineEditThreat(el, id) {
     var select = document.createElement('select');
     select.className = 'vt-inline-edit';
     select.style.width = 'auto';
-    options.forEach(function(opt) {
+    options.forEach(function (opt) {
         var o = document.createElement('option');
         o.value = opt;
         o.textContent = opt.charAt(0).toUpperCase() + opt.slice(1);
         select.appendChild(o);
     });
-    select.addEventListener('change', function() {
-        var human = pazatorData.humans.find(function(h) { return h.id === id; });
+    select.addEventListener('change', function () {
+        var human = pazatorData.humans.find(function (h) { return h.id === id; });
         if (human) { human.threatLevel = select.value; _pendingChanges(); }
         renderWebNodes();
     });
-    select.addEventListener('blur', function() {
-        setTimeout(function() {
+    select.addEventListener('blur', function () {
+        setTimeout(function () {
             if (!select.matches(':focus')) renderWebNodes();
         }, 200);
     });
@@ -3288,24 +2597,24 @@ function renderFilterChips() {
     var searchTerm = document.getElementById('searchInput');
     var filterType = document.getElementById('filterType');
     if (searchTerm && searchTerm.value) {
-        chips.push({ label: 'Search: "' + searchTerm.value + '"', onRemove: function() { searchTerm.value = ''; renderWebNodes(); } });
+        chips.push({ label: 'Search: "' + searchTerm.value + '"', onRemove: function () { searchTerm.value = ''; renderWebNodes(); } });
     }
     if (filterType && filterType.value !== 'all') {
-        chips.push({ label: 'Type: ' + filterType.value, onRemove: function() { filterType.value = 'all'; renderWebNodes(); } });
+        chips.push({ label: 'Type: ' + filterType.value, onRemove: function () { filterType.value = 'all'; renderWebNodes(); } });
     }
     if (_vtSortField) {
-        chips.push({ label: 'Sort: ' + _vtSortField + ' (' + _vtSortDir + ')', onRemove: function() { _vtSortField = null; renderWebNodes(); } });
+        chips.push({ label: 'Sort: ' + _vtSortField + ' (' + _vtSortDir + ')', onRemove: function () { _vtSortField = null; renderWebNodes(); } });
     }
     if (chips.length === 0) {
         container.style.display = 'none';
         return;
     }
     container.style.display = 'flex';
-    container.innerHTML = chips.map(function(chip, i) {
+    container.innerHTML = chips.map(function (chip, i) {
         return '<span class="filter-chip"><span>' + chip.label + '</span><span class="chip-remove" data-idx="' + i + '">&times;</span></span>';
     }).join('');
-    container.querySelectorAll('.chip-remove').forEach(function(btn) {
-        btn.addEventListener('click', function() {
+    container.querySelectorAll('.chip-remove').forEach(function (btn) {
+        btn.addEventListener('click', function () {
             var idx = parseInt(this.dataset.idx);
             if (chips[idx]) chips[idx].onRemove();
         });
@@ -3504,11 +2813,11 @@ function showDetailView(data, type) {
     } else {
         const hideAll = () => {
             ['detailGenderContainer', 'detailBirthDateContainer', 'detailAgeContainer', 'detailMaritalStatusContainer',
-             'detailOccupationContainer', 'detailCreditContainer', 'detailClassContainer', 'detailFriendsContainer',
-             'detailFamilyContainer', 'detailNationalityContainer', 'detailCountryOfOriginContainer',
-             'detailImmigrationStatusContainer', 'detailLanguagesContainer', 'detailEthnicityContainer',
-             'detailReligionContainer', 'detailPoliticalViewsContainer', 'detailEducationContainer',
-             'detailIncomeLevelContainer'].forEach(hideContainer);
+                'detailOccupationContainer', 'detailCreditContainer', 'detailClassContainer', 'detailFriendsContainer',
+                'detailFamilyContainer', 'detailNationalityContainer', 'detailCountryOfOriginContainer',
+                'detailImmigrationStatusContainer', 'detailLanguagesContainer', 'detailEthnicityContainer',
+                'detailReligionContainer', 'detailPoliticalViewsContainer', 'detailEducationContainer',
+                'detailIncomeLevelContainer'].forEach(hideContainer);
         };
         hideAll();
         document.getElementById('detailThreatLevel').textContent = 'N/A';
@@ -3552,14 +2861,14 @@ function buildEntityTimeline(entityId, entityType) {
 
     function entityName(id, type) {
         if (type === 'human') return getHumanNameById(id);
-        var e = pazatorData.others.find(function(o) { return o.id === id; });
+        var e = pazatorData.others.find(function (o) { return o.id === id; });
         return e ? e.name : 'Unknown';
     }
 
     // 1. Relationships
     if (window.pazatorRelationships) {
         var rels = window.pazatorRelationships.getForEntity(entityId, entityType);
-        rels.forEach(function(r) {
+        rels.forEach(function (r) {
             var ts = new Date(r.createdAt).getTime();
             if (isNaN(ts)) ts = now;
             var isSource = r.sourceId === entityId;
@@ -3578,8 +2887,8 @@ function buildEntityTimeline(entityId, entityType) {
     }
 
     // 2. Cases
-    var entityCases = cases.filter(function(c) { return c.entities && c.entities.indexOf(entityId) >= 0; });
-    entityCases.forEach(function(c) {
+    var entityCases = cases.filter(function (c) { return c.entities && c.entities.indexOf(entityId) >= 0; });
+    entityCases.forEach(function (c) {
         events.push({
             type: 'case', timestamp: c.createdAt || 0,
             title: 'Case: ' + c.title,
@@ -3588,7 +2897,7 @@ function buildEntityTimeline(entityId, entityType) {
             sourceData: c, sourceType: 'case'
         });
         if (c.timeline) {
-            c.timeline.forEach(function(t) {
+            c.timeline.forEach(function (t) {
                 if (t.type === 'entity-added' || t.type === 'entity-removed') {
                     events.push({
                         type: 'case_timeline', timestamp: t.timestamp,
@@ -3616,10 +2925,10 @@ function buildEntityTimeline(entityId, entityType) {
 
     // 3. Chats
     if (entityType === 'human') {
-        var human = pazatorData.humans.find(function(h) { return h.id === entityId; });
+        var human = pazatorData.humans.find(function (h) { return h.id === entityId; });
         if (human && human.chats && human.chats.length > 0) {
-            human.chats.forEach(function(chatRef) {
-                var chat = (pazatorData.chats || []).find(function(c) { return c.id === chatRef || c.timestamp === chatRef; });
+            human.chats.forEach(function (chatRef) {
+                var chat = (pazatorData.chats || []).find(function (c) { return c.id === chatRef || c.timestamp === chatRef; });
                 if (chat) {
                     var ts = typeof chat.timestamp === 'number' ? chat.timestamp : new Date(chat.timestamp).getTime();
                     if (isNaN(ts)) ts = 0;
@@ -3637,7 +2946,7 @@ function buildEntityTimeline(entityId, entityType) {
 
     // 4. Tracker
     if (entityType === 'human') {
-        var human = pazatorData.humans.find(function(h) { return h.id === entityId; });
+        var human = pazatorData.humans.find(function (h) { return h.id === entityId; });
         if (human && human.trackerAlias && human.trackerLinkedAt) {
             var ts = typeof human.trackerLinkedAt === 'number' ? human.trackerLinkedAt : new Date(human.trackerLinkedAt).getTime();
             if (isNaN(ts)) ts = 0;
@@ -3654,7 +2963,7 @@ function buildEntityTimeline(entityId, entityType) {
     // 5. AI Analysis
     if (analysesStore && analysesStore.length > 0) {
         var en = entityName(entityId, entityType);
-        analysesStore.forEach(function(a) {
+        analysesStore.forEach(function (a) {
             var found = a.title && (a.title.indexOf(entityId) >= 0 || (en && a.title.indexOf(en) >= 0));
             if (!found && a.findings) {
                 for (var i = 0; i < a.findings.length; i++) {
@@ -3677,7 +2986,7 @@ function buildEntityTimeline(entityId, entityType) {
 
     // 6. Notes
     if (entityType === 'human') {
-        var human = pazatorData.humans.find(function(h) { return h.id === entityId; });
+        var human = pazatorData.humans.find(function (h) { return h.id === entityId; });
         if (human && human.extraNotes) {
             events.push({
                 type: 'note', timestamp: 0,
@@ -3688,7 +2997,7 @@ function buildEntityTimeline(entityId, entityType) {
             });
         }
     } else {
-        var other = pazatorData.others.find(function(o) { return o.id === entityId; });
+        var other = pazatorData.others.find(function (o) { return o.id === entityId; });
         if (other && other.note) {
             events.push({
                 type: 'note', timestamp: 0,
@@ -3700,7 +3009,7 @@ function buildEntityTimeline(entityId, entityType) {
         }
     }
 
-    events.sort(function(a, b) { return b.timestamp - a.timestamp; });
+    events.sort(function (a, b) { return b.timestamp - a.timestamp; });
     return events;
 }
 
@@ -3746,8 +3055,8 @@ function renderEntityTimeline(containerId, events) {
     container._timelineEvents = events;
     var els = container.querySelectorAll('.timeline-event');
     for (var i = 0; i < els.length; i++) {
-        (function(evt) {
-            els[i].addEventListener('click', function() {
+        (function (evt) {
+            els[i].addEventListener('click', function () {
                 handleTimelineEventClick(evt);
             });
         })(events[i]);
@@ -3761,7 +3070,7 @@ function handleTimelineEventClick(event) {
         case 'case_timeline':
             var caseId = event.sourceType === 'case' ? event.sourceData.id : event.sourceData.case.id;
             switchTab('cases');
-            setTimeout(function() { selectCase(caseId); }, 100);
+            setTimeout(function () { selectCase(caseId); }, 100);
             break;
         case 'chat':
             switchTab('chat-control');
@@ -3778,13 +3087,13 @@ function initCrossSearch() {
     if (!input) return;
 
     var debounceTimer;
-    input.addEventListener('input', function() {
+    input.addEventListener('input', function () {
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(function() { performCrossSearch(); }, 300);
+        debounceTimer = setTimeout(function () { performCrossSearch(); }, 300);
     });
 
     if (clear) {
-        clear.addEventListener('click', function() {
+        clear.addEventListener('click', function () {
             input.value = '';
             results.style.display = 'none';
             if (count) count.style.display = 'none';
@@ -3792,7 +3101,7 @@ function initCrossSearch() {
         });
     }
 
-    input.addEventListener('keydown', function(e) {
+    input.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') { clear.click(); }
     });
 }
@@ -3817,10 +3126,10 @@ function performCrossSearch() {
     var matches = [];
 
     // Search humans
-    pazatorData.humans.forEach(function(h) {
+    pazatorData.humans.forEach(function (h) {
         if ((h.name && h.name.toLowerCase().includes(query)) ||
             (h.extraNotes && h.extraNotes.toLowerCase().includes(query)) ||
-            (h.tags && h.tags.some(function(t) { return t.toLowerCase().includes(query); })) ||
+            (h.tags && h.tags.some(function (t) { return t.toLowerCase().includes(query); })) ||
             (h.nationality && h.nationality.toLowerCase().includes(query)) ||
             (h.workplace && h.workplace.toLowerCase().includes(query))) {
             matches.push({ id: h.id, type: 'human', name: h.name, sub: h.threatLevel ? 'Threat: ' + h.threatLevel : (h.workplace || '') });
@@ -3828,23 +3137,23 @@ function performCrossSearch() {
     });
 
     // Search chats
-    (pazatorData.chats || []).forEach(function(c) {
+    (pazatorData.chats || []).forEach(function (c) {
         if ((c.source && c.source.toLowerCase().includes(query)) ||
             (c.content && c.content.toLowerCase().includes(query)) ||
-            (c.participants && c.participants.some(function(p) {
+            (c.participants && c.participants.some(function (p) {
                 var pname = typeof p === 'object' ? p.name : p;
                 return pname && pname.toLowerCase().includes(query);
             }))) {
-            var pnames = (c.participants || []).map(function(p) { return typeof p === 'object' ? p.name : p; }).join(', ');
+            var pnames = (c.participants || []).map(function (p) { return typeof p === 'object' ? p.name : p; }).join(', ');
             matches.push({ id: c.id || c.timestamp, type: 'chat', name: (c.source || 'Chat') + ' - ' + new Date(c.timestamp).toLocaleDateString(), sub: pnames });
         }
     });
 
     // Search cases
-    cases.forEach(function(c) {
+    cases.forEach(function (c) {
         if ((c.title && c.title.toLowerCase().includes(query)) ||
             (c.description && c.description.toLowerCase().includes(query)) ||
-            (c.timeline && c.timeline.some(function(t) { return t.content && t.content.toLowerCase().includes(query); }))) {
+            (c.timeline && c.timeline.some(function (t) { return t.content && t.content.toLowerCase().includes(query); }))) {
             matches.push({ id: c.id, type: 'case', name: c.title, sub: c.status + ' - ' + (c.entities ? c.entities.length : 0) + ' entities' });
         }
     });
@@ -3862,7 +3171,7 @@ function performCrossSearch() {
 
     // Limit display
     var display = matches.slice(0, 50);
-    results.innerHTML = display.map(function(m) {
+    results.innerHTML = display.map(function (m) {
         var icon = m.type === 'human' ? 'fa-user' : m.type === 'chat' ? 'fa-comment' : 'fa-folder';
         return '<div class="search-result-item" onclick="openSlidePanel(\'' + m.id + '\',\'' + m.type + '\')">' +
             '<div class="result-icon ' + m.type + '"><i class="fas ' + icon + '"></i></div>' +
@@ -3877,7 +3186,7 @@ function performCrossSearch() {
 
 // ===== PDF Export for Cases =====
 async function exportCaseToPDF(caseId) {
-    var caseData = cases.find(function(c) { return c.id === caseId; });
+    var caseData = cases.find(function (c) { return c.id === caseId; });
     if (!caseData) { showAlert('Case not found', 'Error', 'error'); return; }
 
     if (!logoBase64) { await loadLogoForPDF(); }
@@ -3951,8 +3260,8 @@ async function exportCaseToPDF(caseId) {
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(0, 0, 0);
-        caseData.entities.forEach(function(eid) {
-            var human = pazatorData.humans.find(function(h) { return h.id === eid; });
+        caseData.entities.forEach(function (eid) {
+            var human = pazatorData.humans.find(function (h) { return h.id === eid; });
             var name = human ? human.name : eid;
             doc.text('- ' + name, m + 5, y);
             y += 5;
@@ -3975,7 +3284,7 @@ async function exportCaseToPDF(caseId) {
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(0, 0, 0);
-        caseData.timeline.forEach(function(item) {
+        caseData.timeline.forEach(function (item) {
             var time = new Date(item.timestamp).toLocaleString();
             doc.setFont('helvetica', 'bold');
             doc.text(time, m, y);
@@ -4057,7 +3366,7 @@ function renderFamilyGraph(human) {
 
     const familyCount = human.family.length;
     human.family.forEach((familyId, index) => {
-        const familyMember = window.pazatorStore ? pazatorStore.getHumanById(familyId) : pazatorData.humans.find(function(h) { return h.id === familyId; });
+        const familyMember = window.pazatorStore ? pazatorStore.getHumanById(familyId) : pazatorData.humans.find(function (h) { return h.id === familyId; });
         if (!familyMember) return;
 
         const angle = (index / familyCount) * Math.PI * 2;
@@ -4170,7 +3479,7 @@ function populateSelectOptions(selectedFriends = [], selectedFamily = []) {
 
     pazatorData.humans.forEach(human => {
         const displayName = `[${human.id}] ${human.name}`;
-        
+
         const friendOption = document.createElement('option');
         friendOption.value = human.id;
         friendOption.textContent = displayName;
@@ -4332,10 +3641,10 @@ function saveCurrentChat() {
 
     const existingChats = JSON.parse(localStorage.getItem('chatHistory') || '[]');
     console.log('Existing chats:', existingChats);
-    
+
     const firstUserMsg = aiChatHistory.find(m => m.role === 'user')?.content || 'New Chat';
-    const newChat = { 
-        title: String(firstUserMsg).substring(0, 30), 
+    const newChat = {
+        title: String(firstUserMsg).substring(0, 30),
         messages: aiChatHistory.map(m => {
             const msg = { role: String(m.role), content: String(m.content || '') };
             if (m.entityInfo) msg.entityInfo = m.entityInfo;
@@ -4343,14 +3652,14 @@ function saveCurrentChat() {
         }),
         titleGenerated: false
     };
-    
+
     console.log('Saving new chat:', newChat);
     console.log('JSON string:', JSON.stringify(newChat));
     existingChats.push(newChat);
-    
+
     const finalJson = JSON.stringify(existingChats);
     console.log('Final JSON to save:', finalJson);
-    
+
     try {
         localStorage.setItem('chatHistory', finalJson);
     } catch (e) {
@@ -4656,7 +3965,7 @@ async function processAICommand(command) {
                 casesCount: cases.length
             };
             var topRisky = dataSummary.topRiskyPeople || [];
-            var topRiskyStr = topRisky.length > 0 ? topRisky.map(function(p) {
+            var topRiskyStr = topRisky.length > 0 ? topRisky.map(function (p) {
                 return '  - ' + p.name + ' (Threat: ' + p.threatLevel + ', Credit: ' + p.credit + ')';
             }).join('\n') : '  None';
 
@@ -4676,7 +3985,7 @@ async function processAICommand(command) {
                         - Cases: ${dataSummary.casesCount} total
                         - High-risk individuals: ${dataSummary.highRiskCount}
                         - Average credit score: ${dataSummary.averageCredit}
-                        - Object system: ${window.pazatorObjects ? (function(){var s=pazatorObjects.getStats();return s.total+' reusable field values across '+(pazatorObjects.getTypes().filter(function(t){return (s[t]||0)>0;}).length)+' categories';})() : 'N/A'}
+                        - Object system: ${window.pazatorObjects ? (function () { var s = pazatorObjects.getStats(); return s.total + ' reusable field values across ' + (pazatorObjects.getTypes().filter(function (t) { return (s[t] || 0) > 0; }).length) + ' categories'; })() : 'N/A'}
 
                         TOP RISKY PEOPLE:
 ${topRiskyStr}
@@ -4803,7 +4112,7 @@ ${topRiskyStr}
                         And do whatever the user says or asks.
                     `;
 
-            var geminiCall = function(signal) {
+            var geminiCall = function (signal) {
                 return geminiChat([
                     { role: "system", content: context },
                     { role: "user", content: command }
@@ -4813,10 +4122,10 @@ ${topRiskyStr}
             var responseText = null;
             if (window.AIQueue && window.AIQueue.streamChat) {
                 var streamAbort = new AbortController();
-                var streamResult = AIQueue.enqueue(function(signal) {
+                var streamResult = AIQueue.enqueue(function (signal) {
                     return AIQueue.streamChat(
                         [{ role: "system", content: context }, { role: "user", content: command }],
-                        function(chunk, full) {
+                        function (chunk, full) {
                             var existing = document.querySelector('.ai-message.streaming');
                             if (!existing) {
                                 var el = document.createElement('div');
@@ -5593,7 +4902,7 @@ chatUploadBtn.addEventListener('click', () => {
     setTimeout(loadChatParticipants, 500);
 });
 
-document.getElementById('chatUploadBtnSidebar')?.addEventListener('click', function() {
+document.getElementById('chatUploadBtnSidebar')?.addEventListener('click', function () {
     document.getElementById('chatUploadBtn').click();
 });
 
@@ -6035,7 +5344,7 @@ document.getElementById('chatUploadForm').addEventListener('submit', async (e) =
 
         const sanitizedChatData = ChatValidator.sanitizeChatData(rawChatData);
         const parsedChat = ChatParser.parse(content, source);
-        
+
         const chatData = {
             ...sanitizedChatData,
             timestamp: new Date().toISOString(),
@@ -6105,10 +5414,10 @@ uploadDataBtn.addEventListener('click', async () => {
         closeDataUploadModal();
 
         showAlert(`Successfully uploaded ${result.humans} humans and ${result.others} companies/organizations.`, 'Success', 'success');
-        
+
         markDataChanged();
         renderObjectCanvas();
-        
+
     } catch (error) {
         console.error('Error uploading data:', error);
         showAlert(`Error processing CSV file: ${error.message}`, 'Error', 'error');
@@ -6401,11 +5710,11 @@ function processCSVData(data) {
         delete human._friendsRaw;
         delete human._familyRaw;
     });
-    
+
     if (errors.length > 0) {
         throw new Error(`Data validation errors:\n${errors.join('\n')}`);
     }
-    
+
     return { humans: humansAdded, others: othersAdded, relationshipStubs: relationshipStubsAdded };
 }
 
@@ -6833,7 +6142,7 @@ askAIBtn.addEventListener('click', () => {
         aiChatMessages.innerHTML = '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:40px 20px;text-align:center;"><i class="fas fa-brain" style="font-size:2.5rem;color:#555;margin-bottom:16px;"></i><h3 style="color:#aaa;margin:0 0 8px 0;">Ask Zor anything</h3><p style="color:#777;font-size:0.85rem;margin:0;max-width:300px;line-height:1.5;">Analyze data, find connections, create entries, or just ask questions about your intelligence.</p></div>';
     }
 
-    setTimeout(function() {
+    setTimeout(function () {
         if (aiInput) aiInput.focus();
     }, 100);
 });
@@ -6856,19 +6165,6 @@ document.getElementById('menuBtn')?.addEventListener('click', () => {
         threatsPanel.style.display = 'none';
         container?.classList.remove('threats-split');
     }
-});
-
-document.getElementById('dashboardBtn').addEventListener('click', () => {
-    switchTab('dashboard');
-});
-
-document.getElementById('analysisBtn').addEventListener('click', () => {
-    switchTab('analysis');
-});
-
-document.getElementById('threatsBtn').addEventListener('click', () => {
-    updateIntelligenceCenterStats();
-    switchTab('threats');
 });
 
 document.querySelectorAll('.close').forEach(button => {
@@ -7063,7 +6359,7 @@ document.getElementById('exportPdfBtn').addEventListener('click', async () => {
         showAlert('No entry selected', 'Error', 'error');
         return;
     }
-    
+
     if (data.type === 'human') {
         console.log('Calling exportHumanToPDF with id:', data.id);
         try {
@@ -7260,13 +6556,13 @@ document.addEventListener('click', (e) => {
 });
 
 // Global modal backdrop click-to-close
-document.addEventListener('click', function(e) {
+document.addEventListener('click', function (e) {
     var modal = e.target.closest('.modal, .ai-chat-modal, .detail-view');
     if (!modal || e.target !== modal) return;
     if (modal.classList.contains('hiding')) return;
     if (modal.classList.contains('ai-chat-modal') || modal.classList.contains('detail-view')) {
         modal.classList.add('hiding');
-        setTimeout(function() {
+        setTimeout(function () {
             modal.style.display = 'none';
             modal.style.zIndex = '-1';
             modal.classList.remove('hiding');
@@ -7892,16 +7188,16 @@ intelHeurBtn?.addEventListener('click', function () {
         return;
     }
     var duplicates = window.pazatorHeuristics.scan(pazatorData.humans);
-    
+
     // Update summary text
     var summaryEl = document.getElementById('intelHeurSummary');
     if (summaryEl) {
         summaryEl.textContent = duplicates.length + ' suspected alias' + (duplicates.length !== 1 ? 'es' : '');
     }
-    
+
     var contentEl = document.getElementById('heurModalContent');
     if (!contentEl) return;
-    
+
     if (duplicates.length === 0) {
         contentEl.innerHTML = '<div style="text-align:center;color:#666;padding:48px 24px;">' +
             '<i class="fas fa-fingerprint" style="font-size:3rem;color:#333;margin-bottom:16px;display:block;"></i>' +
@@ -7926,7 +7222,7 @@ intelHeurBtn?.addEventListener('click', function () {
                 '<div style="border-top:1px solid rgba(255,255,255,0.04);padding-top:10px;">' +
                 '<div style="font-size:0.75rem;color:#888;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;">Correlation Evidence:</div>' +
                 '<ul style="margin:0;padding-left:16px;font-size:0.8rem;color:rgba(255,255,255,0.6);line-height:1.5;">' +
-                dup.reasons.map(function(r) { return '<li>' + escapeHtml(r) + '</li>'; }).join('') +
+                dup.reasons.map(function (r) { return '<li>' + escapeHtml(r) + '</li>'; }).join('') +
                 '</ul>' +
                 '</div>' +
                 '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px;">' +
@@ -7940,7 +7236,7 @@ intelHeurBtn?.addEventListener('click', function () {
         html += '</div>';
         contentEl.innerHTML = html;
     }
-    
+
     heurModal.style.display = 'flex';
     heurModal.style.zIndex = '1100';
 });
@@ -7972,23 +7268,23 @@ window.heurInvestigate = function (id1, id2) {
 
 window.heurResolveLink = async function (id1, id2) {
     // Make them friends/associates
-    var p1 = pazatorData.humans.find(function(h) { return String(h.id) === String(id1); });
-    var p2 = pazatorData.humans.find(function(h) { return String(h.id) === String(id2); });
+    var p1 = pazatorData.humans.find(function (h) { return String(h.id) === String(id1); });
+    var p2 = pazatorData.humans.find(function (h) { return String(h.id) === String(id2); });
     if (!p1 || !p2) return;
-    
+
     p1.friends = p1.friends || [];
     p2.friends = p2.friends || [];
-    
+
     if (p1.friends.indexOf(id2) === -1) p1.friends.push(id2);
     if (p2.friends.indexOf(id1) === -1) p2.friends.push(id1);
-    
+
     // Save to DB
     if (window.pazatorStore && typeof pazatorStore.saveToDb === 'function') {
         await pazatorStore.saveToDb();
     }
-    
+
     showFloatingNotification('Resolved: Established bidirectional link between ' + p1.name + ' and ' + p2.name, 'success');
-    
+
     // Refresh HEUR modal list
     document.getElementById('intelHeurBtn')?.click();
 };
@@ -7997,19 +7293,19 @@ function renderFindingsToCards(findings) {
     var container = document.getElementById('intelResultsContent');
     var countBadge = document.getElementById('intelResultsCount');
     var resultsEl = document.getElementById('intelResults');
-    
+
     if (!container) return;
-    
+
     container.innerHTML = '';
     resultsEl.style.display = 'block';
     countBadge.textContent = findings.length + ' finding' + (findings.length !== 1 ? 's' : '');
 
     var lastAnalysisId = window._lastIntelAnalysisId;
 
-    findings.forEach(function(finding) {
+    findings.forEach(function (finding) {
         var card = document.createElement('div');
         card.className = 'intel-finding intel-finding-' + (finding.type || 'info');
-        
+
         var typeIcon = {
             threat: 'fa-exclamation-triangle',
             risk: 'fa-shield-alt',
@@ -8017,7 +7313,7 @@ function renderFindingsToCards(findings) {
             positive: 'fa-check-circle',
             info: 'fa-info-circle'
         }[finding.type] || 'fa-info-circle';
-        
+
         var typeLabel = {
             threat: 'Threat',
             risk: 'Risk',
@@ -8025,31 +7321,31 @@ function renderFindingsToCards(findings) {
             positive: 'Positive',
             info: 'Info'
         }[finding.type] || 'Info';
-        
+
         card.innerHTML =
             '<div class="intel-finding-header">' +
-                '<div class="intel-finding-type">' +
-                    '<i class="fas ' + typeIcon + '"></i>' +
-                    '<span>' + typeLabel + '</span>' +
-                '</div>' +
-                '<div class="intel-finding-subject">' + (finding.subject || 'Unknown') + '</div>' +
+            '<div class="intel-finding-type">' +
+            '<i class="fas ' + typeIcon + '"></i>' +
+            '<span>' + typeLabel + '</span>' +
+            '</div>' +
+            '<div class="intel-finding-subject">' + (finding.subject || 'Unknown') + '</div>' +
             '</div>' +
             '<div class="intel-finding-content">' + (finding.content || finding.description || '') + '</div>' +
             (finding.evidence ? '<div class="intel-finding-evidence"><i class="fas fa-fingerprint"></i> ' + finding.evidence + '</div>' : '') +
             '<div class="intel-finding-footer">' +
-                (finding.tags || []).map(function(tag) { return '<span class="intel-finding-tag">' + tag + '</span>'; }).join('') +
-                (lastAnalysisId ? '<button class="intel-save-evidence-btn" onclick="addAnalysisToEvidence(\'' + lastAnalysisId + '\')"><i class="fas fa-gavel"></i> Add to Case</button>' : '') +
+            (finding.tags || []).map(function (tag) { return '<span class="intel-finding-tag">' + tag + '</span>'; }).join('') +
+            (lastAnalysisId ? '<button class="intel-save-evidence-btn" onclick="addAnalysisToEvidence(\'' + lastAnalysisId + '\')"><i class="fas fa-gavel"></i> Add to Case</button>' : '') +
             '</div>';
-        
+
         container.appendChild(card);
     });
-    
+
     if (findings.length === 0) {
         container.innerHTML =
             '<div class="intel-empty-state">' +
-                '<i class="fas fa-search"></i>' +
-                '<p>No findings detected</p>' +
-                '<small>The analysis completed but no significant patterns were found</small>' +
+            '<i class="fas fa-search"></i>' +
+            '<p>No findings detected</p>' +
+            '<small>The analysis completed but no significant patterns were found</small>' +
             '</div>';
     }
 }
@@ -8060,20 +7356,20 @@ function addAnalysisToEvidence(analysisId) {
         return;
     }
     if (!selectedCaseId) {
-        var caseList = cases.map(function(c, i) { return (i + 1) + '. ' + c.title; }).join('\n');
+        var caseList = cases.map(function (c, i) { return (i + 1) + '. ' + c.title; }).join('\n');
         showFloatingNotification('Select a case first, then add evidence from the case detail panel.', 'info');
         return;
     }
-    var caseData = cases.find(function(c) { return c.id === selectedCaseId; });
+    var caseData = cases.find(function (c) { return c.id === selectedCaseId; });
     if (!caseData) {
         showFloatingNotification('Select a case first.', 'info');
         return;
     }
     loadAnalyses();
-    var analysis = analysesStore.find(function(a) { return a.id === analysisId; });
+    var analysis = analysesStore.find(function (a) { return a.id === analysisId; });
     if (!analysis) return;
     if (!caseData.evidence) caseData.evidence = [];
-    if (caseData.evidence.find(function(e) { return e.id === analysisId; })) {
+    if (caseData.evidence.find(function (e) { return e.id === analysisId; })) {
         showFloatingNotification('This analysis is already attached as evidence to the current case.', 'info');
         return;
     }
@@ -8094,22 +7390,6 @@ function addAnalysisToEvidence(analysisId) {
     showFloatingNotification('Evidence added to case: ' + caseData.title, 'success');
 }
 
-chatControlBtn?.addEventListener('click', () => {
-    switchTab('chat-control');
-});
-
-document.getElementById('searchBtn')?.addEventListener('click', () => {
-    switchTab('search');
-});
-
-document.getElementById('trackerBtn')?.addEventListener('click', () => {
-    switchTab('tracker');
-});
-
-document.getElementById('casesBtn')?.addEventListener('click', () => {
-    switchTab('cases');
-});
-
 analyzeAllChatsBtn?.addEventListener('click', async () => {
     await analyzeAllChats();
 });
@@ -8126,13 +7406,13 @@ clearChatHistoryBtn?.addEventListener('click', () => {
     clearChatHistory();
 });
 
-document.getElementById('archiveOldChatsBtn')?.addEventListener('click', function() {
+document.getElementById('archiveOldChatsBtn')?.addEventListener('click', function () {
     var result = ChatStorageManager.archiveOldChats();
     showFloatingNotification('Archived ' + result.archived + ' old chats (' + result.active + ' remain active)', 'info');
     loadSavedChats();
 });
 
-document.getElementById('restoreArchivedChatsBtn')?.addEventListener('click', function() {
+document.getElementById('restoreArchivedChatsBtn')?.addEventListener('click', function () {
     var count = ChatStorageManager.restoreArchivedChats();
     if (count > 0) {
         showFloatingNotification('Restored ' + count + ' archived chats', 'success');
@@ -8142,10 +7422,10 @@ document.getElementById('restoreArchivedChatsBtn')?.addEventListener('click', fu
     }
 });
 
-var chatSearchDebounced = window.PazatorUI ? PazatorUI.debounce(function(e) {
+var chatSearchDebounced = window.PazatorUI ? PazatorUI.debounce(function (e) {
     chatSearchFilter = (e.target.value || '').toLowerCase();
     loadSavedChats();
-}, 400) : function(e) {
+}, 400) : function (e) {
     chatSearchFilter = (e.target.value || '').toLowerCase();
     loadSavedChats();
 };
@@ -8159,7 +7439,7 @@ chatFilterSource?.addEventListener('change', (e) => {
 selectAllChatsBtn?.addEventListener('click', () => {
     const history = ChatStorageManager.getChatHistory();
     const visibleIndices = getVisibleChatIndices();
-    
+
     if (selectedChatIndices.size === visibleIndices.size) {
         selectedChatIndices.clear();
         selectAllChatsBtn.innerHTML = '<i class="fas fa-check-square"></i> Select';
@@ -8174,21 +7454,21 @@ selectAllChatsBtn?.addEventListener('click', () => {
 
 bulkDeleteChatsBtn?.addEventListener('click', async () => {
     if (selectedChatIndices.size === 0) return;
-    
+
     const confirmed = await showConfirm(
         `Delete ${selectedChatIndices.size} selected chats? This cannot be undone.`,
         'Confirm Bulk Delete',
         'warning'
     );
-    
+
     if (confirmed) {
         const history = ChatStorageManager.getChatHistory();
         const sortedIndices = [...selectedChatIndices].sort((a, b) => b - a);
-        
+
         sortedIndices.forEach(index => {
             ChatStorageManager.deleteChat(index);
         });
-        
+
         selectedChatIndices.clear();
         selectAllChatsBtn.innerHTML = '<i class="fas fa-check-square"></i> Select';
         bulkDeleteChatsBtn.style.display = 'none';
@@ -8201,7 +7481,7 @@ bulkDeleteChatsBtn?.addEventListener('click', async () => {
 setTimeout(initCrossSearch, 200);
 
 // PDF export for cases
-document.getElementById('exportCasePdfBtn')?.addEventListener('click', function() {
+document.getElementById('exportCasePdfBtn')?.addEventListener('click', function () {
     if (selectedCaseId) exportCaseToPDF(selectedCaseId);
 });
 
@@ -8227,7 +7507,7 @@ function updateStorageMetrics() {
     if (storageUsedMetric) {
         storageUsedMetric.textContent = stats.totalSizeMB + 'MB';
     }
-    
+
     const history = ChatStorageManager.getChatHistory();
     const sourceCounts = { whatsapp: 0, telegram: 0, discord: 0, signal: 0, manual: 0 };
     history.forEach(chat => {
@@ -8238,7 +7518,7 @@ function updateStorageMetrics() {
             sourceCounts.manual++;
         }
     });
-    
+
     const el = {
         whatsapp: document.getElementById('whatsappCount'),
         telegram: document.getElementById('telegramCount'),
@@ -8246,11 +7526,11 @@ function updateStorageMetrics() {
         signal: document.getElementById('signalCount'),
         manual: document.getElementById('manualCount')
     };
-    
+
     Object.entries(sourceCounts).forEach(([source, count]) => {
         if (el[source]) el[source].textContent = count;
     });
-    
+
     const totalChatsEl = document.getElementById('totalChatsCount');
     if (totalChatsEl) totalChatsEl.textContent = stats.totalChats;
 }
@@ -8262,11 +7542,11 @@ function triggerImportChats() {
     input.onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        
+
         try {
             const text = await file.text();
             const data = JSON.parse(text);
-            
+
             let chatsToImport = [];
             if (Array.isArray(data)) {
                 chatsToImport = data;
@@ -8276,18 +7556,18 @@ function triggerImportChats() {
                 showAlert('Invalid chat file format', 'Error', 'error');
                 return;
             }
-            
+
             let imported = 0;
             const existingHistory = ChatStorageManager.getChatHistory();
             const existingContent = new Set(existingHistory.map(c => c.content.substring(0, 100)));
-            
+
             for (const chat of chatsToImport) {
                 if (!existingContent.has(chat.content?.substring(0, 100))) {
                     ChatStorageManager.saveChat(chat);
                     imported++;
                 }
             }
-            
+
             loadSavedChats();
             showAlert(`Imported ${imported} new chats (${chatsToImport.length - imported} duplicates skipped)`, 'Import Complete', 'success');
         } catch (err) {
@@ -8305,48 +7585,48 @@ function triggerExportChatsJson() {
 function triggerViewChatStats() {
     const stats = ChatStorageManager.getStorageStats();
     const history = ChatStorageManager.getChatHistory();
-    
+
     const sourceStats = {};
     history.forEach(chat => {
         sourceStats[chat.source] = (sourceStats[chat.source] || 0) + 1;
     });
-    
-    const avgMessages = history.length > 0 
+
+    const avgMessages = history.length > 0
         ? Math.round(history.reduce((sum, c) => sum + (c.parsed?.messageCount || c.content.split(' ').length), 0) / history.length)
         : 0;
-    
+
     const dateRange = history.length > 0
         ? {
             oldest: new Date(Math.min(...history.map(c => new Date(c.timestamp).getTime()))).toLocaleDateString(),
             newest: new Date(Math.max(...history.map(c => new Date(c.timestamp).getTime()))).toLocaleDateString()
         }
         : null;
-    
+
     let report = `=== Chat Storage Statistics ===\n\n`;
     report += `Total Chats: ${stats.totalChats}\n`;
     report += `Total Size: ${stats.totalSizeMB}MB\n`;
     report += `Average Messages per Chat: ${avgMessages}\n\n`;
-    
+
     report += `=== By Source ===\n`;
     Object.entries(sourceStats).forEach(([source, count]) => {
         report += `${source.toUpperCase()}: ${count} chats\n`;
     });
-    
+
     if (dateRange) {
         report += `\n=== Date Range ===\n`;
         report += `Oldest: ${dateRange.oldest}\n`;
         report += `Newest: ${dateRange.newest}\n`;
     }
-    
+
     showAlert(report, 'Chat Statistics', 'info');
 }
 
 function triggerFindDuplicates() {
     const history = ChatStorageManager.getChatHistory();
-    
+
     const hashMap = new Map();
     const duplicates = [];
-    
+
     history.forEach((chat, index) => {
         const hash = chat.content.substring(0, 500);
         if (hashMap.has(hash)) {
@@ -8358,7 +7638,7 @@ function triggerFindDuplicates() {
             hashMap.set(hash, index);
         }
     });
-    
+
     if (duplicates.length === 0) {
         showAlert('No duplicate chats found!', 'Duplicates Check', 'success');
     } else {
@@ -8414,24 +7694,24 @@ function sortByCredit() {
 function updateCreditStats() {
     const creditStats = document.getElementById('creditStats');
     if (!creditStats || pazatorData.humans.length === 0) return;
-    
+
     const highRisk = pazatorData.humans.filter(h => (h.credit || 185) < 125).length;
     const mediumRisk = pazatorData.humans.filter(h => (h.credit || 185) >= 125 && (h.credit || 185) < 250).length;
     const lowRisk = pazatorData.humans.filter(h => (h.credit || 185) >= 250).length;
-    
+
     const total = pazatorData.humans.length;
     const highPct = Math.round((highRisk / total) * 100);
     const mediumPct = Math.round((mediumRisk / total) * 100);
     const lowPct = Math.round((lowRisk / total) * 100);
-    
+
     creditStats.innerHTML = `
         <div class="stat-row"><span>High Risk (0-124):</span><span class="stat-red">${highPct}%</span></div>
         <div class="stat-row"><span>Medium (125-249):</span><span class="stat-yellow">${mediumPct}%</span></div>
         <div class="stat-row"><span>Low Risk (250-370):</span><span class="stat-green">${lowPct}%</span></div>
     `;
-    
+
     updateIntelligenceCenterRiskChart(highPct, mediumPct, lowPct);
-    
+
     const riskSummary = document.getElementById('intelRiskSummary');
     if (riskSummary) riskSummary.textContent = `${highPct}% high, ${mediumPct}% med, ${lowPct}% low`;
 }
@@ -8443,7 +7723,7 @@ function updateIntelligenceCenterRiskChart(highPct, mediumPct, lowPct) {
     const highVal = document.getElementById('intelHighRisk');
     const mediumVal = document.getElementById('intelMediumRisk');
     const lowVal = document.getElementById('intelLowRisk');
-    
+
     if (highBar) highBar.style.width = highPct + '%';
     if (mediumBar) mediumBar.style.width = mediumPct + '%';
     if (lowBar) lowBar.style.width = lowPct + '%';
@@ -8485,20 +7765,20 @@ function updateAnalysisHubStats() {
     const metricTags = document.getElementById('metricTags');
     const metricHighRisk = document.getElementById('metricHighRisk');
     const riskSummary = document.getElementById('analysisRiskSummary');
-    
+
     if (humanCountEl) humanCountEl.textContent = pazatorData.humans.length;
     if (metricHumans) metricHumans.textContent = pazatorData.humans.length;
     if (metricEntities) metricEntities.textContent = pazatorData.others.length;
     if (metricTags) metricTags.textContent = tags.length;
-    
+
     const totalCredit = pazatorData.humans.reduce((sum, h) => sum + (h.credit || 185), 0);
     const avgCredit = pazatorData.humans.length ? Math.round(totalCredit / pazatorData.humans.length) : 0;
     if (creditAvgEl) creditAvgEl.textContent = avgCredit;
-    
+
     const highRisk = pazatorData.humans.filter(h => (h.credit || 185) < 125).length;
     const mediumRisk = pazatorData.humans.filter(h => (h.credit || 185) >= 125 && (h.credit || 185) < 250).length;
     const lowRisk = pazatorData.humans.filter(h => (h.credit || 185) >= 250).length;
-    
+
     if (metricHighRisk) metricHighRisk.textContent = highRisk;
     if (riskSummary) riskSummary.textContent = `${highRisk} high, ${mediumRisk} med, ${lowRisk} low`;
 }
@@ -8507,7 +7787,7 @@ function updateHeaderStats() {
     const humansEl = document.getElementById('headerHumansCount');
     const othersEl = document.getElementById('headerOthersCount');
     const totalEl = document.getElementById('headerTotalCount');
-    
+
     if (humansEl) humansEl.textContent = pazatorData.humans.length;
     if (othersEl) othersEl.textContent = pazatorData.others.length;
     if (totalEl) totalEl.textContent = pazatorData.humans.length + pazatorData.others.length;
@@ -8637,7 +7917,7 @@ function loadSavedChats() {
     }
 
     const visibleIndices = getVisibleChatIndices();
-    
+
     if (visibleIndices.length === 0 && (chatSearchFilter || chatSourceFilter)) {
         savedChatsList.innerHTML = '<p style="color: #777; text-align: center;">No chats match your search/filter criteria</p>';
         return;
@@ -8662,7 +7942,7 @@ function loadSavedChats() {
         const chat = chatHistory[index];
         const chatCard = document.createElement('div');
         const isSelected = selectedChatIndices.has(index);
-        
+
         chatCard.style.background = isSelected ? 'rgba(60, 100, 140, 0.4)' : 'rgba(40, 40, 40, 0.7)';
         chatCard.style.border = isSelected ? '1px solid #4a90d9' : '1px solid #333';
         chatCard.style.borderRadius = '8px';
@@ -8676,7 +7956,7 @@ function loadSavedChats() {
         const wordCount = chat.content.split(' ').length;
         const messageCount = chat.parsed?.messageCount || wordCount;
         const hasEntities = chat.parsed?.entities;
-        const entityCount = hasEntities ? 
+        const entityCount = hasEntities ?
             (hasEntities.urls?.length || 0) + (hasEntities.emails?.length || 0) + (hasEntities.phones?.length || 0) : 0;
 
         chatCard.innerHTML = `
@@ -8713,7 +7993,7 @@ function loadSavedChats() {
                 `;
 
         chatCard.addEventListener('click', () => toggleChatSelection(index));
-        
+
         chatCard.addEventListener('mouseenter', () => {
             if (!isSelected) {
                 chatCard.style.background = 'rgba(60, 60, 60, 0.7)';
@@ -8736,31 +8016,31 @@ function toggleChatSelection(index) {
     } else {
         selectedChatIndices.add(index);
     }
-    
+
     if (selectedChatIndices.size > 0) {
         bulkDeleteChatsBtn.style.display = 'inline-block';
     } else {
         bulkDeleteChatsBtn.style.display = 'none';
     }
-    
+
     loadSavedChats();
 }
 
 function previewChat(index) {
     var chatHistory = ChatStorageManager.getChatHistory();
     var chat = chatHistory[index];
-    
+
     if (!chat) {
         showAlert('Chat not found!', 'Error', 'error');
         return;
     }
-    
-    var participants = chat.participants.map(function(p) { return p.name; }).join(', ');
+
+    var participants = chat.participants.map(function (p) { return p.name; }).join(', ');
     var contentPreview = chat.content ? chat.content.substring(0, 500) : (chat.contentPreview || '');
     var wordCount = (chat.content || contentPreview || '').split(' ').length;
     var messageCount = chat.parsed && chat.parsed.messageCount ? chat.parsed.messageCount : 'N/A';
     var date = new Date(chat.timestamp).toLocaleString();
-    
+
     var entities = '';
     if (chat.parsed && chat.parsed.entities) {
         var e = chat.parsed.entities;
@@ -8768,13 +8048,13 @@ function previewChat(index) {
         if (e.emails && e.emails.length) entities += '\nEmails: ' + e.emails.join(', ');
         if (e.phones && e.phones.length) entities += '\nPhones: ' + e.phones.join(', ');
     }
-    
+
     var fullContent = chat.content || '';
     var loadLink = '';
     if (fullContent.length > 500) {
         loadLink = '\n\n[Content truncated to 500 chars. Click "Load Full Content" to show all ' + fullContent.length + ' chars]';
     }
-    
+
     var preview = '=== ' + chat.source.toUpperCase() + ' CHAT PREVIEW ===\n\n' +
         'Participants: ' + participants + '\n' +
         'Date: ' + date + '\n' +
@@ -8786,7 +8066,7 @@ function previewChat(index) {
         contentPreview.substring(0, 500) +
         (fullContent.length > 500 ? '\n\n... (truncated to 500 chars)' : '') +
         loadLink;
-    
+
     var buttons = [
         { text: 'Close', primary: true }
     ];
@@ -8794,7 +8074,7 @@ function previewChat(index) {
         buttons.push({
             text: 'Load Full Content',
             primary: false,
-            onClick: function() {
+            onClick: function () {
                 showAlert(fullContent, 'Full Chat Content', 'info');
             }
         });
@@ -8834,7 +8114,7 @@ async function analyzeAllChats() {
                         let human = pazatorData.humans.find(h => h.name.toLowerCase() === name.toLowerCase());
                         if (!human) {
                             human = {
-                                id: 'human_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+                                id: 'human_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
                                 name: name,
                                 credit: 185,
                                 tags: [],
@@ -8887,15 +8167,15 @@ async function analyzeAllChats() {
                 }
                 // Auto-create case if suspicious
                 if (result.result.isSuspicious && result.result.riskLevel === 'high') {
-                    const existingCase = cases.find(c => 
-                        c.title && c.title.includes('Suspicious') && 
+                    const existingCase = cases.find(c =>
+                        c.title && c.title.includes('Suspicious') &&
                         c.source === result.source &&
                         Math.abs(c.createdAt - result.timestamp) < 86400000
                     );
                     if (!existingCase) {
                         const participantNames = chat ? chat.participants.map(p => typeof p === 'object' ? p.name : p).join(', ') : 'Unknown';
                         const newCase = {
-                            id: 'case_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+                            id: 'case_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
                             title: 'Suspicious Chat - ' + participantNames.substring(0, 40),
                             description: 'Auto-created from suspicious ' + (result.source || 'unknown') + ' chat. Risk level: ' + (result.result.riskLevel || 'low') + '. ' + (result.result.summary || ''),
                             status: 'open',
@@ -8927,7 +8207,7 @@ async function analyzeAllChats() {
         });
 
         const scoreClass = securityScore >= 80 ? 'good' : securityScore >= 50 ? 'medium' : 'bad';
-        
+
         const allSuspiciousItems = [];
         ['high', 'medium', 'low'].forEach(level => {
             byRiskLevel[level].forEach(item => {
@@ -8960,10 +8240,10 @@ async function analyzeAllChats() {
                     <div class="security-issues">
                         <h5><i class="fas fa-exclamation-triangle"></i> Suspicious Chats</h5>
                         ${allSuspiciousItems.slice(0, 10).map(item => {
-                            const participantNames = Array.isArray(item.participants) 
-                                ? item.participants.map(p => typeof p === 'object' ? p.name : p).join(', ')
-                                : 'Unknown';
-                            return `
+            const participantNames = Array.isArray(item.participants)
+                ? item.participants.map(p => typeof p === 'object' ? p.name : p).join(', ')
+                : 'Unknown';
+            return `
                             <div class="security-issue-item ${item.level}">
                                 <div class="item-header">
                                     <span class="risk-badge ${item.level}">${item.level.toUpperCase()}</span>
@@ -8971,9 +8251,9 @@ async function analyzeAllChats() {
                                     <span class="names">${participantNames}</span>
                                 </div>
                                 <div class="flags-list">
-                                    ${item.result.redFlags?.slice(0, 4).map(flag => 
-                                        `<span class="flag-tag">${flag}</span>`
-                                    ).join('') || '<span class="flag-tag">General concern</span>'}
+                                    ${item.result.redFlags?.slice(0, 4).map(flag =>
+                `<span class="flag-tag">${flag}</span>`
+            ).join('') || '<span class="flag-tag">General concern</span>'}
                                 </div>
                             </div>
                         `}).join('')}
@@ -9127,39 +8407,51 @@ async function exportHumanToPDF(humanId) {
     doc.setFont('helvetica', 'normal');
 
     const sections = [
-        { title: 'BASIC INFORMATION', items: [
-            { label: 'ID', value: human.id },
-            { label: 'Gender', value: human.gender || 'Not specified' },
-            { label: 'Birth Date', value: human.birthDate ? new Date(human.birthDate).toLocaleDateString() : 'Not specified' },
-            { label: 'Age', value: human.birthDate ? calculateAge(human.birthDate) + ' years' : 'Not specified' },
-            { label: 'Marital Status', value: human.maritalStatus || 'Not specified' },
-            { label: 'Occupation', value: human.workplace || 'Not specified' }
-        ]},
-        { title: 'BACKGROUND', items: [
-            { label: 'Nationality', value: human.nationality || 'Not specified' },
-            { label: 'Country of Origin', value: human.countryOfOrigin || 'Not specified' },
-            { label: 'Immigration Status', value: human.immigrationStatus || 'Not specified' },
-            { label: 'Languages', value: human.languages || 'Not specified' }
-        ]},
-        { title: 'DEMOGRAPHICS', items: [
-            { label: 'Ethnicity', value: human.ethnicity || 'Not specified' },
-            { label: 'Religion', value: human.religion || 'Not specified' },
-            { label: 'Political Views', value: human.politicalViews || 'Not specified' },
-            { label: 'Threat Level', value: human.threatLevel || 'Not specified' }
-        ]},
-        { title: 'SOCIOECONOMIC', items: [
-            { label: 'Credit Score', value: human.credit !== undefined ? Math.round(human.credit).toString() : 'Not recorded' },
-            { label: 'Social Class', value: human.socialClass || 'Not specified' },
-            { label: 'Income Level', value: human.incomeLevel || 'Not specified' },
-            { label: 'Education', value: human.educationLevel || 'Not specified' }
-        ]},
-        { title: 'RELATIONSHIPS', items: [
-            { label: 'Friends', value: (human.friends || []).map(function(id) { return getHumanNameById(id); }).filter(Boolean).join(', ') || 'None' },
-            { label: 'Family', value: (human.family || []).map(function(id) { return getHumanNameById(id); }).filter(Boolean).join(', ') || 'None' }
-        ]},
-        { title: 'NOTES', items: [
-            { label: 'Notes', value: human.extraNotes || 'No notes' }
-        ]}
+        {
+            title: 'BASIC INFORMATION', items: [
+                { label: 'ID', value: human.id },
+                { label: 'Gender', value: human.gender || 'Not specified' },
+                { label: 'Birth Date', value: human.birthDate ? new Date(human.birthDate).toLocaleDateString() : 'Not specified' },
+                { label: 'Age', value: human.birthDate ? calculateAge(human.birthDate) + ' years' : 'Not specified' },
+                { label: 'Marital Status', value: human.maritalStatus || 'Not specified' },
+                { label: 'Occupation', value: human.workplace || 'Not specified' }
+            ]
+        },
+        {
+            title: 'BACKGROUND', items: [
+                { label: 'Nationality', value: human.nationality || 'Not specified' },
+                { label: 'Country of Origin', value: human.countryOfOrigin || 'Not specified' },
+                { label: 'Immigration Status', value: human.immigrationStatus || 'Not specified' },
+                { label: 'Languages', value: human.languages || 'Not specified' }
+            ]
+        },
+        {
+            title: 'DEMOGRAPHICS', items: [
+                { label: 'Ethnicity', value: human.ethnicity || 'Not specified' },
+                { label: 'Religion', value: human.religion || 'Not specified' },
+                { label: 'Political Views', value: human.politicalViews || 'Not specified' },
+                { label: 'Threat Level', value: human.threatLevel || 'Not specified' }
+            ]
+        },
+        {
+            title: 'SOCIOECONOMIC', items: [
+                { label: 'Credit Score', value: human.credit !== undefined ? Math.round(human.credit).toString() : 'Not recorded' },
+                { label: 'Social Class', value: human.socialClass || 'Not specified' },
+                { label: 'Income Level', value: human.incomeLevel || 'Not specified' },
+                { label: 'Education', value: human.educationLevel || 'Not specified' }
+            ]
+        },
+        {
+            title: 'RELATIONSHIPS', items: [
+                { label: 'Friends', value: (human.friends || []).map(function (id) { return getHumanNameById(id); }).filter(Boolean).join(', ') || 'None' },
+                { label: 'Family', value: (human.family || []).map(function (id) { return getHumanNameById(id); }).filter(Boolean).join(', ') || 'None' }
+            ]
+        },
+        {
+            title: 'NOTES', items: [
+                { label: 'Notes', value: human.extraNotes || 'No notes' }
+            ]
+        }
     ];
 
     sections.forEach(section => {
@@ -9587,14 +8879,14 @@ function renderConnectionsGraph(connections, graphContainer) {
     }
     graphContainer.innerHTML = '';
 
-    var people = [...new Set(connections.flatMap(function(conn) { return [conn.person1, conn.person2]; }))];
+    var people = [...new Set(connections.flatMap(function (conn) { return [conn.person1, conn.person2]; }))];
 
     var centerX = graphContainer.offsetWidth / 2;
     var centerY = graphContainer.offsetHeight / 2;
     var radius = Math.min(centerX, centerY) * 0.7;
 
     var personPositions = {};
-    people.forEach(function(person, index) {
+    people.forEach(function (person, index) {
         var angle = (index / people.length) * Math.PI * 2;
         var x = centerX + Math.cos(angle) * radius - 30;
         var y = centerY + Math.sin(angle) * radius - 30;
@@ -9609,7 +8901,7 @@ function renderConnectionsGraph(connections, graphContainer) {
         graphContainer.appendChild(node);
     });
 
-    connections.forEach(function(connection) {
+    connections.forEach(function (connection) {
         var pos1 = personPositions[connection.person1];
         var pos2 = personPositions[connection.person2];
 
@@ -9675,7 +8967,7 @@ function renderForceGraphInElement(container, opts) {
 
     if (connections.length > 0) {
         /* Build graph from connections data */
-        connections.forEach(function(c) {
+        connections.forEach(function (c) {
             if (!nodeMap[c.person1]) addNode(c.person1, c.person1, 'human', null);
             if (!nodeMap[c.person2]) addNode(c.person2, c.person2, 'human', null);
             links.push({
@@ -9688,12 +8980,12 @@ function renderForceGraphInElement(container, opts) {
         });
     } else {
         /* Build full graph from data */
-        humans.forEach(function(h) { if (h && h.id) addNode(h.id, h.name || h.id, 'human', h); });
-        others.forEach(function(o) { if (o && o.id) addNode(o.name || o.id, o.name || o.id, 'other', o); });
+        humans.forEach(function (h) { if (h && h.id) addNode(h.id, h.name || h.id, 'human', h); });
+        others.forEach(function (o) { if (o && o.id) addNode(o.name || o.id, o.name || o.id, 'other', o); });
 
         if (window.pazatorRelationships) {
             var rels = window.pazatorRelationships.getAll();
-            rels.forEach(function(r) {
+            rels.forEach(function (r) {
                 var src = nodeMap[r.sourceId];
                 var tgt = nodeMap[r.targetId];
                 if (src && tgt) {
@@ -9713,9 +9005,9 @@ function renderForceGraphInElement(container, opts) {
         /* Add shared-attribute connections */
         var attrFields = ['workplace', 'nationality', 'religion', 'countryOfOrigin', 'politicalView', 'ethnicity'];
         var attrIndex = {};
-        humans.forEach(function(h) {
+        humans.forEach(function (h) {
             if (!h || !h.id) return;
-            attrFields.forEach(function(f) {
+            attrFields.forEach(function (f) {
                 var val = h[f];
                 if (!val) return;
                 if (!attrIndex[f]) attrIndex[f] = {};
@@ -9723,13 +9015,13 @@ function renderForceGraphInElement(container, opts) {
                 attrIndex[f][val].push(h.id);
             });
         });
-        Object.keys(attrIndex).forEach(function(field) {
-            Object.keys(attrIndex[field]).forEach(function(val) {
+        Object.keys(attrIndex).forEach(function (field) {
+            Object.keys(attrIndex[field]).forEach(function (val) {
                 var ids = attrIndex[field][val];
                 if (ids.length < 2) return;
                 for (var i = 0; i < Math.min(ids.length, 10); i++) {
                     for (var j = i + 1; j < Math.min(ids.length, 10); j++) {
-                        var alreadyLinked = links.some(function(l) {
+                        var alreadyLinked = links.some(function (l) {
                             return (l.source === ids[i] && l.target === ids[j]) || (l.source === ids[j] && l.target === ids[i]);
                         });
                         if (!alreadyLinked) {
@@ -9765,7 +9057,7 @@ function renderForceGraphInElement(container, opts) {
 
         var zoom = d3.zoom()
             .scaleExtent([0.1, 4])
-            .on('zoom', function(event) {
+            .on('zoom', function (event) {
                 g.attr('transform', event.transform);
             });
         svg.call(zoom);
@@ -9803,18 +9095,18 @@ function renderForceGraphInElement(container, opts) {
         var link = linkGroup.selectAll('line')
             .data(links)
             .enter().append('line')
-            .attr('stroke', function(d) { return d.color || 'rgba(255,255,255,0.2)'; })
-            .attr('stroke-width', function(d) { return (d.strength || 0.5) * 2 + 0.5; })
+            .attr('stroke', function (d) { return d.color || 'rgba(255,255,255,0.2)'; })
+            .attr('stroke-width', function (d) { return (d.strength || 0.5) * 2 + 0.5; })
             .attr('stroke-opacity', 0.6)
-            .attr('stroke-dasharray', function(d) { return d.dashed ? '4,4' : null; })
-            .attr('marker-end', function(d) { return d.type ? 'url(#arrow)' : null; });
+            .attr('stroke-dasharray', function (d) { return d.dashed ? '4,4' : null; })
+            .attr('marker-end', function (d) { return d.type ? 'url(#arrow)' : null; });
 
         /* Link labels */
         var linkLabelGroup = g.append('g').attr('class', 'link-labels');
         var linkLabel = linkLabelGroup.selectAll('text')
             .data(links)
             .enter().append('text')
-            .text(function(d) { return d.label; })
+            .text(function (d) { return d.label; })
             .attr('font-size', '9px')
             .attr('fill', 'rgba(255,255,255,0.4)')
             .attr('text-anchor', 'middle')
@@ -9826,7 +9118,7 @@ function renderForceGraphInElement(container, opts) {
             .data(nodes)
             .enter().append('g')
             .attr('cursor', 'pointer')
-            .on('click', function(event, d) {
+            .on('click', function (event, d) {
                 event.stopPropagation();
                 if (d.data && d.data.id) {
                     if (d.type === 'human') {
@@ -9836,11 +9128,11 @@ function renderForceGraphInElement(container, opts) {
                     }
                 } else if (d.id && !d.data) {
                     /* Try to find by name */
-                    var found = pazatorData.humans.find(function(h) { return h.name === d.id || h.id === d.id; });
+                    var found = pazatorData.humans.find(function (h) { return h.name === d.id || h.id === d.id; });
                     if (found && typeof openSlidePanel === 'function') openSlidePanel(found.id, 'human');
                 }
             })
-            .on('mouseenter', function(event, d) {
+            .on('mouseenter', function (event, d) {
                 tooltip.transition().duration(200).style('opacity', 1);
                 var html = '<strong>' + escapeHtml(d.label || d.id) + '</strong>';
                 html += '<br/><span style="color:#888;">' + d.type + '</span>';
@@ -9848,30 +9140,30 @@ function renderForceGraphInElement(container, opts) {
                 tooltip.html(html)
                     .style('left', (event.offsetX + 10) + 'px')
                     .style('top', (event.offsetY - 10) + 'px');
-                d3.select(this).select('circle').transition().duration(200).attr('r', function(d) {
+                d3.select(this).select('circle').transition().duration(200).attr('r', function (d) {
                     return d.type === 'human' ? 10 : 8;
                 });
             })
-            .on('mousemove', function(event) {
+            .on('mousemove', function (event) {
                 tooltip.style('left', (event.offsetX + 10) + 'px').style('top', (event.offsetY - 10) + 'px');
             })
-            .on('mouseleave', function() {
+            .on('mouseleave', function () {
                 tooltip.transition().duration(300).style('opacity', 0);
-                d3.select(this).select('circle').transition().duration(200).attr('r', function(d) {
+                d3.select(this).select('circle').transition().duration(200).attr('r', function (d) {
                     return d.type === 'human' ? 7 : 5;
                 });
             })
             .call(d3.drag()
-                .on('start', function(event, d) {
+                .on('start', function (event, d) {
                     if (!event.active) simulation.alphaTarget(0.3).restart();
                     d.fx = d.x;
                     d.fy = d.y;
                 })
-                .on('drag', function(event, d) {
+                .on('drag', function (event, d) {
                     d.fx = event.x;
                     d.fy = event.y;
                 })
-                .on('end', function(event, d) {
+                .on('end', function (event, d) {
                     if (!event.active) simulation.alphaTarget(0);
                     d.fx = null;
                     d.fy = null;
@@ -9879,36 +9171,36 @@ function renderForceGraphInElement(container, opts) {
             );
 
         node.append('circle')
-            .attr('r', function(d) { return d.type === 'human' ? 7 : 5; })
-            .attr('fill', function(d) { return d.color || '#666'; })
+            .attr('r', function (d) { return d.type === 'human' ? 7 : 5; })
+            .attr('fill', function (d) { return d.color || '#666'; })
             .attr('stroke', 'rgba(255,255,255,0.3)')
             .attr('stroke-width', 1.5);
 
         node.append('text')
-            .text(function(d) { return (d.label || d.id).length > 12 ? (d.label || d.id).substring(0, 12) + '...' : (d.label || d.id); })
-            .attr('dx', function(d) { return d.type === 'human' ? 12 : 10; })
+            .text(function (d) { return (d.label || d.id).length > 12 ? (d.label || d.id).substring(0, 12) + '...' : (d.label || d.id); })
+            .attr('dx', function (d) { return d.type === 'human' ? 12 : 10; })
             .attr('dy', 4)
-            .attr('font-size', function(d) { return d.type === 'human' ? '10px' : '9px'; })
+            .attr('font-size', function (d) { return d.type === 'human' ? '10px' : '9px'; })
             .attr('fill', 'rgba(255,255,255,0.7)')
             .style('pointer-events', 'none')
             .style('text-shadow', '0 1px 3px rgba(0,0,0,0.8)');
 
         /* Force simulation */
         var simulation = d3.forceSimulation(nodes)
-            .force('link', d3.forceLink(links).id(function(d) { return d.id; }).distance(80).strength(function(d) { return d.strength || 0.5; }))
+            .force('link', d3.forceLink(links).id(function (d) { return d.id; }).distance(80).strength(function (d) { return d.strength || 0.5; }))
             .force('charge', d3.forceManyBody().strength(-200))
             .force('center', d3.forceCenter(width / 2, height / 2))
-            .force('collision', d3.forceCollide().radius(function(d) { return d.type === 'human' ? 15 : 12; }))
-            .on('tick', function() {
+            .force('collision', d3.forceCollide().radius(function (d) { return d.type === 'human' ? 15 : 12; }))
+            .on('tick', function () {
                 link
-                    .attr('x1', function(d) { return d.source.x; })
-                    .attr('y1', function(d) { return d.source.y; })
-                    .attr('x2', function(d) { return d.target.x; })
-                    .attr('y2', function(d) { return d.target.y; });
+                    .attr('x1', function (d) { return d.source.x; })
+                    .attr('y1', function (d) { return d.source.y; })
+                    .attr('x2', function (d) { return d.target.x; })
+                    .attr('y2', function (d) { return d.target.y; });
                 linkLabel
-                    .attr('x', function(d) { return (d.source.x + d.target.x) / 2; })
-                    .attr('y', function(d) { return (d.source.y + d.target.y) / 2; });
-                node.attr('transform', function(d) { return 'translate(' + d.x + ',' + d.y + ')'; });
+                    .attr('x', function (d) { return (d.source.x + d.target.x) / 2; })
+                    .attr('y', function (d) { return (d.source.y + d.target.y) / 2; });
+                node.attr('transform', function (d) { return 'translate(' + d.x + ',' + d.y + ')'; });
             });
 
         /* Initial zoom to fit */
@@ -9916,7 +9208,7 @@ function renderForceGraphInElement(container, opts) {
         svg.call(zoom.transform, initialTransform);
 
         /* Resize observer */
-        var resizeObserver = new ResizeObserver(function() {
+        var resizeObserver = new ResizeObserver(function () {
             var w = container.clientWidth;
             var h = container.clientHeight;
             if (w > 0 && h > 0) {
@@ -9943,9 +9235,9 @@ function renderForceGraphInElement(container, opts) {
 
 function getEntityNameById(id) {
     if (!id) return 'Unknown';
-    var h = pazatorData.humans.find(function(x) { return x.id === id; });
+    var h = pazatorData.humans.find(function (x) { return x.id === id; });
     if (h) return h.name;
-    var o = pazatorData.others.find(function(x) { return x.id === id; });
+    var o = pazatorData.others.find(function (x) { return x.id === id; });
     return o ? o.name : id;
 }
 
@@ -9984,11 +9276,11 @@ function highlightPathOnGraph(container, path) {
     var nodeSel = container._nodeSelection;
     if (!linkSel || !nodeSel) return;
 
-    linkSel.attr('stroke', function(d) { return d.color || 'rgba(255,255,255,0.2)'; })
-        .attr('stroke-width', function(d) { return (d.strength || 0.5) * 2 + 0.5; })
+    linkSel.attr('stroke', function (d) { return d.color || 'rgba(255,255,255,0.2)'; })
+        .attr('stroke-width', function (d) { return (d.strength || 0.5) * 2 + 0.5; })
         .attr('stroke-opacity', 0.6);
     nodeSel.select('circle').attr('stroke', 'rgba(255,255,255,0.3)').attr('stroke-width', 1.5);
-    linkSel.attr('stroke-dasharray', function(d) { return d.dashed ? '4,4' : null; });
+    linkSel.attr('stroke-dasharray', function (d) { return d.dashed ? '4,4' : null; });
 
     var pathNodeIds = new Set();
     var pathEdges = [];
@@ -10001,13 +9293,13 @@ function highlightPathOnGraph(container, path) {
     }
     var edgeSet = new Set(pathEdges);
 
-    nodeSel.each(function(d) {
+    nodeSel.each(function (d) {
         var circle = d3.select(this).select('circle');
         if (pathNodeIds.has(d.id)) {
             circle.attr('stroke', '#00ff88').attr('stroke-width', 3);
         }
     });
-    linkSel.each(function(d) {
+    linkSel.each(function (d) {
         var sid = typeof d.source === 'object' ? d.source.id : d.source;
         var tid = typeof d.target === 'object' ? d.target.id : d.target;
         var key = sid < tid ? sid + '|' + tid : tid + '|' + sid;
@@ -10022,10 +9314,10 @@ function clearPathHighlightFromGraph(container) {
     var linkSel = container._linkSelection;
     var nodeSel = container._nodeSelection;
     if (!linkSel || !nodeSel) return;
-    linkSel.attr('stroke', function(d) { return d.color || 'rgba(255,255,255,0.2)'; })
-        .attr('stroke-width', function(d) { return (d.strength || 0.5) * 2 + 0.5; })
+    linkSel.attr('stroke', function (d) { return d.color || 'rgba(255,255,255,0.2)'; })
+        .attr('stroke-width', function (d) { return (d.strength || 0.5) * 2 + 0.5; })
         .attr('stroke-opacity', 0.6)
-        .attr('stroke-dasharray', function(d) { return d.dashed ? '4,4' : null; });
+        .attr('stroke-dasharray', function (d) { return d.dashed ? '4,4' : null; });
     nodeSel.select('circle').attr('stroke', 'rgba(255,255,255,0.3)').attr('stroke-width', 1.5);
     var resultEl = container._pathResultEl;
     if (resultEl) resultEl.innerHTML = '';
@@ -10049,7 +9341,7 @@ function populateGraphEntitySelect(selectId, excludeId) {
     var sel = document.getElementById(selectId);
     if (!sel) return;
     sel.innerHTML = '<option value="">Select entity...</option>';
-    pazatorData.humans.forEach(function(h) {
+    pazatorData.humans.forEach(function (h) {
         if (h.id !== excludeId) {
             var opt = document.createElement('option');
             opt.value = h.id;
@@ -10057,7 +9349,7 @@ function populateGraphEntitySelect(selectId, excludeId) {
             sel.appendChild(opt);
         }
     });
-    pazatorData.others.forEach(function(o) {
+    pazatorData.others.forEach(function (o) {
         if (o.id !== excludeId) {
             var opt = document.createElement('option');
             opt.value = o.id;
@@ -10142,8 +9434,8 @@ function openGraphView() {
     if (!container) return;
     container._pathResultEl = document.getElementById('pathResult');
 
-    requestAnimationFrame(function() {
-        requestAnimationFrame(function() {
+    requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
             var w = container.clientWidth || 800;
             var h = container.clientHeight || 600;
             renderForceGraphInElement(container, {
@@ -10186,24 +9478,24 @@ function showAddRelationship(entityId, entityType) {
     var entityName = 'Unknown';
     if (entityType === 'human') entityName = getHumanNameById(entityId);
     else {
-        var e = pazatorData.others.find(function(o) { return o.id === entityId; });
+        var e = pazatorData.others.find(function (o) { return o.id === entityId; });
         if (e) entityName = e.name;
     }
 
     var candidateOptions = '';
-    pazatorData.humans.forEach(function(h) {
+    pazatorData.humans.forEach(function (h) {
         if (h.id !== entityId) {
             candidateOptions += '<option value="' + h.id + '">' + escapeHtml(h.name) + ' (Human)</option>';
         }
     });
-    pazatorData.others.forEach(function(o) {
+    pazatorData.others.forEach(function (o) {
         if (o.id !== entityId) {
             candidateOptions += '<option value="' + o.id + '" data-type="other">' + escapeHtml(o.name) + ' (Entity)</option>';
         }
     });
 
     var typeOptions = '';
-    types.forEach(function(t) {
+    types.forEach(function (t) {
         typeOptions += '<option value="' + t.key + '" style="color:' + t.color + ';">' + t.label + '</option>';
     });
 
@@ -10256,9 +9548,9 @@ function confirmAddRelationship(entityId, entityType) {
 
     if (window.pazatorRelationships) {
         var existing = window.pazatorRelationships.getForEntity(entityId, entityType);
-        var alreadyExists = existing.some(function(r) {
+        var alreadyExists = existing.some(function (r) {
             return (r.sourceId === entityId && r.targetId === targetId) ||
-                   (r.sourceId === targetId && r.targetId === entityId);
+                (r.sourceId === targetId && r.targetId === entityId);
         });
         if (alreadyExists) {
             showAlert('A relationship between these entities already exists', 'Error', 'error');
@@ -10297,7 +9589,7 @@ function refreshDetailView() {
 
 /* Listen for relationship changes to refresh UI */
 if (window.pazatorRelationships) {
-    window.pazatorRelationships.on('changed', function() {
+    window.pazatorRelationships.on('changed', function () {
         if (window.pazatorStore) {
             window.pazatorStore.markDirty('relationships');
         }
@@ -10325,10 +9617,10 @@ function renderConnectionsList(connections, listContainer) {
 
 function calculateCreditScore(human) {
     let score = 185;
-    
+
     const positiveTags = ['rich', 'professional', 'trusted', 'reliable', 'honest', 'successful', 'educated', 'business', 'leader', 'owner', 'manager', 'doctor', 'engineer', 'investor', 'executive', 'professional', 'veteran'];
     const negativeTags = ['suspicious', 'fraud', 'dangerous', 'criminal', 'scam', 'untrusted', 'debt', 'bankrupt', 'unemployed', 'unstable'];
-    
+
     if (human.tags && human.tags.length > 0) {
         human.tags.forEach(tag => {
             const t = tag.toLowerCase();
@@ -10336,7 +9628,7 @@ function calculateCreditScore(human) {
             if (negativeTags.includes(t)) score -= 25;
         });
     }
-    
+
     if (human.workplace) {
         const wp = human.workplace.toLowerCase();
         if (wp.includes('bank') || wp.includes('corp') || wp.includes('inc') || wp.includes('llc') || wp.includes('ltd') || wp.includes('group')) {
@@ -10345,21 +9637,21 @@ function calculateCreditScore(human) {
             score += 10;
         }
     }
-    
+
     if (human.socialClass === '1%') score = Math.min(370, score + 100);
     else if (human.socialClass === 'high class') score = Math.min(370, score + 50);
     else if (human.socialClass === 'low class') score = Math.max(0, score - 50);
-    
+
     const connections = (human.friends ? human.friends.length : 0) + (human.family ? human.family.length : 0);
     if (connections > 5) score = Math.min(370, score + 20);
     else if (connections === 0) score = Math.max(0, score - 20);
-    
+
     if (human.extraNotes) {
         const notes = human.extraNotes.toLowerCase();
         if (notes.includes('trust') || notes.includes('reliable') || notes.includes('good') || notes.includes('stable')) score += 20;
         if (notes.includes('suspicious') || notes.includes('warning') || notes.includes('risk') || notes.includes('investigate')) score -= 35;
     }
-    
+
     return Math.max(0, Math.min(370, Math.round(score)));
 }
 
@@ -10383,7 +9675,7 @@ function showCreditEvalModal() {
     const closeBtn = document.getElementById('creditEvalCloseBtn');
     const icon = document.getElementById('creditEvalIcon');
     const title = document.getElementById('creditEvalTitle');
-    
+
     if (modal) modal.classList.add('active');
     if (progressContainer) progressContainer.style.display = 'block';
     if (resultsContainer) resultsContainer.style.display = 'none';
@@ -10394,7 +9686,7 @@ function showCreditEvalModal() {
         icon.innerHTML = '<i class="fas fa-brain fa-spin"></i>';
     }
     if (title) title.textContent = 'AI Credit Evaluation';
-    
+
     updateCreditEvalProgress(0, pazatorData.humans.length, '-');
 }
 
@@ -10402,7 +9694,7 @@ function updateCreditEvalProgress(current, total, currentName) {
     const progressFill = document.getElementById('creditEvalProgressFill');
     const progressText = document.getElementById('creditEvalProgressText');
     const currentNameEl = document.getElementById('creditEvalCurrentName');
-    
+
     const pct = total > 0 ? Math.round((current / total) * 100) : 0;
     if (progressFill) progressFill.style.width = pct + '%';
     if (progressText) progressText.textContent = `${current} / ${total}`;
@@ -10416,7 +9708,7 @@ function showCreditEvalComplete(results) {
     const closeBtn = document.getElementById('creditEvalCloseBtn');
     const icon = document.getElementById('creditEvalIcon');
     const title = document.getElementById('creditEvalTitle');
-    
+
     if (progressContainer) progressContainer.style.display = 'none';
     if (resultsContainer) resultsContainer.style.display = 'block';
     if (closeBtn) closeBtn.style.display = 'inline-flex';
@@ -10426,12 +9718,12 @@ function showCreditEvalComplete(results) {
         icon.innerHTML = '<i class="fas fa-check"></i>';
     }
     if (title) title.textContent = 'Evaluation Complete';
-    
+
     const highCount = document.getElementById('creditEvalHighCount');
     const mediumCount = document.getElementById('creditEvalMediumCount');
     const lowCount = document.getElementById('creditEvalLowCount');
     const detail = document.getElementById('creditEvalDetail');
-    
+
     if (highCount) highCount.textContent = results.high;
     if (mediumCount) mediumCount.textContent = results.medium;
     if (lowCount) lowCount.textContent = results.low;
@@ -10452,14 +9744,14 @@ async function refreshPersonCredits() {
         showAlert('No humans to evaluate. Add some people first.', 'No Data', 'info');
         return;
     }
-    
+
     showCreditEvalModal();
-    
+
     if (refreshCreditsBtn) {
         refreshCreditsBtn.disabled = true;
         refreshCreditsBtn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Evaluating...';
     }
-    
+
     const humansToEvaluate = pazatorData.humans.map(h => ({
         id: h.id,
         name: h.name,
@@ -10472,7 +9764,7 @@ async function refreshPersonCredits() {
         extraNotes: h.extraNotes || '',
         tags: h.tags || []
     }));
-    
+
     const contextPrompt = `You are a credit risk analyst. Evaluate each person's credit score based on ALL available data.
     
 Consider these factors:
@@ -10501,9 +9793,9 @@ IMPORTANT: Return scores for ALL ${humansToEvaluate.length} people. Be realistic
             { role: "system", content: contextPrompt },
             { role: "user", content: "Here is the data:\n" + JSON.stringify(humansToEvaluate, null, 2) + "\n\nReturn credit scores for all people." }
         ]);
-        
+
         const responseText = aiResponse.content || String(aiResponse);
-        
+
         let scores = [];
         try {
             const parsed = JSON.parse(responseText);
@@ -10515,20 +9807,20 @@ IMPORTANT: Return scores for ALL ${humansToEvaluate.length} people. Be realistic
             if (match) {
                 try {
                     scores = JSON.parse(match[0]);
-                } catch {}
+                } catch { }
             }
         }
-        
+
         const scoreMap = new Map();
         scores.forEach(s => {
             if (s && s.id && typeof s.creditScore === 'number') {
                 scoreMap.set(s.id, Math.max(0, Math.min(370, Math.round(s.creditScore))));
             }
         });
-        
+
         let evaluated = 0;
         const total = pazatorData.humans.length;
-        
+
         for (const human of pazatorData.humans) {
             const score = scoreMap.get(human.id);
             if (score !== undefined) {
@@ -10536,22 +9828,22 @@ IMPORTANT: Return scores for ALL ${humansToEvaluate.length} people. Be realistic
             } else {
                 human.credit = Math.floor(Math.random() * 150) + 110;
             }
-            
+
             human.socialClass = inferSocialClass(human.credit);
-            
+
             evaluated++;
             updateCreditEvalProgress(evaluated, total, human.name);
-            
+
             await new Promise(r => setTimeout(r, 50));
         }
-        
+
         const highCount = pazatorData.humans.filter(h => h.credit < 125).length;
         const mediumCount = pazatorData.humans.filter(h => h.credit >= 125 && h.credit < 250).length;
         const lowCount = pazatorData.humans.filter(h => h.credit >= 250).length;
         const avgScore = Math.round(pazatorData.humans.reduce((sum, h) => sum + h.credit, 0) / pazatorData.humans.length);
         const minScore = Math.min(...pazatorData.humans.map(h => h.credit));
         const maxScore = Math.max(...pazatorData.humans.map(h => h.credit));
-        
+
         showCreditEvalComplete({
             high: highCount,
             medium: mediumCount,
@@ -10561,27 +9853,27 @@ IMPORTANT: Return scores for ALL ${humansToEvaluate.length} people. Be realistic
             min: minScore,
             max: maxScore
         });
-        
+
         saveData();
         renderObjectCanvas();
         updateCreditStats();
-        
+
     } catch (error) {
         console.error('AI credit evaluation failed:', error);
         showAlert('AI evaluation failed: ' + error.message + '. Using fallback calculation.', 'Error', 'error');
-        
+
         pazatorData.humans.forEach(human => {
             human.credit = calculateCreditScore(human);
             human.credit = Math.round(human.credit * 3.7);
             human.socialClass = inferSocialClass(human.credit);
         });
-        
+
         saveData();
         renderObjectCanvas();
         updateCreditStats();
         hideCreditEvalModal();
     }
-    
+
     if (refreshCreditsBtn) {
         refreshCreditsBtn.disabled = false;
         refreshCreditsBtn.innerHTML = '<i class="fas fa-sync"></i> Refresh Credits';
@@ -11664,6 +10956,12 @@ try {
     startAutoSave();
     console.log(' Auto-save system started');
 
+    if (window.pazatorWorkflow && !window.pazatorWorkflow._initialized) {
+        window.pazatorWorkflow.init();
+        window.pazatorWorkflow._initialized = true;
+        console.log(' Workflow engine initialized');
+    }
+
     if (pazatorData.humans.length === 0 && pazatorData.others.length === 0) {
         saveData(true);
         console.log(' Initial data saved');
@@ -11757,10 +11055,10 @@ function initializeSearch() {
 
     if (!searchInput || !resultsContainer) return;
 
-    var debouncedSearch = window.PazatorUI ? PazatorUI.debounce(function() {
+    var debouncedSearch = window.PazatorUI ? PazatorUI.debounce(function () {
         performSearch(searchInput.value.trim());
     }, 500) : null;
-    searchInput.addEventListener('input', function() {
+    searchInput.addEventListener('input', function () {
         if (debouncedSearch) debouncedSearch();
         else performSearch(searchInput.value.trim());
         if (clearBtn) clearBtn.classList.toggle('visible', searchInput.value.length > 0);
@@ -12216,8 +11514,8 @@ function showToast(title, message, type, duration) {
     toast.innerHTML =
         '<div class="toast-icon ' + type + '"><i class="fas ' + (icons[type] || 'fa-info-circle') + '"></i></div>' +
         '<div class="toast-body">' +
-            (title ? '<div class="toast-title">' + escapeHtml(title) + '</div>' : '') +
-            '<div class="toast-message">' + escapeHtml(message) + '</div>' +
+        (title ? '<div class="toast-title">' + escapeHtml(title) + '</div>' : '') +
+        '<div class="toast-message">' + escapeHtml(message) + '</div>' +
         '</div>';
 
     container.appendChild(toast);
@@ -12308,8 +11606,8 @@ function renderCasesList() {
     const container = document.getElementById('casesList');
     const filter = document.getElementById('caseStatusFilter')?.value || 'all';
 
-    const filteredCases = filter === 'all' 
-        ? cases 
+    const filteredCases = filter === 'all'
+        ? cases
         : cases.filter(c => c.status === filter);
 
     if (filteredCases.length === 0) {
@@ -12350,7 +11648,7 @@ function selectCase(caseId) {
     if (!caseData) return;
 
     document.getElementById('caseTitle').textContent = caseData.title;
-    
+
     const statusBadge = document.getElementById('caseStatusBadge');
     statusBadge.textContent = caseData.status.replace('-', ' ');
     statusBadge.className = 'case-status-badge ' + caseData.status;
@@ -12402,7 +11700,7 @@ function renderCaseEntities(caseData) {
 
         const icon = human ? 'fa-user' : 'fa-building';
         const typeLabel = human ? 'human' : 'other';
-        
+
         return `
             <div class="case-entity-card" onclick="viewDetailFromCase('${entityId}', '${typeLabel}')">
                 <i class="fas ${icon}"></i>
@@ -12498,7 +11796,7 @@ Be concise and actionable.
 
         zorBtn.disabled = false;
         zorBtn.innerHTML = '<i class="fas fa-robot"></i> Hand off to Zor';
-        
+
         saveCases();
         selectCase(selectedCaseId);
         showFloatingNotification('Zor analysis complete', 'success');
@@ -12509,10 +11807,10 @@ Be concise and actionable.
             content: `<strong>Zor Error</strong>: Analysis failed`,
             timestamp: Date.now()
         });
-        
+
         zorBtn.disabled = false;
         zorBtn.innerHTML = '<i class="fas fa-robot"></i> Hand off to Zor';
-        
+
         saveCases();
         selectCase(selectedCaseId);
         showFloatingNotification('Zor analysis failed', 'error');
@@ -12611,9 +11909,9 @@ function createNewCase() {
 
     cases.push(newCase);
     saveCases();
-    
+
     document.querySelector('.case-modal')?.remove();
-    
+
     renderCasesList();
     selectCase(newCase.id);
     showFloatingNotification('Case created successfully', 'success');
@@ -12674,7 +11972,7 @@ function saveCaseEdits() {
     }
 
     const oldStatus = caseData.status;
-    
+
     caseData.title = title;
     caseData.description = description;
     caseData.status = status;
@@ -12699,13 +11997,13 @@ function deleteCase() {
 
     cases = cases.filter(c => c.id !== selectedCaseId);
     saveCases();
-    
+
     document.querySelector('.case-modal')?.remove();
-    
+
     selectedCaseId = null;
     document.getElementById('casesDetail').style.display = 'none';
     document.getElementById('casesWelcome').style.display = 'flex';
-    
+
     renderCasesList();
     showFloatingNotification('Case deleted', 'info');
 }
@@ -12831,9 +12129,9 @@ function addRelatedEntitiesToCase() {
     const relatedIds = new Set();
 
     caseData.entities.forEach(entityId => {
-        const entity = pazatorData.humans.find(h => h.id === entityId) 
+        const entity = pazatorData.humans.find(h => h.id === entityId)
             || pazatorData.others.find(o => o.id === entityId);
-        
+
         if (entity) {
             if (entity.friends) {
                 entity.friends.forEach(friendId => relatedIds.add(friendId));
@@ -12867,7 +12165,7 @@ function addRelatedEntitiesToCase() {
     saveCases();
     document.querySelector('.case-modal')?.remove();
     selectCase(selectedCaseId);
-    
+
     if (added > 0) {
         showFloatingNotification(`Added ${added} related entities`, 'success');
     } else {
@@ -12879,7 +12177,7 @@ function addEntityToCase(entityId, type) {
     const caseData = cases.find(c => c.id === selectedCaseId);
     if (!caseData || caseData.entities.includes(entityId)) return;
 
-    const entity = type === 'human' 
+    const entity = type === 'human'
         ? pazatorData.humans.find(h => h.id === entityId)
         : pazatorData.others.find(o => o.id === entityId);
 
@@ -12978,7 +12276,7 @@ function renderCaseEvidence(caseData) {
         return;
     }
 
-    container.innerHTML = caseData.evidence.map(function(ev) {
+    container.innerHTML = caseData.evidence.map(function (ev) {
         var typeClass = 'evidence-intelligence';
         var icon = 'fa-brain';
         if (ev.type === 'threat') { typeClass = 'evidence-threat'; icon = 'fa-exclamation-triangle'; }
@@ -12988,16 +12286,16 @@ function renderCaseEvidence(caseData) {
         return '<div class="case-evidence-item">' +
             '<div class="evidence-icon ' + typeClass + '"><i class="fas ' + icon + '"></i></div>' +
             '<div class="evidence-info">' +
-                '<div class="evidence-title">' + escapeHtml(ev.title) + '</div>' +
-                '<div class="evidence-meta">' + (ev.findingCount || 0) + ' finding' + (ev.findingCount === 1 ? '' : 's') + ' &middot; ' + new Date(ev.addedAt).toLocaleDateString() + '</div>' +
+            '<div class="evidence-title">' + escapeHtml(ev.title) + '</div>' +
+            '<div class="evidence-meta">' + (ev.findingCount || 0) + ' finding' + (ev.findingCount === 1 ? '' : 's') + ' &middot; ' + new Date(ev.addedAt).toLocaleDateString() + '</div>' +
             '</div>' +
             '<i class="fas fa-trash remove-evidence" onclick="removeEvidenceFromCase(\'' + caseData.id + '\', \'' + ev.id + '\')" title="Remove evidence"></i>' +
-        '</div>';
+            '</div>';
     }).join('');
 }
 
 function showAddEvidenceModal() {
-    var caseData = cases.find(function(c) { return c.id === selectedCaseId; });
+    var caseData = cases.find(function (c) { return c.id === selectedCaseId; });
     if (!caseData) return;
 
     loadAnalyses();
@@ -13007,7 +12305,7 @@ function showAddEvidenceModal() {
         return;
     }
 
-    var alreadyAdded = (caseData.evidence || []).map(function(e) { return e.id; });
+    var alreadyAdded = (caseData.evidence || []).map(function (e) { return e.id; });
 
     var modal = document.createElement('div');
     modal.className = 'modal case-modal';
@@ -13016,7 +12314,7 @@ function showAddEvidenceModal() {
         '<div class="modal-body">' +
         '<p style="color: #888; font-size: 0.85rem; margin-bottom: 12px;">Select from saved analysis results to attach as evidence to this case.</p>' +
         '<div class="evidence-picker-list">' +
-        analysesStore.filter(function(a) { return alreadyAdded.indexOf(a.id) < 0; }).map(function(a) {
+        analysesStore.filter(function (a) { return alreadyAdded.indexOf(a.id) < 0; }).map(function (a) {
             var typeClass = 'evidence-intelligence';
             var icon = 'fa-brain';
             if (a.type === 'threat') { typeClass = 'evidence-threat'; icon = 'fa-exclamation-triangle'; }
@@ -13025,13 +12323,13 @@ function showAddEvidenceModal() {
             return '<div class="evidence-picker-item" onclick="addEvidenceToCase(\'' + a.id + '\')">' +
                 '<div class="evidence-icon ' + typeClass + '" style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas ' + icon + '"></i></div>' +
                 '<div style="flex:1;min-width:0;">' +
-                    '<div style="color:#e0e0e0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(a.title) + '</div>' +
-                    '<div style="color:#666;font-size:0.8rem;">' + a.findings.length + ' finding' + (a.findings.length === 1 ? '' : 's') + ' &middot; ' + a.type + ' &middot; ' + new Date(a.createdAt).toLocaleDateString() + '</div>' +
+                '<div style="color:#e0e0e0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(a.title) + '</div>' +
+                '<div style="color:#666;font-size:0.8rem;">' + a.findings.length + ' finding' + (a.findings.length === 1 ? '' : 's') + ' &middot; ' + a.type + ' &middot; ' + new Date(a.createdAt).toLocaleDateString() + '</div>' +
                 '</div>' +
                 '<i class="fas fa-plus" style="color:#818cf8;cursor:pointer;"></i>' +
-            '</div>';
+                '</div>';
         }).join('') +
-        (analysesStore.filter(function(a) { return alreadyAdded.indexOf(a.id) < 0; }).length === 0 ? '<p style="color:#666;text-align:center;padding:20px;">All analysis results are already attached as evidence</p>' : '') +
+        (analysesStore.filter(function (a) { return alreadyAdded.indexOf(a.id) < 0; }).length === 0 ? '<p style="color:#666;text-align:center;padding:20px;">All analysis results are already attached as evidence</p>' : '') +
         '</div></div>' +
         '<div class="form-actions"><button class="btn btn-secondary" onclick="this.closest(\'.modal\').remove()">Close</button></div>' +
         '</div>';
@@ -13040,14 +12338,14 @@ function showAddEvidenceModal() {
 }
 
 function addEvidenceToCase(analysisId) {
-    var caseData = cases.find(function(c) { return c.id === selectedCaseId; });
+    var caseData = cases.find(function (c) { return c.id === selectedCaseId; });
     if (!caseData) return;
 
-    var analysis = analysesStore.find(function(a) { return a.id === analysisId; });
+    var analysis = analysesStore.find(function (a) { return a.id === analysisId; });
     if (!analysis) return;
 
     if (!caseData.evidence) caseData.evidence = [];
-    if (caseData.evidence.find(function(e) { return e.id === analysisId; })) return;
+    if (caseData.evidence.find(function (e) { return e.id === analysisId; })) return;
 
     caseData.evidence.push({
         id: analysis.id,
@@ -13070,10 +12368,10 @@ function addEvidenceToCase(analysisId) {
 }
 
 function removeEvidenceFromCase(caseId, evidenceId) {
-    var caseData = cases.find(function(c) { return c.id === caseId; });
+    var caseData = cases.find(function (c) { return c.id === caseId; });
     if (!caseData) return;
 
-    caseData.evidence = (caseData.evidence || []).filter(function(e) { return e.id !== evidenceId; });
+    caseData.evidence = (caseData.evidence || []).filter(function (e) { return e.id !== evidenceId; });
     saveCases();
     selectCase(caseId);
 }
@@ -13091,7 +12389,7 @@ function openSettingsModal() {
 
     modal.classList.add('active');
 
-    modal.onclick = function(e) {
+    modal.onclick = function (e) {
         if (e.target === modal) {
             closeSettingsModal();
         }
@@ -13224,7 +12522,7 @@ function initGeminiUI() {
     if (!modelSelect || !apiKeyInput) return;
 
     if (window.pazatorGemini && window.pazatorGemini.models) {
-        modelSelect.innerHTML = window.pazatorGemini.models.map(function(m) {
+        modelSelect.innerHTML = window.pazatorGemini.models.map(function (m) {
             return '<option value="' + m.id + '">' + m.name + '</option>';
         }).join('');
     }
@@ -13237,14 +12535,14 @@ function initGeminiUI() {
 
     updateGeminiStatus();
 
-    apiKeyInput.addEventListener('input', function() {
+    apiKeyInput.addEventListener('input', function () {
         if (window.pazatorGemini) {
             window.pazatorGemini.setApiKey(this.value);
         }
         updateGeminiStatus();
     });
 
-    modelSelect.addEventListener('change', function() {
+    modelSelect.addEventListener('change', function () {
         if (window.pazatorGemini) {
             window.pazatorGemini.setModel(this.value);
         }
@@ -13630,7 +12928,7 @@ function initSettings() {
         var overlay = document.getElementById('passwordOverlay');
         if (overlay) {
             overlay.style.display = 'flex';
-            setTimeout(function() {
+            setTimeout(function () {
                 var input = document.getElementById('passwordUnlockInput');
                 if (input) input.focus();
             }, 100);
@@ -13640,8 +12938,8 @@ function initSettings() {
 }
 
 // Allow pressing Enter in the unlock input
-document.addEventListener('DOMContentLoaded', function() {
-    document.addEventListener('keydown', function(e) {
+document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('keydown', function (e) {
         if (e.key === 'Enter') {
             var overlay = document.getElementById('passwordOverlay');
             if (overlay && overlay.style.display !== 'none') {
@@ -13703,7 +13001,7 @@ const ZorTools = {
         search_people: {
             description: 'Search for people by name or any field (gender, nationality, workplace, threatLevel, tags, etc.). Returns matching people with basic info.',
             parameters: { query: 'Search term - matches against name and all fields' },
-            handler: function(params) {
+            handler: function (params) {
                 const query = (params.query || '').toLowerCase();
                 if (!query) return { count: 0, people: [] };
                 var humans = pazatorData.humans;
@@ -13721,12 +13019,12 @@ const ZorTools = {
                         };
                     }
                 }
-                const results = humans.filter(function(h) {
+                const results = humans.filter(function (h) {
                     return JSON.stringify(h).toLowerCase().includes(query);
                 });
                 return {
                     count: results.length,
-                    people: results.map(function(h) {
+                    people: results.map(function (h) {
                         return {
                             id: h.id, name: h.name, gender: h.gender,
                             nationality: h.nationality, workplace: h.workplace,
@@ -13740,7 +13038,7 @@ const ZorTools = {
         get_person: {
             description: 'Get full details of a specific person by ID or exact name.',
             parameters: { id: 'Person ID (optional if name provided)', name: 'Exact person name (optional if id provided)' },
-            handler: function(params) {
+            handler: function (params) {
                 var person = null;
                 if (params.id && window.pazatorStore) {
                     person = pazatorStore.getHumanById(params.id);
@@ -13749,8 +13047,8 @@ const ZorTools = {
                 }
                 if (!person) {
                     person = params.id
-                        ? pazatorData.humans.find(function(h) { return String(h.id) === String(params.id); })
-                        : pazatorData.humans.find(function(h) { return h.name.toLowerCase() === (params.name || '').toLowerCase(); });
+                        ? pazatorData.humans.find(function (h) { return String(h.id) === String(params.id); })
+                        : pazatorData.humans.find(function (h) { return h.name.toLowerCase() === (params.name || '').toLowerCase(); });
                 }
                 if (!person) return { found: false, message: 'Person not found' };
                 return { found: true, person: person };
@@ -13759,10 +13057,10 @@ const ZorTools = {
         list_all_people: {
             description: 'Get a lightweight list of all people (names and basic info only, not full details).',
             parameters: {},
-            handler: function() {
+            handler: function () {
                 return {
                     count: pazatorData.humans.length,
-                    people: pazatorData.humans.map(function(h) {
+                    people: pazatorData.humans.map(function (h) {
                         return { id: h.id, name: h.name, gender: h.gender, threatLevel: h.threatLevel || 'None', credit: h.credit };
                     })
                 };
@@ -13771,10 +13069,10 @@ const ZorTools = {
         list_all_entities: {
             description: 'Get a list of all organizations and non-person entities.',
             parameters: {},
-            handler: function() {
+            handler: function () {
                 return {
                     count: pazatorData.others.length,
-                    entities: pazatorData.others.map(function(o) {
+                    entities: pazatorData.others.map(function (o) {
                         return { id: o.id, name: o.name, note: o.note };
                     })
                 };
@@ -13783,22 +13081,22 @@ const ZorTools = {
         get_tags: {
             description: 'List all available tags in the system.',
             parameters: {},
-            handler: function() {
+            handler: function () {
                 return { tags: tags || [] };
             }
         },
         search_by_tag: {
             description: 'Find all people who have a specific tag assigned.',
             parameters: { tag: 'The exact tag name to search for' },
-            handler: function(params) {
+            handler: function (params) {
                 var tag = (params.tag || '').toLowerCase();
                 if (!tag) return { count: 0, people: [] };
-                var results = pazatorData.humans.filter(function(h) {
-                    return (h.tags || []).some(function(t) { return t.toLowerCase() === tag; });
+                var results = pazatorData.humans.filter(function (h) {
+                    return (h.tags || []).some(function (t) { return t.toLowerCase() === tag; });
                 });
                 return {
                     count: results.length,
-                    people: results.map(function(h) {
+                    people: results.map(function (h) {
                         return { id: h.id, name: h.name, gender: h.gender, threatLevel: h.threatLevel || 'None', credit: h.credit };
                     })
                 };
@@ -13807,15 +13105,15 @@ const ZorTools = {
         get_stats: {
             description: 'Get overall database statistics (counts, averages, risk summary).',
             parameters: {},
-            handler: function() {
+            handler: function () {
                 var totalHumans = pazatorData.humans.length;
                 var totalOthers = pazatorData.others.length;
-                var highRisk = pazatorData.humans.filter(function(h) {
+                var highRisk = pazatorData.humans.filter(function (h) {
                     var t = h.threatLevel || 'None';
                     return t === 'High' || t === 'Critical';
                 }).length;
                 var avgCredit = totalHumans > 0
-                    ? pazatorData.humans.reduce(function(s, h) { return s + (h.credit || 0); }, 0) / totalHumans
+                    ? pazatorData.humans.reduce(function (s, h) { return s + (h.credit || 0); }, 0) / totalHumans
                     : 0;
                 return {
                     totalHumans: totalHumans,
@@ -13831,9 +13129,9 @@ const ZorTools = {
         get_risk_summary: {
             description: 'Get the distribution of threat levels across all people.',
             parameters: {},
-            handler: function() {
+            handler: function () {
                 var levels = { None: 0, Low: 0, Medium: 0, High: 0, Critical: 0 };
-                pazatorData.humans.forEach(function(h) {
+                pazatorData.humans.forEach(function (h) {
                     var level = h.threatLevel || 'None';
                     if (levels[level] !== undefined) levels[level]++;
                     else levels[level] = 1;
@@ -13848,10 +13146,10 @@ const ZorTools = {
         list_cases: {
             description: 'List all open case files and missions.',
             parameters: {},
-            handler: function() {
+            handler: function () {
                 return {
                     count: cases.length,
-                    cases: cases.map(function(c) {
+                    cases: cases.map(function (c) {
                         return { id: c.id, title: c.title, status: c.status, severity: c.severity, description: (c.description || '').substring(0, 100) };
                     })
                 };
@@ -13860,7 +13158,7 @@ const ZorTools = {
         search_chats: {
             description: 'Search through archived chat message content for keywords.',
             parameters: { query: 'Search term' },
-            handler: function(params) {
+            handler: function (params) {
                 var query = (params.query || '').toLowerCase();
                 if (!query) return { count: 0, matches: [] };
                 var allChats = pazatorData && pazatorData.chats ? pazatorData.chats : [];
@@ -13882,10 +13180,10 @@ const ZorTools = {
         find_connections: {
             description: 'Find potential connections between people based on shared workplaces, tags, family, or other common fields.',
             parameters: { person_name: 'Name of a specific person to find connections for (optional)' },
-            handler: function(params) {
+            handler: function (params) {
                 var name = (params.person_name || '').toLowerCase();
                 var people = name
-                    ? pazatorData.humans.filter(function(h) { return h.name.toLowerCase().includes(name); })
+                    ? pazatorData.humans.filter(function (h) { return h.name.toLowerCase().includes(name); })
                     : pazatorData.humans;
                 var connections = [];
                 for (var i = 0; i < Math.min(people.length, 20); i++) {
@@ -13899,7 +13197,7 @@ const ZorTools = {
                             reasons.push('same nationality: ' + a.nationality);
                         }
                         if (a.tags && b.tags) {
-                            var shared = a.tags.filter(function(t) { return b.tags.indexOf(t) !== -1; });
+                            var shared = a.tags.filter(function (t) { return b.tags.indexOf(t) !== -1; });
                             if (shared.length > 0) reasons.push('shared tags: ' + shared.join(', '));
                         }
                         if (reasons.length > 0) {
@@ -13907,20 +13205,20 @@ const ZorTools = {
                         }
                     }
                 }
-                connections.sort(function(x, y) { return y.strength - x.strength; });
+                connections.sort(function (x, y) { return y.strength - x.strength; });
                 return { count: connections.length, connections: connections.slice(0, 20) };
             }
         },
         list_object_types: {
             description: 'List all object types in the system (e.g., gender, nationality, religion, politicalView, etc.) with counts.',
             parameters: {},
-            handler: function() {
+            handler: function () {
                 if (!window.pazatorObjects) return { types: [] };
                 var stats = pazatorObjects.getStats();
-                var types = pazatorObjects.getTypes().filter(function(t) { return (stats[t] || 0) > 0; });
+                var types = pazatorObjects.getTypes().filter(function (t) { return (stats[t] || 0) > 0; });
                 return {
                     count: types.length,
-                    types: types.map(function(t) {
+                    types: types.map(function (t) {
                         return { type: t, label: pazatorObjects.getTypeLabel(t), count: stats[t] || 0, icon: pazatorObjects.getTypeIcon(t) };
                     })
                 };
@@ -13929,7 +13227,7 @@ const ZorTools = {
         get_objects_by_type: {
             description: 'Get all objects of a specific type (e.g., "nationality", "religion", "politicalView", "workplace", "gender", "threatLevel"). Returns objects sorted by usage count.',
             parameters: { type: 'The object type name (e.g., "nationality", "religion", "politicalView", "workplace")' },
-            handler: function(params) {
+            handler: function (params) {
                 if (!window.pazatorObjects) return { count: 0, objects: [] };
                 var type = params.type || '';
                 var objects = pazatorObjects.getAll(type);
@@ -13937,18 +13235,18 @@ const ZorTools = {
                     type: type,
                     label: pazatorObjects.getTypeLabel(type),
                     count: objects.length,
-                    objects: objects.sort(function(a, b) { return (b.usageCount || 0) - (a.usageCount || 0); }).slice(0, 50)
+                    objects: objects.sort(function (a, b) { return (b.usageCount || 0) - (a.usageCount || 0); }).slice(0, 50)
                 };
             }
         },
         get_object_detail: {
             description: 'Get details about a specific object and all humans connected to it. Use this to see who shares a particular attribute.',
             parameters: { type: 'Object type (e.g., "nationality", "religion", "politicalView")', name: 'Object name (e.g., "American", "Christian", "Liberal")' },
-            handler: function(params) {
+            handler: function (params) {
                 if (!window.pazatorObjects) return { found: false };
                 var obj = pazatorObjects.getByName(params.type, params.name);
                 if (!obj) return { found: false, message: 'Object not found' };
-                var matchedHumans = pazatorData.humans.filter(function(h) {
+                var matchedHumans = pazatorData.humans.filter(function (h) {
                     var fieldMap = {
                         gender: h.gender, maritalStatus: h.maritalStatus, nationality: h.nationality,
                         countryOfOrigin: h.countryOfOrigin, immigrationStatus: h.immigrationStatus,
@@ -13959,13 +13257,13 @@ const ZorTools = {
                     };
                     var val = fieldMap[params.type];
                     if (!val) return false;
-                    if (Array.isArray(val)) return val.some(function(v) { return v.toLowerCase() === obj.name.toLowerCase(); });
+                    if (Array.isArray(val)) return val.some(function (v) { return v.toLowerCase() === obj.name.toLowerCase(); });
                     return val.toLowerCase() === obj.name.toLowerCase();
                 });
                 return {
                     found: true,
                     object: obj,
-                    connectedHumans: matchedHumans.map(function(h) {
+                    connectedHumans: matchedHumans.map(function (h) {
                         return { id: h.id, name: h.name, threatLevel: h.threatLevel || 'None', credit: h.credit, tags: h.tags || [] };
                     }),
                     connectionCount: matchedHumans.length
@@ -13975,27 +13273,27 @@ const ZorTools = {
         search_objects: {
             description: 'Search for objects by name across all types or within a specific type.',
             parameters: { query: 'Search term', type: 'Optional - restrict to a specific object type' },
-            handler: function(params) {
+            handler: function (params) {
                 if (!window.pazatorObjects) return { count: 0, results: [] };
                 var query = (params.query || '').toLowerCase();
                 if (!query) return { count: 0, results: [] };
                 var searchType = params.type || null;
                 var types = searchType ? [searchType] : pazatorObjects.getTypes();
                 var results = [];
-                types.forEach(function(t) {
+                types.forEach(function (t) {
                     var objects = pazatorObjects.search(t, query);
-                    objects.forEach(function(o) {
+                    objects.forEach(function (o) {
                         results.push({ type: t, label: pazatorObjects.getTypeLabel(t), object: o });
                     });
                 });
-                results.sort(function(a, b) { return (b.object.usageCount || 0) - (a.object.usageCount || 0); });
+                results.sort(function (a, b) { return (b.object.usageCount || 0) - (a.object.usageCount || 0); });
                 return { count: results.length, results: results.slice(0, 30) };
             }
         },
         add_object: {
             description: 'Create a new object of a given type (e.g., nationality, religion, politicalView, workplace). Use this when you need a specific field value that does not exist yet before assigning it to a human.',
             parameters: { type: 'Object type (e.g., "nationality", "religion", "politicalView", "workplace", "ethnicity", "language")', name: 'The name of the new object (e.g., "Canadian", "Buddhist", "Libertarian")' },
-            handler: function(params) {
+            handler: function (params) {
                 if (!window.pazatorObjects) return { success: false, message: 'Object system not available' };
                 var type = (params.type || '').trim();
                 var name = (params.name || '').trim();
@@ -14010,7 +13308,7 @@ const ZorTools = {
         heur_detect_aliases: {
             description: 'Scan the database to automatically identify duplicate entities, aliases, and shadow profiles based on birthdates, name similarity, and shared attributes.',
             parameters: {},
-            handler: function() {
+            handler: function () {
                 if (!window.pazatorHeuristics) return { count: 0, duplicates: [], error: 'Heuristics system not loaded' };
                 var results = pazatorHeuristics.scan(pazatorData.humans);
                 return { count: results.length, duplicates: results };
@@ -14019,7 +13317,7 @@ const ZorTools = {
         trac_get_timeline: {
             description: 'Get a comprehensive chronological timeline of all activities, case involvements, relationship logs, and communication intercepts for a specific entity.',
             parameters: { id: 'Person ID or exactly matching name' },
-            handler: function(params) {
+            handler: function (params) {
                 if (!window.pazatorTimeline) return { error: 'Timeline system not loaded' };
                 var targetId = params.id;
                 if (!targetId && window.pazatorStore) {
@@ -14035,7 +13333,7 @@ const ZorTools = {
         }
     },
 
-    getToolDescriptions: function() {
+    getToolDescriptions: function () {
         var desc = 'AVAILABLE TOOLS (use these to fetch specific data instead of asking for full context):\n\n';
         for (var name in this.tools) {
             if (!this.tools.hasOwnProperty(name)) continue;
@@ -14063,7 +13361,7 @@ const ZorTools = {
         return desc;
     },
 
-    executeTool: function(toolName, params) {
+    executeTool: function (toolName, params) {
         var tool = this.tools[toolName];
         if (!tool) return { error: 'Unknown tool: ' + toolName };
         try {
@@ -14084,7 +13382,7 @@ async function processToolBasedCommand(command) {
     for (var round = 0; round < maxRounds; round++) {
         var aiResponse;
         try {
-            var geminiCall = function() { return geminiChat(conversation); };
+            var geminiCall = function () { return geminiChat(conversation); };
             if (window.AIQueue) {
                 aiResponse = await AIQueue.enqueue(geminiCall, { cacheKey: 'tool_round_' + round + '_' + command.substring(0, 100) });
             } else {
@@ -14153,7 +13451,7 @@ function getZorToolSystemPrompt() {
     prompt += '  {"action": "remove_tag", "id": "12345", "tag": "employee"}\n';
     prompt += '  {"action": "add_object", "data": {"type": "nationality", "name": "Canadian"}}\n\n';
     prompt += 'Previous conversation:\n';
-    prompt += aiChatHistory.map(function(m) { return m.role + ': ' + m.content; }).join('\n') + '\n\n';
+    prompt += aiChatHistory.map(function (m) { return m.role + ': ' + m.content; }).join('\n') + '\n\n';
     if (adminContext) {
         prompt += 'ADMIN CONTEXT:\n' + adminContext + '\n\n';
     }
@@ -14595,7 +13893,7 @@ function refreshTrackerDataPointCard(alias) {
         return;
     }
     body.innerHTML = '<div style="color:#666;">Loading latest location...</div>';
-    fetchLatestTrackerLocation(alias).then(function(loc) {
+    fetchLatestTrackerLocation(alias).then(function (loc) {
         var b = document.getElementById('detailTrackerDataPointBody');
         if (!b) return;
         if (!loc) {
@@ -14604,15 +13902,15 @@ function refreshTrackerDataPointCard(alias) {
         }
         b.innerHTML =
             '<div class="tracker-datapoint-grid">' +
-                '<div class="tracker-datapoint-item"><span class="tdp-label">Coordinates</span><span class="tdp-value">' + loc.latitude.toFixed(4) + ', ' + loc.longitude.toFixed(4) + '</span></div>' +
-                (loc.timestamp ? '<div class="tracker-datapoint-item"><span class="tdp-label">Last seen</span><span class="tdp-value">' + formatTrackerTimestamp(loc.timestamp) + '</span></div>' : '') +
-                (loc.ip ? '<div class="tracker-datapoint-item"><span class="tdp-label">IP</span><span class="tdp-value">' + escapeHtml(loc.ip) + '</span></div>' : '') +
-                (loc.country ? '<div class="tracker-datapoint-item"><span class="tdp-label">Country</span><span class="tdp-value">' + escapeHtml(loc.country) + '</span></div>' : '') +
-                (loc.region ? '<div class="tracker-datapoint-item"><span class="tdp-label">Region</span><span class="tdp-value">' + escapeHtml(loc.region) + '</span></div>' : '') +
-                (loc.device ? '<div class="tracker-datapoint-item"><span class="tdp-label">Device</span><span class="tdp-value">' + escapeHtml(loc.device) + '</span></div>' : '') +
-                (loc.platform ? '<div class="tracker-datapoint-item"><span class="tdp-label">Platform</span><span class="tdp-value">' + escapeHtml(loc.platform) + '</span></div>' : '') +
+            '<div class="tracker-datapoint-item"><span class="tdp-label">Coordinates</span><span class="tdp-value">' + loc.latitude.toFixed(4) + ', ' + loc.longitude.toFixed(4) + '</span></div>' +
+            (loc.timestamp ? '<div class="tracker-datapoint-item"><span class="tdp-label">Last seen</span><span class="tdp-value">' + formatTrackerTimestamp(loc.timestamp) + '</span></div>' : '') +
+            (loc.ip ? '<div class="tracker-datapoint-item"><span class="tdp-label">IP</span><span class="tdp-value">' + escapeHtml(loc.ip) + '</span></div>' : '') +
+            (loc.country ? '<div class="tracker-datapoint-item"><span class="tdp-label">Country</span><span class="tdp-value">' + escapeHtml(loc.country) + '</span></div>' : '') +
+            (loc.region ? '<div class="tracker-datapoint-item"><span class="tdp-label">Region</span><span class="tdp-value">' + escapeHtml(loc.region) + '</span></div>' : '') +
+            (loc.device ? '<div class="tracker-datapoint-item"><span class="tdp-label">Device</span><span class="tdp-value">' + escapeHtml(loc.device) + '</span></div>' : '') +
+            (loc.platform ? '<div class="tracker-datapoint-item"><span class="tdp-label">Platform</span><span class="tdp-value">' + escapeHtml(loc.platform) + '</span></div>' : '') +
             '</div>';
-    }).catch(function() {
+    }).catch(function () {
         var b = document.getElementById('detailTrackerDataPointBody');
         if (b) b.innerHTML = '<div style="color:#666;">Failed to load location data</div>';
     });
@@ -15192,7 +14490,7 @@ function refreshTrackerHumanOptions() {
 }
 
 function saveDetailTrackerAlias(humanId) {
-    var human = pazatorData.humans.find(function(h) { return h.id === humanId; });
+    var human = pazatorData.humans.find(function (h) { return h.id === humanId; });
     if (!human) return;
     var input = document.getElementById('detailTrackerAlias');
     if (!input) return;
@@ -15224,16 +14522,16 @@ function saveDetailTrackerAlias(humanId) {
 }
 
 // Wire up tracker UI events
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     if (trackerToggleSidebarBtn) {
-        trackerToggleSidebarBtn.addEventListener('click', function() {
+        trackerToggleSidebarBtn.addEventListener('click', function () {
             trackerSidebar?.classList.toggle('collapsed');
             this.textContent = trackerSidebar?.classList.contains('collapsed') ? 'Show sidebar' : 'Hide sidebar';
         });
     }
 
     if (trackerSpinToggleBtn) {
-        trackerSpinToggleBtn.addEventListener('click', function() {
+        trackerSpinToggleBtn.addEventListener('click', function () {
             if (trackerSpinning) {
                 stopTrackerSpin();
             } else {
@@ -15243,7 +14541,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (trackerStreetLabelBtn) {
-        trackerStreetLabelBtn.addEventListener('click', function() {
+        trackerStreetLabelBtn.addEventListener('click', function () {
             toggleLabelLayer('street');
         });
     }
@@ -15253,12 +14551,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (trackerSettingsBtn) {
-        trackerSettingsBtn.addEventListener('click', function(e) {
+        trackerSettingsBtn.addEventListener('click', function (e) {
             e.stopPropagation();
             const isOpen = trackerSettingsMenu?.classList.contains('open');
             setTrackerSettingsMenuOpen(!isOpen);
         });
-        document.addEventListener('click', function(e) {
+        document.addEventListener('click', function (e) {
             if (trackerSettingsMenu && !trackerSettingsBtn.contains(e.target) && !trackerSettingsMenu.contains(e.target)) {
                 setTrackerSettingsMenuOpen(false);
             }
@@ -15266,13 +14564,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (trackerSpinSpeedInput) {
-        trackerSpinSpeedInput.addEventListener('input', function() {
+        trackerSpinSpeedInput.addEventListener('input', function () {
             setTrackerSpinSpeed(this.value);
         });
     }
 
     if (trackerConfigureBtn) {
-        trackerConfigureBtn.addEventListener('click', function() {
+        trackerConfigureBtn.addEventListener('click', function () {
             const storedConfig = loadTrackerConfig();
             openTrackerConfigModal(storedConfig || trackerConfig || DEFAULT_TRACKER_CONFIG, TRACKER_CONFIG_EXAMPLE);
         });
@@ -15283,7 +14581,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (trackerRefreshBtn) {
-        trackerRefreshBtn.addEventListener('click', function() {
+        trackerRefreshBtn.addEventListener('click', function () {
             if (trackerSupabase) {
                 fetchTrackerPeople();
             } else {
@@ -15298,7 +14596,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var angleBtn = document.getElementById('trackerAngleBtn');
     if (angleBtn) {
-        angleBtn.addEventListener('click', function() {
+        angleBtn.addEventListener('click', function () {
             if (trackerMap) {
                 trackerMap.setPitch(60);
             }
@@ -15306,7 +14604,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     var topDownBtn = document.getElementById('trackerTopDownBtn');
     if (topDownBtn) {
-        topDownBtn.addEventListener('click', function() {
+        topDownBtn.addEventListener('click', function () {
             if (trackerMap) {
                 trackerMap.setPitch(0);
             }
@@ -15314,7 +14612,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     var resetViewBtn = document.getElementById('trackerResetViewBtn');
     if (resetViewBtn) {
-        resetViewBtn.addEventListener('click', function() {
+        resetViewBtn.addEventListener('click', function () {
             if (trackerMap) {
                 trackerMap.flyTo({ center: [0, 0], zoom: 2, pitch: 60, bearing: 0, duration: 1000 });
             }
@@ -15323,7 +14621,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var trackerSetupGuideBtn = document.getElementById('trackerSetupGuideBtn');
     if (trackerSetupGuideBtn) {
-        trackerSetupGuideBtn.addEventListener('click', function() {
+        trackerSetupGuideBtn.addEventListener('click', function () {
             showTrackerStatusModal('How to setup the LCTX tracker server',
                 '1. Set up a Supabase project\n2. Create a "locations" table with columns: id, name, latitude, longitude, timestamp, ip, region, country, device, platform, user_agent, speed, heading\n3. Get your Supabase URL and anon key\n4. Click "Configure tracker server" and enter them.\n\nThe tracker will then sync and display live location data.',
                 { variant: 'info' });
