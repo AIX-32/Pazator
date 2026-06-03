@@ -124,6 +124,7 @@
         var overscan = opts.overscan || 5;
         var renderItem = opts.renderItem || function () { return ''; };
         var onItemClick = opts.onItemClick || null;
+        var onItemContext = opts.onItemContext || null;
         var data = [];
         var visibleStart = 0;
         var visibleEnd = 0;
@@ -174,6 +175,11 @@
                     el.addEventListener('click', function (e) {
                         var index = parseInt(this.dataset.index, 10);
                         if (onItemClick && !isNaN(index)) onItemClick(data[index], index, e);
+                    });
+                    el.addEventListener('contextmenu', function (e) {
+                        e.preventDefault();
+                        var index = parseInt(this.dataset.index, 10);
+                        if (onItemContext && !isNaN(index)) onItemContext(data[index], index, e);
                     });
                     inner.appendChild(el);
                 }

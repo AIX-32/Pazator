@@ -18,6 +18,24 @@
         relationships: 'relationships'
     };
 
+    var storeIndexes = {
+        humans: [
+            { name: 'name', keyPath: 'name' },
+            { name: 'threatLevel', keyPath: 'threatLevel' },
+            { name: 'credit', keyPath: 'credit' },
+            { name: 'socialClass', keyPath: 'socialClass' },
+            { name: 'nationality', keyPath: 'nationality' }
+        ],
+        chats: [
+            { name: 'source', keyPath: 'source' },
+            { name: 'timestamp', keyPath: 'timestamp' }
+        ],
+        cases: [
+            { name: 'status', keyPath: 'status' },
+            { name: 'createdAt', keyPath: 'createdAt' }
+        ]
+    };
+
     function openDB() {
         return new Promise(function (resolve, reject) {
             try {
@@ -27,16 +45,11 @@
                     for (var key in stores) {
                         if (!d.objectStoreNames.contains(stores[key])) {
                             var store = d.createObjectStore(stores[key], { keyPath: 'id' });
-                            if (key === 'humans') {
-                                store.createIndex('name', 'name', { unique: false });
-                                store.createIndex('threatLevel', 'threatLevel', { unique: false });
-                                store.createIndex('credit', 'credit', { unique: false });
-                            }
-                            if (key === 'chats') {
-                                store.createIndex('source', 'source', { unique: false });
-                                store.createIndex('timestamp', 'timestamp', { unique: false });
-                            }
-                            if (key === 'meta') {
+                            var idxs = storeIndexes[key];
+                            if (idxs) {
+                                for (var ii = 0; ii < idxs.length; ii++) {
+                                    store.createIndex(idxs[ii].name, idxs[ii].keyPath, { unique: false });
+                                }
                             }
                         }
                     }
@@ -152,6 +165,58 @@
         });
     }
 
+    function dbGetPageCursor(storeName, page, pageSize) {
+        if (!db) return Promise.resolve({ items: [], total: 0 });
+        return new Promise(function (resolve, reject) {
+            try {
+                var tx = db.transaction(storeName, 'readonly');
+                var store = tx.objectStore(storeName);
+                var countReq = store.count();
+                countReq.onsuccess = function () {
+                    var total = countReq.result;
+                    var skip = (page - 1) * pageSize;
+                    var items = [];
+                    var cursorReq = store.openCursor();
+                    var advanced = false;
+                    cursorReq.onsuccess = function (e) {
+                        var cursor = e.target.result;
+                        if (!cursor) {
+                            resolve({ items: items, total: total, page: page, pageSize: pageSize, totalPages: Math.ceil(total / pageSize) });
+                            return;
+                        }
+                        if (!advanced && skip > 0) {
+                            cursor.advance(skip);
+                            advanced = true;
+                            return;
+                        }
+                        items.push(cursor.value);
+                        if (items.length >= pageSize) {
+                            resolve({ items: items, total: total, page: page, pageSize: pageSize, totalPages: Math.ceil(total / pageSize) });
+                            return;
+                        }
+                        cursor.continue();
+                    };
+                    cursorReq.onerror = function (e) { reject(e.target.error); };
+                };
+                countReq.onerror = function (e) { reject(e.target.error); };
+            } catch (err) { reject(err); }
+        });
+    }
+
+    function dbCountByIndex(storeName, indexName, value) {
+        if (!db) return Promise.resolve(0);
+        return new Promise(function (resolve, reject) {
+            try {
+                var tx = db.transaction(storeName, 'readonly');
+                var index = tx.objectStore(storeName).index(indexName);
+                var range = value !== undefined ? (Array.isArray(value) ? IDBKeyRange.only(value[0]) : IDBKeyRange.only(value)) : null;
+                var req = range ? index.count(range) : index.count();
+                req.onsuccess = function () { resolve(req.result); };
+                req.onerror = function (e) { reject(e.target.error); };
+            } catch (err) { reject(err); }
+        });
+    }
+
     function getStoreOrIndex(storeName, indexName) {
         var tx = db.transaction(storeName, 'readonly');
         var store = tx.objectStore(storeName);
@@ -175,6 +240,9 @@
         getPage: function (storeName, page, pageSize, filterFn, sortFn) {
             page = Math.max(1, page);
             pageSize = Math.min(100, Math.max(1, pageSize));
+            if (!filterFn && !sortFn) {
+                return dbGetPageCursor(storeName, page, pageSize);
+            }
             return dbGetAll(storeName).then(function (all) {
                 if (filterFn) all = all.filter(filterFn);
                 if (sortFn) all.sort(sortFn);
@@ -285,6 +353,72 @@
                     var req = source.getAll(range, limit);
                     req.onsuccess = function () { resolve(req.result || []); };
                     req.onerror = function (e) { reject(e.target.error); };
+                } catch (err) { reject(err); }
+            });
+        },
+
+        queryRange: function (storeName, indexName, lower, upper, limit) {
+            if (!db) return Promise.resolve([]);
+            limit = limit || 50;
+            return new Promise(function (resolve, reject) {
+                try {
+                    var source = getStoreOrIndex(storeName, indexName);
+                    var range = IDBKeyRange.bound(lower, upper);
+                    var req = source.getAll(range, limit);
+                    req.onsuccess = function () { resolve(req.result || []); };
+                    req.onerror = function (e) { reject(e.target.error); };
+                } catch (err) { reject(err); }
+            });
+        },
+
+        countByIndex: function (storeName, indexName, value) {
+            return dbCountByIndex(storeName, indexName, value);
+        },
+
+        getAllByIndex: function (storeName, indexName) {
+            if (!db) return Promise.resolve([]);
+            return new Promise(function (resolve, reject) {
+                try {
+                    var tx = db.transaction(storeName, 'readonly');
+                    var req = tx.objectStore(storeName).index(indexName).getAll();
+                    req.onsuccess = function () { resolve(req.result || []); };
+                    req.onerror = function (e) { reject(e.target.error); };
+                } catch (err) { reject(err); }
+            });
+        },
+
+        kvGet: function (key) {
+            if (!db) return Promise.resolve(null);
+            return new Promise(function (resolve, reject) {
+                try {
+                    var tx = db.transaction('kv', 'readonly');
+                    var req = tx.objectStore('kv').get(key);
+                    req.onsuccess = function () { resolve(req.result || null); };
+                    req.onerror = function (e) { reject(e.target.error); };
+                } catch (err) { reject(err); }
+            });
+        },
+
+        kvSet: function (key, value) {
+            if (!db) return Promise.resolve();
+            return new Promise(function (resolve, reject) {
+                try {
+                    var tx = db.transaction('kv', 'readwrite');
+                    tx.objectStore('kv').put(value, key);
+                    tx.oncomplete = function () { resolve(); };
+                    tx.onerror = function (e) { reject(e.target.error); };
+                } catch (err) { reject(err); }
+            });
+        },
+
+        kvDelete: function (key) {
+            if (!db) return Promise.resolve();
+            return new Promise(function (resolve, reject) {
+                try {
+                    var tx = db.transaction('kv', 'readwrite');
+                    tx.objectStore('kv').delete(key);
+                    tx.oncomplete = function () { resolve(); };
+                    tx.onerror = function (e) { reject(e.target.error); };
                 } catch (err) { reject(err); }
             });
         }

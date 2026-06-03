@@ -4800,6 +4800,143 @@
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
 
+    .window-toggle-btn,
+    .select-btn {
+        background: linear-gradient(145deg, #2a2a2a, #252525);
+        border: 1px solid #333;
+        border-radius: 7px;
+        padding: 10px;
+        color: #e8e8e8;
+        cursor: pointer;
+        font-size: 1.1rem;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .window-toggle-btn:hover,
+    .select-btn:hover {
+        background: linear-gradient(145deg, #353535, #303030);
+        border-color: #404040;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .window-toggle-btn.active {
+        background: linear-gradient(145deg, #2a3a2a, #253525);
+        border-color: #4CAF50;
+        color: #4CAF50;
+        box-shadow: 0 0 12px rgba(76, 175, 80, 0.15);
+    }
+
+    .ai-chat-modal.windowed {
+        position: fixed;
+        top: 60px;
+        right: 20px;
+        left: auto;
+        bottom: auto;
+        width: 480px;
+        height: 640px;
+        padding: 0;
+        justify-content: stretch;
+        align-items: stretch;
+        background: var(--card-bg);
+        backdrop-filter: none;
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius-md);
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+        animation: none;
+        resize: both;
+        overflow: hidden;
+    }
+
+    .ai-chat-modal.windowed .ai-chat-content {
+        max-width: none;
+        max-height: none;
+        min-height: 0;
+        height: 100%;
+        border: none;
+        border-radius: inherit;
+        animation: none;
+    }
+
+    .ai-chat-modal.windowed .ai-chat-header {
+        cursor: grab;
+        user-select: none;
+        padding: 16px 20px;
+        flex-shrink: 0;
+    }
+
+    .ai-chat-modal.windowed .ai-chat-header:active {
+        cursor: grabbing;
+    }
+
+    .ai-chat-modal.windowed .ai-chat-header h2 {
+        font-size: 1.2rem;
+    }
+
+    .ai-chat-modal.windowed .ai-chat-messages {
+        max-height: none;
+        flex: 1;
+        min-height: 0;
+    }
+
+    .ai-chat-modal.windowed .ai-chat-history-panel {
+        display: none;
+    }
+
+    .ai-chat-modal.windowed .toggle-label {
+        display: none;
+    }
+
+    /* ── Select mode overlay ─────────────── */
+    .pz-select-mode {
+        cursor: crosshair !important;
+    }
+
+    .pz-select-mode * {
+        cursor: crosshair !important;
+    }
+
+    .pz-select-highlight {
+        outline: 2px solid #4d9de0 !important;
+        outline-offset: -2px !important;
+        background: rgba(77, 157, 224, 0.08) !important;
+        transition: none !important;
+    }
+
+    .pz-select-tooltip {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(8px);
+        border: 1px solid #4d9de0;
+        border-radius: 7px;
+        padding: 8px 16px;
+        color: #e0e0e0;
+        font-size: 0.8rem;
+        z-index: 99999;
+        pointer-events: none;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .pz-select-tooltip kbd {
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 3px;
+        padding: 1px 6px;
+        font-size: 0.7rem;
+        color: #aaa;
+    }
+
     .chat-menu {
         background: rgba(20, 20, 20, 0.98);
         border-bottom: 1px solid #2a2a2a;
@@ -9447,6 +9584,48 @@
         margin-left: 2px;
     }
 
+    .obj-context-menu {
+        display: none;
+        position: fixed;
+        z-index: 6000;
+        background: rgba(20, 20, 20, 0.97);
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 6px 0;
+        min-width: 170px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(12px);
+    }
+
+    .obj-ctx-item {
+        padding: 8px 16px;
+        color: #ccc;
+        font-size: 0.8rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: background 0.12s;
+    }
+
+    .obj-ctx-item:hover {
+        background: rgba(77, 157, 224, 0.15);
+        color: #fff;
+    }
+
+    .obj-ctx-item i {
+        width: 16px;
+        text-align: center;
+        color: #666;
+        font-size: 0.85rem;
+    }
+
+    .obj-ctx-sep {
+        height: 1px;
+        background: #2a2a2a;
+        margin: 4px 8px;
+    }
+
     .obj-void {
         display: flex;
         flex-direction: column;
@@ -10943,11 +11122,6 @@
         letter-spacing: 0.06em;
     }
 
-    /* Graph View Button */
-    #graphViewBtn {
-        cursor: pointer;
-    }
-
     .dash-toolbar {
         display: flex;
         align-items: center;
@@ -12217,322 +12391,6 @@
         background: #2a1515;
         border-color: rgba(255, 107, 107, 0.3);
         color: #ff8a8a;
-    }
-
-    .gv-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 4px 16px 4px;
-        border-bottom: 1px solid var(--border-color);
-        flex-shrink: 0;
-        gap: 12px;
-    }
-
-    .gv-header h2 {
-        font-size: 1.3rem;
-        font-weight: 600;
-        color: #fff;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .gv-header-stats {
-        display: flex;
-        gap: 20px;
-        font-size: 0.85rem;
-        color: var(--text-muted);
-    }
-
-    .gv-header-stats i {
-        margin-right: 4px;
-    }
-
-    .gv-header-actions {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-left: auto;
-    }
-
-    .gv-refresh-btn {
-        background: var(--card-bg);
-        border: 1px solid var(--border-color);
-        color: var(--text-secondary);
-        width: 32px;
-        height: 32px;
-        border-radius: 6px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        transition: background 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
-        justify-content: center;
-    }
-
-    .gv-refresh-btn:hover {
-        background: var(--highlight);
-        color: var(--text-primary);
-        border-color: var(--accent-dark);
-    }
-
-    .gv-body {
-        flex: 1;
-        overflow: hidden;
-        padding: 4px 0 0 0;
-        min-height: 0;
-    }
-
-    .gv-container {
-        width: 100%;
-        height: 100%;
-        position: relative;
-        overflow: hidden;
-        background: transparent;
-        border-radius: 7px;
-        border: 1px solid var(--border-color);
-    }
-
-    .gv-legend-items {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-    }
-
-    .gv-legend-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 0.85rem;
-        color: var(--text-secondary);
-    }
-
-    .gv-legend-dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        flex-shrink: 0;
-        box-shadow: 0 0 4px rgba(255, 255, 255, 0.1);
-    }
-
-    .gv-tooltip {
-        position: absolute;
-        z-index: 20;
-        background: rgba(0, 0, 0, 0.85);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 6px;
-        padding: 8px 12px;
-        font-size: 12px;
-        color: var(--text-primary);
-        pointer-events: none;
-        backdrop-filter: blur(6px);
-        max-width: 220px;
-        line-height: 1.4;
-    }
-
-    .gv-tooltip-name {
-        font-weight: 600;
-        margin-bottom: 2px;
-    }
-
-    .gv-tooltip-detail {
-        color: var(--text-muted);
-        font-size: 11px;
-    }
-
-    .gv-hovercard {
-        position: absolute;
-        left: 12px;
-        bottom: 12px;
-        z-index: 25;
-        width: 320px;
-        background: rgba(0, 0, 0, 0.82);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 12px;
-        padding: 12px;
-        color: var(--text-primary);
-        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
-        backdrop-filter: blur(10px);
-        pointer-events: none;
-    }
-
-    .gv-hovercard-top {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .gv-hovercard-avatar {
-        width: 54px;
-        height: 54px;
-        border-radius: 12px;
-        overflow: hidden;
-        flex-shrink: 0;
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.10);
-        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.22);
-    }
-
-    .gv-hovercard-avatar img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-    }
-
-    .gv-hovercard-avatar-fallback {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 800;
-        letter-spacing: 0.5px;
-        font-size: 14px;
-        color: rgba(255, 255, 255, 0.85);
-        background: radial-gradient(circle at 20% 20%, rgba(148, 163, 184, 0.38), rgba(0, 0, 0, 0.18));
-    }
-
-    .gv-hovercard-meta {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        min-width: 0;
-    }
-
-    .gv-hovercard-name {
-        font-size: 14px;
-        font-weight: 800;
-        line-height: 1.1;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .gv-hovercard-credit {
-        font-size: 12px;
-        color: rgba(255, 255, 255, 0.7);
-    }
-
-    .gv-hovercard-bottom {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding-top: 10px;
-        font-size: 11px;
-        color: rgba(255, 255, 255, 0.72);
-    }
-
-    .gv-hovercard-id {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        color: rgba(255, 255, 255, 0.7);
-    }
-
-    .gv-hovercard-risk {
-        font-weight: 800;
-        color: rgba(251, 191, 36, 0.95);
-        background: rgba(251, 191, 36, 0.12);
-        border: 1px solid rgba(251, 191, 36, 0.25);
-        padding: 2px 10px;
-        border-radius: 999px;
-    }
-
-    .gv-empty {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-        color: var(--text-muted);
-        font-size: 14px;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .gv-empty i {
-        font-size: 32px;
-        opacity: 0.3;
-    }
-
-    .gv-controls {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-    }
-
-    .gv-control-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 0.8rem;
-    }
-
-    .gv-control-label {
-        color: var(--text-muted);
-    }
-
-    .gv-control-value {
-        color: var(--text-secondary);
-        font-size: 0.75rem;
-    }
-
-    .gv-stats {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-    }
-
-    .gv-stat-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 0.8rem;
-    }
-
-    .gv-stat-label {
-        color: var(--text-muted);
-    }
-
-    .gv-stat-value {
-        color: var(--text-secondary);
-        font-size: 0.75rem;
-    }
-
-    .gv-cluster-label {
-        pointer-events: none;
-        font-size: 10px;
-        font-weight: 700;
-        fill: #fff;
-        text-anchor: middle;
-        dominant-baseline: central;
-        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-    }
-
-    .gv-node-label {
-        pointer-events: none;
-        font-size: 9px;
-        fill: var(--text-secondary);
-        text-anchor: middle;
-        dominant-baseline: central;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
-        max-width: 100px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    svg.gv-svg {
-        width: 100%;
-        height: 100%;
-        display: block;
-    }
-
-    canvas.gv-canvas {
-        width: 100%;
-        height: 100%;
-        display: block;
     }
 
     /* Sync & Logo Dropdown */

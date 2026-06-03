@@ -5,6 +5,28 @@
     var batchDepth = 0;
     var pendingNotifications = [];
 
+    var _aggregateCache = {
+        threatCounts: null,
+        creditRisk: null,
+        caseStatuses: null,
+        recentActivity: null,
+        totalHumans: -1,
+        totalOthers: -1,
+        avgCredit: -1,
+        highRiskCount: -1
+    };
+
+    function invalidateCache() {
+        _aggregateCache.threatCounts = null;
+        _aggregateCache.creditRisk = null;
+        _aggregateCache.caseStatuses = null;
+        _aggregateCache.recentActivity = null;
+        _aggregateCache.totalHumans = -1;
+        _aggregateCache.totalOthers = -1;
+        _aggregateCache.avgCredit = -1;
+        _aggregateCache.highRiskCount = -1;
+    }
+
     var store = {
         _data: {
             humans: [],
@@ -159,6 +181,75 @@
                 self.emit('data_loaded', { humans: self._data.humans.length, others: self._data.others.length });
                 return self._data;
             });
+        },
+
+        getAggregate: function (name) {
+            if (name === 'threatCounts') {
+                if (!_aggregateCache.threatCounts) {
+                    var counts = { None: 0, Low: 0, Medium: 0, High: 0, Critical: 0 };
+                    var humans = store._data.humans || [];
+                    for (var i = 0; i < humans.length; i++) {
+                        var t = humans[i].threatLevel || 'None';
+                        counts[t] = (counts[t] || 0) + 1;
+                    }
+                    _aggregateCache.threatCounts = counts;
+                }
+                return _aggregateCache.threatCounts;
+            }
+            if (name === 'creditRisk') {
+                if (!_aggregateCache.creditRisk) {
+                    var risk = { high: 0, medium: 0, low: 0 };
+                    var humans = store._data.humans || [];
+                    for (var i = 0; i < humans.length; i++) {
+                        var c = humans[i].credit || 185;
+                        if (c < 125) risk.high++;
+                        else if (c < 250) risk.medium++;
+                        else risk.low++;
+                    }
+                    _aggregateCache.creditRisk = risk;
+                }
+                return _aggregateCache.creditRisk;
+            }
+            if (name === 'caseStatuses') {
+                if (!_aggregateCache.caseStatuses) {
+                    var statuses = {};
+                    var cases = store._data.cases || [];
+                    for (var i = 0; i < cases.length; i++) {
+                        var s = cases[i].status || 'open';
+                        statuses[s] = (statuses[s] || 0) + 1;
+                    }
+                    _aggregateCache.caseStatuses = statuses;
+                }
+                return _aggregateCache.caseStatuses;
+            }
+            if (name === 'totalHumans') {
+                if (_aggregateCache.totalHumans < 0) _aggregateCache.totalHumans = (store._data.humans || []).length;
+                return _aggregateCache.totalHumans;
+            }
+            if (name === 'totalOthers') {
+                if (_aggregateCache.totalOthers < 0) _aggregateCache.totalOthers = (store._data.others || []).length;
+                return _aggregateCache.totalOthers;
+            }
+            if (name === 'avgCredit') {
+                if (_aggregateCache.avgCredit < 0) {
+                    var humans = store._data.humans || [];
+                    _aggregateCache.avgCredit = humans.length > 0
+                        ? Math.round(humans.reduce(function (s, h) { return s + (h.credit || 185); }, 0) / humans.length)
+                        : 0;
+                }
+                return _aggregateCache.avgCredit;
+            }
+            if (name === 'highRiskCount') {
+                if (_aggregateCache.highRiskCount < 0) {
+                    var humans = store._data.humans || [];
+                    _aggregateCache.highRiskCount = humans.filter(function (h) {
+                        var t = h.threatLevel || 'None';
+                        return t === 'High' || t === 'Critical';
+                    }).length;
+                }
+                return _aggregateCache.highRiskCount;
+            }
+            return null;
         },
 
         getData: function () {
@@ -342,14 +433,22 @@
 
                 data[key].push = function () {
                     var result = originalPush.apply(this, arguments);
+                    invalidateCache();
                     if (key === 'humans') store.rebuildIndexes();
                     store.markDirty(key);
                     store.emit(key + '_changed', { action: 'push', items: Array.from(arguments) });
                     store.emit('data_changed', { store: key, action: 'push' });
+                    var newItems = Array.from(arguments);
+                    for (var pi = 0; pi < newItems.length; pi++) {
+                        if (newItems[pi] && newItems[pi].id) {
+                            store.emit('entity_changed', { id: newItems[pi].id, type: key, action: 'added' });
+                        }
+                    }
                     return result;
                 };
                 data[key].pop = function () {
                     var result = originalPop.apply(this, arguments);
+                    invalidateCache();
                     if (key === 'humans') store.rebuildIndexes();
                     store.markDirty(key);
                     store.emit(key + '_changed', { action: 'pop' });
@@ -357,15 +456,24 @@
                     return result;
                 };
                 data[key].splice = function () {
+                    var removed = [];
+                    for (var si = 2; si < arguments.length; si++) removed.push(arguments[si]);
                     var result = originalSplice.apply(this, arguments);
+                    invalidateCache();
                     if (key === 'humans') store.rebuildIndexes();
                     store.markDirty(key);
                     store.emit(key + '_changed', { action: 'splice', args: Array.from(arguments) });
                     store.emit('data_changed', { store: key, action: 'splice' });
+                    for (var si = 0; si < removed.length; si++) {
+                        if (removed[si] && removed[si].id) {
+                            store.emit('entity_changed', { id: removed[si].id, type: key, action: 'removed' });
+                        }
+                    }
                     return result;
                 };
                 data[key].shift = function () {
                     var result = originalShift.apply(this, arguments);
+                    invalidateCache();
                     if (key === 'humans') store.rebuildIndexes();
                     store.markDirty(key);
                     store.emit(key + '_changed', { action: 'shift' });
@@ -374,6 +482,7 @@
                 };
                 data[key].unshift = function () {
                     var result = originalUnshift.apply(this, arguments);
+                    invalidateCache();
                     if (key === 'humans') store.rebuildIndexes();
                     store.markDirty(key);
                     store.emit(key + '_changed', { action: 'unshift', items: Array.from(arguments) });
@@ -385,6 +494,65 @@
     };
 
     initProxy();
+
+    var _kvCache = {};
+
+    store.kvGet = function (key) {
+        if (window.pazatorEngine && window.pazatorEngine.isReady()) {
+            return window.pazatorEngine.kvGet(key);
+        }
+        try {
+            var val = localStorage.getItem(key);
+            return Promise.resolve(val ? JSON.parse(val) : null);
+        } catch (e) {
+            return Promise.resolve(null);
+        }
+    };
+
+    store.kvSet = function (key, value) {
+        if (window.pazatorEngine && window.pazatorEngine.isReady()) {
+            return window.pazatorEngine.kvSet(key, value);
+        }
+        try {
+            localStorage.setItem(key, JSON.stringify(value));
+            return Promise.resolve();
+        } catch (e) {
+            return Promise.resolve();
+        }
+    };
+
+    store.kvDelete = function (key) {
+        if (window.pazatorEngine && window.pazatorEngine.isReady()) {
+            return window.pazatorEngine.kvDelete(key);
+        }
+        try {
+            localStorage.removeItem(key);
+            return Promise.resolve();
+        } catch (e) {
+            return Promise.resolve();
+        }
+    };
+
+    store.migrateToIDB = async function () {
+        if (!window.pazatorEngine || !window.pazatorEngine.isReady()) return;
+        var keys = Object.keys(localStorage);
+        var migrated = 0;
+        for (var i = 0; i < keys.length; i++) {
+            var key = keys[i];
+            if (key.startsWith('pazator_') || key === 'pazatorData' || key === 'pazatorData_backup') {
+                try {
+                    var val = localStorage.getItem(key);
+                    if (val) {
+                        var parsed;
+                        try { parsed = JSON.parse(val); } catch (e) { parsed = val; }
+                        await window.pazatorEngine.kvSet(key, parsed);
+                        migrated++;
+                    }
+                } catch (e) { }
+            }
+        }
+        return migrated;
+    };
 
     window.pazatorStore = store;
 })();

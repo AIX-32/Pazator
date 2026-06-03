@@ -10,16 +10,15 @@
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.css">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="pazator_db.js"></script>
-    <script src="pazator_engine.js"></script>
-    <script src="pazator_store.js"></script>
-    <script src="pazator_objects.js"></script>
-    <script src="pazator_relationships.js"></script>
-    <script src="pazator_ui.js"></script>
-    <script src="pazator_facets.js"></script>
-    <script src="pazator_graphview.js"></script>
-    <script src="pazator_heuristics.js"></script>
-    <script src="pazator_timeline.js"></script>
+    <script src="js/data/db.js"></script>
+    <script src="js/data/engine.js"></script>
+    <script src="js/core/store.js"></script>
+    <script src="js/apps/objects.js"></script>
+    <script src="js/features/relationships.js"></script>
+    <script src="js/ui/ui.js"></script>
+    <script src="js/data/facets.js"></script>
+    <script src="js/features/heuristics.js"></script>
+    <script src="js/features/timeline.js"></script>
     <link rel="stylesheet" href="stylez.css">
     <style>
         #introOverlay {
@@ -252,6 +251,12 @@
                         <span class="toggle-label">CTXOD</span>
                     </button>
 
+                    <button class="window-toggle-btn" id="windowToggleBtn" title="Toggle windowed mode">
+                        <i class="fas fa-window-restore"></i>
+                    </button>
+                    <button class="select-btn" id="zorSelectBtn" title="Select">
+                        <i class="fas fa-arrow-pointer"></i>
+                    </button>
                     <button class="save-chat-btn" id="saveChatBtn" title="Save Chat">
                         <i class="fas fa-bookmark"></i>
                     </button>
@@ -374,8 +379,6 @@
                         Analysis</button>
                     <button class="menu-dropdown-item" onclick="switchTab('threats')"><i class="fas fa-shield-alt"></i>
                         Threats</button>
-                    <button class="menu-dropdown-item" onclick="switchTab('graphview')"><i
-                            class="fas fa-project-diagram"></i> Graph View</button>
                 </div>
             </div>
             <div class="menu-item" data-menu="data">
@@ -2565,14 +2568,22 @@
             var introVideo = document.getElementById('introVideo');
             var lastSpaceTime = 0;
 
+            function tryAutoWalkthrough() {
+                if (window.tryAutoStartWalkthrough) {
+                    window.tryAutoStartWalkthrough();
+                } else if (typeof ensureLazyModule === 'function') {
+                    ensureLazyModule('walkthrough', 'js/apps/walkthrough.js', function () { return !!window.tryAutoStartWalkthrough; }).then(function () {
+                        if (window.tryAutoStartWalkthrough) window.tryAutoStartWalkthrough();
+                    });
+                }
+            }
+
             function skipIntro() {
                 if (introOverlay.classList.contains('hidden')) return;
                 introOverlay.classList.add('fade-out');
                 setTimeout(function () {
                     introOverlay.classList.add('hidden');
-                    if (window.tryAutoStartWalkthrough) {
-                        window.tryAutoStartWalkthrough();
-                    }
+                    tryAutoWalkthrough();
                 }, 400);
             }
 
@@ -2589,9 +2600,7 @@
             if (localStorage.getItem('skipIntro') === 'true') {
                 introOverlay.classList.add('hidden');
                 setTimeout(function () {
-                    if (window.tryAutoStartWalkthrough) {
-                        window.tryAutoStartWalkthrough();
-                    }
+                    tryAutoWalkthrough();
                 }, 200);
             } else {
                 introVideo.addEventListener('ended', function () {
@@ -2615,33 +2624,55 @@
     <script src="https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="pazator_gemini.js"></script>
-    <script src="pazator_ai.js"></script>
-    <script src="pazator_agents.js"></script>
-    <script src="pazator_dashboard.js"></script>
-    <script src="pazator_ontology_designer.js"></script>
-    <script src="scriptz.js"></script>
-    <script src="pazator_context.js"></script>
-    <script src="pazator_sync.js"></script>
-    <script src="pazator_gis.js"></script>
-    <script src="pazator_resolver.js"></script>
-    <script src="pazator_pipelines.js"></script>
-    <script src="pazator_alerts.js"></script>
-    <script src="pazator_api.js"></script>
-    <script src="pazator_workflow.js"></script>
-    <script src="pazator_reports.js"></script>
-    <script src="walkthrough.js"></script>
-    <script src="pazator_snappy.js"></script>
+    <script src="js/ai/gemini.js"></script>
+    <script src="js/ai/ai.js"></script>
+    <script src="js/ai/agents.js"></script>
+    <!-- Apps (lazy-loaded) -->
+
+    <!-- Core -->
+    <script src="js/core/globals.js"></script>
+    <script src="js/core/modal.js"></script>
+    <script src="js/chat/chat-system.js"></script>
+    <script src="js/core/data-utils.js"></script>
+    <script src="js/core/dom-refs.js"></script>
+    <script src="js/ui/tabs.js"></script>
+    <script src="js/core/persistence.js"></script>
+    <script src="js/ui/table.js"></script>
+
+    <!-- Features -->
+    <script src="js/features/detail.js"></script>
+    <script src="js/ai/zor-chat.js"></script>
+    <script src="js/features/uploads.js"></script>
+    <script src="js/ai/zor-context.js"></script>
+    <script src="js/features/visualization.js"></script>
+    <script src="js/features/intel.js"></script>
+    <script src="js/features/chat-manager.js"></script>
+    <script src="js/features/credits.js"></script>
+    <script src="js/features/findings.js"></script>
+    <script src="js/core/app-init.js"></script>
+    <script src="js/features/search.js"></script>
+    <script src="js/features/cases.js"></script>
+    <script src="js/ui/settings.js"></script>
+    <script src="js/ai/zor-tools.js"></script>
+    <script src="js/tracker/tracker.js"></script>
+    <script src="js/core/main.js"></script>
+
+    <!-- Apps (lazy loaded per tab/menu trigger) -->
+    <script src="js/ai/context.js"></script>
     <script>
         (function () {
             var wtOption = document.getElementById('walkthroughOption');
             if (wtOption) {
                 wtOption.addEventListener('click', function () {
-                    if (window.startPazatorWalkthrough) {
-                        window.startPazatorWalkthrough();
-                    }
                     var menu = document.getElementById('logoDropdownMenu');
                     if (menu) menu.classList.remove('active');
+                    if (window.startPazatorWalkthrough) {
+                        window.startPazatorWalkthrough();
+                    } else if (typeof ensureLazyModule === 'function') {
+                        ensureLazyModule('walkthrough', 'js/apps/walkthrough.js', function () { return !!window.startPazatorWalkthrough; }).then(function () {
+                            if (window.startPazatorWalkthrough) window.startPazatorWalkthrough();
+                        });
+                    }
                 });
             }
             var settingsBtn = document.getElementById('settingsWalkthroughBtn');
@@ -2651,6 +2682,10 @@
                     if (modal) modal.classList.remove('active');
                     if (window.startPazatorWalkthrough) {
                         window.startPazatorWalkthrough();
+                    } else if (typeof ensureLazyModule === 'function') {
+                        ensureLazyModule('walkthrough', 'js/apps/walkthrough.js', function () { return !!window.startPazatorWalkthrough; }).then(function () {
+                            if (window.startPazatorWalkthrough) window.startPazatorWalkthrough();
+                        });
                     }
                 });
             }
