@@ -626,17 +626,6 @@
         <div class="tab-content" id="analysis-tab">
             <div class="workspace">
                 <div class="main-panel">
-                    <div id="crossSearchBar" class="search-bar-wrapper">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="crossSearchInput" placeholder="Search across people, chats, cases...">
-                        <span id="crossSearchCount" class="search-count"></span>
-                        <button id="crossSearchClear" class="btn btn-secondary"
-                            style="padding:4px 10px;font-size:0.75rem;display:none;"><i
-                                class="fas fa-times"></i></button>
-                    </div>
-                    <div id="crossSearchResults" class="cross-search-results"
-                        style="display:none;max-height:400px;overflow-y:auto;border-bottom:1px solid rgba(255,255,255,0.06);">
-                    </div>
                     <div class="analysis-header">
                         <div>
                             <h2>Data Analysis Hub</h2>
@@ -1055,8 +1044,16 @@
                             <div class="intel-results-header">
                                 <h3><i class="fas fa-list"></i> Analysis Results</h3>
                                 <div class="intel-results-actions">
-                                    <span id="intelResultsCount" class="intel-results-badge">0 findings</span>
-                                    <button id="intelClearResults" class="btn glass-btn btn-sm">
+<select id="intelFilterType" class="intel-filter-select">
+                                        <option value="all">All</option>
+                                        <option value="threat">Threats</option>
+                                        <option value="risk">Risks</option>
+                                        <option value="connection">Connections</option>
+                                        <option value="positive">Positive</option>
+                                        <option value="info">Info</option>
+                                    </select>
+                                    <span id="intelResultsCount" class="intel-results-badge">6 findings</span>
+                                    <button id="intelClearResults" class="intel-filter-btn">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>

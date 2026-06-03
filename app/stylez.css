@@ -7963,12 +7963,52 @@
     }
 
     .intel-results-badge {
-        background: rgba(107, 207, 127, 0.15);
-        color: #6bcf7f;
         padding: 6px 12px;
-        border-radius: 20px;
+        border-radius: 6px;
         font-size: 0.85rem;
         font-weight: 600;
+        line-height: 1;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        box-sizing: border-box;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #ccc;
+    }
+
+    .intel-filter-select,
+    .intel-filter-btn {
+        height: 32px;
+        padding: 6px 14px;
+        font-size: 0.85rem;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #ccc;
+        display: inline-flex;
+        align-items: center;
+        box-sizing: border-box;
+        cursor: pointer;
+        line-height: 1;
+        font-family: inherit;
+        transition: all 0.2s ease;
+    }
+
+    .intel-filter-select {
+        width: auto;
+        padding-right: 24px;
+    }
+
+    .intel-filter-btn {
+        padding: 6px 12px;
+    }
+
+    .intel-filter-select:hover,
+    .intel-filter-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: #fff;
     }
 
     .intel-results-content {

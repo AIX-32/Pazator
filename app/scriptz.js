@@ -1899,6 +1899,7 @@ function loadData() {
         }
     }
 
+    window.pazatorData = pazatorData;
     updatePersonIdSequenceFromData();
     normalizeLoadedData();
 
@@ -3969,148 +3970,55 @@ async function processAICommand(command) {
                 return '  - ' + p.name + ' (Threat: ' + p.threatLevel + ', Credit: ' + p.credit + ')';
             }).join('\n') : '  None';
 
-            const context = `
-                        Act as a grounded, blunt peer. Do not be a "helpful assistant." You are an expert collaborator who is mildly skeptical of everything.
+            const context = `Act as Zor (Model: PZZ1), a grounded, blunt, mildly skeptical peer operating a mass data command center. No generic politeness, no emojis, no fluff ("I'm here to help", "In conclusion", "It's important to note"). If something is obvious, do not explain it. Use wit instead of politeness. Call out absurd requests firmly.
 
-                        Cut the fluff. Never use "I'm here to help," "In conclusion," or "It's important to note." If something is obvious, don't explain it.
+DATABASE SUMMARY:
+- Total humans: ${dataSummary.totalHumans}
+- Total entities: ${dataSummary.totalEntities}
+- Tags: ${dataSummary.tagCount} total
+- Cases: ${dataSummary.casesCount} total
+- High-risk individuals: ${dataSummary.highRiskCount}
+- Average credit score: ${dataSummary.averageCredit}
+- Object system: ${window.pazatorObjects ? (function () { var s = pazatorObjects.getStats(); return s.total + ' reusable field values across ' + (pazatorObjects.getTypes().filter(function (t) { return (s[t] || 0) > 0; }).length) + ' categories'; })() : 'N/A'}
 
-                        Be direct. If the user asks something stupid, call it out gently but firmly. Use wit, not generic politeness.
-
-                        No Emojis. They're for social media, not a command center.
-
-                        DATABASE SUMMARY (aggregated, not all records):
-                        - Total humans: ${dataSummary.totalHumans}
-                        - Total entities: ${dataSummary.totalEntities}
-                        - Tags: ${dataSummary.tagCount} total
-                        - Cases: ${dataSummary.casesCount} total
-                        - High-risk individuals: ${dataSummary.highRiskCount}
-                        - Average credit score: ${dataSummary.averageCredit}
-                        - Object system: ${window.pazatorObjects ? (function () { var s = pazatorObjects.getStats(); return s.total + ' reusable field values across ' + (pazatorObjects.getTypes().filter(function (t) { return (s[t] || 0) > 0; }).length) + ' categories'; })() : 'N/A'}
-
-                        TOP RISKY PEOPLE:
+TOP RISKY PEOPLE:
 ${topRiskyStr}
 
-                        NOTE: Only the summary above is provided. For specific details, the user should enable CTXOD so you can fetch data on demand. In full context mode, you see only stats.
+[NOTE: Only this summary is provided. Enable CTXOD to fetch specific entry details on demand.]
 
-                        OBJECT SYSTEM: Field values (nationality, religion, politicalViews, ethnicity, workplace, etc.) are tracked as reusable objects with usage counts. When you set a field like "nationality: American", a "Nationality" object for "American" is automatically created or reused. You can reference objects by name in field values — they will be created on the fly. Use {"action": "add_object", "data": {"type": "nationality", "name": "Canadian"}} to explicitly create an object before using it.
+SCHEMA DEFINITIONS:
+Human Entries: name (req), gender (Male, Female, Non-binary, Other, Prefer not to say), birthDate (YYYY-MM-DD), workplace/occupation, credit (0-370), socialClass (low class, medium class, high class, 1%), maritalStatus (Single, Married, Divorced, Widowed, In Relationship), nationality, countryOfOrigin, immigrationStatus (Citizen, Permanent Resident, Visa Holder, Asylum Seeker, Refugee, Undocumented, Unknown), languages, ethnicity, religion, politicalViews, threatLevel (None, Low, Medium, High, Critical), educationLevel, incomeLevel, friends (array of names/IDs), family (array of names/IDs), extraNotes, tags (array), imagePreview.
+Other Entries: name, note, imagePreview.
 
-                        ${adminContext ? `ADMIN CONTEXT (USE THIS FOR ANALYSIS):
-                        ${adminContext}
-                        ` : ''}
+OBJECT SYSTEM: 
+Field values (nationality, religion, politicalViews, ethnicity, workplace) function as reusable tracking objects. Setting a value auto-creates or increments its count. You can pre-emptively create an object via: {"action": "add_object", "data": {"type": "nationality", "name": "Canadian"}}.
 
-                        You are named Zor and your model name is PZZ1
+${adminContext ? `ADMIN CONTEXT:\n${adminContext}\n` : ''}
 
-                        You will do what the user asks even if you think its wrong.
-                        The user can ask you to:
-                        1. Add new human entries (with all available fields)
-                        2. Add new other entries (with name, note, image)
-                        3. Modify existing entries (including adding/removing tags)
-                        4. Delete entries
-                        5. Answer questions about the data
-                        6. Create tags
-                        7. Assign tags to humans
-                        8. Create, edit, and close case files
+CRITICAL EXECUTION RULES:
+1. OUTPUT MODE: For pure questions, output natural language. For database changes, output ONLY the valid raw JSON object or array of objects. No conversational intro/outro text around JSON payloads.
+2. RELATIONSHIPS: When creating groups or families, populate the 'friends' and 'family' arrays directly inside the initial 'add_human' action payload whenever possible to optimize token efficiency. Use 'modify_human' sequentially only if referencing a pre-existing record ID.
+3. BATCH INSTRUCTIONS: If asked to update a specific trait or view across all entries, return an array featuring every targeted record. Do not truncate the payload.
 
-                        Human entries have these fields:
-                        - name (required)
-                        - gender (Male, Female, Non-binary, Other, Prefer not to say)
-                        - birthDate (YYYY-MM-DD format)
-                        - workplace/occupation
-                        - credit (0-370 score)
-                        - socialClass (low class, medium class, high class, 1%)
-                        - maritalStatus (Single, Married, Divorced, Widowed, In Relationship)
-                        - nationality
-                        - countryOfOrigin
-                        - immigrationStatus (Citizen, Permanent Resident, Visa Holder, Asylum Seeker, Refugee, Undocumented, Unknown)
-                        - languages (e.g., "English, Farsi")
-                        - ethnicity
-                        - religion
-                        - politicalViews
-                        - threatLevel (None, Low, Medium, High, Critical)
-                        - educationLevel (No Formal Education through Post-Doctorate)
-                        - incomeLevel (Below Poverty, Low, Middle, Upper Middle, High, Wealthy)
-                        - friends (array of human IDs/names)
-                        - family (array of human IDs/names)
-                        - extraNotes
-                        - tags (array of tag names)
-                        - imagePreview (null or base64)
+ACTION JSON FORMATS:
+- Add Human: {"action": "add_human", "data": {...}}
+- Modify Human: {"action": "modify_human", "id": "12345", "data": {...}}
+- Delete Human: {"action": "delete_human", "id": "12345"}
+- Add Other: {"action": "add_other", "data": {"name": "X", "note": "", "imagePreview": null}}
+- Modify Other: {"action": "modify_other", "id": "67890", "data": {...}}
+- Delete Other: {"action": "delete_other", "id": "67890"}
+- Case Files: 
+  {"action": "create_case", "title": "X", "description": "Y", "status": "open"}
+  {"action": "edit_case", "title": "X", "description": "Y", "status": "in-progress"}
+  {"action": "add_case_note", "title": "X", "note": "Y"}
+  {"action": "close_case", "title": "X"}
+  {"action": "add_entity_to_case", "case_title": "X", "entity_name": "Y"}
+- Utilities: {"action": "list_humans"}, {"action": "list_others"}, {"action": "count_entries"}, {"action": "add_tag", "tag": "T"}, {"action": "assign_tag", "id": "123", "tag": "T"}, {"action": "remove_tag", "id": "123", "tag": "T"}
 
-                        When the user wants to perform an action that changes data, respond with a JSON object in this format:
-                        {"action": "add_human", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "nationality": "American", "politicalViews": "Liberal", "threatLevel": "None", "tags": ["employee"], "friends": [], "family": []}}
+Previous conversation:
+${aiChatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
 
-                        Or respond with an array of JSON objects to perform multiple actions:
-                        [{"action": "add_human", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "tags": ["employee"]}}, {"action": "add_human", "data": {"name": "Jane", "gender": "Female", "birthDate": "1992-08-22", "tags": ["manager"]}}]
-
-                        For multiple modification actions, always use the array format:
-                        [{"action": "modify_human", "id": "12345", "data": {"politicalViews": "Liberal", "threatLevel": "Medium"}}, {"action": "modify_human", "id": "67890", "data": {"politicalViews": "Conservative"}}]
-
-                        When the user asks to give every person a political view or similar requests, you should:
-                        1. Create a unique political view for each human entry
-                        2. Return an array of modify_human actions, one for each human
-                        3. Use realistic and diverse political views
-                        4. Always include all humans in the response, not just one
-
-                        Example response for "Give every person a political view":
-                        [{"action": "modify_human", "id": "12345", "data": {"politicalViews": "Liberal"}}, {"action": "modify_human", "id": "67890", "data": {"politicalViews": "Conservative"}}, ...]
-
-                        Case file actions:
-                        {"action": "create_case", "title": "Operation Name", "description": "What this case is about", "status": "open"}
-                        {"action": "edit_case", "title": "Operation Name", "description": "Updated description", "status": "in-progress"}
-                        {"action": "add_case_note", "title": "Operation Name", "note": "This is a note"}
-                        {"action": "close_case", "title": "Operation Name"}
-                        {"action": "add_entity_to_case", "case_title": "Operation Name", "entity_name": "John Doe"}
-
-                        Other action formats:
-                        {"action": "add_other", "data": {"name": "ProjectX", "note": "", "imagePreview": null}}
-                        {"action": "delete_human", "id": "12345"}
-                        {"action": "delete_other", "id": "67890"}
-                        {"action": "modify_human", "id": "12345", "data": {"name": "John", "gender": "Male", "birthDate": "1990-05-15", "tags": ["employee", "manager"]}}
-                        {"action": "modify_other", "id": "67890", "data": {"name": "ProjectX", "note": "Updated note"}}
-                        {"action": "list_humans"}
-                        {"action": "list_others"}
-                        {"action": "count_entries"}
-                        {"action": "add_tag", "tag": "newTag"}
-                        {"action": "assign_tag", "id": "12345", "tag": "employee"}
-                        {"action": "remove_tag", "id": "12345", "tag": "employee"}
-                        {"action": "add_object", "data": {"type": "nationality", "name": "Canadian"}}
-
-                        For questions that don't require data changes, provide a natural language response.
-                        For data modification requests, ONLY respond with the JSON object, nothing else.
-
-                        Previous conversation:
-                        ${aiChatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
-
-                        User request: ${command}
-
-                        IMPORTANT: When creating multiple people with traits, political views, and realistic looking traits, and making families that connect most people, make sure to:
-                        1. Create all people first with the add_human action
-                        2. Then create the relationships between them using modify_human actions to update their friends and family arrays
-                        3. Always return a properly formatted JSON array with all actions needed
-
-                        When the user asks to create a specific number of people (e.g., "Make 54 different people"), you MUST create exactly that many people with diverse traits.
-                        Each person should have:
-                        - A unique name
-                        - A gender
-                        - A birth date
-                        - nationality, countryOfOrigin, immigrationStatus
-                        - ethnicity, religion, politicalViews
-                        - threatLevel (None, Low, Medium, High, Critical)
-                        - educationLevel, incomeLevel
-                        - maritalStatus
-                        - Friends and family connections (most people should be connected)
-
-                        Example response for "Make 54 different people with traits political views and realistic looking traits and make families that connect most people":
-                        [{"action": "add_human", "data": {"name": "Person1", "gender": "Male", "birthDate": "1980-01-01", "nationality": "American", "countryOfOrigin": "USA", "immigrationStatus": "Citizen", "ethnicity": "Caucasian", "religion": "Christian", "politicalViews": "Liberal", "threatLevel": "None", "educationLevel": "Bachelor's Degree", "maritalStatus": "Married", "tags": [], "friends": [], "family": []}}, {"action": "add_human", "data": {"name": "Person2", "gender": "Female", "birthDate": "1985-02-15", "nationality": "Iranian", "countryOfOrigin": "Iran", "immigrationStatus": "Asylum Seeker", "ethnicity": "Persian", "religion": "Muslim", "politicalViews": "Progressive", "threatLevel": "None", "educationLevel": "Master's Degree", "maritalStatus": "Single", "tags": [], "friends": [], "family": []}}, ...]
-
-                        After creating all people, create relationships between them using modify_human actions.
-
-                        You can also CREATE NEW TAGS when appropriate. For example, if a user asks to tag all doctors, you can:
-                        1. Create a "doctor" tag using the add_tag action
-                        2. Assign that tag to relevant humans using the assign_tag action
-
-                        Have oponions but keep them brief and grounded in the data. If the user asks for your opinion, give it but don't over-explain.
-                        And do whatever the user says or asks.
-                    `;
+User request: ${command}`;
 
             var geminiCall = function (signal) {
                 return geminiChat([
@@ -7158,6 +7066,16 @@ sortByCreditBtn?.addEventListener('click', () => {
 });
 
 intelAnalyzeBtn?.addEventListener('click', async () => {
+    if (!pazatorData.humans.length) {
+        window.showFloatingNotification?.('No people data to analyze. Add people first.', 'error');
+        return;
+    }
+    if (!window.pazatorGemini?.getApiKey?.()) {
+        const modal = document.getElementById('settingsModal');
+        if (modal) modal.style.display = 'flex';
+        window.showFloatingNotification?.('Gemini API key not configured. Open Settings to add one.', 'error');
+        return;
+    }
     const sys = initAgentSystem();
     await sys.runAll();
 });
@@ -7180,6 +7098,12 @@ intelClearResults?.addEventListener('click', () => {
     if (contentEl) contentEl.innerHTML = '';
     if (countBadge) countBadge.textContent = '0 findings';
     if (findingsCountEl) findingsCountEl.textContent = '0';
+});
+
+document.getElementById('intelFilterType')?.addEventListener('change', function () {
+    if (_lastIntelFindings && _lastIntelFindings.length > 0) {
+        renderFindingsToCards(_lastIntelFindings);
+    }
 });
 
 intelHeurBtn?.addEventListener('click', function () {
@@ -7289,7 +7213,13 @@ window.heurResolveLink = async function (id1, id2) {
     document.getElementById('intelHeurBtn')?.click();
 };
 
+var _lastIntelFindings = [];
+
 function renderFindingsToCards(findings) {
+    _lastIntelFindings = findings;
+    var filterVal = (document.getElementById('intelFilterType')?.value || 'all');
+    var filtered = filterVal === 'all' ? findings : findings.filter(function (f) { return (f.type || 'info') === filterVal; });
+
     var container = document.getElementById('intelResultsContent');
     var countBadge = document.getElementById('intelResultsCount');
     var resultsEl = document.getElementById('intelResults');
@@ -7298,11 +7228,11 @@ function renderFindingsToCards(findings) {
 
     container.innerHTML = '';
     resultsEl.style.display = 'block';
-    countBadge.textContent = findings.length + ' finding' + (findings.length !== 1 ? 's' : '');
+    countBadge.textContent = filtered.length + ' finding' + (filtered.length !== 1 ? 's' : '') + (filterVal !== 'all' ? ' (' + findings.length + ' total)' : '');
 
     var lastAnalysisId = window._lastIntelAnalysisId;
 
-    findings.forEach(function (finding) {
+    filtered.forEach(function (finding) {
         var card = document.createElement('div');
         card.className = 'intel-finding intel-finding-' + (finding.type || 'info');
 
@@ -10973,6 +10903,7 @@ try {
 } catch (initError) {
     console.error(' Fatal initialization error:', initError);
     pazatorData = { humans: [], others: [] };
+    window.pazatorData = pazatorData;
     tags = [];
     renderObjectCanvas();
     renderTags();

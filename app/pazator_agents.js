@@ -227,7 +227,8 @@
                 }
                 return results || [];
             })
-            .catch(function () {
+            .catch(function (err) {
+                console.warn('Agent AI call failed:', err);
                 return [];
             })
             .then(function (results) {
@@ -627,6 +628,8 @@
 
         var people = self.getPersonData();
         var entities = self.getEntityData();
+        console.log('[AgentSystem] runAll started. people:', people.length, 'entities:', entities.length);
+        console.log('[AgentSystem] First 3 people:', people.slice(0, 3).map(function(p) { return p.id + ':' + p.name; }));
         var index = new InvertedIndex(people);
 
         self.dedup = new FindingDedup();
@@ -641,6 +644,9 @@
         self.renderAllRows();
 
         var subTasks = self.orchestrator.decomposeAll(people);
+        console.log('[AgentSystem] subTasks:', subTasks.length);
+        subTasks.forEach(function(t) { console.log('  -', t.id, '| type:', t.type, '| candidates:', t.candidates.length, '| depth:', t.depth); });
+
         var runnerTypes = [];
 
         self.registry.definitions().forEach(function (def) {
@@ -649,12 +655,14 @@
                 runnerTypes.push(def.runner.call(self, agent, people, entities, index));
             }
         });
+        console.log('[AgentSystem] runnerTypes:', runnerTypes.length);
 
         var taskPromises = subTasks.map(function (task) {
             var agent = self.agents.get(task.type);
             if (!agent) return Promise.resolve();
             return self._runSubTask(agent, task);
         });
+        console.log('[AgentSystem] taskPromises:', taskPromises.length);
 
         var allPromises = runnerTypes.concat(taskPromises);
 
@@ -677,6 +685,7 @@
 
     AgentSystem.prototype._runSubTask = function (agent, subTask) {
         var self = this;
+        console.log('[AgentSystem] _runSubTask:', subTask.id, 'agent:', agent.name, 'depth:', subTask.depth, 'total candidates:', subTask.candidates.length);
         agent.setStatus(AGENT_CONFIG.STATUS.WORKING);
 
         var chunkSize = AGENT_CONFIG.CHUNK_SIZE;
@@ -685,21 +694,25 @@
 
         var candidates = subTask.candidates;
         if (!candidates || candidates.length === 0) {
+            console.log('[AgentSystem] _runSubTask: no candidates, skipping');
             agent.setStatus(AGENT_CONFIG.STATUS.COMPLETED);
             return Promise.resolve();
         }
 
         var chunks = self._chunkArray(candidates, chunkSize);
+        console.log('[AgentSystem] _runSubTask: chunkSize:', chunkSize, 'chunks:', chunks.length);
         agent.updateProgress(0, chunks.length);
 
         var def = self.registry.get(subTask.type);
         var tasks = chunks.map(function (chunk, i) {
+            console.log('[AgentSystem]   chunk', i, 'size:', chunk.length);
             return self._runAIAnalysis(agent, chunk, i, subTask.type, function (c) {
                 return def.buildPrompt(c, subTask);
             });
         });
 
         return Promise.all(tasks).then(function () {
+            console.log('[AgentSystem] _runSubTask done:', subTask.id, 'findings:', agent.findingCount);
             agent.setStatus(AGENT_CONFIG.STATUS.COMPLETED);
         });
     };
@@ -764,12 +777,17 @@
 
     AgentSystem.prototype._runAIAnalysis = function (agent, chunk, index, type, promptFn) {
         var self = this;
+        console.log('[AgentSystem] _runAIAnalysis - agent:', agent.name, 'chunk:', index, 'size:', chunk.length);
         agent.updateProgress(index, agent.total);
         return agent.processChunk(chunk, promptFn)
-            .catch(function () {
+            .catch(function (err) {
+                console.warn('Agent AI call failed, retrying...', err);
                 return self._delay(AGENT_CONFIG.AI_CALL_DELAY * 2)
                     .then(function () { return agent.processChunk(chunk, promptFn); })
-                    .catch(function () { return []; });
+                    .catch(function (retryErr) {
+                        console.warn('Agent AI retry also failed:', retryErr);
+                        return [];
+                    });
             })
             .then(function () {
                 agent.updateProgress(index + 1, agent.total);
@@ -797,9 +815,11 @@
 
     AgentSystem.prototype._runConnectionAgent = function (agent, people, index) {
         var self = this;
+        console.log('[AgentSystem] _runConnectionAgent - people:', people.length);
         agent.setStatus(AGENT_CONFIG.STATUS.WORKING);
 
         var buckets = index.getBuckets();
+        console.log('[AgentSystem] _runConnectionAgent - shared-attr buckets:', buckets.length);
         var connections = new Map();
         var processed = new Set();
 
@@ -839,16 +859,20 @@
             }
         }
 
+        console.log('[AgentSystem] _runConnectionAgent - raw connections:', connections.size);
+
         var strongConnections = [];
         connections.forEach(function (c) {
             if (c.reasons.length >= 2) strongConnections.push(c);
         });
         strongConnections.sort(function (a, b) { return b.reasons.length - a.reasons.length; });
         strongConnections = strongConnections.slice(0, 200);
+        console.log('[AgentSystem] _runConnectionAgent - strongConnections (>=2 reasons):', strongConnections.length);
 
         var aiChunks = self._chunkArray(strongConnections.slice(0, 100), AGENT_CONFIG.CHUNK_SIZE);
         agent.total = aiChunks.length;
         agent.updateProgress(0, aiChunks.length);
+        console.log('[AgentSystem] _runConnectionAgent - aiChunks:', aiChunks.length);
 
         if (aiChunks.length > 0) {
             var tasks = aiChunks.map(function (chunk, i) {
@@ -929,7 +953,9 @@
 
     AgentSystem.prototype.collectAllFindings = function (subTasks) {
         var allFindings = this.dedup.getFindings();
+        console.log('[AgentSystem] collectAllFindings - total deduped:', allFindings.length);
         if (allFindings.length > 0) {
+            console.log('[AgentSystem] Findings:', JSON.stringify(allFindings.slice(0, 3)));
             if (window.renderFindingsToCards) window.renderFindingsToCards(allFindings);
             var countEl = document.getElementById('intelFindingsCount');
             if (countEl) countEl.textContent = allFindings.length;
