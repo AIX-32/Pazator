@@ -57,10 +57,10 @@ function loadCases() {
 function saveCases() {
     if (window.pazatorStore) {
         pazatorStore.kvSet('pazatorCases', cases).catch(function () {
-            try { localStorage.setItem('pazatorCases', JSON.stringify(cases)); } catch (e) {}
+try { localStorage.setItem('pazatorCases', JSON.stringify(cases)); } catch (e) { /* localStorage quota exceeded */ }
         });
     } else {
-        try { localStorage.setItem('pazatorCases', JSON.stringify(cases)); } catch (e) {}
+        try { localStorage.setItem('pazatorCases', JSON.stringify(cases)); } catch (e) { /* localStorage quota exceeded */ }
     }
 }
 

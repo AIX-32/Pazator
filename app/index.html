@@ -237,7 +237,7 @@
         <div class="ai-chat-content">
             <div class="ai-chat-header">
                 <div class="header-left">
-                    <h2>Zor.</h2>
+                    <h2>Zor</h2>
                     <div class="ai-status">
                         <span class="status-indicator"></span>
                         <span class="status-text">Context ready</span>
@@ -330,7 +330,7 @@
 
             <div class="ai-chat-messages" id="aiChatMessages">
                 <div class="ai-message system">
-                    <h3>Im Zor,</h3>
+                    <h3>I'm Zor,</h3>
                     <p>Intelligence assistant. Use the menu for available operations.</p>
                 </div>
             </div>
@@ -367,7 +367,7 @@
                 <span id="tabBarTime">--:--</span>
                 <small id="tabBarDate">Loading...</small>
             </div>
-            <div class="tab-bar-extra" id="tabBarStatus">Something broke, or its loading. prop broke.</div>
+            <div class="tab-bar-extra" id="tabBarStatus">System ready</div>
         </div>
         <div class="menu-bar">
             <div class="menu-item" data-menu="view">
@@ -498,6 +498,19 @@
                     </div>
                     <div class="web-container" id="webContainer">
                         <div class="web-content" id="webContent">
+                            <div class="skeleton-graph" id="skeletonGraph">
+                                <div class="skeleton skeleton-card" style="width:100%;height:200px;margin-bottom:16px;"></div>
+                                <div class="skeleton skeleton-text" style="width:45%;"></div>
+                                <div class="skeleton skeleton-text short"></div>
+                                <div class="skeleton skeleton-text" style="width:80%;"></div>
+                                <div class="skeleton skeleton-text short"></div>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;">
+                                    <div class="skeleton skeleton-card" style="height:100px;"></div>
+                                    <div class="skeleton skeleton-card" style="height:100px;"></div>
+                                    <div class="skeleton skeleton-card" style="height:100px;"></div>
+                                    <div class="skeleton skeleton-card" style="height:100px;"></div>
+                                </div>
+                            </div>
                         </div>
                         <div id="virtualTableContainer" class="virtual-table-container" style="display:none;">
                             <div class="virtual-table-header">
@@ -522,9 +535,7 @@
                         <div id="visOffOverlay" class="vis-overlay" style="display: none;">
                             <div class="vis-overlay-content">
                                 <h2>VISUALIZATION OFF</h2>
-                                <p>You probably don't have a good enough PC to handle it.</p>
-                                <small>Visualization is disabled for more than 15 data nodes to preserve
-                                    performance.</small>
+                                <p>Visualization is disabled for datasets exceeding 15 nodes to maintain performance.</p>
                             </div>
                         </div>
                         <div id="visEmptyOverlay" class="vis-overlay" style="display: none;">
@@ -697,8 +708,7 @@
 
                         <div class="analysis-metrics-grid">
                             <div class="analysis-metric-card">
-                                <div class="analysis-metric-icon"
-                                    style="background: rgba(107, 207, 127, 0.15); color: #6bcf7f;">
+                                <div class="analysis-metric-icon icon-success">
                                     <i class="fas fa-users"></i>
                                 </div>
                                 <div class="analysis-metric-data">
@@ -707,8 +717,7 @@
                                 </div>
                             </div>
                             <div class="analysis-metric-card">
-                                <div class="analysis-metric-icon"
-                                    style="background: rgba(77, 157, 224, 0.15); color: #4d9de0;">
+                                <div class="analysis-metric-icon icon-info">
                                     <i class="fas fa-building"></i>
                                 </div>
                                 <div class="analysis-metric-data">
@@ -717,8 +726,7 @@
                                 </div>
                             </div>
                             <div class="analysis-metric-card">
-                                <div class="analysis-metric-icon"
-                                    style="background: rgba(255, 217, 61, 0.15); color: #ffd93d;">
+                                <div class="analysis-metric-icon icon-warning">
                                     <i class="fas fa-tags"></i>
                                 </div>
                                 <div class="analysis-metric-data">
@@ -727,8 +735,7 @@
                                 </div>
                             </div>
                             <div class="analysis-metric-card">
-                                <div class="analysis-metric-icon"
-                                    style="background: rgba(255, 107, 107, 0.15); color: #ff6b6b;">
+                                <div class="analysis-metric-icon icon-danger">
                                     <i class="fas fa-exclamation-circle"></i>
                                 </div>
                                 <div class="analysis-metric-data">
@@ -795,8 +802,7 @@
                             <div
                                 style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                                 <div class="tool-card" onclick="triggerImportChats()">
-                                    <div class="tool-card-icon"
-                                        style="background: rgba(76, 175, 80, 0.2); color: #4caf50;">
+                                    <div class="tool-card-icon icon-green">
                                         <i class="fas fa-file-import"></i>
                                     </div>
                                     <div class="tool-card-content">
@@ -805,8 +811,7 @@
                                     </div>
                                 </div>
                                 <div class="tool-card" onclick="triggerExportChatsJson()">
-                                    <div class="tool-card-icon"
-                                        style="background: rgba(33, 150, 243, 0.2); color: #2196f3;">
+                                    <div class="tool-card-icon icon-blue">
                                         <i class="fas fa-file-export"></i>
                                     </div>
                                     <div class="tool-card-content">
@@ -815,8 +820,7 @@
                                     </div>
                                 </div>
                                 <div class="tool-card" onclick="triggerViewChatStats()">
-                                    <div class="tool-card-icon"
-                                        style="background: rgba(255, 152, 0, 0.2); color: #ff9800;">
+                                    <div class="tool-card-icon icon-orange">
                                         <i class="fas fa-chart-pie"></i>
                                     </div>
                                     <div class="tool-card-content">
@@ -825,8 +829,7 @@
                                     </div>
                                 </div>
                                 <div class="tool-card" onclick="triggerFindDuplicates()">
-                                    <div class="tool-card-icon"
-                                        style="background: rgba(156, 39, 176, 0.2); color: #9c27b0;">
+                                    <div class="tool-card-icon icon-purple">
                                         <i class="fas fa-copy"></i>
                                     </div>
                                     <div class="tool-card-content">
@@ -835,8 +838,7 @@
                                     </div>
                                 </div>
                                 <div class="tool-card" onclick="triggerExportChatReport()">
-                                    <div class="tool-card-icon"
-                                        style="background: rgba(0, 150, 136, 0.2); color: #009688;">
+                                    <div class="tool-card-icon icon-teal">
                                         <i class="fas fa-file-alt"></i>
                                     </div>
                                     <div class="tool-card-content">
@@ -845,8 +847,7 @@
                                     </div>
                                 </div>
                                 <div class="tool-card" onclick="triggerRefreshChatList()">
-                                    <div class="tool-card-icon"
-                                        style="background: rgba(158, 158, 158, 0.2); color: #9e9e9e;">
+                                    <div class="tool-card-icon icon-grey">
                                         <i class="fas fa-sync"></i>
                                     </div>
                                     <div class="tool-card-content">
@@ -899,7 +900,7 @@
                                 <div class="chat-indicator" style="background: #4d9de0;"></div>
                                 <h3 style="color: #4d9de0;">Archive</h3>
                             </div>
-                            <p style="color: #888; margin-bottom: 15px; font-size: 0.9rem;">Old chats (90+ days) can be
+                            <p class="text-muted" style="margin-bottom: 15px; font-size: 0.9rem;">Old chats (90+ days) can be
                                 archived to save memory</p>
                             <div style="display:flex;gap:10px;">
                                 <button id="archiveOldChatsBtn" class="btn btn-secondary" style="flex:1;">
@@ -916,7 +917,7 @@
                                 <div class="chat-indicator" style="background: #f44336;"></div>
                                 <h3 style="color: #f44336;">Danger Zone</h3>
                             </div>
-                            <p style="color: #888; margin-bottom: 15px; font-size: 0.9rem;">Irreversible actions -
+                            <p class="text-muted" style="margin-bottom: 15px; font-size: 0.9rem;">Irreversible actions -
                                 proceed with caution</p>
                             <button id="clearChatHistoryBtn" class="btn btn-danger btn-full">
                                 <i class="fas fa-skull-crossbones"></i> Purge All Chat Records
@@ -1538,7 +1539,7 @@
                             <i class="fas fa-location-crosshairs"></i>
                             <h3>LCTX Tracker</h3>
                         </div>
-                        <p style="margin: 0 0 10px 0; color: #888; font-size: 0.8rem;">Live locations from the your
+                        <p class="text-muted" style="margin: 0 0 10px 0; font-size: 0.8rem;">Live locations from your
                             tracker</p>
                         <button id="trackerConfigureBtn" class="btn glass-btn"
                             style="width: 100%; padding: 10px; font-size: 0.8rem;">Configure tracker server</button>
@@ -1554,7 +1555,7 @@
                             profile to a Pazator person</label>
                         <div style="display: flex; gap: 8px;">
                             <select id="trackerHumanSelect"
-                                style="flex: 1; background: rgba(20,20,20,0.6); border: 1px solid #333; color: #ddd; padding: 8px; border-radius: 6px; font-size: 0.85rem;">
+                                class="input-flat" style="flex:1;">
                                 <option value="">Select a human</option>
                             </select>
                             <button class="btn btn-primary" id="trackerConnectBtn"
@@ -1572,7 +1573,7 @@
                         </div>
                         <input id="trackerPeopleSearch" class="form-control" type="search" placeholder="Search people…"
                             autocomplete="off" spellcheck="false"
-                            style="background: rgba(20,20,20,0.6); border: 1px solid #333; color: #ddd; padding: 8px 10px; border-radius: 6px; font-size: 0.85rem; width: 100%;">
+                            class="input-flat" style="width:100%;">
                     </div>
 
                     <div class="sidebar-section sidebar-mini"
@@ -1582,12 +1583,12 @@
                             <h3>People</h3>
                         </div>
                         <div class="tracker-people-list" id="trackerPeopleList"
-                            style="flex: 1; overflow-y: auto; background: rgba(20,20,20,0.35); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
+                            class="bg-surface" style="flex:1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
                             <div style="text-align: center; color: #666; padding: 30px 0; font-size: 0.85rem;">Tracker
                                 data will appear here.</div>
                         </div>
                         <div class="tracker-location-info" id="trackerLocationInfo"
-                            style="margin-top: 8px; background: rgba(20,20,20,0.35); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 10px; font-size: 0.85rem; color: #888; min-height: 60px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;">
+                            class="bg-surface text-muted" style="margin-top: 8px; padding: 10px; font-size: 0.85rem; min-height: 60px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;">
                             Last known position will appear here once you select someone.
                         </div>
                     </div>
@@ -1649,7 +1650,7 @@
     </div>
 
     <div id="typeModal" class="modal">
-        <button class="close" style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
+        <button class="close">&times;</button>
         <div class="modal-content type-select-content">
             <div class="modal-header">
                 <h2>Select Data Type</h2>
@@ -1678,7 +1679,7 @@
     </div>
 
     <div id="humanModal" class="modal">
-        <button class="close" style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
+        <button class="close">&times;</button>
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="humanModalTitle">Create Human Entry</h2>
@@ -1848,7 +1849,7 @@
     </div>
 
     <div id="otherModal" class="modal">
-        <button class="close" style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
+        <button class="close">&times;</button>
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="otherModalTitle">Create Job / Company Entry</h2>
@@ -1892,7 +1893,7 @@
     </div>
 
     <div id="chatUploadModal" class="modal">
-        <button class="close" style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
+        <button class="close">&times;</button>
         <div class="modal-content" style="max-width: 700px;">
             <div class="modal-header">
                 <h2>Upload Chat Data</h2>
@@ -1952,7 +1953,7 @@
     </div>
 
     <div id="dataUploadModal" class="modal">
-        <button class="close" style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
+        <button class="close">&times;</button>
         <div class="modal-content" style="max-width: 700px;">
             <div class="modal-header">
                 <h2>Upload Data from CSV</h2>
@@ -1993,7 +1994,7 @@
     </div>
 
     <div id="aiImportModal" class="modal">
-        <button class="close" style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
+        <button class="close">&times;</button>
         <div class="modal-content" style="max-width: 900px;">
             <div class="modal-header">
                 <h2>AI Import</h2>
@@ -2064,7 +2065,7 @@
     </div>
 
     <div id="contextModal" class="modal context-modal">
-        <button class="close" style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
+        <button class="close">&times;</button>
         <div class="modal-content" style="max-width: 800px;">
             <div class="modal-header">
                 <h2>Select Context for AI</h2>
@@ -2116,7 +2117,7 @@
     </div>
 
     <div id="classifyModal" class="modal classify-modal">
-        <button class="close" style="position: absolute; top: 10px; left: 10px; z-index: 1001;">&times;</button>
+        <button class="close">&times;</button>
         <div class="modal-content">
             <div class="modal-header">
                 <div>
@@ -2175,25 +2176,23 @@
         <div class="about-card" id="aboutCard" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
             <h2 id="aboutTitle">About Pazator</h2>
             <p class="about-devnote">
-                hiiii, this is AIX here, the dev, i made this as a fun project to prove its not that hard to make stuff
-                like this. yeah i understod that yes its really hard to do.
+                Pazator is a data analysis and intelligence platform built for managing entities, relationships, and risk.
+                This is a solo project — functional, not polished, but real.
             </p>
             <div class="about-links">
-                <a href="https://aix-32.github.io/Xyper/" target="_blank" rel="noopener">Portfolio</a>
                 <a href="https://discord.gg/74c9RBYD4R" target="_blank" rel="noopener">Discord</a>
             </div>
             <div class="about-credits">
-                <div class="about-credits-title">Where did you get this idea?</div>
-                <div class="about-credits-list">I saw palantir and wanted to make something similar, the idea of having
-                    that tool made by me was cool to me. Well, palantir is another level that a solo dev on his laptop
-                    isn't quite at yet.</div>
+                <div class="about-credits-title">Background</div>
+                <div class="about-credits-list">Built as a solo project to explore what's possible with modern browser
+                    technologies. Not affiliated with any commercial platform. The goal is practical intelligence tooling
+                    that runs entirely in the browser.</div>
             </div>
         </div>
     </div>
 
     <div id="detailViewModal" class="detail-view">
-        <button class="close" id="closeDetail"
-            style="position: absolute; top: 15px; left: 15px; z-index: 1001; background: rgba(255,255,255,0.1); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%; font-size: 18px; cursor: pointer;">&times;</button>
+        <button class="close" id="closeDetail" style="top:15px;left:15px;">&times;</button>
         <div class="detail-content">
             <div class="detail-header">
                 <h2 id="detailTitle">Entry Details</h2>

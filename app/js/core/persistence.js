@@ -65,7 +65,7 @@ function saveData(immediate = false) {
 
         var saveFn = window.pazatorDB
             ? window.pazatorDB.setItem.bind(window.pazatorDB)
-            : function (k, v) { try { localStorage.setItem(k, v); } catch (e) { } };
+            : function (k, v) { try { localStorage.setItem(k, v); } catch (e) { /* localStorage may be full or unavailable */ } };
 
         saveFn('pazatorData_backup', localStorage.getItem('pazatorData')).catch(function () { });
         saveFn('pazatorData', JSON.stringify(dataToSave)).catch(function (e) {

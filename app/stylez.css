@@ -63,13 +63,6 @@
         margin: 0;
         padding: 0;
         box-sizing: border-box;
-        transition:
-            background-color 0.3s var(--transition-smooth),
-            border-color 0.3s var(--transition-smooth),
-            color 0.3s var(--transition-smooth),
-            box-shadow 0.3s var(--transition-smooth),
-            opacity 0.3s var(--transition-smooth),
-            filter 0.3s var(--transition-smooth);
     }
 
     /* ===== Design Tokens ===== */
@@ -89,6 +82,12 @@
         --transition-fast: 0.15s ease;
         --transition-normal: 0.2s ease;
         --transition-slow: 0.3s ease;
+        --tr-fast: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+        --tr-base: background 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+        --tr-slow: background 0.3s, border-color 0.3s, color 0.3s, opacity 0.3s, transform 0.3s, box-shadow 0.3s;
+        --tr-ease: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        --tr-dropdown: background 0.18s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.18s cubic-bezier(0.22, 1, 0.36, 1), color 0.18s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.18s cubic-bezier(0.22, 1, 0.36, 1), transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+        --tr-dropdown-slow: background 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     /* Standard 7px rounding for UI containers */
@@ -314,7 +313,7 @@
         background: rgba(30, 30, 30, 0.4);
         border-radius: 7px;
         border: 1px solid var(--border-color);
-        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        transition: var(--tr-slow);
         flex-shrink: 0;
         min-height: 0;
     }
@@ -355,7 +354,7 @@
         background: rgba(20, 20, 20, 0.4);
         border: 1px solid #2a2a2a;
         text-align: center;
-        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        transition: var(--tr-slow);
     }
 
     .gemini-status.configured {
@@ -388,7 +387,7 @@
         gap: 6px;
         font-weight: 500;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
     }
 
     .tag:hover {
@@ -400,7 +399,7 @@
         cursor: pointer;
         font-weight: bold;
         opacity: 0;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
     }
 
     .tag:hover .remove-tag {
@@ -421,7 +420,7 @@
         font-size: 0.85rem;
         font-family: inherit;
         cursor: pointer;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
         width: 100%;
     }
 
@@ -503,7 +502,7 @@
         cursor: pointer;
         font-weight: bold;
         opacity: 0.6;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
     }
 
     .tags-popup .popup-tag .remove-tag:hover {
@@ -571,7 +570,7 @@
     .tab-close {
         margin-left: 10px;
         opacity: 0.5;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
         font-size: 1rem;
         width: 20px;
         height: 20px;
@@ -608,7 +607,7 @@
         justify-content: center;
         border-radius: 7px;
         cursor: pointer;
-        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        transition: var(--tr-slow);
         background: #1e1e1e;
         border: 1px solid var(--border-color);
         box-shadow: 0 2px 8px var(--shadow-color);
@@ -657,7 +656,7 @@
         z-index: 300;
         opacity: 0;
         visibility: hidden;
-        transition: background 0.18s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.18s cubic-bezier(0.22, 1, 0.36, 1), color 0.18s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.18s cubic-bezier(0.22, 1, 0.36, 1), transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+        transition: var(--tr-dropdown);
         pointer-events: none;
     }
 
@@ -680,7 +679,7 @@
         font-family: 'DM Mono', monospace;
         cursor: pointer;
         border-radius: 5px;
-        transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+        transition: var(--tr-fast);
         text-align: left;
         white-space: nowrap;
         box-shadow: none !important;
@@ -721,7 +720,7 @@
         justify-content: center;
         margin-left: 12px;
         flex-shrink: 0;
-        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        transition: var(--tr-slow);
         box-shadow: 0 2px 8px var(--shadow-color);
         cursor: pointer;
         position: relative;
@@ -782,7 +781,7 @@
         opacity: 0;
         visibility: hidden;
         transform: translateY(-6px);
-        transition: background 0.18s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.18s cubic-bezier(0.22, 1, 0.36, 1), color 0.18s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.18s cubic-bezier(0.22, 1, 0.36, 1), transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+        transition: var(--tr-dropdown);
         z-index: 1001;
         pointer-events: none;
     }
@@ -806,7 +805,7 @@
         font-size: 0.78rem;
         font-family: 'DM Mono', monospace;
         border-radius: 5px;
-        transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+        transition: var(--tr-fast);
         white-space: nowrap;
         box-shadow: none !important;
     }
@@ -935,7 +934,7 @@
         border-radius: 7px;
         padding: 20px;
         cursor: pointer;
-        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        transition: var(--tr-slow);
         text-align: center;
     }
 
@@ -951,7 +950,7 @@
         margin-bottom: 12px;
         display: block;
         color: var(--text-secondary);
-        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        transition: var(--tr-slow);
     }
 
     .dropdown-item:hover i {
@@ -1093,7 +1092,7 @@
         height: auto;
         flex: none;
         box-shadow: none;
-        transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+        transition: var(--tr-fast);
     }
 
     .search-save-btn:hover {
@@ -1158,7 +1157,7 @@
         font-size: 0.8rem;
         cursor: pointer;
         border-radius: 6px;
-        transition: background 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+        transition: var(--tr-base);
         width: auto;
         height: auto;
         flex: none;
@@ -1196,7 +1195,7 @@
         font-size: 0.78rem;
         color: #999;
         cursor: pointer;
-        transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+        transition: var(--tr-fast);
         user-select: none;
     }
 
@@ -1250,7 +1249,7 @@
         font-size: 0.75rem;
         color: #888;
         cursor: pointer;
-        transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+        transition: var(--tr-fast);
     }
 
     .recent-chip:hover {
@@ -1334,7 +1333,7 @@
         font-size: 0.72rem;
         cursor: pointer;
         border-radius: 4px;
-        transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+        transition: var(--tr-fast);
         width: auto;
         height: auto;
         flex: none;
@@ -1386,7 +1385,7 @@
         height: auto;
         flex: none;
         box-shadow: none;
-        transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+        transition: var(--tr-fast);
         align-self: flex-start;
         margin-top: 14px;
     }
@@ -1416,7 +1415,7 @@
         font-size: 0.72rem;
         color: #fbbf24;
         cursor: pointer;
-        transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+        transition: var(--tr-fast);
         width: auto;
         height: auto;
         flex: none;
@@ -1507,7 +1506,7 @@
         border-radius: 8px;
         margin-bottom: 6px;
         cursor: pointer;
-        transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+        transition: var(--tr-fast);
         overflow: hidden;
     }
 
@@ -1705,7 +1704,7 @@
         background: rgba(30, 30, 30, 0.8);
         color: #fff;
         outline: none;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
         text-align: center;
     }
 
@@ -1761,7 +1760,7 @@
         border-radius: 10px;
         padding: 18px;
         cursor: pointer;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
     }
 
     .search-result-card:hover {
@@ -1883,7 +1882,7 @@
         font-size: 0.85rem;
         color: #aaa;
         cursor: pointer;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
         margin-right: 8px;
         margin-bottom: 8px;
     }
@@ -1909,7 +1908,7 @@
         font-size: 0.85rem;
         color: #aaa;
         cursor: pointer;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
     }
 
     .recent-search-chip:hover {
@@ -1925,7 +1924,7 @@
         border-radius: 8px;
         cursor: pointer;
         font-size: 0.8rem;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
     }
 
     .recent-search-clear:hover {
@@ -1958,7 +1957,7 @@
         overflow: hidden;
         display: flex;
         flex-direction: column;
-        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        transition: var(--tr-slow);
         max-height: 100%;
         min-height: 0;
         height: 100%;
@@ -2028,7 +2027,7 @@
         font-size: 0.95rem;
         font-weight: 500;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        transition: var(--tr-slow);
         letter-spacing: 0.3px;
     }
 
@@ -2174,7 +2173,7 @@
         border: 1px solid var(--border-color);
         border-radius: 20px;
         font-size: 0.85rem;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
     }
 
     .stat-chip:hover {
@@ -2228,7 +2227,7 @@
         border-radius: 8px;
         color: var(--text-secondary);
         cursor: pointer;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
         padding: 0;
         flex: none;
     }
@@ -2260,16 +2259,9 @@
         flex: 1;
         min-height: 0;
         overflow: hidden;
-        cursor: grab;
         border-radius: 8px;
         background: radial-gradient(circle at center, rgba(255, 255, 255, 0.02) 0%, transparent 70%);
-        touch-action: none;
         height: 100%;
-    }
-
-    .web-container.dragging {
-        cursor: grabbing;
-        user-select: none;
     }
 
     .vis-overlay {
@@ -2364,7 +2356,7 @@
             0 0 20px rgba(255, 255, 255, 0.05),
             0 8px 24px rgba(0, 0, 0, 0.5),
             inset 0 1px 2px rgba(255, 255, 255, 0.08);
-        transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: var(--tr-dropdown-slow);
         z-index: 10;
         font-size: 10px;
         text-align: center;
@@ -2590,7 +2582,7 @@
         border: 2px solid rgba(255, 255, 255, 0.8);
         background: linear-gradient(145deg, #ffffff, #e0e0e0);
         color: #000;
-        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        transition: var(--tr-slow);
     }
 
     .connection-node:hover {
@@ -2619,7 +2611,7 @@
         border-radius: 7px;
         padding: 18px;
         margin-bottom: 16px;
-        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        transition: var(--tr-slow);
     }
 
     .connection-item:hover {
@@ -2727,7 +2719,7 @@
         padding: 30px;
         text-align: center;
         cursor: pointer;
-        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        transition: var(--tr-slow);
         background: rgba(30, 30, 30, 0.5);
     }
 
@@ -2974,7 +2966,7 @@
         border: 1px solid var(--border-color);
         border-radius: 8px;
         padding: 20px;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
     }
 
     .form-section:hover {
@@ -3030,7 +3022,7 @@
         font-weight: 600;
         cursor: pointer;
         border: none;
-        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        transition: var(--tr-slow);
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -3048,7 +3040,22 @@
     }
 
     .close {
-        display: none !important;
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 1001;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        color: #fff;
+        font-size: 18px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--tr-ease);
     }
 
     .close:hover {
@@ -3105,7 +3112,7 @@
         background: rgba(255, 255, 255, 0.05);
         color: #ddd;
         cursor: pointer;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
         font-family: inherit;
         font-size: 0.75rem;
         letter-spacing: 0.3px;
@@ -3152,7 +3159,7 @@
         background: transparent;
         color: rgba(255, 255, 255, 0.55);
         cursor: pointer;
-        transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+        transition: var(--tr-fast);
         font-family: inherit;
         font-size: 0.8rem;
         text-align: left;
@@ -3229,7 +3236,7 @@
         font-family: inherit;
         font-size: 0.75rem;
         letter-spacing: 0.3px;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
     }
 
     .sidebar-apply-btn i {
@@ -3337,7 +3344,7 @@
         font-weight: 600;
         cursor: pointer;
         border: none;
-        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        transition: var(--tr-slow);
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -3392,6 +3399,71 @@
         border-color: #4a4a4a;
     }
 
+    :focus-visible {
+        outline: 2px solid rgba(255, 255, 255, 0.35);
+        outline-offset: 2px;
+    }
+
+    .text-muted { color: var(--text-muted); }
+    .icon-success { background: var(--success-bg); color: var(--success); }
+    .icon-info { background: var(--info-bg); color: var(--info); }
+    .icon-warning { background: var(--warning-bg); color: var(--warning); }
+    .icon-danger { background: var(--danger-bg); color: var(--danger); }
+    .icon-green { background: rgba(76, 175, 80, 0.2); color: #4caf50; }
+    .icon-blue { background: rgba(33, 150, 243, 0.2); color: #2196f3; }
+    .icon-orange { background: rgba(255, 152, 0, 0.2); color: #ff9800; }
+    .icon-purple { background: rgba(156, 39, 176, 0.2); color: #9c27b0; }
+    .icon-teal { background: rgba(0, 150, 136, 0.2); color: #009688; }
+    .icon-grey { background: rgba(158, 158, 158, 0.2); color: #9e9e9e; }
+    .bg-surface { background: rgba(20,20,20,0.35); border: 1px solid rgba(255,255,255,0.06); }
+    .bg-card { background: rgba(30, 30, 30, 0.5); border: 1px solid rgba(255,255,255,0.06); }
+    .input-flat { padding: 8px 12px; border-radius: 6px; border: 1px solid #444; background: rgba(40, 40, 40, 0.7); color: #fff; font-size: 0.85rem; }
+
+    @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+    }
+
+    .skeleton {
+        background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s ease-in-out infinite;
+        border-radius: 6px;
+        pointer-events: none;
+        user-select: none;
+    }
+
+    .skeleton-text {
+        height: 14px;
+        margin-bottom: 10px;
+        width: 100%;
+    }
+
+    .skeleton-text.short { width: 60%; }
+    .skeleton-text.tiny { width: 30%; }
+
+    .skeleton-card {
+        height: 80px;
+        margin-bottom: 12px;
+    }
+
+    button:active,
+    .btn:active,
+    .menu-dropdown-item:active,
+    .quick-action-card:active,
+    .sidebar-action-item:active,
+    .tool-card:active {
+        transform: scale(0.97);
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+        outline: none;
+        border-color: rgba(255, 255, 255, 0.25);
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+    }
+
     .type-select-content {
         max-width: 600px;
     }
@@ -3421,7 +3493,7 @@
         background: rgba(25, 25, 25, 0.4);
         color: #ccc;
         cursor: pointer;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
         font-family: inherit;
     }
 
@@ -3566,7 +3638,7 @@
         border: 1px solid #222;
         border-radius: 7px;
         padding: 20px;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
     }
 
     .detail-section:hover {
@@ -3605,7 +3677,7 @@
         box-shadow:
             0 12px 40px rgba(0, 0, 0, 0.4),
             inset 0 2px 4px rgba(255, 255, 255, 0.05);
-        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        transition: var(--tr-slow);
     }
 
     .profile-picture:hover {
@@ -3629,7 +3701,7 @@
         text-align: center;
         padding: 12px;
         box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        transition: var(--tr-slow);
     }
 
     .profile-placeholder:hover {
@@ -3673,7 +3745,7 @@
         border-radius: 8px;
         padding: 12px 8px;
         text-align: center;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
     }
 
     .stat-item:hover {
@@ -3782,7 +3854,7 @@
         background: rgba(255, 255, 255, 0.05);
         color: var(--text-primary);
         cursor: pointer;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
     }
 
     .detail-tracker-btn:hover {
@@ -3968,7 +4040,7 @@
         font-weight: 600;
         cursor: pointer;
         border: none;
-        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        transition: var(--tr-slow);
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -4101,7 +4173,7 @@
         color: #666;
         cursor: pointer;
         font-size: 0.8rem;
-        transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+        transition: var(--tr-fast);
         width: calc(100% - 24px);
         box-sizing: border-box;
         height: 32px;
@@ -4122,7 +4194,7 @@
         cursor: pointer;
         color: #888;
         font-size: 0.9rem;
-        transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+        transition: var(--tr-fast);
         margin-bottom: 4px;
         white-space: nowrap;
         overflow: hidden;
@@ -4242,11 +4314,7 @@
         font-size: 0.95rem;
     }
 
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
+
 
         to {
             opacity: 1;
@@ -4342,7 +4410,7 @@
         border: 1px solid #555;
         border-radius: 4px;
         cursor: pointer;
-        transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+        transition: var(--tr-fast);
         white-space: nowrap;
     }
 
@@ -4422,7 +4490,7 @@
         font-size: 0.85rem;
         color: #e0e0e0;
         cursor: pointer;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
         max-width: 200px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
@@ -4519,7 +4587,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
         font-size: 1rem;
         flex-shrink: 0;
     }
@@ -4546,7 +4614,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
         font-size: 1rem;
         flex-shrink: 0;
 
@@ -4621,7 +4689,7 @@
         align-items: center;
         justify-content: center;
         gap: 6px;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
         width: auto;
         height: 40px;
     }
@@ -4658,7 +4726,7 @@
         align-items: center;
         justify-content: center;
         gap: 6px;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
         width: auto;
         height: 40px;
     }
@@ -4767,7 +4835,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
     }
 
     .save-chat-btn {
@@ -4783,7 +4851,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
     }
 
     .save-chat-btn:hover {
@@ -4814,7 +4882,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
     }
 
     .window-toggle-btn:hover,
@@ -4962,7 +5030,7 @@
         cursor: pointer;
         border-bottom: 1px solid #2a2a2a;
         margin-bottom: 8px;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
     }
 
     .menu-header:hover {
@@ -4989,7 +5057,7 @@
         justify-content: center;
         background: #2a2a2a;
         border-radius: 4px;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
         color: #666;
     }
 
@@ -5026,7 +5094,7 @@
         color: #ccc;
         cursor: pointer;
         text-align: left;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
         font-size: 0.9rem;
         display: flex;
         align-items: center;
@@ -5065,7 +5133,7 @@
         align-items: center;
         justify-content: center;
         font-size: 1.1rem;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
     }
 
     .action-btn:hover {
@@ -5087,7 +5155,7 @@
         align-items: center;
         justify-content: center;
         font-size: 1rem;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
         line-height: 1;
     }
 
@@ -5132,7 +5200,7 @@
         padding: 10px 14px;
         border-radius: 5px;
         cursor: pointer;
-        transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+        transition: var(--tr-fast);
         color: #999;
         display: flex;
         align-items: center;
@@ -5185,7 +5253,7 @@
         border-radius: 7px;
         padding: 18px;
         margin-bottom: 16px;
-        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        transition: var(--tr-slow);
     }
 
     .finding-item:hover {
@@ -5253,10 +5321,6 @@
     .finding-reasons li {
         margin-bottom: 6px;
         line-height: 1.4;
-    }
-
-    .whitetextnowbruh {
-        color: white !important;
     }
 
     .ai-notification {
@@ -5359,17 +5423,7 @@
     .loading-shimmer {
         background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
         background-size: 200% 100%;
-        animation: shimmer 1.5s infinite;
-    }
-
-    @keyframes shimmer {
-        0% {
-            background-position: 200% 0;
-        }
-
-        100% {
-            background-position: -200% 0;
-        }
+        animation: shimmer 1.5s ease-in-out infinite;
     }
 
     .versiontext {
@@ -5514,7 +5568,7 @@
         font-weight: 600;
         cursor: pointer;
         border: none;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
     }
 
     .clean-modal-btn {
@@ -6178,7 +6232,7 @@
         border: 1px solid #333;
         border-radius: 10px;
         cursor: pointer;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
     }
 
     .tool-card:hover {
@@ -6448,7 +6502,7 @@
         border: 1px solid rgba(255, 255, 255, 0.15);
         cursor: pointer;
         font-size: 0.85rem;
-        transition: background 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+        transition: var(--tr-base);
     }
 
     .cases-new-btn:hover {
@@ -6961,7 +7015,7 @@
         color: rgba(255, 255, 255, 0.6);
         cursor: pointer;
         font-size: 0.85rem;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -7158,7 +7212,7 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        transition: background 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+        transition: var(--tr-base);
     }
 
     .entity-picker-item:hover {
@@ -7319,7 +7373,7 @@
         color: #fff;
         font-size: 0.82rem;
         cursor: pointer;
-        transition: background 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+        transition: var(--tr-base);
         font-family: inherit;
     }
 
@@ -7341,7 +7395,7 @@
         align-items: center;
         justify-content: center;
         font-size: 0.85rem;
-        transition: background 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+        transition: var(--tr-base);
     }
 
     .case-btn-icon:hover {
@@ -7390,7 +7444,7 @@
         align-items: center;
         justify-content: center;
         font-size: 0.7rem;
-        transition: background 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+        transition: var(--tr-base);
         flex-shrink: 0;
     }
 
@@ -7433,7 +7487,7 @@
         align-items: center;
         justify-content: center;
         font-size: 0.85rem;
-        transition: background 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+        transition: var(--tr-base);
         flex-shrink: 0;
     }
 
@@ -7742,7 +7796,7 @@
         color: #ccc;
         font-size: 0.9rem;
         cursor: pointer;
-        transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+        transition: var(--tr-fast);
     }
 
     .password-overlay-input-row button:hover {
@@ -7840,7 +7894,7 @@
         display: flex;
         flex-direction: column;
         gap: 12px;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
         min-width: 0;
         min-height: 92px;
     }
@@ -7936,7 +7990,7 @@
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 4px 16px var(--shadow-color);
-        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        transition: var(--tr-slow);
     }
 
     .intel-card:hover {
@@ -8188,7 +8242,7 @@
         border: 1px solid var(--border-color);
         border-radius: 12px;
         padding: 16px;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
         border-left: 4px solid #666;
     }
 
@@ -8332,7 +8386,7 @@
         cursor: pointer;
         font-size: 0.75rem;
         font-family: inherit;
-        transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+        transition: var(--tr-fast);
         display: flex;
         align-items: center;
         gap: 4px;
@@ -8373,7 +8427,7 @@
         z-index: 9999;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
         overflow: hidden;
-        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        transition: var(--tr-slow);
     }
 
     .agent-panel.collapsed .agent-panel-body {
@@ -8416,7 +8470,7 @@
         display: flex;
         align-items: center;
         gap: 4px;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
         font-family: inherit;
     }
 
@@ -8933,7 +8987,7 @@
         display: flex;
         flex-direction: column;
         gap: 12px;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
     }
 
     .analysis-action-card:hover {
@@ -9072,7 +9126,7 @@
         align-items: center;
         gap: 8px;
         cursor: pointer;
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
     }
 
     .analysis-tool-item:hover {
@@ -9452,7 +9506,7 @@
         display: flex;
         align-items: center;
         gap: 4px;
-        transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+        transition: var(--tr-fast);
         font-family: inherit;
         white-space: nowrap;
         letter-spacing: 0.03em;
@@ -9839,7 +9893,7 @@
         align-items: center;
         justify-content: center;
         font-size: 12px;
-        transition: background 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+        transition: var(--tr-base);
     }
 
     .obj-ac-create-btn:hover {
@@ -9967,7 +10021,7 @@
         border: 1px solid rgba(74, 144, 226, 0.3);
         color: #8ab4f8;
         cursor: default;
-        transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+        transition: var(--tr-fast);
     }
 
     .filter-chip:hover {
@@ -10321,7 +10375,7 @@
         color: #ccc;
         font-size: 0.85rem;
         cursor: pointer;
-        transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+        transition: var(--tr-fast);
         text-align: center;
     }
 
@@ -11019,7 +11073,7 @@
     .tracker-map-button {
         padding: 6px 14px;
         border-radius: 6px;
-        transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+        transition: var(--tr-fast);
         font-family: inherit;
         background: rgba(255, 255, 255, 0.06);
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -11161,7 +11215,7 @@
         font-size: 0.85rem;
         cursor: pointer;
         border-radius: 6px;
-        transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+        transition: var(--tr-fast);
         flex: none;
         width: auto;
         height: auto;
@@ -11227,7 +11281,7 @@
         cursor: pointer;
         border-radius: 6px;
         font-size: 0.85rem;
-        transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+        transition: var(--tr-fast);
         flex: none;
         width: auto;
         height: auto;
@@ -11761,7 +11815,7 @@
         cursor: pointer;
         padding: 4px 8px;
         border-radius: 4px;
-        transition: background 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+        transition: var(--tr-base);
     }
 
     .onto-close-btn:hover {
@@ -11777,7 +11831,7 @@
         border-radius: 6px;
         cursor: pointer;
         font-size: 0.8rem;
-        transition: background 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+        transition: var(--tr-base);
         display: inline-flex;
         align-items: center;
         gap: 5px;
@@ -11916,7 +11970,7 @@
         padding: 2px 4px;
         border-radius: 3px;
         opacity: 0;
-        transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+        transition: var(--tr-fast);
     }
 
     .onto-type-item:hover .onto-type-rename {
@@ -12203,7 +12257,7 @@
         padding: 3px 5px;
         border-radius: 3px;
         opacity: 0;
-        transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+        transition: var(--tr-fast);
         flex-shrink: 0;
     }
 
@@ -12377,7 +12431,7 @@
         font-size: 0.82rem;
         z-index: 99999;
         opacity: 0;
-        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        transition: var(--tr-slow);
         pointer-events: none;
         border: 1px solid rgba(255, 255, 255, 0.08);
     }
@@ -12459,7 +12513,7 @@
     }
 
     .resolver-card {
-        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: var(--tr-ease);
     }
 
     .resolver-card:hover {

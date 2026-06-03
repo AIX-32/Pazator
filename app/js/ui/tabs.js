@@ -33,7 +33,7 @@ function updateTabBarClock() {
     tabBarTime.textContent = timeString;
     tabBarDate.textContent = dateString;
     if (tabBarStatus) {
-        const statuses = ['Its running.',];
+        const statuses = ['System operational',];
         tabBarStatus.textContent = statuses[now.getSeconds() % statuses.length];
     }
 }

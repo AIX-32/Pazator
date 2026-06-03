@@ -732,22 +732,6 @@ function createFamilyConnections() {
     }
 }
 
-function testAIResponseParsing() {
-
-    const aiResponse = `[ { "action": "add_human", "data": { "name": "Benjamin Carter", "gender": "Male", "birthDate": "1978-03-22", "friends": [], "family": [], "extraNotes": "Political view: Moderate; Looks: Athletic", "tags": [], "imagePreview": null } }, { "action": "add_human", "data": { "name": "Emily Carter", "gender": "Female", "birthDate": "1982-07-15", "friends": [], "family": [], "extraNotes": "Political view: Liberal; Looks: Slender", "tags": [], "imagePreview": null } }, { "action": "add_human", "data": { "name": "Michael Carter", "gender": "Male", "birthDate": "2005-09-10", "friends": [], "family": [], "extraNotes": "Political view: Progressive; Looks: Average", "tags": [], "imagePreview": null } }] [ {"action": "modify_human", "id": "Benjamin Carter", "data": {"family": ["Emily Carter", "Michael Carter"]}}, {"action": "modify_human", "id": "Emily Carter", "data": {"family": ["Benjamin Carter", "Michael Carter"]}}, {"action": "modify_human", "id": "Michael Carter", "data": {"family": ["Benjamin Carter", "Emily Carter"]}} ]`;
-
-    console.log("Testing AI response parsing...");
-    const parsed = extractJSONFromResponse(aiResponse);
-    console.log("Parsed result:", parsed);
-
-    if (parsed && Array.isArray(parsed)) {
-        console.log("Successfully parsed array with", parsed.length, "actions");
-
-    } else {
-        console.log("Failed to parse as array");
-    }
-}
-
 function handleAIAction(action, isBatch = false) {
     let response = "Action completed.";
     let shouldRespond = !isBatch;

@@ -548,7 +548,7 @@
                         await window.pazatorEngine.kvSet(key, parsed);
                         migrated++;
                     }
-                } catch (e) { }
+                } catch (e) { /* migration step failed, continuing */ }
             }
         }
         return migrated;

@@ -392,10 +392,10 @@ function renderFindings(findings, container) {
 function _storeItem(key, value) {
     if (window.pazatorStore) {
         pazatorStore.kvSet(key, value).catch(function () {
-            try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+            try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* localStorage quota exceeded */ }
         });
     } else {
-        try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+        try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* localStorage quota exceeded */ }
     }
 }
 
