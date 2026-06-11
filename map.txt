@@ -252,7 +252,7 @@ yy LOAD ORDER (from app/index.html) yyyyyyyyyyyyyyyyyyyyyyyy
         js/apps/sync.js          (menu: sync config / push / pull)
         js/apps/walkthrough.js   (menu: help → walkthrough; auto-start)
         js/apps/snappy.js        (menu: system → snappy)
-        js/apps/gis.js           (not referenced by anything — effectively dead)
+        js/apps/gis.js           (loaded on tracker tab open; GIS overlays + custom layer support)
         js/apps/resolver.js      (not referenced by anything — effectively dead)
         inline <script> blocks   (intro skip, walkthrough/settings handlers;
                                   fall back to ensureLazyModule on first click)

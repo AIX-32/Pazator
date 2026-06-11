@@ -1538,42 +1538,51 @@
                         <div class="sidebar-section-header">
                             <i class="fas fa-location-crosshairs"></i>
                             <h3>LCTX Tracker</h3>
+                            <i class="fas fa-chevron-down sidebar-section-toggle"></i>
                         </div>
-                        <p class="text-muted" style="margin: 0 0 10px 0; font-size: 0.8rem;">Live locations from your
-                            tracker</p>
-                        <button id="trackerConfigureBtn" class="btn glass-btn"
-                            style="width: 100%; padding: 10px; font-size: 0.8rem;">Configure tracker server</button>
+                        <div class="sidebar-section-body">
+                            <p class="text-muted" style="margin: 0 0 10px 0; font-size: 0.8rem;">Live locations from your
+                                tracker</p>
+                            <button id="trackerConfigureBtn" class="btn glass-btn"
+                                style="width: 100%; padding: 10px; font-size: 0.8rem;">Configure tracker server</button>
+                        </div>
                     </div>
 
                     <div class="sidebar-section sidebar-mini">
                         <div class="sidebar-section-header">
                             <i class="fas fa-link"></i>
                             <h3>Connect Person</h3>
+                            <i class="fas fa-chevron-down sidebar-section-toggle"></i>
                         </div>
-                        <label for="trackerHumanSelect"
-                            style="font-size: 0.75rem; color: #888; display: block; margin-bottom: 6px;">Link a tracker
-                            profile to a Pazator person</label>
-                        <div style="display: flex; gap: 8px;">
-                            <select id="trackerHumanSelect"
-                                class="input-flat" style="flex:1;">
-                                <option value="">Select a human</option>
-                            </select>
-                            <button class="btn btn-primary" id="trackerConnectBtn"
-                                style="padding: 8px 12px; font-size: 0.8rem;">Show</button>
+                        <div class="sidebar-section-body">
+                            <label for="trackerHumanSelect"
+                                style="font-size: 0.75rem; color: #888; display: block; margin-bottom: 6px;">Link a tracker
+                                profile to a Pazator person</label>
+                            <div style="display: flex; gap: 8px;">
+                                <select id="trackerHumanSelect"
+                                    class="input-flat" style="flex:1;">
+                                    <option value="">Select a human</option>
+                                </select>
+                                <button class="btn btn-primary" id="trackerConnectBtn"
+                                    style="padding: 8px 12px; font-size: 0.8rem;">Show</button>
+                            </div>
+                            <button class="btn glass-btn" id="trackerRefreshBtn"
+                                style="width: 100%; margin-top: 8px; padding: 8px; font-size: 0.8rem;"><i
+                                    class="fas fa-sync"></i> Refresh tracker</button>
                         </div>
-                        <button class="btn glass-btn" id="trackerRefreshBtn"
-                            style="width: 100%; margin-top: 8px; padding: 8px; font-size: 0.8rem;"><i
-                                class="fas fa-sync"></i> Refresh tracker</button>
                     </div>
 
                     <div class="sidebar-section sidebar-mini">
                         <div class="sidebar-section-header">
                             <i class="fas fa-search"></i>
                             <h3>Search</h3>
+                            <i class="fas fa-chevron-down sidebar-section-toggle"></i>
                         </div>
-                        <input id="trackerPeopleSearch" class="form-control" type="search" placeholder="Search people…"
-                            autocomplete="off" spellcheck="false"
-                            class="input-flat" style="width:100%;">
+                        <div class="sidebar-section-body">
+                            <input id="trackerPeopleSearch" class="form-control" type="search" placeholder="Search people…"
+                                autocomplete="off" spellcheck="false"
+                                class="input-flat" style="width:100%;">
+                        </div>
                     </div>
 
                     <div class="sidebar-section sidebar-mini"
@@ -1581,25 +1590,35 @@
                         <div class="sidebar-section-header">
                             <i class="fas fa-users"></i>
                             <h3>People</h3>
+                            <i class="fas fa-chevron-down sidebar-section-toggle"></i>
                         </div>
-                        <div class="tracker-people-list" id="trackerPeopleList"
-                            class="bg-surface" style="flex:1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
-                            <div style="text-align: center; color: #666; padding: 30px 0; font-size: 0.85rem;">Tracker
-                                data will appear here.</div>
-                        </div>
-                        <div class="tracker-location-info" id="trackerLocationInfo"
-                            class="bg-surface text-muted" style="margin-top: 8px; padding: 10px; font-size: 0.85rem; min-height: 60px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;">
-                            Last known position will appear here once you select someone.
+                        <div class="sidebar-section-body" style="flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden;">
+                            <div class="tracker-people-list" id="trackerPeopleList"
+                                class="bg-surface" style="flex:1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
+                                <div style="text-align: center; color: #666; padding: 30px 0; font-size: 0.85rem;">Tracker
+                                    data will appear here.</div>
+                            </div>
+                            <div class="tracker-location-info" id="trackerLocationInfo"
+                                class="bg-surface text-muted" style="margin-top: 8px; padding: 10px; font-size: 0.85rem; min-height: 60px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;">
+                                Last known position will appear here once you select someone.
+                            </div>
                         </div>
                     </div>
 
                     <div class="sidebar-section sidebar-mini">
-                        <button class="btn glass-btn" id="trackerSetupGuideBtn"
-                            style="width: 100%; margin-bottom: 8px; padding: 9px; font-size: 0.8rem;"><i
-                                class="fas fa-book"></i> How to setup server</button>
-                        <button class="btn glass-btn" id="trackerPurgeBtn"
-                            style="width: 100%; padding: 9px; font-size: 0.8rem;"><i
-                                class="fas fa-exclamation-triangle"></i> Purge tracker records</button>
+                        <div class="sidebar-section-header">
+                            <i class="fas fa-tools"></i>
+                            <h3>Actions</h3>
+                            <i class="fas fa-chevron-down sidebar-section-toggle"></i>
+                        </div>
+                        <div class="sidebar-section-body">
+                            <button class="btn glass-btn" id="trackerSetupGuideBtn"
+                                style="width: 100%; margin-bottom: 8px; padding: 9px; font-size: 0.8rem;"><i
+                                    class="fas fa-book"></i> How to setup server</button>
+                            <button class="btn glass-btn" id="trackerPurgeBtn"
+                                style="width: 100%; padding: 9px; font-size: 0.8rem;"><i
+                                    class="fas fa-exclamation-triangle"></i> Purge tracker records</button>
+                        </div>
                     </div>
                 </div>
                 <div class="tracker-map-area">

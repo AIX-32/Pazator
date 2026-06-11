@@ -343,36 +343,48 @@
       <div class="sidebar-section-header">
         <i class="fas fa-globe"></i>
         <h3>GIS Layers</h3>
-        <button id="gisRefreshBtn" class="btn glass-btn" style="padding:4px 8px;font-size:0.7rem;margin-left:auto;">
+        <i class="fas fa-chevron-down sidebar-section-toggle"></i>
+        <button id="gisRefreshBtn" class="btn glass-btn" style="padding:4px 8px;font-size:0.7rem;flex-shrink:0;">
           <i class="fas fa-sync"></i>
         </button>
       </div>
-      <div style="display:flex;flex-direction:column;gap:6px;">
-        <label class="gis-toggle" style="display:flex;align-items:center;gap:8px;font-size:0.8rem;cursor:pointer;">
-          <input type="checkbox" id="gisHeatmapToggle" checked>
-          <span>Heatmap</span>
-        </label>
-        <label class="gis-toggle" style="display:flex;align-items:center;gap:8px;font-size:0.8rem;cursor:pointer;">
-          <input type="checkbox" id="gisClustersToggle" checked>
-          <span>Clusters</span>
-        </label>
-      </div>
-      <div style="margin-top:8px;">
-        <div style="display:flex;gap:6px;">
-          <input type="text" id="gisGeocodeInput" class="form-control" placeholder="Search location..."
-            style="flex:1;padding:6px 8px;font-size:0.8rem;background:rgba(20,20,20,0.6);border:1px solid var(--border-color);color:#ddd;border-radius:7px;">
-          <button id="gisGeocodeBtn" class="btn btn-primary" style="padding:6px 10px;font-size:0.8rem;">
-            <i class="fas fa-search"></i>
+      <div class="sidebar-section-body">
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <label class="gis-toggle" style="display:flex;align-items:center;gap:8px;font-size:0.8rem;cursor:pointer;">
+            <input type="checkbox" id="gisHeatmapToggle" checked>
+            <span>Heatmap</span>
+          </label>
+          <label class="gis-toggle" style="display:flex;align-items:center;gap:8px;font-size:0.8rem;cursor:pointer;">
+            <input type="checkbox" id="gisClustersToggle" checked>
+            <span>Clusters</span>
+          </label>
+        </div>
+        <div style="margin-top:8px;">
+          <div style="display:flex;gap:6px;">
+            <input type="text" id="gisGeocodeInput" class="form-control" placeholder="Search location..."
+              style="flex:1;padding:6px 8px;font-size:0.8rem;background:rgba(20,20,20,0.6);border:1px solid var(--border-color);color:#ddd;border-radius:7px;">
+            <button id="gisGeocodeBtn" class="btn btn-primary" style="padding:6px 10px;font-size:0.8rem;">
+              <i class="fas fa-search"></i>
+            </button>
+          </div>
+          <div id="gisGeocodeResults" style="display:none;margin-top:6px;background:rgba(0,0,0,0.3);border-radius:6px;max-height:150px;overflow-y:auto;"></div>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:6px;">
+          <button id="gisFitAllBtn" class="btn glass-btn" style="flex:1;padding:6px;font-size:0.75rem;">
+            <i class="fas fa-expand"></i> Fit All
           </button>
         </div>
-        <div id="gisGeocodeResults" style="display:none;margin-top:6px;background:rgba(0,0,0,0.3);border-radius:6px;max-height:150px;overflow-y:auto;"></div>
+        <div id="entityLocationCount" style="margin-top:6px;font-size:0.75rem;color:#888;text-align:center;"></div>
+        <div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:0.75rem;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Custom Layers</span>
+            <button id="gisAddLayerBtn" class="btn glass-btn" style="padding:3px 8px;font-size:0.65rem;">
+              <i class="fas fa-plus"></i> Add
+            </button>
+          </div>
+          <div id="gisCustomLayersList"></div>
+        </div>
       </div>
-      <div style="margin-top:8px;display:flex;gap:6px;">
-        <button id="gisFitAllBtn" class="btn glass-btn" style="flex:1;padding:6px;font-size:0.75rem;">
-          <i class="fas fa-expand"></i> Fit All
-        </button>
-      </div>
-      <div id="entityLocationCount" style="margin-top:6px;font-size:0.75rem;color:#888;text-align:center;"></div>
     `;
 
     const connectSection = sidebar.querySelector('.sidebar-section:nth-child(3)');
@@ -394,6 +406,9 @@
       window.PazatorUI && window.PazatorUI.showFloatingNotification('GIS data refreshed', 'info', 1500);
     });
     document.getElementById('gisFitAllBtn').addEventListener('click', fitAllEntities);
+
+    var addLayerBtn = document.getElementById('gisAddLayerBtn');
+    if (addLayerBtn) addLayerBtn.addEventListener('click', showAddLayerModal);
 
     const geocodeInput = document.getElementById('gisGeocodeInput');
     const geocodeBtn = document.getElementById('gisGeocodeBtn');
@@ -499,32 +514,307 @@
     });
   }
 
+  var GIS_LAYERS_KEY = 'pazator_gis_layers';
+  var customLayers = [];
+
+  function loadCustomLayers() {
+    try {
+      var raw = localStorage.getItem(GIS_LAYERS_KEY);
+      customLayers = raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      customLayers = [];
+    }
+  }
+
+  function saveCustomLayers() {
+    localStorage.setItem(GIS_LAYERS_KEY, JSON.stringify(customLayers));
+  }
+
+  function normalizeGeoJSON(data) {
+    if (!data) return null;
+    if (data.type === 'FeatureCollection') return data;
+    if (data.type === 'Feature') return { type: 'FeatureCollection', features: [data] };
+    if (['Point', 'LineString', 'Polygon', 'MultiPoint', 'MultiLineString', 'MultiPolygon', 'GeometryCollection'].indexOf(data.type) !== -1) {
+      return { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: data, properties: {} }] };
+    }
+    return null;
+  }
+
+  function detectGeoTypes(fc) {
+    var types = {};
+    var features = fc.features || [];
+    for (var i = 0; i < features.length; i++) {
+      var geom = features[i].geometry;
+      if (geom && geom.type) {
+        var base = geom.type.indexOf('Multi') === 0 ? geom.type.replace('Multi', '') : geom.type;
+        types[base] = true;
+      }
+    }
+    return types;
+  }
+
+  function addCustomLayerToMap(map, layer) {
+    if (!map || !layer || !layer.geojson) return;
+    var srcId = 'pazator-custom-' + layer.id;
+    if (map.getSource(srcId)) return;
+
+    var fc = normalizeGeoJSON(layer.geojson);
+    if (!fc) return;
+
+    try {
+      map.addSource(srcId, { type: 'geojson', data: fc });
+    } catch (e) {
+      return;
+    }
+
+    var color = layer.color || '#818cf8';
+    var types = detectGeoTypes(fc);
+
+    if (types.Circle || types.Point) {
+      var circleId = srcId + '-circle';
+      if (!map.getLayer(circleId)) {
+        map.addLayer({
+          id: circleId,
+          type: 'circle',
+          source: srcId,
+          filter: ['in', '$type', 'Point', 'MultiPoint'],
+          paint: {
+            'circle-color': color,
+            'circle-radius': 7,
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#fff',
+            'circle-opacity': 0.85
+          }
+        });
+      }
+      var labelId = srcId + '-label';
+      if (!map.getLayer(labelId)) {
+        map.addLayer({
+          id: labelId,
+          type: 'symbol',
+          source: srcId,
+          filter: ['in', '$type', 'Point', 'MultiPoint'],
+          layout: {
+            'text-field': ['get', 'name'],
+            'text-offset': [0, 1.5],
+            'text-size': 11,
+            'text-anchor': 'top',
+            'text-optional': true
+          },
+          paint: {
+            'text-color': '#fff',
+            'text-halo-color': '#000',
+            'text-halo-width': 1
+          }
+        });
+      }
+    }
+
+    if (types.LineString) {
+      var lineId = srcId + '-line';
+      if (!map.getLayer(lineId)) {
+        map.addLayer({
+          id: lineId,
+          type: 'line',
+          source: srcId,
+          filter: ['in', '$type', 'LineString', 'MultiLineString'],
+          paint: {
+            'line-color': color,
+            'line-width': 3,
+            'line-opacity': 0.85
+          }
+        });
+      }
+    }
+
+    if (types.Polygon) {
+      var fillId = srcId + '-fill';
+      if (!map.getLayer(fillId)) {
+        map.addLayer({
+          id: fillId,
+          type: 'fill',
+          source: srcId,
+          filter: ['in', '$type', 'Polygon', 'MultiPolygon'],
+          paint: {
+            'fill-color': color,
+            'fill-opacity': 0.3,
+            'fill-outline-color': color
+          }
+        });
+      }
+    }
+  }
+
+  function removeCustomLayerFromMap(map, layerId) {
+    if (!map) return;
+    var prefix = 'pazator-custom-' + layerId;
+    var ids = [prefix + '-circle', prefix + '-label', prefix + '-line', prefix + '-fill'];
+    for (var i = 0; i < ids.length; i++) {
+      try { if (map.getLayer(ids[i])) map.removeLayer(ids[i]); } catch (e) {}
+    }
+    try { if (map.getSource(prefix)) map.removeSource(prefix); } catch (e) {}
+  }
+
+  function syncCustomLayerVisibility(map, layer) {
+    if (!map) return;
+    var prefix = 'pazator-custom-' + layer.id;
+    var visible = layer.visible !== false;
+    var ids = [prefix + '-circle', prefix + '-label', prefix + '-line', prefix + '-fill'];
+    for (var i = 0; i < ids.length; i++) {
+      try {
+        if (map.getLayer(ids[i])) {
+          map.setLayoutProperty(ids[i], 'visibility', visible ? 'visible' : 'none');
+        }
+      } catch (e) {}
+    }
+  }
+
+  function renderCustomLayerList() {
+    var container = document.getElementById('gisCustomLayersList');
+    if (!container) return;
+
+    if (customLayers.length === 0) {
+      container.innerHTML = '<div style="font-size:0.75rem;color:#666;padding:4px 0;">No custom layers added yet.</div>';
+      return;
+    }
+
+    container.innerHTML = customLayers.map(function (layer) {
+      var visible = layer.visible !== false;
+      return '<div class="gis-custom-layer" data-id="' + layer.id + '" style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:0.8rem;">' +
+        '<input type="checkbox" ' + (visible ? 'checked' : '') + ' class="gis-layer-toggle" style="cursor:pointer;">' +
+        '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + (layer.color || '#818cf8') + ';flex-shrink:0;"></span>' +
+        '<span style="flex:1;color:#ccc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(layer.name) + '</span>' +
+        '<button class="gis-layer-delete" style="background:none;border:none;color:#ff6b6b;cursor:pointer;padding:2px 4px;font-size:0.7rem;">&times;</button>' +
+        '</div>';
+    }).join('');
+
+    container.querySelectorAll('.gis-layer-toggle').forEach(function (cb, idx) {
+      cb.addEventListener('change', function () {
+        var layer = customLayers[idx];
+        if (layer) {
+          layer.visible = this.checked;
+          saveCustomLayers();
+          var map = getTrackerMap();
+          if (map) syncCustomLayerVisibility(map, layer);
+        }
+      });
+    });
+
+    container.querySelectorAll('.gis-layer-delete').forEach(function (btn, idx) {
+      btn.addEventListener('click', function () {
+        var layer = customLayers[idx];
+        if (layer) {
+          var map = getTrackerMap();
+          if (map) removeCustomLayerFromMap(map, layer.id);
+          customLayers.splice(idx, 1);
+          saveCustomLayers();
+          renderCustomLayerList();
+        }
+      });
+    });
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(str || ''));
+    return div.innerHTML;
+  }
+
+  function showAddLayerModal() {
+    if (typeof showModal !== 'function') return;
+    showModal({
+      title: 'Add Custom Layer',
+      type: 'info',
+      html: '<div style="display:flex;flex-direction:column;gap:10px;">' +
+        '<label style="font-size:0.8rem;color:#aaa;">Layer Name</label>' +
+        '<input id="addLayerName" class="form-control input-flat" style="padding:8px;font-size:0.85rem;" placeholder="My Layer">' +
+        '<label style="font-size:0.8rem;color:#aaa;">Color</label>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;" id="addLayerColors">' +
+        ['#818cf8','#ff6b6b','#6bcf7f','#ffd93d','#ff9f43','#00d2d3','#a29bfe','#fd79a8'].map(function (c) {
+          return '<span class="gis-color-swatch" data-color="' + c + '" style="display:inline-block;width:28px;height:28px;border-radius:50%;background:' + c + ';cursor:pointer;border:2px solid transparent;"></span>';
+        }).join('') +
+        '</div>' +
+        '<label style="font-size:0.8rem;color:#aaa;">GeoJSON</label>' +
+        '<textarea id="addLayerGeoJSON" class="form-control input-flat" style="padding:8px;font-size:0.8rem;font-family:monospace;min-height:160px;resize:vertical;" placeholder="Paste GeoJSON here or use Import button..."></textarea>' +
+        '<div style="display:flex;gap:6px;">' +
+        '<button id="addLayerImportBtn" class="btn glass-btn" style="flex:1;padding:8px;font-size:0.8rem;"><i class="fas fa-file-upload"></i> Import File</button>' +
+        '</div>' +
+        '</div>',
+      buttons: [
+        { text: 'Cancel', primary: false },
+        { text: 'Add Layer', primary: true, onClick: function () {
+          var name = document.getElementById('addLayerName').value.trim();
+          var geojsonText = document.getElementById('addLayerGeoJSON').value.trim();
+          var colorEl = document.querySelector('#addLayerColors .gis-color-swatch.selected');
+          var color = colorEl ? colorEl.dataset.color : '#818cf8';
+          if (!name) { showAlert('Please enter a layer name.'); return; }
+          if (!geojsonText) { showAlert('Please paste GeoJSON or import a file.'); return; }
+          var geojson;
+          try { geojson = JSON.parse(geojsonText); } catch (e) { showAlert('Invalid JSON: ' + e.message); return; }
+          var fc = normalizeGeoJSON(geojson);
+          if (!fc) { showAlert('Invalid GeoJSON. Must be a Feature, FeatureCollection, or geometry object.'); return; }
+          var layer = {
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+            name: name,
+            color: color,
+            geojson: fc,
+            visible: true
+          };
+          customLayers.push(layer);
+          saveCustomLayers();
+          var map = getTrackerMap();
+          if (map) addCustomLayerToMap(map, layer);
+          renderCustomLayerList();
+        }}
+      ]
+    });
+
+    setTimeout(function () {
+      var swatches = document.querySelectorAll('#addLayerColors .gis-color-swatch');
+      swatches.forEach(function (s) {
+        s.addEventListener('click', function () {
+          swatches.forEach(function (x) { x.style.borderColor = 'transparent'; });
+          this.style.borderColor = '#fff';
+          this.classList.add('selected');
+        });
+      });
+      swatches[0] && swatches[0].click();
+
+      document.getElementById('addLayerImportBtn').addEventListener('click', function () {
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.geojson,.json';
+        input.addEventListener('change', function () {
+          var file = input.files[0];
+          if (!file) return;
+          var reader = new FileReader();
+          reader.onload = function (e) {
+            document.getElementById('addLayerGeoJSON').value = e.target.result;
+          };
+          reader.readAsText(file);
+        });
+        input.click();
+      });
+    }, 50);
+  }
+
+  function initCustomLayers(map) {
+    loadCustomLayers();
+    for (var i = 0; i < customLayers.length; i++) {
+      addCustomLayerToMap(map, customLayers[i]);
+    }
+    renderCustomLayerList();
+  }
+
   function init() {
     const map = getTrackerMap();
     if (map) {
       addLayers(map);
       setupEntityClickHandler(map);
+      initCustomLayers(map);
     }
     initGISPanel();
   }
-
-  const origEnsure = window.ensureTrackerTabReady || function () { };
-  window.ensureTrackerTabReady = function () {
-    origEnsure();
-    setTimeout(init, 500);
-  };
-
-  document.addEventListener('DOMContentLoaded', function () {
-    setTimeout(function () {
-      const map = getTrackerMap();
-      if (map) {
-        addLayers(map);
-        setupEntityClickHandler(map);
-      }
-    }, 1000);
-    setTimeout(initGISPanel, 1500);
-    setTimeout(updateEntityCount, 2000);
-  });
 
   window.pazatorGIS = {
     init,

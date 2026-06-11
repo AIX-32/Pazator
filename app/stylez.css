@@ -257,6 +257,14 @@
         grid-row: 1 / 4;
     }
 
+    .api-tab-btn {
+        border-radius: 0px !important;
+    }
+
+    .api-tab-btn :hover {
+        transition: none !important;
+        transform: none !important;
+    }
     .panel {
         background: var(--card-bg);
         border: 1px solid var(--border-color);
@@ -3110,6 +3118,8 @@
         align-items: center;
         gap: 8px;
         margin-bottom: 12px;
+        cursor: pointer;
+        user-select: none;
     }
 
     .sidebar-section-header i {
@@ -3127,6 +3137,30 @@
         color: #aaa !important;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+    }
+
+    .sidebar-section-toggle {
+        margin-left: auto;
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.25);
+        transition: transform 0.2s ease;
+        flex-shrink: 0;
+    }
+
+    .sidebar-section.collapsed .sidebar-section-toggle {
+        transform: rotate(-90deg);
+    }
+
+    .sidebar-section-body {
+        overflow: hidden;
+    }
+
+    .sidebar-section.collapsed .sidebar-section-body {
+        display: none !important;
+    }
+
+    .sidebar-section.collapsed {
+        flex: none !important;
     }
 
     .quick-action-row {
@@ -4350,13 +4384,6 @@
         font-size: 0.95rem;
     }
 
-
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
 
     @keyframes modalFadeIn {
         from {

@@ -8,6 +8,17 @@ function addMessageToAIChat(message, sender, entityInfo) {
 
     let container = messageDiv;
 
+    if (message && /api\s*key/i.test(message) && sender === 'ai') {
+        var link = document.createElement('a');
+        link.href = 'https://aistudio.google.com/api-keys';
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.className = 'btn glass-btn';
+        link.style.cssText = 'display:inline-block;margin-top:8px;padding:6px 12px;font-size:0.75rem;text-decoration:none;';
+        link.innerHTML = '<i class="fas fa-key"></i> Get a free test API key';
+        messageDiv.appendChild(link);
+    }
+
     if (entityInfo && entityInfo.name) {
         container = document.createElement('div');
         container.className = `ai-message-container ${sender}`;
@@ -369,7 +380,7 @@ async function processAICommand(command) {
                 return '  - ' + p.name + ' (Threat: ' + p.threatLevel + ', Credit: ' + p.credit + ')';
             }).join('\n') : '  None';
 
-            const context = `Act as Zor (Model: PZZ1), a grounded, blunt, mildly skeptical peer operating a mass data command center. No generic politeness, no emojis, no fluff ("I'm here to help", "In conclusion", "It's important to note"). If something is obvious, do not explain it. Use wit instead of politeness. Call out absurd requests firmly.
+            const context = `Act as Zor (Model: PZZ1) you are inside of "Pazator: SARPARAST", a grounded, blunt, mildly skeptical peer operating a mass data command center. No generic politeness, no emojis, no fluff ("I'm here to help", "In conclusion", "It's important to note"). If something is obvious, do not explain it. Use wit instead of politeness. Call out absurd requests firmly.
 
 DATABASE SUMMARY:
 - Total humans: ${dataSummary.totalHumans}
@@ -412,6 +423,7 @@ ACTION JSON FORMATS:
   {"action": "add_case_note", "title": "X", "note": "Y"}
   {"action": "close_case", "title": "X"}
   {"action": "add_entity_to_case", "case_title": "X", "entity_name": "Y"}
+- JavaScript Runner: {"action": "run_javascript", "data": {"title": "What this does", "description": "Brief explanation", "code": "console.log('hello')"}} — executes JS in the app. A confirmation popup will show the title, description, and code before running.
 - Utilities: {"action": "list_humans"}, {"action": "list_others"}, {"action": "count_entries"}, {"action": "add_tag", "tag": "T"}, {"action": "assign_tag", "id": "123", "tag": "T"}, {"action": "remove_tag", "id": "123", "tag": "T"}
 
 Previous conversation:
@@ -479,7 +491,7 @@ User request: ${command}`;
                         await handleBatchActions(parsedResponse);
                     } else {
 
-                        handleAIAction(parsedResponse);
+                        await handleAIAction(parsedResponse);
                     }
                     return;
                 } else {
@@ -492,11 +504,11 @@ User request: ${command}`;
             }
         } catch (error) {
             console.error('AI Error:', error);
-            addMessageToAIChat("Sorry, I encountered an error processing your request. Please try again.", 'ai');
+            addMessageToAIChat("Error: " + (error.message || error), 'ai');
         }
     } catch (error) {
         console.error('Critical Error in processAICommand:', error);
-        addMessageToAIChat("Sorry, I encountered a critical error. Please try again.", 'ai');
+        addMessageToAIChat("Critical error: " + (error.message || error), 'ai');
     } finally {
         hideAiTypingIndicator();
         requestAnimationFrame(() => {
@@ -620,7 +632,7 @@ async function handleBatchActions(actions) {
 
         for (const action of addHumanActions) {
             try {
-                const result = handleAIAction(action, true);
+                const result = await handleAIAction(action, true);
                 if (result.success) {
                     batchResponse += `- ${result.message}\n`;
                     if (result.entityInfo) entityInfos.push(result.entityInfo);
@@ -642,7 +654,7 @@ async function handleBatchActions(actions) {
 
         for (const action of otherActions) {
             try {
-                const result = handleAIAction(action, true);
+                const result = await handleAIAction(action, true);
                 if (result.success) {
                     batchResponse += `- ${result.message}\n`;
                     if (result.entityInfo) entityInfos.push(result.entityInfo);
@@ -732,7 +744,7 @@ function createFamilyConnections() {
     }
 }
 
-function handleAIAction(action, isBatch = false) {
+async function handleAIAction(action, isBatch = false) {
     let response = "Action completed.";
     let shouldRespond = !isBatch;
     let success = true;
@@ -1094,6 +1106,56 @@ function handleAIAction(action, isBatch = false) {
                 }
             } catch (e) {
                 response = `Failed to add entity to case: ${e.message}`;
+                success = false;
+            }
+            break;
+
+        case "run_javascript":
+            try {
+                var jsCode = action.data?.code || action.code || '';
+                var jsTitle = action.data?.title || action.title || 'JavaScript Action';
+                var jsDesc = action.data?.description || action.description || '';
+                if (!jsCode) {
+                    response = "No JavaScript code provided.";
+                    success = false;
+                } else if (typeof showModal !== 'function') {
+                    response = "Cannot show confirmation dialog.";
+                    success = false;
+                } else {
+                    var confirmed = await new Promise(function (resolve) {
+                        showModal({
+                            title: 'Run JavaScript',
+                            type: 'warning',
+                            html: '<div style="font-size:0.85rem;">' +
+                                '<div style="margin-bottom:8px;"><strong>Title:</strong> ' + escapeHtml(jsTitle) + '</div>' +
+                                (jsDesc ? '<div style="margin-bottom:8px;color:#aaa;"><strong>Description:</strong> ' + escapeHtml(jsDesc) + '</div>' : '') +
+                                '<div style="margin-bottom:6px;font-size:0.75rem;color:#888;">Code to execute:</div>' +
+                                '<pre style="background:rgba(0,0,0,0.4);padding:10px;border-radius:6px;font-size:0.75rem;font-family:monospace;max-height:300px;overflow:auto;white-space:pre-wrap;word-break:break-word;color:#ddd;">' + escapeHtml(jsCode) + '</pre>' +
+                                '</div>',
+                            buttons: [
+                                { text: 'Cancel', primary: false, onClick: function () { hideModal(); resolve(false); } },
+                                { text: 'Run', primary: true, danger: true, onClick: function () { hideModal(); resolve(true); } }
+                            ]
+                        });
+                    });
+                    if (confirmed) {
+                        try {
+                            var result = new Function(jsCode)();
+                            if (result && typeof result.then === 'function') {
+                                result = await result;
+                            }
+                            response = 'JavaScript executed successfully' + (result !== undefined ? ': ' + JSON.stringify(result) : '.');
+                        } catch (e) {
+                            response = 'JavaScript error: ' + e.message;
+                            success = false;
+                        }
+                    } else {
+                        response = 'JavaScript execution cancelled.';
+                        success = false;
+                    }
+                }
+            } catch (e) {
+                response = 'Failed to run JavaScript: ' + e.message;
                 success = false;
             }
             break;

@@ -34,6 +34,7 @@
 
         window.pazatorReports = {
             init: init,
+            renderReportBuilder: renderReportBuilder,
             getTemplates: function () { return templates; },
             addTemplate: function (tpl) {
                 tpl.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);

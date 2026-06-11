@@ -293,6 +293,16 @@ function switchTab(tabId) {
     } else if (tabId === 'tracker') {
         ensureTrackerConfig(true);
         ensureTrackerTabReady();
+        ensureLazyModule('gis', 'js/apps/gis.js', function () { return !!window.pazatorGIS; }).then(function () {
+            if (window.pazatorGIS) {
+                if (!window.pazatorGIS._initialized) {
+                    window.pazatorGIS.init();
+                    window.pazatorGIS._initialized = true;
+                } else {
+                    window.pazatorGIS.refreshEntities();
+                }
+            }
+        });
     } else if (tabId === 'cases') {
         setTimeout(initCasesTab, 50);
     } else if (tabId === 'analysis') {

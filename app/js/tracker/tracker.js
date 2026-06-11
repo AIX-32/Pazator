@@ -1070,6 +1070,13 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    trackerSidebar?.addEventListener('click', function (e) {
+        var header = e.target.closest('.sidebar-section-header');
+        if (header) {
+            header.parentElement.classList.toggle('collapsed');
+        }
+    });
+
     if (trackerSpinToggleBtn) {
         trackerSpinToggleBtn.addEventListener('click', function () {
             if (trackerSpinning) {
