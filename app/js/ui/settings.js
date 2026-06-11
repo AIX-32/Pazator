@@ -1,12 +1,39 @@
+var TOOL_DELAY_KEY = 'pazator_tool_delay';
+var AGENT_DEBUG_KEY = 'pazator_agent_debug';
+
+function getToolDelay() {
+    var val = parseInt(localStorage.getItem(TOOL_DELAY_KEY), 10);
+    return isNaN(val) ? 0 : Math.max(0, Math.min(10000, val));
+}
+
+function getAgentDebug() {
+    return localStorage.getItem(AGENT_DEBUG_KEY) === 'true';
+}
+
 function openSettingsModal() {
     const modal = document.getElementById('settingsModal');
     const noBlurToggle = document.getElementById('noBlurToggle');
     const skipIntroToggle = document.getElementById('skipIntroToggle');
     const passwordToggle = document.getElementById('passwordLockToggle');
+    const toolDelayInput = document.getElementById('toolDelayInput');
+
+    var agentDebugToggle = document.getElementById('agentDebugToggle');
 
     noBlurToggle.checked = localStorage.getItem('noBlur') === 'true';
     skipIntroToggle.checked = localStorage.getItem('skipIntro') === 'true';
     passwordToggle.checked = localStorage.getItem('pz_passwordEnabled') === 'true';
+    if (agentDebugToggle) {
+        agentDebugToggle.checked = getAgentDebug();
+        agentDebugToggle.onchange = function () {
+            localStorage.setItem(AGENT_DEBUG_KEY, this.checked ? 'true' : 'false');
+        };
+    }
+    if (toolDelayInput) {
+        toolDelayInput.value = getToolDelay();
+        toolDelayInput.oninput = function () {
+            localStorage.setItem(TOOL_DELAY_KEY, this.value);
+        };
+    }
 
     modal.classList.add('active');
 

@@ -429,8 +429,7 @@
                     <div class="menu-separator"></div>
                     <button class="menu-dropdown-item" onclick="document.getElementById('snappyOption')?.click()"><i
                             class="fas fa-camera"></i> Snappy</button>
-                    <button class="menu-dropdown-item" onclick="document.getElementById('aboutOption')?.click()"><i
-                            class="fas fa-circle-info"></i> About</button>
+
                 </div>
             </div>
             <div class="menu-item" data-menu="help">
@@ -444,8 +443,7 @@
                     <button class="menu-dropdown-item"
                         onclick="window.open('https://discord.gg/74c9RBYD4R', '_blank')"><i class="fab fa-discord"></i>
                         Discord</button>
-                    <button class="menu-dropdown-item" onclick="document.getElementById('aboutOption')?.click()"><i
-                            class="fas fa-circle-info"></i> About</button>
+
                 </div>
             </div>
         </div>
@@ -474,7 +472,7 @@
                     </div>
                 </div>
                 <div class="logo-dropdown-divider"></div>
-                <div class="logo-dropdown-item" id="aboutOption">
+                <div class="logo-dropdown-item" id="aboutOption"> 
                     <i class="fas fa-circle-info"></i>
                     <span>About</span>
                 </div>
@@ -499,7 +497,8 @@
                     <div class="web-container" id="webContainer">
                         <div class="web-content" id="webContent">
                             <div class="skeleton-graph" id="skeletonGraph">
-                                <div class="skeleton skeleton-card" style="width:100%;height:200px;margin-bottom:16px;"></div>
+                                <div class="skeleton skeleton-card" style="width:100%;height:200px;margin-bottom:16px;">
+                                </div>
                                 <div class="skeleton skeleton-text" style="width:45%;"></div>
                                 <div class="skeleton skeleton-text short"></div>
                                 <div class="skeleton skeleton-text" style="width:80%;"></div>
@@ -535,7 +534,8 @@
                         <div id="visOffOverlay" class="vis-overlay" style="display: none;">
                             <div class="vis-overlay-content">
                                 <h2>VISUALIZATION OFF</h2>
-                                <p>Visualization is disabled for datasets exceeding 15 nodes to maintain performance.</p>
+                                <p>Visualization is disabled for datasets exceeding 15 nodes to maintain performance.
+                                </p>
                             </div>
                         </div>
                         <div id="visEmptyOverlay" class="vis-overlay" style="display: none;">
@@ -900,7 +900,8 @@
                                 <div class="chat-indicator" style="background: #4d9de0;"></div>
                                 <h3 style="color: #4d9de0;">Archive</h3>
                             </div>
-                            <p class="text-muted" style="margin-bottom: 15px; font-size: 0.9rem;">Old chats (90+ days) can be
+                            <p class="text-muted" style="margin-bottom: 15px; font-size: 0.9rem;">Old chats (90+ days)
+                                can be
                                 archived to save memory</p>
                             <div style="display:flex;gap:10px;">
                                 <button id="archiveOldChatsBtn" class="btn btn-secondary" style="flex:1;">
@@ -1048,7 +1049,7 @@
                             <div class="intel-results-header">
                                 <h3><i class="fas fa-list"></i> Analysis Results</h3>
                                 <div class="intel-results-actions">
-<select id="intelFilterType" class="intel-filter-select">
+                                    <select id="intelFilterType" class="intel-filter-select">
                                         <option value="all">All</option>
                                         <option value="threat">Threats</option>
                                         <option value="risk">Risks</option>
@@ -1541,7 +1542,8 @@
                             <i class="fas fa-chevron-down sidebar-section-toggle"></i>
                         </div>
                         <div class="sidebar-section-body">
-                            <p class="text-muted" style="margin: 0 0 10px 0; font-size: 0.8rem;">Live locations from your
+                            <p class="text-muted" style="margin: 0 0 10px 0; font-size: 0.8rem;">Live locations from
+                                your
                                 tracker</p>
                             <button id="trackerConfigureBtn" class="btn glass-btn"
                                 style="width: 100%; padding: 10px; font-size: 0.8rem;">Configure tracker server</button>
@@ -1556,11 +1558,11 @@
                         </div>
                         <div class="sidebar-section-body">
                             <label for="trackerHumanSelect"
-                                style="font-size: 0.75rem; color: #888; display: block; margin-bottom: 6px;">Link a tracker
+                                style="font-size: 0.75rem; color: #888; display: block; margin-bottom: 6px;">Link a
+                                tracker
                                 profile to a Pazator person</label>
                             <div style="display: flex; gap: 8px;">
-                                <select id="trackerHumanSelect"
-                                    class="input-flat" style="flex:1;">
+                                <select id="trackerHumanSelect" class="input-flat" style="flex:1;">
                                     <option value="">Select a human</option>
                                 </select>
                                 <button class="btn btn-primary" id="trackerConnectBtn"
@@ -1579,9 +1581,9 @@
                             <i class="fas fa-chevron-down sidebar-section-toggle"></i>
                         </div>
                         <div class="sidebar-section-body">
-                            <input id="trackerPeopleSearch" class="form-control" type="search" placeholder="Search people…"
-                                autocomplete="off" spellcheck="false"
-                                class="input-flat" style="width:100%;">
+                            <input id="trackerPeopleSearch" class="form-control" type="search"
+                                placeholder="Search people…" autocomplete="off" spellcheck="false" class="input-flat"
+                                style="width:100%;">
                         </div>
                     </div>
 
@@ -1592,14 +1594,16 @@
                             <h3>People</h3>
                             <i class="fas fa-chevron-down sidebar-section-toggle"></i>
                         </div>
-                        <div class="sidebar-section-body" style="flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden;">
-                            <div class="tracker-people-list" id="trackerPeopleList"
-                                class="bg-surface" style="flex:1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
-                                <div style="text-align: center; color: #666; padding: 30px 0; font-size: 0.85rem;">Tracker
+                        <div class="sidebar-section-body"
+                            style="flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden;">
+                            <div class="tracker-people-list" id="trackerPeopleList" class="bg-surface"
+                                style="flex:1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
+                                <div style="text-align: center; color: #666; padding: 30px 0; font-size: 0.85rem;">
+                                    Tracker
                                     data will appear here.</div>
                             </div>
-                            <div class="tracker-location-info" id="trackerLocationInfo"
-                                class="bg-surface text-muted" style="margin-top: 8px; padding: 10px; font-size: 0.85rem; min-height: 60px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;">
+                            <div class="tracker-location-info" id="trackerLocationInfo" class="bg-surface text-muted"
+                                style="margin-top: 8px; padding: 10px; font-size: 0.85rem; min-height: 60px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center;">
                                 Last known position will appear here once you select someone.
                             </div>
                         </div>
@@ -2167,7 +2171,8 @@
         <div class="about-card" id="aboutCard" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
             <h2 id="aboutTitle">About Pazator</h2>
             <p class="about-devnote">
-                Pazator is a data analysis and intelligence platform built for managing entities, relationships, and risk.
+                Pazator is a data analysis and intelligence platform built for managing entities, relationships, and
+                risk.
                 This is a solo project — functional, not polished, but real.
             </p>
             <div class="about-links">
@@ -2176,7 +2181,8 @@
             <div class="about-credits">
                 <div class="about-credits-title">Background</div>
                 <div class="about-credits-list">Built as a solo project to explore what's possible with modern browser
-                    technologies. Not affiliated with any commercial platform. The goal is practical intelligence tooling
+                    technologies. Not affiliated with any commercial platform. The goal is practical intelligence
+                    tooling
                     that runs entirely in the browser.</div>
             </div>
         </div>
@@ -2363,7 +2369,8 @@
                 <button id="exportPdfBtn" class="btn-action" style="background: #333; color: #fff;">
                     <i class="fas fa-file-pdf"></i> Export PDF
                 </button>
-                <button id="openInExplorerBtn" class="btn-action" style="background: #1a3a5c; color: #fff; display:none;">
+                <button id="openInExplorerBtn" class="btn-action"
+                    style="background: #1a3a5c; color: #fff; display:none;">
                     <i class="fas fa-cube"></i> Explore
                 </button>
                 <button id="deleteEntryBtn" class="btn-action btn-danger">
@@ -2496,6 +2503,22 @@
                         <span class="toggle-slider"></span>
                     </label>
                     <p class="settings-desc">Skip the intro video on next load</p>
+                </div>
+                <div class="settings-group">
+                    <label style="display:flex;align-items:center;justify-content:space-between;">
+                        <span>Tool Call Delay</span>
+                        <input type="number" id="toolDelayInput" min="0" max="10000" step="100"
+                            style="width:80px;padding:6px 8px;background:#1a1a1a;border:1px solid #444;border-radius:4px;color:#fff;font-size:0.8rem;text-align:center;">
+                    </label>
+                    <p class="settings-desc">Milliseconds to wait between each tool call in the agent loop (0 = off)</p>
+                </div>
+                <div class="settings-group">
+                    <label class="settings-toggle">
+                        <span>Agent Debug Mode</span>
+                        <input type="checkbox" id="agentDebugToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <p class="settings-desc">Log full API messages to console for debugging the agent loop</p>
                 </div>
                 <div class="settings-group">
                     <button id="settingsWalkthroughBtn" class="btn btn-primary btn-full"
@@ -2704,21 +2727,7 @@
             }
         }
 
-        // Show update modal after intro completes
-        document.addEventListener('DOMContentLoaded', function () {
-            const introOverlay = document.getElementById('introOverlay');
-            if (introOverlay) {
-                const observer = new MutationObserver(function (mutations) {
-                    mutations.forEach(function (mutation) {
-                        if (introOverlay.classList.contains('hidden')) {
-                            setTimeout(showUpdateModal, 500);
-                            observer.disconnect();
-                        }
-                    });
-                });
-                observer.observe(introOverlay, { attributes: true, attributeFilter: ['class'] });
-            }
-        });
+        localStorage.setItem('updateAcknowledged', 'true');
     </script>
 </body>
 

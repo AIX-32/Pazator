@@ -4515,8 +4515,19 @@
     }
 
     .ai-message.system p {
-        margin: 10px 0;
-        text-align: left;
+        margin: 0;
+    }
+
+    .ai-message.tool {
+        padding: 5px 20px;
+        margin-bottom: 2px;
+        font-size: 0.8rem;
+        background: linear-gradient(145deg, #323232, #2d2d2d);
+        border: 1px solid #383838;
+    }
+
+    .ai-message.tool.tool-failed:hover {
+        background: linear-gradient(145deg, #3a2a2a, #352525);
     }
 
     .ai-input-container {

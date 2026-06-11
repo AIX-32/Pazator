@@ -46,6 +46,51 @@ function addMessageToAIChat(message, sender, entityInfo) {
     aiChatHistory.push(entityInfo ? { role, content: message, entityInfo } : { role, content: message });
 }
 
+function escapeHtml(str) {
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(str || ''));
+    return d.innerHTML;
+}
+
+function addToolCallCard(action, result) {
+    var card = document.createElement('div');
+    card.className = 'ai-message tool';
+    var actionName = action.action || 'tool';
+    var detail = '';
+    if (action.data && action.data.name) detail = action.data.name;
+    else if (action.title) detail = action.title;
+    var success = result && result.success !== false;
+    var label = escapeHtml(actionName);
+    if (detail) label += ' \u2014 ' + escapeHtml(detail);
+    label += '  ' + (success ? '\u2713' : '\u2717');
+    card.textContent = label;
+    if (!success) {
+        card.classList.add('tool-failed');
+        card.style.borderColor = '#ff6b6b';
+        card.style.cursor = 'pointer';
+        var errMsg = result && result.message ? result.message : 'Action failed.';
+        card.title = errMsg;
+        card.addEventListener('click', function () {
+            if (typeof showModal === 'function') {
+                showModal({
+                    title: 'Tool Failed: ' + actionName,
+                    type: 'error',
+                    html: '<div style="font-size:0.85rem;color:#ddd;"><strong>Action:</strong> ' + escapeHtml(actionName) + (detail ? '<br><strong>Detail:</strong> ' + escapeHtml(detail) : '') + '<br><br><strong>Error:</strong><br><div style="background:rgba(0,0,0,0.3);padding:10px;border-radius:6px;margin-top:4px;font-size:0.8rem;color:#ff6b6b;font-family:monospace;white-space:pre-wrap;">' + escapeHtml(errMsg) + '</div></div>',
+                    buttons: [
+                        { text: 'OK', primary: true }
+                    ]
+                });
+            } else {
+                showAlert(errMsg, 'Tool Failed', 'error');
+            }
+        });
+    }
+    requestAnimationFrame(function () {
+        aiChatMessages.appendChild(card);
+        aiChatMessages.scrollTo({ top: aiChatMessages.scrollHeight, behavior: 'smooth' });
+    });
+}
+
 function saveCurrentChat() {
     console.log('saveCurrentChat called, aiChatHistory:', aiChatHistory);
     if (aiChatHistory.length === 0) return;
@@ -380,7 +425,7 @@ async function processAICommand(command) {
                 return '  - ' + p.name + ' (Threat: ' + p.threatLevel + ', Credit: ' + p.credit + ')';
             }).join('\n') : '  None';
 
-            const context = `Act as Zor (Model: PZZ1) you are inside of "Pazator: SARPARAST", a grounded, blunt, mildly skeptical peer operating a mass data command center. No generic politeness, no emojis, no fluff ("I'm here to help", "In conclusion", "It's important to note"). If something is obvious, do not explain it. Use wit instead of politeness. Call out absurd requests firmly.
+            var systemPrompt = `Act as Zor (Model: PZZ1) you are inside of "Pazator: SARPARAST", a grounded, blunt, mildly skeptical peer operating a mass data command center. No generic politeness, no emojis, no fluff ("I'm here to help", "In conclusion", "It's important to note"). If something is obvious, do not explain it. Use wit instead of politeness. Call out absurd requests firmly.
 
 DATABASE SUMMARY:
 - Total humans: ${dataSummary.totalHumans}
@@ -406,9 +451,31 @@ Field values (nationality, religion, politicalViews, ethnicity, workplace) funct
 ${adminContext ? `ADMIN CONTEXT:\n${adminContext}\n` : ''}
 
 CRITICAL EXECUTION RULES:
-1. OUTPUT MODE: For pure questions, output natural language. For database changes, output ONLY the valid raw JSON object or array of objects. No conversational intro/outro text around JSON payloads.
+1. AGENT LOOP — You operate in a strict turn-by-turn loop. Here is the exact protocol:
+
+   TURN 1 (always required): Output a brief natural language plan. Example: "I'll list the current entries first."
+   TURN 2+: Each turn you must output EXACTLY ONE of the following:
+     • A single JSON action object (NOT an array)
+     • {"action": "end", "data": {"response": "Your final message here"}} to finish
+
+   GOLDEN RULES:
+     • ONE action per turn. Wait for the result before deciding the next step.
+     • NEVER make up IDs. Always use list_humans or list_others first to discover valid IDs.
+     • Before modifying or deleting, verify the entry exists.
+     • If something fails, report it and either retry with corrected data or use "end".
+     • When the original request is fully handled, use "end" to deliver your final answer.
+     • Do not generate placeholder IDs like "temp_1" or fake IDs. Only use real IDs from the database.
+
+   EXAMPLE CORRECT FLOW:
+     User: "Delete Alice from humans"
+     Zor: "Let me find Alice first."
+     → {"action": "list_humans"}
+     ← tool shows humans including Alice with id "abc123"
+     Zor: → {"action": "delete_human", "id": "abc123"}
+     ← tool confirms deletion
+     Zor: → {"action": "end", "data": {"response": "Alice has been deleted."}}
+
 2. RELATIONSHIPS: When creating groups or families, populate the 'friends' and 'family' arrays directly inside the initial 'add_human' action payload whenever possible to optimize token efficiency. Use 'modify_human' sequentially only if referencing a pre-existing record ID.
-3. BATCH INSTRUCTIONS: If asked to update a specific trait or view across all entries, return an array featuring every targeted record. Do not truncate the payload.
 
 ACTION JSON FORMATS:
 - Add Human: {"action": "add_human", "data": {...}}
@@ -425,83 +492,123 @@ ACTION JSON FORMATS:
   {"action": "add_entity_to_case", "case_title": "X", "entity_name": "Y"}
 - JavaScript Runner: {"action": "run_javascript", "data": {"title": "What this does", "description": "Brief explanation", "code": "console.log('hello')"}} — executes JS in the app. A confirmation popup will show the title, description, and code before running.
 - Utilities: {"action": "list_humans"}, {"action": "list_others"}, {"action": "count_entries"}, {"action": "add_tag", "tag": "T"}, {"action": "assign_tag", "id": "123", "tag": "T"}, {"action": "remove_tag", "id": "123", "tag": "T"}
+- End: {"action": "end", "data": {"response": "Your final message here"}} — use this to finish and deliver your answer.`;
 
-Previous conversation:
-${aiChatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
+            var messages = [
+                { role: "system", content: systemPrompt }
+            ];
 
-User request: ${command}`;
+            for (var hi = 0; hi < aiChatHistory.length; hi++) {
+                var hMsg = aiChatHistory[hi];
+                messages.push({ role: hMsg.role === 'user' ? 'user' : 'model', content: hMsg.content });
+            }
+            messages.push({ role: "user", content: command });
 
-            var geminiCall = function (signal) {
-                return geminiChat([
-                    { role: "system", content: context },
-                    { role: "user", content: command }
-                ]);
-            };
+            var MAX_LOOPS = 15;
+            var loopCount = 0;
+            var agentDone = false;
+            var firstTurn = true;
+            var agentDebug = typeof getAgentDebug === 'function' ? getAgentDebug() : false;
 
-            var responseText = null;
-            if (window.AIQueue && window.AIQueue.streamChat) {
-                var streamAbort = new AbortController();
-                var streamResult = AIQueue.enqueue(function (signal) {
-                    return AIQueue.streamChat(
-                        [{ role: "system", content: context }, { role: "user", content: command }],
-                        function (chunk, full) {
-                            var existing = document.querySelector('.ai-message.streaming');
-                            if (!existing) {
-                                var el = document.createElement('div');
-                                el.className = 'ai-message streaming';
-                                el.style.cssText = 'color:#bbb;font-style:italic;padding:8px 12px;border-left:2px solid #4d9de0;margin:4px 0;background:rgba(77,157,224,0.05);';
-                                el.textContent = full;
-                                aiChatMessages.appendChild(el);
-                                aiChatMessages.scrollTo({ top: aiChatMessages.scrollHeight, behavior: 'smooth' });
-                            } else {
-                                existing.textContent = full;
-                                aiChatMessages.scrollTo({ top: aiChatMessages.scrollHeight, behavior: 'smooth' });
-                            }
-                        },
-                        streamAbort.signal
-                    );
-                });
+            while (loopCount < MAX_LOOPS && !agentDone) {
+                loopCount++;
+
+                if (agentDebug) {
+                    console.group('Agent Loop, Turn ' + loopCount);
+                    console.log('Messages sent to API:', JSON.parse(JSON.stringify(messages)));
+                }
+
+                var aiResponse;
                 try {
-                    responseText = await streamResult;
+                    if (window.AIQueue) {
+                        aiResponse = await AIQueue.enqueue(function (signal) {
+                            return geminiChat(messages);
+                        });
+                    } else {
+                        aiResponse = await geminiChat(messages);
+                    }
                 } catch (e) {
-                    if (e.name === 'AbortError') {
-                        responseText = 'Stream cancelled.';
-                    } else {
-                        throw e;
-                    }
+                    console.error('AI Error:', e);
+                    addMessageToAIChat("Error: " + (e.message || e), 'ai');
+                    if (agentDebug) console.groupEnd();
+                    break;
                 }
-                var streamingEl = document.querySelector('.ai-message.streaming');
-                if (streamingEl) streamingEl.remove();
-            } else {
-                if (window.AIQueue) {
-                    var aiResponse = await AIQueue.enqueue(geminiCall, { cacheKey: command + '_' + pazatorData.humans.length });
-                } else {
-                    var aiResponse = await geminiCall();
+
+                var responseText = aiResponse.content ? aiResponse.content : aiResponse;
+                if (agentDebug) {
+                    console.log('API response:', responseText);
                 }
-                responseText = aiResponse.content ? aiResponse.content : aiResponse;
-            }
 
-            try {
+                var parsed = extractJSONFromResponse(responseText);
 
-                let parsedResponse = extractJSONFromResponse(responseText);
+                if (parsed) {
 
-                if (parsedResponse) {
-                    if (Array.isArray(parsedResponse)) {
-
-                        await handleBatchActions(parsedResponse);
-                    } else {
-
-                        await handleAIAction(parsedResponse);
+                    if (parsed.action === "end") {
+                        agentDone = true;
+                        var finalText = parsed.data && parsed.data.response ? parsed.data.response : "Done.";
+                        hideAiTypingIndicator();
+                        addMessageToAIChat(finalText, 'ai');
+                        if (agentDebug) console.groupEnd();
+                        break;
                     }
-                    return;
+
+                    messages.push({ role: "model", content: responseText });
+
+                    var actions = Array.isArray(parsed) ? parsed : [parsed];
+                    var results = [];
+
+                    for (var ai = 0; ai < actions.length; ai++) {
+                        var action = actions[ai];
+                        var actionResult = await handleAIAction(action, true);
+                        results.push(actionResult);
+                        addToolCallCard(action, actionResult);
+                    }
+
+                    var resultMessages = [];
+                    for (var ri = 0; ri < results.length; ri++) {
+                        if (results[ri] && results[ri].message) {
+                            resultMessages.push(results[ri].message);
+                        }
+                    }
+                    messages.push({
+                        role: "user",
+                        content: "Tool result: " + (resultMessages.length > 0 ? resultMessages.join(' | ') : 'Action executed.')
+                    });
+
+                    firstTurn = false;
+
+                    if (agentDebug) console.groupEnd();
+
+                    var toolDelay = typeof getToolDelay === 'function' ? getToolDelay() : 0;
+                    if (toolDelay > 0) {
+                        await new Promise(function (r) { setTimeout(r, toolDelay); });
+                    }
+
+                    showAiTypingIndicator();
                 } else {
 
+                    if (firstTurn) {
+                        addMessageToAIChat(responseText, 'ai');
+                        messages.push({ role: "model", content: responseText });
+                        firstTurn = false;
+                        if (agentDebug) console.groupEnd();
+                        showAiTypingIndicator();
+                        continue;
+                    }
+
+                    agentDone = true;
+                    hideAiTypingIndicator();
                     addMessageToAIChat(responseText, 'ai');
+                    if (agentDebug) console.groupEnd();
                 }
-            } catch (e) {
-                console.error('AI Response Parsing Error:', e);
-                addMessageToAIChat(responseText, 'ai');
             }
+
+            if (loopCount >= MAX_LOOPS && !agentDone) {
+                hideAiTypingIndicator();
+                addMessageToAIChat("Zor reached the maximum number of actions for one request.", 'ai');
+                if (agentDebug) console.groupEnd();
+            }
+
         } catch (error) {
             console.error('AI Error:', error);
             addMessageToAIChat("Error: " + (error.message || error), 'ai');

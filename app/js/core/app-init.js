@@ -117,7 +117,7 @@ function setupLogoDropdownListeners() {
 
         aboutOption?.addEventListener('click', (event) => {
             event.stopPropagation();
-            setAboutOpen(true);
+            window.open('../docs/about_note.html', '_blank');
         });
 
         settingsOption?.addEventListener('click', (event) => {
