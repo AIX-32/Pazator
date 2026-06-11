@@ -9,6 +9,12 @@ Last updated: June 2026 (10 performance improvements applied)
   - Eager scripts → Lazy: 12 app modules removed from index.html, loaded on first tab/menu click
   - Unthrottled → rAF-throttled: resize handler
   - AI calls → Cached: credit scoring hash-keyed cache via AIQueue
+  - PHASE 1 GOTHAM (current): Unified object model, Object Explorer, Entity Types in Ontology Designer
+    - store.js: unified _objectIndex, getObjectById(), getRelatedObjects(), searchObjects()
+    - objects.js: entity type CRUD (createEntityType, getEntityTypes, etc.)
+    - object-explorer.js: Gotham-style full-page Object Explorer overlay
+    - ontology.js: Entity Types section alongside Value Types
+    - persistence.js: showObjectDetail() delegates to Object Explorer
 
 yy PROJECT STRUCTURE yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
 
@@ -51,13 +57,16 @@ pazator/                     Root project directory
       data-utils.js          ID generation, vector search, worker manager
                              Exposes: PazatorWorker.graphTick(), .heuristicsScan(),
                              .bulkTransform(), .aggregateStats()
-      store.js               In-memory store + event system (pazatorStore)
-                             390 → 480 lines. Added:
-                             - _aggregateCache + invalidateCache()
-                             - getAggregate(name) — threatCounts, creditRisk, etc.
-                             - kvGet/kvSet/kvDelete (IndexedDB kv with localStorage fallback)
-                             - migrateToIDB() — bulk copy pazator_* localStorage keys to IDB
-                             - entity_changed event emission on every mutation
+    store.js               In-memory store + event system + unified object model (pazatorStore)
+                              558 lines + additions. Features:
+                              - _aggregateCache + invalidateCache()
+                              - getAggregate(name) — threatCounts, creditRisk, etc.
+                              - kvGet/kvSet/kvDelete (IndexedDB kv with localStorage fallback)
+                              - migrateToIDB() — bulk copy pazator_* localStorage keys to IDB
+                              - entity_changed event emission on every mutation
+                              - _objectIndex (unified index across humans + others)
+                              - getObjectById(id), getRelatedObjects(id), searchObjects(query)
+                              - objectType auto-assignment on rebuildIndexes()
       worker.js              Web Worker (206 → 330 lines). Added handlers:
                              - graph_tick: force-directed layout (repulsion+attraction)
                              - heuristics_scan: name similarity + dedup
@@ -145,11 +154,12 @@ pazator/                     Root project directory
       alerts.js              Alert engine (pazator_alerts, 692 lines)
       api.js                 REST/GraphQL console (pazator_api, 634 lines)
       resolver.js            Entity resolver (pazator_resolver, 447 lines)
+      object-explorer.js     Object Explorer — Gotham-style full-page entity detail view
       reports.js             Report generator (pazator_reports, 510 lines)
       workflow.js            TASTUR v2 workflow engine (pazator_workflow, 442 lines)
       sync.js                Sync server (pazator_sync, 529 lines)
       gis.js                 GIS mapping (pazator_gis, 542 lines)
-      objects.js             Ontology objects (pazator_objects, 851 lines)
+      objects.js             Ontology objects + Entity type configs (pazator_objects, 851+ lines)
       snappy.js              Snapshot utility (pazator_snappy, 191 lines)
       walkthrough.js         Onboarding walkthrough (344 lines)
 

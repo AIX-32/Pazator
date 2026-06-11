@@ -180,7 +180,7 @@
     <!-- Update Announcement Modal -->
     <div id="updateModal" class="hidden">
         <div class="update-panel">
-            <div class="update-version">v0.May28.26</div>
+            <div class="update-version">v0.Jun1126</div>
             <div class="update-title">Pazator Has Come a Long Way</div>
 
             <div class="update-section">
@@ -1995,71 +1995,43 @@
 
     <div id="aiImportModal" class="modal">
         <button class="close">&times;</button>
-        <div class="modal-content" style="max-width: 900px;">
+        <div class="modal-content">
             <div class="modal-header">
                 <h2>AI Import</h2>
-                <p style="margin: 5px 0 0 0; font-size: 0.9rem; color: #aaa;">Upload files or paste text. Zor will
-                    convert everything to CSV.</p>
+                <p>Drop files or paste text. Zor extracts everything into structured data.</p>
             </div>
             <div class="modal-body">
-                <div class="ai-import-layout">
-                    <div class="ai-import-left">
-                        <div class="form-group">
-                            <label>Drop files here or click to browse</label>
-                            <div id="aiImportDropZone" class="ai-import-dropzone">
-                                <i class="fas fa-cloud-upload-alt"
-                                    style="font-size: 2.5rem; color: #666; margin-bottom: 15px;"></i>
-                                <p style="color: #888; margin: 0;">Supported: TXT, JSON, CSV, XML, HTML, PDF text</p>
-                                <p style="color: #555; margin: 10px 0 0 0; font-size: 0.85rem;">or paste text below</p>
-                            </div>
-                            <input type="file" id="aiImportFileInput" class="ai-import-file-input"
-                                accept=".txt,.json,.csv,.xml,.html,.pdf" multiple>
-                            <div id="aiImportFileList" class="ai-import-file-list"></div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="aiImportText">Or paste text directly</label>
-                            <textarea id="aiImportText" class="form-control" rows="10"
-                                placeholder="Paste any unstructured data:&#10;- Names and descriptions&#10;- Chat logs or message exports&#10;- Business cards&#10;- Event attendee lists&#10;- Any text containing people/org info..."></textarea>
-                        </div>
-
-                        <div class="ai-import-options">
-                            <div class="form-group">
-                                <label for="aiImportType">Import as:</label>
-                                <select id="aiImportType" class="form-control">
-                                    <option value="auto">Auto-detect (Humans + Orgs)</option>
-                                    <option value="humans">Humans only</option>
-                                    <option value="orgs">Organizations only</option>
-                                </select>
-                            </div>
-                        </div>
+                <div id="aiImportDropZone" class="ai-import-dropzone">
+                    <div id="aiImportFileList" class="ai-import-file-list"></div>
+                    <textarea id="aiImportText" class="form-control ai-import-textarea" rows="12"
+                        placeholder="Drop files here, or paste data directly..."></textarea>
+                    <div class="ai-import-hint">
+                        <span><i class="fas fa-file"></i> <a class="ai-import-browse">Browse</a> or drag files</span>
+                        <span> Note: this section of the app is in very early stages.</span>
                     </div>
-
-                    <div class="ai-import-right">
-                        <div class="form-group">
-                            <label style="display: flex; justify-content: space-between; align-items: center;">
-                                <span>Generated CSV Preview</span>
-                                <span id="aiImportRowCount" style="color: #888; font-size: 0.85rem;">0 rows</span>
-                            </label>
-                            <textarea id="aiImportPreview" class="form-control" rows="20" readonly
-                                style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.85rem; background: #111;"></textarea>
-                        </div>
-
-                        <div id="aiImportStatus" class="ai-import-status" style="display: none;">
-                            <i class="fas fa-check-circle" style="color: #6bcf7f;"></i>
-                            <span id="aiImportStatusText"></span>
-                        </div>
-                    </div>
+                    <input type="file" id="aiImportFileInput" class="ai-import-file-input"
+                        accept=".txt,.json,.csv,.xml,.html,.pdf" multiple>
                 </div>
-            </div>
-            <div class="form-actions">
-                <button type="button" class="btn glass-btn" id="cancelAiImportBtn">Cancel</button>
-                <button type="button" class="btn glass-btn" id="previewAiImportBtn">
-                    <i class="fas fa-eye"></i> Preview
-                </button>
-                <button type="button" class="btn btn-primary" id="runAiImportBtn">
-                    <i class="fas fa-magic"></i> AI Import
-                </button>
+
+                <div class="ai-import-bar">
+                    <div class="form-group" style="margin:0;min-width:200px">
+                        <select id="aiImportType" class="form-control">
+                            <option value="auto">Auto-detect (Humans + Orgs)</option>
+                            <option value="humans">Humans only</option>
+                            <option value="orgs">Organizations only</option>
+                        </select>
+                    </div>
+
+                    <div id="aiImportStatus" class="ai-import-status" style="display: none;">
+                        <i class="fas fa-check-circle"></i>
+                        <span id="aiImportStatusText"></span>
+                    </div>
+
+                    <button type="button" class="btn glass-btn" id="cancelAiImportBtn">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="runAiImportBtn">
+                        <i class="fas fa-magic"></i> AI Import
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -2372,6 +2344,9 @@
                 <button id="exportPdfBtn" class="btn-action" style="background: #333; color: #fff;">
                     <i class="fas fa-file-pdf"></i> Export PDF
                 </button>
+                <button id="openInExplorerBtn" class="btn-action" style="background: #1a3a5c; color: #fff; display:none;">
+                    <i class="fas fa-cube"></i> Explore
+                </button>
                 <button id="deleteEntryBtn" class="btn-action btn-danger">
                     <i class="fas fa-trash"></i> Delete
                 </button>
@@ -2636,6 +2611,7 @@
     <script src="js/core/dom-refs.js"></script>
     <script src="js/ui/tabs.js"></script>
     <script src="js/core/persistence.js"></script>
+    <script src="js/apps/object-explorer.js"></script>
     <script src="js/ui/table.js"></script>
 
     <!-- Features -->

@@ -12,6 +12,7 @@
         recentActivity: null,
         totalHumans: -1,
         totalOthers: -1,
+        totalObjects: -1,
         avgCredit: -1,
         highRiskCount: -1
     };
@@ -23,6 +24,7 @@
         _aggregateCache.recentActivity = null;
         _aggregateCache.totalHumans = -1;
         _aggregateCache.totalOthers = -1;
+        _aggregateCache.totalObjects = -1;
         _aggregateCache.avgCredit = -1;
         _aggregateCache.highRiskCount = -1;
     }
@@ -39,6 +41,7 @@
 
         _humanIndex: new Map(),
         _nameIndex: new Map(),
+        _objectIndex: new Map(),
         _cacheReady: false,
 
         on: function (event, handler) {
@@ -81,19 +84,31 @@
         rebuildIndexes: function () {
             var idx = new Map();
             var nidx = new Map();
+            var oidx = new Map();
             var humans = store._data.humans || [];
             for (var i = 0; i < humans.length; i++) {
                 var h = humans[i];
                 if (h && h.id) {
                     idx.set(h.id, h);
+                    if (!h.objectType) h.objectType = 'Person';
+                    oidx.set(h.id, h);
                     if (h.name) {
                         var key = h.name.toLowerCase().trim().replace(/\s+/g, ' ');
                         if (!nidx.has(key)) nidx.set(key, h.id);
                     }
                 }
             }
+            var others = store._data.others || [];
+            for (var i = 0; i < others.length; i++) {
+                var o = others[i];
+                if (o && o.id) {
+                    if (!o.objectType) o.objectType = 'Organization';
+                    oidx.set(o.id, o);
+                }
+            }
             store._humanIndex = idx;
             store._nameIndex = nidx;
+            store._objectIndex = oidx;
             store._cacheReady = true;
         },
 
@@ -112,6 +127,69 @@
                 if (!result && k.includes(key)) result = store._humanIndex.get(val) || null;
             });
             return result;
+        },
+
+        getObjectById: function (id) {
+            if (!store._cacheReady) store.rebuildIndexes();
+            return store._objectIndex.get(id) || null;
+        },
+
+        getObjectType: function (obj) {
+            if (!obj) return null;
+            return obj.objectType || (store._data.humans.indexOf(obj) !== -1 ? 'Person' : 'Organization');
+        },
+
+        getRelatedObjects: function (id) {
+            var results = [];
+            var obj = store.getObjectById(id);
+            if (!obj) return results;
+            if (obj.friends) {
+                obj.friends.forEach(function (fid) {
+                    var friend = store.getObjectById(fid);
+                    if (friend) results.push({ object: friend, relationship: 'friend' });
+                });
+            }
+            if (obj.family) {
+                obj.family.forEach(function (fid) {
+                    var member = store.getObjectById(fid);
+                    if (member) results.push({ object: member, relationship: 'family' });
+                });
+            }
+            if (window.pazatorRelationships) {
+                var rels = window.pazatorRelationships.getForEntity(id, store.getObjectType(obj));
+                rels.forEach(function (r) {
+                    var otherId = r.sourceId === id ? r.targetId : r.sourceId;
+                    var other = store.getObjectById(otherId);
+                    if (other) {
+                        results.push({
+                            object: other,
+                            relationship: r.type,
+                            details: r.notes || ''
+                        });
+                    }
+                });
+            }
+            return results;
+        },
+
+        searchObjects: function (query, limit) {
+            query = String(query || '').toLowerCase().trim();
+            limit = limit || 50;
+            if (!query) return [];
+            var results = [];
+            var seen = new Set();
+            store._objectIndex.forEach(function (obj) {
+                if (results.length >= limit * 2) return;
+                if (!obj || !obj.name) return;
+                var name = obj.name.toLowerCase();
+                if (name.indexOf(query) !== -1) {
+                    if (!seen.has(obj.id)) {
+                        results.push(obj);
+                        seen.add(obj.id);
+                    }
+                }
+            });
+            return results.slice(0, limit);
         },
 
         findHumans: function (predicate) {
@@ -230,6 +308,10 @@
                 if (_aggregateCache.totalOthers < 0) _aggregateCache.totalOthers = (store._data.others || []).length;
                 return _aggregateCache.totalOthers;
             }
+            if (name === 'totalObjects') {
+                if (_aggregateCache.totalObjects < 0) _aggregateCache.totalObjects = store._objectIndex.size;
+                return _aggregateCache.totalObjects;
+            }
             if (name === 'avgCredit') {
                 if (_aggregateCache.avgCredit < 0) {
                     var humans = store._data.humans || [];
@@ -265,6 +347,7 @@
                 cases: d.cases,
                 totalHumans: d.humans.length,
                 totalOthers: d.others.length,
+                totalObjects: store._objectIndex.size,
                 totalItems: d.humans.length + d.others.length
             };
         },
@@ -434,7 +517,7 @@
                 data[key].push = function () {
                     var result = originalPush.apply(this, arguments);
                     invalidateCache();
-                    if (key === 'humans') store.rebuildIndexes();
+                    if (key === 'humans' || key === 'others') store.rebuildIndexes();
                     store.markDirty(key);
                     store.emit(key + '_changed', { action: 'push', items: Array.from(arguments) });
                     store.emit('data_changed', { store: key, action: 'push' });
@@ -449,7 +532,7 @@
                 data[key].pop = function () {
                     var result = originalPop.apply(this, arguments);
                     invalidateCache();
-                    if (key === 'humans') store.rebuildIndexes();
+                    if (key === 'humans' || key === 'others') store.rebuildIndexes();
                     store.markDirty(key);
                     store.emit(key + '_changed', { action: 'pop' });
                     store.emit('data_changed', { store: key, action: 'pop' });
@@ -460,7 +543,7 @@
                     for (var si = 2; si < arguments.length; si++) removed.push(arguments[si]);
                     var result = originalSplice.apply(this, arguments);
                     invalidateCache();
-                    if (key === 'humans') store.rebuildIndexes();
+                    if (key === 'humans' || key === 'others') store.rebuildIndexes();
                     store.markDirty(key);
                     store.emit(key + '_changed', { action: 'splice', args: Array.from(arguments) });
                     store.emit('data_changed', { store: key, action: 'splice' });
@@ -474,7 +557,7 @@
                 data[key].shift = function () {
                     var result = originalShift.apply(this, arguments);
                     invalidateCache();
-                    if (key === 'humans') store.rebuildIndexes();
+                    if (key === 'humans' || key === 'others') store.rebuildIndexes();
                     store.markDirty(key);
                     store.emit(key + '_changed', { action: 'shift' });
                     store.emit('data_changed', { store: key, action: 'shift' });
@@ -483,7 +566,7 @@
                 data[key].unshift = function () {
                     var result = originalUnshift.apply(this, arguments);
                     invalidateCache();
-                    if (key === 'humans') store.rebuildIndexes();
+                    if (key === 'humans' || key === 'others') store.rebuildIndexes();
                     store.markDirty(key);
                     store.emit(key + '_changed', { action: 'unshift', items: Array.from(arguments) });
                     store.emit('data_changed', { store: key, action: 'unshift' });

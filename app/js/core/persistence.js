@@ -584,6 +584,13 @@ function initClusterVirtualList(type, objects, sorted) {
 }
 
 function showObjectDetail(objId, objType) {
+    if (window.pazatorObjectExplorer && window.pazatorStore) {
+        var entity = window.pazatorStore.getObjectById(objId);
+        if (entity) {
+            window.pazatorObjectExplorer.open(objId);
+            return;
+        }
+    }
     try {
         if (!window.pazatorObjects) { showToast('Object system not loaded', 'error'); return; }
         var obj = pazatorObjects.getById(objId);

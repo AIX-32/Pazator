@@ -74,16 +74,13 @@ dataUploadBtn.addEventListener('click', () => {
 const aiImportModal = document.getElementById('aiImportModal');
 const aiImportBtn = document.getElementById('aiImportBtn');
 const aiImportText = document.getElementById('aiImportText');
-const aiImportPreview = document.getElementById('aiImportPreview');
 const aiImportDropZone = document.getElementById('aiImportDropZone');
 const aiImportFileInput = document.getElementById('aiImportFileInput');
 const aiImportFileList = document.getElementById('aiImportFileList');
 const aiImportType = document.getElementById('aiImportType');
-const aiImportRowCount = document.getElementById('aiImportRowCount');
 const aiImportStatus = document.getElementById('aiImportStatus');
 const aiImportStatusText = document.getElementById('aiImportStatusText');
 const cancelAiImportBtn = document.getElementById('cancelAiImportBtn');
-const previewAiImportBtn = document.getElementById('previewAiImportBtn');
 const runAiImportBtn = document.getElementById('runAiImportBtn');
 
 let aiImportFiles = [];
@@ -109,8 +106,6 @@ function closeAiImportModal() {
     }, 300);
     aiImportFiles = [];
     aiImportText.value = '';
-    aiImportPreview.value = '';
-    aiImportRowCount.textContent = '0 rows';
     aiImportStatus.style.display = 'none';
     if (aiImportFileInput) aiImportFileInput.value = '';
     if (aiImportFileList) aiImportFileList.innerHTML = '';
@@ -118,18 +113,16 @@ function closeAiImportModal() {
         runAiImportBtn.disabled = false;
         runAiImportBtn.innerHTML = '<i class="fas fa-magic"></i> AI Import';
     }
-    if (previewAiImportBtn) {
-        previewAiImportBtn.disabled = false;
-        previewAiImportBtn.innerHTML = '<i class="fas fa-eye"></i> Preview';
-    }
 }
 
 aiImportBtn?.addEventListener('click', openAiImportModal);
 cancelAiImportBtn?.addEventListener('click', closeAiImportModal);
 aiImportModal?.querySelector('.close')?.addEventListener('click', closeAiImportModal);
 
-aiImportDropZone?.addEventListener('click', () => {
-    aiImportFileInput?.click();
+aiImportDropZone?.addEventListener('click', (e) => {
+    if (e.target === aiImportDropZone || e.target.closest('.ai-import-hint')) {
+        aiImportFileInput?.click();
+    }
 });
 
 aiImportDropZone?.addEventListener('dragover', (e) => {
@@ -234,28 +227,23 @@ ${typeInstruction}
 - Be thorough - extract names, relationships, locations, jobs, and any other relevant info.`;
 }
 
-async function runAiImport(previewOnly = false) {
+async function runAiImport() {
     const fileText = await extractTextFromFiles();
     const pasteText = aiImportText?.value?.trim() || '';
     const rawInput = (fileText + '\n' + pasteText).trim();
 
     if (!rawInput) {
         showAlert('Please upload files or paste text first.', 'Missing Input', 'warning');
-        return null;
+        return;
     }
 
     if (typeof window.geminiChat !== 'function' || !window.pazatorGemini.getApiKey()) {
         showAlert('Gemini AI is not configured. Add your API key in the sidebar first.', 'Error', 'error');
-        return null;
+        return;
     }
 
-    if (previewOnly) {
-        previewAiImportBtn.disabled = true;
-        previewAiImportBtn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Processing...';
-    } else {
-        runAiImportBtn.disabled = true;
-        runAiImportBtn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Importing...';
-    }
+    runAiImportBtn.disabled = true;
+    runAiImportBtn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Importing...';
 
     try {
         const system = getAiImportSystemPrompt(aiImportType?.value || 'auto');
@@ -268,21 +256,8 @@ async function runAiImport(previewOnly = false) {
         let csvText = aiResponse?.content ? aiResponse.content : aiResponse;
         csvText = extractCSVFromAIResponse(csvText);
 
-        if (aiImportPreview) aiImportPreview.value = csvText;
-
-        const rows = csvText.split('\n').filter(line => line.trim());
-        if (aiImportRowCount) {
-            aiImportRowCount.textContent = `${Math.max(0, rows.length - 1)} rows`;
-        }
-
         aiImportStatus.style.display = 'flex';
-        aiImportStatusText.textContent = previewOnly ? 'Preview ready' : 'CSV generated, ready to import';
-
-        if (previewOnly) {
-            previewAiImportBtn.disabled = false;
-            previewAiImportBtn.innerHTML = '<i class="fas fa-eye"></i> Preview';
-            return null;
-        }
+        aiImportStatusText.textContent = 'CSV generated';
 
         const data = parseCSV(csvText, { expectedHeaders: AI_IMPORT_HEADERS, strictHeaderOrder: true });
         const result = processCSVData(data);
@@ -292,44 +267,30 @@ async function runAiImport(previewOnly = false) {
 
         markDataChanged();
         renderObjectCanvas();
-
-        return result;
     } catch (error) {
         console.error('AI import error:', error);
         const message = error?.message ? error.message : String(error);
 
-        const retryPrompt = await showConfirm(
-            `AI import failed: ${message}\n\nDo you want to retry?`,
+        const retry = await showConfirm(
+            `AI import failed: ${message}\n\nRetry?`,
             'AI Import Failed',
             'question'
         );
 
-        if (retryPrompt) {
-            if (previewOnly) {
-                previewAiImportBtn.disabled = false;
-                previewAiImportBtn.innerHTML = '<i class="fas fa-eye"></i> Preview';
-            } else {
-                runAiImportBtn.disabled = false;
-                runAiImportBtn.innerHTML = '<i class="fas fa-magic"></i> AI Import';
-            }
-            return await runAiImport(previewOnly);
+        if (retry) {
+            runAiImportBtn.disabled = false;
+            runAiImportBtn.innerHTML = '<i class="fas fa-magic"></i> AI Import';
+            return await runAiImport();
         }
 
         showAlert(`AI import failed: ${message}`, 'Error', 'error');
-        return null;
     } finally {
-        if (previewOnly) {
-            previewAiImportBtn.disabled = false;
-            previewAiImportBtn.innerHTML = '<i class="fas fa-eye"></i> Preview';
-        } else {
-            runAiImportBtn.disabled = false;
-            runAiImportBtn.innerHTML = '<i class="fas fa-magic"></i> AI Import';
-        }
+        runAiImportBtn.disabled = false;
+        runAiImportBtn.innerHTML = '<i class="fas fa-magic"></i> AI Import';
     }
 }
 
-previewAiImportBtn?.addEventListener('click', () => runAiImport(true));
-runAiImportBtn?.addEventListener('click', () => runAiImport(false));
+runAiImportBtn?.addEventListener('click', runAiImport);
 
 browseFileBtn.addEventListener('click', () => {
     chatFile.click();

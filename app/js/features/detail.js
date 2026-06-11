@@ -218,6 +218,18 @@ function showDetailView(data, type) {
         }
     }
 
+    var exploreBtn = document.getElementById('openInExplorerBtn');
+    if (exploreBtn) {
+        exploreBtn.style.display = '';
+        exploreBtn.onclick = function () {
+            detailViewModal.style.display = 'none';
+            detailViewModal.style.zIndex = '-1';
+            if (window.pazatorObjectExplorer) {
+                window.pazatorObjectExplorer.open(data.id);
+            }
+        };
+    }
+
     detailViewModal.style.display = 'flex';
     detailViewModal.style.zIndex = '1000';
 

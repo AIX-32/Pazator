@@ -55,15 +55,31 @@
 
     var DB_KEY = 'pazator_objects_data';
     var TYPE_CFG_KEY = 'pazator_ontology_types';
+    var ENTITY_TYPE_CFG_KEY = 'pazator_ontology_entity_types';
 
     var OBJECT_TYPES = [];
+    var ENTITY_TYPES = [];
+
+    var DEFAULT_ENTITY_TYPES = {
+        Person: { label: 'Person', plural: 'People', icon: 'fa-user', color: '#4d9de0' },
+        Organization: { label: 'Organization', plural: 'Organizations', icon: 'fa-building', color: '#ff6b6b' },
+        Vehicle: { label: 'Vehicle', plural: 'Vehicles', icon: 'fa-car', color: '#20c997' },
+        Location: { label: 'Location', plural: 'Locations', icon: 'fa-map-marker-alt', color: '#ffa94d' },
+        Event: { label: 'Event', plural: 'Events', icon: 'fa-calendar', color: '#e599f7' },
+        Communication: { label: 'Communication', plural: 'Communications', icon: 'fa-comment', color: '#00cec9' },
+        Financial: { label: 'Financial', plural: 'Financial', icon: 'fa-coins', color: '#ffd43b' },
+        Document: { label: 'Document', plural: 'Documents', icon: 'fa-file-alt', color: '#748ffc' }
+    };
 
     var registry = {
         _objects: {},
         _dirty: false,
 
+        _entityTypeConfigs: null,
+
         init: function () {
             this._loadTypeConfigs();
+            this._loadEntityTypeConfigs();
             var saved = localStorage.getItem(DB_KEY);
             if (saved) {
                 try {
@@ -99,6 +115,82 @@
 
         _saveTypeConfigs: function () {
             localStorage.setItem(TYPE_CFG_KEY, JSON.stringify(this._typeConfigs));
+        },
+
+        _loadEntityTypeConfigs: function () {
+            var saved = localStorage.getItem(ENTITY_TYPE_CFG_KEY);
+            if (saved) {
+                try {
+                    var parsed = JSON.parse(saved);
+                    this._entityTypeConfigs = parsed;
+                    ENTITY_TYPES.length = 0;
+                    for (var key in parsed) {
+                        ENTITY_TYPES.push(key);
+                    }
+                    return;
+                } catch (e) {}
+            }
+            this._entityTypeConfigs = {};
+            for (var k in DEFAULT_ENTITY_TYPES) {
+                this._entityTypeConfigs[k] = JSON.parse(JSON.stringify(DEFAULT_ENTITY_TYPES[k]));
+                ENTITY_TYPES.push(k);
+            }
+            this._saveEntityTypeConfigs();
+        },
+
+        _saveEntityTypeConfigs: function () {
+            localStorage.setItem(ENTITY_TYPE_CFG_KEY, JSON.stringify(this._entityTypeConfigs));
+        },
+
+        getEntityTypes: function () {
+            return ENTITY_TYPES.slice();
+        },
+
+        getEntityTypeConfig: function (type) {
+            return this._entityTypeConfigs[type] ? JSON.parse(JSON.stringify(this._entityTypeConfigs[type])) : null;
+        },
+
+        setEntityTypeConfig: function (type, config) {
+            if (!this._entityTypeConfigs[type]) return;
+            for (var key in config) {
+                if (config.hasOwnProperty(key)) {
+                    this._entityTypeConfigs[type][key] = config[key];
+                }
+            }
+            this._saveEntityTypeConfigs();
+        },
+
+        createEntityType: function (key, config) {
+            if (this._entityTypeConfigs[key]) return false;
+            if (!config) config = { label: key, plural: key + 's', icon: 'fa-cube', color: '#888' };
+            this._entityTypeConfigs[key] = {
+                label: config.label || key,
+                plural: config.plural || key + 's',
+                icon: config.icon || 'fa-cube',
+                color: config.color || '#888'
+            };
+            ENTITY_TYPES.push(key);
+            this._saveEntityTypeConfigs();
+            return true;
+        },
+
+        renameEntityType: function (oldKey, newKey) {
+            if (!this._entityTypeConfigs[oldKey] || this._entityTypeConfigs[newKey]) return false;
+            this._entityTypeConfigs[newKey] = this._entityTypeConfigs[oldKey];
+            delete this._entityTypeConfigs[oldKey];
+            var idx = ENTITY_TYPES.indexOf(oldKey);
+            if (idx !== -1) ENTITY_TYPES[idx] = newKey;
+            this._saveEntityTypeConfigs();
+            return true;
+        },
+
+        deleteEntityType: function (key) {
+            if (!this._entityTypeConfigs[key]) return false;
+            delete this._entityTypeConfigs[key];
+            var idx = ENTITY_TYPES.indexOf(key);
+            if (idx !== -1) ENTITY_TYPES.splice(idx, 1);
+            this._saveEntityTypeConfigs();
+            return true;
         },
 
         getTypeConfig: function (type) {

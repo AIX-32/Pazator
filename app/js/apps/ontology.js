@@ -58,6 +58,7 @@
             '  <div class="onto-header">',
             '    <h2><i class="fas fa-sitemap"></i> Ontology Designer</h2>',
             '    <div class="onto-header-actions">',
+            '      <button class="onto-btn onto-btn-sm" id="ontoEntityTypeToggle" title="Show entity types"><i class="fas fa-cubes"></i> Entity Types</button>',
             '      <button class="onto-btn onto-btn-sm" id="ontoImportBtn" title="Import ontology JSON"><i class="fas fa-file-import"></i> Import</button>',
             '      <button class="onto-btn onto-btn-sm" id="ontoExportBtn" title="Export ontology as JSON"><i class="fas fa-file-export"></i> Export</button>',
             '      <button class="onto-close-btn" id="ontoCloseBtn" title="Close"><i class="fas fa-times"></i></button>',
@@ -65,16 +66,25 @@
             '  </div>',
             '  <div class="onto-body">',
             '    <div class="onto-sidebar">',
-            '      <div class="onto-sidebar-header">',
-            '        <span class="onto-sidebar-title">Object Types</span>',
-            '        <button class="onto-btn onto-btn-sm onto-btn-add-type" id="ontoAddTypeBtn"><i class="fas fa-plus"></i></button>',
+            '      <div class="onto-sidebar-section" id="ontoValueTypesSection">',
+            '        <div class="onto-sidebar-header">',
+            '          <span class="onto-sidebar-title">Value Types</span>',
+            '          <button class="onto-btn onto-btn-sm onto-btn-add-type" id="ontoAddTypeBtn"><i class="fas fa-plus"></i></button>',
+            '        </div>',
+            '        <div class="onto-type-list" id="ontoTypeList"></div>',
             '      </div>',
-            '      <div class="onto-type-list" id="ontoTypeList"></div>',
+            '      <div class="onto-sidebar-section" id="ontoEntityTypesSection" style="display:none">',
+            '        <div class="onto-sidebar-header">',
+            '          <span class="onto-sidebar-title">Entity Types</span>',
+            '          <button class="onto-btn onto-btn-sm onto-btn-add-type" id="ontoAddEntityTypeBtn"><i class="fas fa-plus"></i></button>',
+            '        </div>',
+            '        <div class="onto-type-list" id="ontoEntityTypeList"></div>',
+            '      </div>',
             '    </div>',
             '    <div class="onto-main" id="ontoMain">',
             '      <div class="onto-empty-state" id="ontoEmptyState">',
             '        <i class="fas fa-arrow-left"></i>',
-            '        <p>Select an object type to edit its values</p>',
+            '        <p>Select a type to edit</p>',
             '      </div>',
             '      <div class="onto-editor" id="ontoEditor" style="display:none">',
             '        <div class="onto-editor-header">',
@@ -92,6 +102,10 @@
             '              <span>Icon</span>',
             '              <select id="ontoIconSelect" class="onto-icon-select"></select>',
             '            </label>',
+            '            <label class="onto-config-item onto-config-item-check" id="ontoEntityPluralRow" style="display:none">',
+            '              <span>Plural</span>',
+            '              <input type="text" id="ontoEntityPlural" class="onto-plural-input" placeholder="Plural name">',
+            '            </label>',
             '            <label class="onto-config-item onto-config-item-check">',
             '              <input type="checkbox" id="ontoTypeCheck">',
             '              <span>Use in forms</span>',
@@ -99,7 +113,7 @@
             '            <button class="onto-btn onto-btn-sm onto-btn-danger" id="ontoDeleteTypeBtn" title="Delete this type and all its values"><i class="fas fa-trash"></i> Delete Type</button>',
             '          </div>',
             '        </div>',
-            '        <div class="onto-editor-values">',
+            '        <div class="onto-editor-values" id="ontoEditorValuesSection">',
             '          <div class="onto-values-toolbar">',
             '            <div class="onto-bulk-add">',
             '              <textarea class="onto-bulk-textarea" id="ontoBulkTextarea" placeholder="Bulk add values, one per line..." rows="2"></textarea>',
@@ -136,6 +150,8 @@
 
     /* --- Type list --- */
 
+    var _editingEntityType = false;
+
     function populateTypeList() {
         var container = document.getElementById('ontoTypeList');
         if (!container) return;
@@ -146,13 +162,32 @@
             var icon = cfg ? cfg.icon : 'fa-tag';
             var label = cfg ? cfg.label : t;
             var count = (window.pazatorObjects.getAll(t) || []).length;
-            var sel = t === _selectedType ? ' onto-type-item-selected' : '';
+            var sel = !_editingEntityType && t === _selectedType ? ' onto-type-item-selected' : '';
             return '<div class="onto-type-item' + sel + '" data-type="' + t + '">' +
                 '<span class="onto-type-dot" style="background:' + color + '"></span>' +
                 '<i class="fas ' + icon + ' onto-type-icon"></i>' +
                 '<span class="onto-type-label">' + esc(label) + '</span>' +
                 '<span class="onto-type-count">' + count + '</span>' +
                 '<button class="onto-type-rename" title="Rename type"><i class="fas fa-pen"></i></button>' +
+                '</div>';
+        }).join('');
+    }
+
+    function populateEntityTypeList() {
+        var container = document.getElementById('ontoEntityTypeList');
+        if (!container) return;
+        var types = window.pazatorObjects.getEntityTypes();
+        container.innerHTML = types.map(function (t) {
+            var cfg = window.pazatorObjects.getEntityTypeConfig(t);
+            var color = cfg ? cfg.color : '#888';
+            var icon = cfg ? cfg.icon : 'fa-cube';
+            var label = cfg ? cfg.label : t;
+            var sel = _editingEntityType && t === _selectedType ? ' onto-type-item-selected' : '';
+            return '<div class="onto-type-item' + sel + '" data-type="' + t + '" data-entity="1">' +
+                '<span class="onto-type-dot" style="background:' + color + '"></span>' +
+                '<i class="fas ' + icon + ' onto-type-icon"></i>' +
+                '<span class="onto-type-label">' + esc(label) + '</span>' +
+                '<button class="onto-type-rename" title="Rename entity type"><i class="fas fa-pen"></i></button>' +
                 '</div>';
         }).join('');
     }
@@ -171,9 +206,18 @@
     function showEditor(type) {
         var empty = document.getElementById('ontoEmptyState');
         var editor = document.getElementById('ontoEditor');
+        var entityPluralRow = document.getElementById('ontoEntityPluralRow');
+        var valuesSection = document.getElementById('ontoEditorValuesSection');
         if (!editor || !empty) return;
+
+        _editingEntityType = false;
         var cfg = window.pazatorObjects.getTypeConfig(type);
-        if (!cfg) { editor.style.display = 'none'; empty.style.display = ''; return; }
+        if (!cfg) {
+            cfg = window.pazatorObjects.getEntityTypeConfig(type);
+            if (!cfg) { editor.style.display = 'none'; empty.style.display = ''; return; }
+            _editingEntityType = true;
+        }
+
         empty.style.display = 'none';
         editor.style.display = 'flex';
 
@@ -182,10 +226,24 @@
         document.getElementById('ontoEditorIcon').innerHTML = '<i class="fas ' + (cfg.icon || 'fa-tag') + '"></i>';
 
         populateIconSelect(cfg.icon || 'fa-tag');
-        populateValuesList(type);
 
-        var count = (window.pazatorObjects.getAll(type) || []).length;
-        document.getElementById('ontoEditorValueCount').textContent = count + ' value' + (count !== 1 ? 's' : '');
+        if (_editingEntityType) {
+            valuesSection.style.display = 'none';
+            if (entityPluralRow) {
+                entityPluralRow.style.display = '';
+                var pluralInput = document.getElementById('ontoEntityPlural');
+                if (pluralInput) pluralInput.value = cfg.plural || type + 's';
+            }
+            document.getElementById('ontoEditorValueCount').textContent = '';
+        } else {
+            valuesSection.style.display = '';
+            if (entityPluralRow) entityPluralRow.style.display = 'none';
+            populateValuesList(type);
+            var count = (window.pazatorObjects.getAll(type) || []).length;
+            document.getElementById('ontoEditorValueCount').textContent = count + ' value' + (count !== 1 ? 's' : '');
+        }
+
+        document.getElementById('ontoEditorValuesSection').style.display = _editingEntityType ? 'none' : '';
 
         updatePreview(type);
     }
@@ -311,6 +369,32 @@
     function updatePreview(type) {
         var preview = document.getElementById('ontoPreviewBody');
         if (!preview) return;
+
+        if (_editingEntityType) {
+            var eCfg = window.pazatorObjects.getEntityTypeConfig(type);
+            var eColor = eCfg ? eCfg.color : '#888';
+            var eIcon = eCfg ? eCfg.icon : 'fa-cube';
+            var eLabel = eCfg ? eCfg.label : type;
+            var ePlural = eCfg ? eCfg.plural : type + 's';
+            preview.innerHTML = [
+                '<div class="onto-preview-section">',
+                '  <div class="onto-preview-section-title">Entity type badge</div>',
+                '  <div class="onto-preview-badge" style="background:' + eColor + '20;border-color:' + eColor + '40;color:' + eColor + '">',
+                '    <i class="fas ' + eIcon + '"></i> ' + esc(eLabel),
+                '  </div>',
+                '</div>',
+                '<div class="onto-preview-section">',
+                '  <div class="onto-preview-section-title">Object Explorer header</div>',
+                '  <div class="onto-preview-tile" style="border-color:' + eColor + '30">',
+                '    <div class="onto-preview-tile-icon" style="background:' + eColor + '20;color:' + eColor + '"><i class="fas ' + eIcon + '"></i></div>',
+                '    <div class="onto-preview-tile-label" style="color:' + eColor + '">' + esc(eLabel) + '</div>',
+                '    <div class="onto-preview-tile-count">' + esc(ePlural) + '</div>',
+                '  </div>',
+                '</div>'
+            ].join('\n');
+            return;
+        }
+
         var cfg = window.pazatorObjects.getTypeConfig(type);
         var color = cfg ? cfg.color : '#888';
         var icon = cfg ? cfg.icon : 'fa-tag';
@@ -352,6 +436,8 @@
 
     /* --- Event wiring --- */
 
+    var _showEntityTypes = false;
+
     function wireEvents() {
         var overlay = _overlay;
         var inTab = !!_container;
@@ -376,6 +462,30 @@
         /* Close button hides in tab mode (rendered via CSS) */
         document.getElementById('ontoCloseBtn').addEventListener('click', close);
 
+        /* Entity type toggle */
+        var entToggle = document.getElementById('ontoEntityTypeToggle');
+        if (entToggle) {
+            entToggle.addEventListener('click', function () {
+                _showEntityTypes = !_showEntityTypes;
+                document.getElementById('ontoValueTypesSection').style.display = _showEntityTypes ? 'none' : '';
+                document.getElementById('ontoEntityTypesSection').style.display = _showEntityTypes ? '' : 'none';
+                entToggle.innerHTML = _showEntityTypes
+                    ? '<i class="fas fa-tag"></i> Value Types'
+                    : '<i class="fas fa-cubes"></i> Entity Types';
+                if (_showEntityTypes) {
+                    populateEntityTypeList();
+                } else {
+                    populateTypeList();
+                }
+                /* Reset editor */
+                var editor = document.getElementById('ontoEditor');
+                if (editor) editor.style.display = 'none';
+                var empty = document.getElementById('ontoEmptyState');
+                if (empty) empty.style.display = '';
+                _selectedType = null;
+            });
+        }
+
         /* Type list clicks (delegated) */
         var typeList = document.getElementById('ontoTypeList');
         typeList.addEventListener('click', function (e) {
@@ -390,40 +500,91 @@
             }
         });
 
+        /* Entity type list clicks (delegated) */
+        var entTypeList = document.getElementById('ontoEntityTypeList');
+        entTypeList.addEventListener('click', function (e) {
+            var item = e.target.closest('.onto-type-item');
+            if (item) selectType(item.dataset.type);
+
+            var renameBtn = e.target.closest('.onto-type-rename');
+            if (renameBtn) {
+                e.stopPropagation();
+                var parent = renameBtn.closest('.onto-type-item');
+                if (parent) promptRenameEntityType(parent.dataset.type);
+            }
+        });
+
         /* Add type */
         document.getElementById('ontoAddTypeBtn').addEventListener('click', promptAddType);
+        document.getElementById('ontoAddEntityTypeBtn').addEventListener('click', promptAddEntityType);
+
+        function withConfig(fn) {
+            if (!_selectedType) return;
+            if (_editingEntityType) {
+                fn('entity');
+            } else {
+                fn('value');
+            }
+        }
+
+        function setCfg(kind, key, value) {
+            if (kind === 'entity') {
+                window.pazatorObjects.setEntityTypeConfig(_selectedType, value);
+                populateEntityTypeList();
+            } else {
+                window.pazatorObjects.setTypeConfig(_selectedType, value);
+                populateTypeList();
+            }
+            updatePreview(_selectedType);
+        }
 
         /* Editor type name edit */
         var nameInput = document.getElementById('ontoEditorTypeName');
         nameInput.addEventListener('change', function () {
             var newLabel = this.value.trim();
             if (!newLabel || !_selectedType) return;
-            window.pazatorObjects.setTypeConfig(_selectedType, { label: newLabel });
-            populateTypeList();
-            updatePreview(_selectedType);
+            withConfig(function (kind) {
+                setCfg(kind, 'label', { label: newLabel });
+            });
         });
+
+        /* Plural input for entity types */
+        var pluralInput = document.getElementById('ontoEntityPlural');
+        if (pluralInput) {
+            pluralInput.addEventListener('change', function () {
+                var newPlural = this.value.trim();
+                if (!newPlural || !_selectedType || !_editingEntityType) return;
+                window.pazatorObjects.setEntityTypeConfig(_selectedType, { plural: newPlural });
+                updatePreview(_selectedType);
+            });
+        }
 
         /* Color picker */
         document.getElementById('ontoColorPicker').addEventListener('input', function () {
             if (!_selectedType) return;
-            window.pazatorObjects.setTypeConfig(_selectedType, { color: this.value });
-            populateTypeList();
-            updatePreview(_selectedType);
+            withConfig(function (kind) {
+                setCfg(kind, 'color', { color: document.getElementById('ontoColorPicker').value });
+            });
         });
 
         /* Icon select */
         document.getElementById('ontoIconSelect').addEventListener('change', function () {
             if (!_selectedType) return;
-            window.pazatorObjects.setTypeConfig(_selectedType, { icon: this.value });
-            document.getElementById('ontoEditorIcon').innerHTML = '<i class="fas ' + this.value + '"></i>';
-            populateTypeList();
-            updatePreview(_selectedType);
+            var iconVal = document.getElementById('ontoIconSelect').value;
+            document.getElementById('ontoEditorIcon').innerHTML = '<i class="fas ' + iconVal + '"></i>';
+            withConfig(function (kind) {
+                setCfg(kind, 'icon', { icon: iconVal });
+            });
         });
 
         /* Delete type */
         document.getElementById('ontoDeleteTypeBtn').addEventListener('click', function () {
             if (!_selectedType) return;
-            promptDeleteType(_selectedType);
+            if (_editingEntityType) {
+                promptDeleteEntityType(_selectedType);
+            } else {
+                promptDeleteType(_selectedType);
+            }
         });
 
         /* Bulk add */
@@ -593,6 +754,52 @@
         document.getElementById('ontoEditor').style.display = 'none';
         document.getElementById('ontoEmptyState').style.display = '';
         showToast('Type deleted');
+    }
+
+    function promptAddEntityType() {
+        var key = prompt('Enter entity type key (e.g. "Device"):');
+        if (!key || !key.trim()) return;
+        key = key.trim().replace(/[^a-zA-Z0-9]/g, '');
+        if (!key) { showToast('Invalid entity type key', true); return; }
+        if (window.pazatorObjects.createEntityType(key)) {
+            populateEntityTypeList();
+            selectType(key);
+            showToast('Created entity type "' + key + '"');
+        } else {
+            showToast('Entity type "' + key + '" already exists', true);
+        }
+    }
+
+    function promptRenameEntityType(oldKey) {
+        var cfg = window.pazatorObjects.getEntityTypeConfig(oldKey);
+        var current = cfg ? cfg.label : oldKey;
+        var newName = prompt('Rename "' + current + '" to:', current);
+        if (!newName || newName.trim() === current) return;
+        newName = newName.trim().replace(/[^a-zA-Z0-9 ]/g, '');
+        if (!newName) { showToast('Invalid name', true); return; }
+        var newKey = newName.replace(/\s+/g, '');
+        if (newKey === oldKey) {
+            window.pazatorObjects.setEntityTypeConfig(oldKey, { label: newName });
+        } else {
+            if (!window.pazatorObjects.renameEntityType(oldKey, newKey)) {
+                showToast('Rename failed — key "' + newKey + '" already exists', true);
+                return;
+            }
+        }
+        if (_selectedType === oldKey) _selectedType = newKey || oldKey;
+        populateEntityTypeList();
+        if (_selectedType) selectType(_selectedType);
+        showToast('Entity type renamed');
+    }
+
+    function promptDeleteEntityType(type) {
+        if (!window.confirm('Delete entity type "' + (window.pazatorObjects.getEntityTypeConfig(type) ? window.pazatorObjects.getEntityTypeConfig(type).label : type) + '"? This cannot be undone.')) return;
+        window.pazatorObjects.deleteEntityType(type);
+        _selectedType = null;
+        populateEntityTypeList();
+        document.getElementById('ontoEditor').style.display = 'none';
+        document.getElementById('ontoEmptyState').style.display = '';
+        showToast('Entity type deleted');
     }
 
     function promptSetParent(childId) {
