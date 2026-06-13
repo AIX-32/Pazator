@@ -493,8 +493,9 @@ window.addEventListener('error', (event) => {
     if (aiChatModal && aiChatModal.style.display === 'flex' && isAIError) {
         try {
             addMessageToAIChat("Sorry, I encountered an unexpected error. Please try rephrasing your request.", 'ai');
-            if (aiSendBtn) {
-                aiSendBtn.disabled = false;
+            __aiProcessing = false;
+            if (typeof aiSendBtn !== 'undefined' && aiSendBtn) {
+                setAiSendLoading(false);
             }
             if (aiInput) {
                 aiInput.value = '';
@@ -715,9 +716,13 @@ document.getElementById('aiImproveBtn').addEventListener('click', () => {
 });
 
 aiSendBtn.addEventListener('click', () => {
+    if (__aiProcessing) {
+        cancelCurrentAIRequest();
+        return;
+    }
     const command = aiInput.value.trim();
     if (command) {
-        aiSendBtn.disabled = true;
+        __aiProcessing = true;
         setAiSendLoading(true);
 
         requestAnimationFrame(() => {

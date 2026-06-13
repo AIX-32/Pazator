@@ -206,6 +206,16 @@
                 });
             })
             .then(function () {
+                if (window.TIDE_INSTANCE && window.TIDE_INSTANCE.cancel) {
+                    var typeDef = window.TIDE_INSTANCE.getTypeDef(self.type);
+                    if (typeDef) {
+                        var promptData = typeDef.buildPrompt(chunk);
+                        return window.geminiChat([
+                            { role: 'system', content: promptData.system },
+                            { role: 'user', content: promptData.prompt }
+                        ]);
+                    }
+                }
                 var prompt = promptFn(chunk);
                 return window.geminiChat([
                     { role: 'system', content: 'You are a specialized intelligence agent. Output ONLY valid JSON.' },

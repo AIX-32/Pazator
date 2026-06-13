@@ -16,6 +16,15 @@ Last updated: June 2026 (10 performance improvements applied)
     - ontology.js: Entity Types section alongside Value Types
     - persistence.js: showObjectDetail() delegates to Object Explorer
 
+## NEW (June 2026):
+##   - TIDE engine: Threat Intelligence Distributed Evaluation
+##     - Replaces monolithic AI calls with scalable chunked analysis
+##     - Handles any dataset size via scoring + tiered chunking
+##     - Types: threat, terrorist, fraud, credit, risk, intel, connection
+##     - Dynamic chunk sizing based on token estimation
+##     - Built-in dedup, retry, progress events, persistence
+##     - CTXOD integration: prioritize() returns highest-value entities
+
 yy PROJECT STRUCTURE yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
 
 pazator/                     Root project directory
@@ -100,11 +109,12 @@ pazator/                     Root project directory
     js/ai/                   AI/Zor system
       gemini.js              Google Gemini HTTP client (117 lines, 9 models)
       ai.js                  AI Queue, concurrency control, caching (217 lines)
-      agents.js              Agent analysis engine, orchestrator (990 lines)
+      agents.js              Agent analysis engine, orchestrator (990 lines — delegates AI to TIDE)
+      tide.js                TIDE engine (Threat Intelligence Distributed Evaluation)
       context.js             CTXOD tool system (143 lines, 16 tools)
       zor-chat.js            Zor chat UI, actions, conversation (1156 lines)
       zor-context.js         AI context modal, data loading (727 lines)
-      zor-tools.js           Zor tool-calling mode (492 lines)
+      zor-tools.js           Zor tool-calling mode (simplified: 4 tools, 4 rounds, seed data)
 
     js/ui/                   UI components
       ui.js                  Common UI utilities (PazatorUI, 327 lines)
@@ -208,8 +218,9 @@ yy LOAD ORDER (from app/index.html) yyyyyyyyyyyyyyyyyyyyyyyy
     13. html2canvas CDN          (screenshots)
     14. supabase-js CDN          (Supabase client)
     15. js/ai/gemini.js          (Gemini API client)
-    16. js/ai/ai.js              (AI queue)
-    17. js/ai/agents.js          (agent engine)
+     16. js/ai/ai.js              (AI queue)
+     16b.js/ai/tide.js           (TIDE engine — scalable chunked analysis)
+     17. js/ai/agents.js          (agent engine — delegates AI to TIDE)
 
     -- Core --
     18. js/core/globals.js       (global state)

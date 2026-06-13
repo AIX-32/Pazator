@@ -33,7 +33,7 @@
         localStorage.setItem(GEMINI_MODEL_KEY, model);
     }
 
-    async function chat(messages) {
+    async function chat(messages, signal) {
         var apiKey = getApiKey();
         var model = getModel();
 
@@ -79,7 +79,8 @@
                     'Content-Type': 'application/json',
                     'x-goog-api-key': apiKey
                 },
-                body: JSON.stringify(requestBody)
+                body: JSON.stringify(requestBody),
+                signal: signal || undefined
             }
         );
 

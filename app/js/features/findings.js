@@ -71,160 +71,100 @@ function renderTerroristsList(terrorists, listContainer) {
 }
 
 async function findPotentialFraud() {
-    const hiddenConnectionsModal = document.getElementById('hiddenConnectionsModal');
-    const connectionsLoading = document.getElementById('connectionsLoading');
-    const connectionsResults = document.getElementById('connectionsResults');
-    const noConnections = document.getElementById('noConnections');
-    const connectionsGraph = document.getElementById('connectionsGraph');
-    const connectionsList = document.getElementById('connectionsList');
-
-    connectionsLoading.style.display = 'block';
-    connectionsResults.style.display = 'none';
-    noConnections.style.display = 'none';
-    hiddenConnectionsModal.style.display = 'flex';
-    hiddenConnectionsModal.style.zIndex = '1000';
-
-    document.querySelector('#hiddenConnectionsModal h2').textContent = 'Potential Fraud/Drug Sellers Analysis';
+    var modal = document.getElementById('hiddenConnectionsModal');
 
     findFraudBtn.disabled = true;
+    findFraudBtn.textContent = 'TIDE Analyzing...';
 
-    const fraudLogs = [];
-    findFraudBtn.textContent = 'Analyzing...';
+    if (!window.TIDE_INSTANCE) {
+        showAlert('TIDE engine not loaded.', 'Error', 'error');
+        findFraudBtn.disabled = false;
+        findFraudBtn.textContent = 'Find Potential Fraud';
+        return;
+    }
+
+    var tide = window.TIDE_INSTANCE;
+    var people = pazatorData.humans;
+    var totalChunks = Math.ceil(people.length / 20) * 2;
+    TIDE_MONITOR.show('Fraud Detection', totalChunks);
+
+    tide.onProgress(function (processed, total, label) {
+        TIDE_MONITOR.updateProgress(processed, total, label || 'Scanning for fraud indicators...');
+    });
 
     try {
+        var findings = await tide.analyze('fraud', people);
 
-        const humansData = pazatorData.humans.map(human => ({
-            id: human.id,
-            name: human.name,
-            gender: human.gender,
-            birthDate: human.birthDate,
-            workplace: human.workplace,
-            friends: human.friends || [],
-            family: human.family || [],
-            extraNotes: human.extraNotes || '',
-            tags: human.tags || []
-        }));
+        TIDE_MONITOR.complete({
+            totalChunks: totalChunks,
+            totalFindings: findings.length,
+            chunksText: 'Fraud analysis completed',
+            typesText: findings.length > 0 ? findings.length + ' potential fraud cases identified' : 'No fraud detected',
+            detailText: ''
+        });
+        _saveTideReport('fraud', findings, { total: findings.length });
 
-        const adminContext = getAdminContext();
-        const context = "You are an AI investigator analyzing people to identify potential fraudsters or drug sellers. " +
-            "Your task is to identify as many individuals as possible who might be involved in fraudulent activities or drug selling based on their data. " +
-            "Be comprehensive and identify multiple potential cases, even borderline ones.\n\n" +
-            (adminContext ? `ADMIN CONTEXT TO CONSIDER:\n${adminContext}\n\n` : '') +
-            "Here's the data about the people:\n" +
-            JSON.stringify(humansData, null, 2) + "\n\n" +
-            "Based on the information provided, identify potential fraudsters or drug sellers. " +
-            "Look for suspicious patterns such as:\n" +
-            "- People with suspicious tags or notes (e.g., \"cash only\", \"no questions asked\", \"discount meds\", etc.)\n" +
-            "- People with unusual financial patterns or unexplained wealth\n" +
-            "- People with connections to known suspicious individuals\n" +
-            "- People with frequent unexplained meetings or transactions\n" +
-            "- People with aliases or multiple identities\n" +
-            "- People with criminal records or suspicious backgrounds\n" +
-            "- People with tags indicating illegal activities\n" +
-            "- People with overlapping tags with known suspicious individuals\n" +
-            "- People with financial-related tags but no clear workplace\n" +
-            "- People with multiple \"high risk\" tags\n" +
-            "- People with vague or inconsistent information\n" +
-            "- People with connections to many others but no clear social ties\n" +
-            "- People with tags suggesting illegal goods or services\n\n" +
-            "Return your findings as a JSON array of potential fraudsters/drug sellers in this format:\n" +
-            "[\n" +
-            "    {\n" +
-            "        \"person\": \"Person Name\",\n" +
-            "        \"riskLevel\": \"high\", // Options: high, medium, low\n" +
-            "        \"reasons\": [\n" +
-            "            \"Has suspicious tags like 'cash only'\",\n" +
-            "            \"Multiple unexplained connections to other suspicious individuals\"\n" +
-            "        ],\n" +
-            "        \"evidence\": \"Mentions selling medications in extra notes\"\n" +
-            "    },\n" +
-            "    {\n" +
-            "        \"person\": \"Another Person\",\n" +
-            "        \"riskLevel\": \"medium\",\n" +
-            "        \"reasons\": [\n" +
-            "            \"Frequent meetings with known suspicious individuals\",\n" +
-            "            \"Unexplained wealth\"\n" +
-            "        ],\n" +
-            "        \"evidence\": \"Works in cash-based business with no official records\"\n" +
-            "    }\n" +
-            "]\n\n" +
-            "Be comprehensive and identify as many potential cases as possible, including borderline cases. " +
-            "Even if you're not completely certain, include people who have some suspicious indicators. " +
-            "Aim to identify at least 10-20% of the people if possible. " +
-            "If no suspicious individuals are found, return an empty array.";
+        setTimeout(function () {
+            TIDE_MONITOR.hide();
+            var loading = document.getElementById('connectionsLoading');
+            var results = document.getElementById('connectionsResults');
+            var none = document.getElementById('noConnections');
+            var graph = document.getElementById('connectionsGraph');
+            var list = document.getElementById('connectionsList');
 
-        const aiResponse = await geminiChat([
-            { role: "system", content: context },
-            { role: "user", content: "Analyze the data and find potential fraudsters or drug sellers. Be comprehensive and identify as many potential cases as possible." }
-        ]);
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            none.style.display = 'none';
+            modal.style.display = 'flex';
+            modal.style.zIndex = '1000';
+            modal.querySelector('h2').textContent = 'TIDE Fraud Analysis';
 
-        const responseText = aiResponse.content ? aiResponse.content : aiResponse;
+            if (findings.length > 0) {
+                loading.style.display = 'none';
+                results.style.display = 'block';
 
-        try {
-
-            const fraudsters = extractJSONFromResponse(responseText);
-
-            if (fraudsters && Array.isArray(fraudsters) && fraudsters.length > 0) {
-
-                connectionsLoading.style.display = 'none';
-                connectionsResults.style.display = 'block';
-
-                renderFraudstersGraph(fraudsters, connectionsGraph);
-
-                renderFraudstersList(fraudsters, connectionsList);
-
-                fraudsters.forEach(fraudster => {
-                    storeFinding('fraud', {
-                        name: fraudster.person,
-                        riskLevel: fraudster.riskLevel,
-                        evidence: fraudster.evidence,
-                        reasons: fraudster.reasons
-                    });
+                var fraudsters = findings.map(function (f) {
+                    return {
+                        person: f.subject,
+                        riskLevel: f.tags && f.tags.length > 0 ? (f.tags[0] === 'high' ? 'high' : 'medium') : 'medium',
+                        evidence: f.evidence || f.content || '',
+                        reasons: [f.content || '']
+                    };
                 });
 
-                const fraudLogs = fraudsters.map((fraudster, index) => ({
-                    type: 'Fraud Detection Alert',
-                    severity: fraudster.riskLevel || 'medium',
-                    person: fraudster.person,
-                    evidence: fraudster.evidence,
-                    reasons: fraudster.reasons || [],
-                    detectionMethod: 'AI Pattern Analysis',
-                    confidence: fraudster.riskLevel === 'high' ? 'High' : fraudster.riskLevel === 'medium' ? 'Medium' : 'Low'
-                }));
+                renderFraudstersGraph(fraudsters, graph);
+                renderFraudstersList(fraudsters, list);
 
-                storeFraudLogs(fraudLogs);
+                var logs = fraudsters.map(function (f) {
+                    return {
+                        type: 'Fraud Detection Alert',
+                        severity: f.riskLevel || 'medium',
+                        person: f.person,
+                        evidence: f.evidence,
+                        reasons: f.reasons || [],
+                        detectionMethod: 'TIDE Pattern Analysis',
+                        confidence: f.riskLevel === 'high' ? 'High' : f.riskLevel === 'medium' ? 'Medium' : 'Low'
+                    };
+                });
+
+                if (typeof storeFraudLogs === 'function') storeFraudLogs(logs);
             } else {
-
-                connectionsLoading.style.display = 'none';
-                noConnections.style.display = 'block';
-                noConnections.innerHTML = `
-                            <h3>No Potential Fraud/Drug Sellers Found</h3>
-                            <p>I couldn't identify any individuals with strong indicators of fraudulent activities or drug selling.</p>
-                        `;
+                loading.style.display = 'none';
+                none.style.display = 'block';
+                none.innerHTML = '<h3>No Fraud Detected</h3><p>TIDE analysis completed but found no significant fraud indicators.</p>';
             }
-        } catch (parseError) {
-            console.error('Error parsing AI response:', parseError);
-            connectionsLoading.style.display = 'none';
-            noConnections.style.display = 'block';
-            noConnections.innerHTML = `
-                        <h3>Error Processing Results</h3>
-                        <p>I found some potential cases, but had trouble processing them.</p>
-                        <div style="background: rgba(40, 40, 40, 0.7); padding: 15px; border-radius: 10px; margin-top: 15px; white-space: pre-wrap;">${responseText}</div>
-                    `;
-        }
+        }, 800);
     } catch (error) {
-        console.error('Error finding potential fraud:', error);
-        connectionsLoading.style.display = 'none';
-        noConnections.style.display = 'block';
-        noConnections.innerHTML = `
-                    <h3>Error Analyzing Data</h3>
-                    <p>Sorry, I encountered an error while analyzing for potential fraud. Please try again.</p>
-                `;
+        console.error('TIDE fraud analysis failed:', error);
+        TIDE_MONITOR.setStatus('Error: ' + error.message);
+        setTimeout(function () {
+            TIDE_MONITOR.hide();
+            modal.querySelector('h2').textContent = 'Hidden Connections Analysis';
+            showAlert('TIDE fraud analysis failed: ' + error.message, 'Error', 'error');
+        }, 1500);
     } finally {
         findFraudBtn.disabled = false;
         findFraudBtn.textContent = 'Find Potential Fraud';
-
-        document.querySelector('#hiddenConnectionsModal h2').textContent = 'Hidden Connections Analysis';
     }
 }
 
@@ -298,6 +238,38 @@ function renderFraudstersList(fraudsters, listContainer) {
 
         listContainer.appendChild(item);
     });
+}
+
+function _saveFindingsReport(analysisType, findings, summary) {
+    if (!findings || !findings.length) {
+        console.log('[saveFindingsReport] no findings to save for', analysisType);
+        return;
+    }
+    if (window.pazatorReportManager && window.pazatorReportManager.saveTideReport) {
+        console.log('[saveFindingsReport] delegating to ReportManager for', analysisType, findings.length, 'findings');
+        window.pazatorReportManager.saveTideReport(analysisType, findings, summary);
+        return;
+    }
+    console.log('[saveFindingsReport] using localStorage fallback for', analysisType, findings.length, 'findings');
+    try {
+        var key = 'pazator_analysis_reports';
+        var data = JSON.parse(localStorage.getItem(key)) || { reports: [] };
+        var labels = { fraud: 'Fraud', terrorist: 'Terrorist', connection: 'Connection' };
+        var label = labels[analysisType] || analysisType;
+        var report = {
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+            title: label + ' Analysis \u2014 ' + new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+            type: 'tide_analysis',
+            analysisType: analysisType,
+            createdAt: new Date().toISOString(),
+            findingsCount: findings.length,
+            summary: summary ? (summary.total + ' findings') : '',
+            findings: findings
+        };
+        data.reports.push(report);
+        localStorage.setItem(key, JSON.stringify(data));
+        console.log('[saveFindingsReport] saved via localStorage fallback, total reports:', data.reports.length);
+    } catch (e) { console.warn('[saveFindingsReport] failed:', e); }
 }
 
 function loadPreviousFindings() {

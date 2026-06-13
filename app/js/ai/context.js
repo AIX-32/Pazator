@@ -126,9 +126,14 @@
             const maxOthers = 80;
             try {
                 if (snap.pazatorData && typeof snap.pazatorData === 'object') {
-                    const humans = Array.isArray(snap.pazatorData.humans) ? snap.pazatorData.humans.slice(0, maxHumans) : [];
-                    const others = Array.isArray(snap.pazatorData.others) ? snap.pazatorData.others.slice(0, maxOthers) : [];
-                    snap.pazatorData = { ...snap.pazatorData, humans, others };
+                    var humansData = Array.isArray(snap.pazatorData.humans) ? snap.pazatorData.humans : [];
+                    var othersData = Array.isArray(snap.pazatorData.others) ? snap.pazatorData.others : [];
+                    if (humansData.length > maxHumans && window.TIDE_INSTANCE) {
+                        humansData = window.TIDE_INSTANCE.prioritize(humansData, maxHumans, 'intel');
+                    } else {
+                        humansData = humansData.slice(0, maxHumans);
+                    }
+                    snap.pazatorData = { ...snap.pazatorData, humans: humansData, others: othersData.slice(0, maxOthers) };
                 }
             } catch (e) {
                 console.warn('[pazator_context] getSerializableContext error:', e);

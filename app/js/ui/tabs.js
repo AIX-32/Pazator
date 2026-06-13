@@ -372,6 +372,7 @@ function switchTab(tabId) {
                 window.pazatorReports.renderReportBuilder('reportsTabContent');
             }
         });
+        ensureLazyModule('report-manager', 'js/apps/report-manager.js', function () { return !!window.pazatorReportManager; });
     }
 
     if (window.Tastur) {

@@ -186,7 +186,81 @@ if (showStatisticsBtn) showStatisticsBtn.addEventListener('click', () => {
 });
 
 findConnectionsBtn?.addEventListener('click', async () => {
-    await findHiddenConnections();
+    if (!pazatorData.humans.length) {
+        window.showFloatingNotification?.('No people data to analyze.', 'error');
+        return;
+    }
+    if (!window.TIDE_INSTANCE) {
+        window.showFloatingNotification?.('TIDE engine not loaded.', 'error');
+        return;
+    }
+    var tide = window.TIDE_INSTANCE;
+    var totalChunks = Math.ceil(pazatorData.humans.length / 20);
+    TIDE_MONITOR.show('Connection Analysis', totalChunks);
+
+    tide.onProgress(function (processed, total, label) {
+        TIDE_MONITOR.updateProgress(processed, total, label || 'Analyzing relationships...');
+    });
+
+    try {
+        var findings = await tide.analyze('connection', pazatorData.humans);
+
+        TIDE_MONITOR.complete({
+            totalChunks: totalChunks,
+            totalFindings: findings.length,
+            chunksText: 'Connection analysis completed',
+            typesText: findings.length > 0 ? findings.length + ' hidden connections identified' : 'No connections found',
+            detailText: ''
+        });
+        _saveTideReport('connection', findings, { total: findings.length });
+
+        setTimeout(function () {
+            TIDE_MONITOR.hide();
+            var modal = document.getElementById('hiddenConnectionsModal');
+            var loading = document.getElementById('connectionsLoading');
+            var results = document.getElementById('connectionsResults');
+            var none = document.getElementById('noConnections');
+            var graph = document.getElementById('connectionsGraph');
+            var list = document.getElementById('connectionsList');
+
+            modal.style.display = 'flex';
+            modal.style.zIndex = '1000';
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            none.style.display = 'none';
+            graph.innerHTML = '';
+            list.innerHTML = '';
+            modal.querySelector('h2').textContent = 'TIDE Connection Analysis';
+
+            if (findings.length > 0) {
+                loading.style.display = 'none';
+                results.style.display = 'block';
+                var connections = findings.map(function (f) {
+                    var parts = (f.subject || '').split(' <-> ');
+                    return {
+                        person1: parts[0] || 'Unknown',
+                        person2: parts[1] || 'Unknown',
+                        evidence: f.content || '',
+                        reasons: [f.content || '']
+                    };
+                });
+                if (typeof window.renderFraudstersGraph === 'function') {
+                    window.renderFraudstersGraph(connections, graph);
+                }
+                if (typeof window.renderFraudstersList === 'function') {
+                    window.renderFraudstersList(connections, list);
+                }
+            } else {
+                loading.style.display = 'none';
+                none.style.display = 'block';
+                none.innerHTML = '<h3>No Hidden Connections Found</h3><p>TIDE did not detect any significant hidden relationships.</p>';
+            }
+        }, 800);
+    } catch (err) {
+        console.error('TIDE connection analysis failed:', err);
+        TIDE_MONITOR.setStatus('Error: ' + err.message);
+        setTimeout(function () { TIDE_MONITOR.hide(); }, 1500);
+    }
 });
 
 refreshCreditsBtn?.addEventListener('click', () => {
@@ -207,8 +281,82 @@ intelAnalyzeBtn?.addEventListener('click', async () => {
         window.showFloatingNotification?.('Gemini API key not configured. Open Settings to add one.', 'error');
         return;
     }
-    const sys = initAgentSystem();
-    await sys.runAll();
+    if (!window.TIDE_INSTANCE) {
+        window.showFloatingNotification?.('TIDE engine not loaded.', 'error');
+        return;
+    }
+    var tide = window.TIDE_INSTANCE;
+    var findCountEl = document.getElementById('intelFindingsCount');
+    var resultsContainer = document.getElementById('intelResults');
+    var resultsContent = document.getElementById('intelResultsContent');
+    var countBadge = document.getElementById('intelResultsCount');
+    var analBtn = document.getElementById('intelAnalyzeBtn');
+
+    var typesToRun = ['threat', 'risk', 'intel'];
+    var totalChunksEstimate = Math.ceil(pazatorData.humans.length / 20) * typesToRun.length * 2;
+    TIDE_MONITOR.show('Multi-Phase Scan', totalChunksEstimate);
+
+    analBtn.disabled = true;
+    analBtn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> TIDE Deploying...';
+
+    if (resultsContainer) resultsContainer.style.display = 'none';
+
+    var allFindings = [];
+    var runCount = 0;
+
+    tide.onProgress(function (processed, total, label) {
+        TIDE_MONITOR.updateProgress(processed, total, label || 'Processing...');
+    });
+
+    tide.onChunkComplete(function (chunkIndex, totalChunks, chunkResults) {
+        if (chunkResults && chunkResults.length) {
+            allFindings = allFindings.concat(chunkResults);
+            TIDE_MONITOR.addFindings(chunkResults.length);
+        }
+    });
+
+    tide.onComplete(function (findings) {
+        if (findings && findings.length > 0) {
+            if (window.renderFindingsToCards) window.renderFindingsToCards(findings);
+            if (findCountEl) findCountEl.textContent = findings.length;
+            if (countBadge) countBadge.textContent = findings.length + ' findings';
+        }
+        runCount++;
+        if (runCount >= typesToRun.length) {
+            var summary = tide.getSummary();
+            TIDE_MONITOR.complete({
+                totalChunks: summary.total || totalChunksEstimate,
+                totalFindings: summary.total,
+                chunksText: 'Processed all phases across ' + typesToRun.length + ' analysis types',
+                typesText: summary.total > 0 ? summary.total + ' total findings generated' : 'No findings generated',
+                detailText: summary.byType ? Object.keys(summary.byType).map(function (t) { return t + ': ' + summary.byType[t]; }).join(', ') : ''
+            });
+            _saveTideReport('multi', allFindings, summary);
+            window.showFloatingNotification?.('TIDE analysis complete. ' + summary.total + ' total findings.', 'success');
+        }
+    });
+
+    try {
+        var people = pazatorData.humans;
+        for (var i = 0; i < typesToRun.length; i++) {
+            if (tide.isRunning()) {
+                window.showFloatingNotification?.('TIDE is busy. Waiting...', 'info');
+                TIDE_MONITOR.setStatus('Waiting for previous phase...');
+                continue;
+            }
+            TIDE_MONITOR.setStatus('Deploying ' + typesToRun[i] + ' analysis on ' + people.length + ' entities...');
+            TIDE_MONITOR.setFindingsCount(0, 0);
+            await tide.analyze(typesToRun[i], people);
+        }
+    } catch (err) {
+        console.error('TIDE analysis error:', err);
+        window.showFloatingNotification?.('TIDE analysis failed: ' + err.message, 'error');
+        TIDE_MONITOR.setStatus('Error: ' + err.message);
+        setTimeout(function () { TIDE_MONITOR.hide(); }, 2000);
+    } finally {
+        analBtn.disabled = false;
+        analBtn.innerHTML = '<i class="fas fa-play"></i> Deploy Agents';
+    }
 });
 
 intelConnectionsBtn?.addEventListener('click', async () => {
@@ -397,6 +545,37 @@ function renderFindingsToCards(findings) {
             '<small>The analysis completed but no significant patterns were found</small>' +
             '</div>';
     }
+}
+
+function _saveTideReport(analysisType, findings, summary) {
+    if (!findings || !findings.length) {
+        console.log('[saveTideReport] no findings to save for', analysisType);
+        return;
+    }
+    if (window.pazatorReportManager && window.pazatorReportManager.saveTideReport) {
+        console.log('[saveTideReport] delegating to ReportManager for', analysisType, findings.length, 'findings');
+        window.pazatorReportManager.saveTideReport(analysisType, findings, summary);
+        return;
+    }
+    console.log('[saveTideReport] using localStorage fallback for', analysisType, findings.length, 'findings');
+    try {
+        var key = 'pazator_analysis_reports';
+        var data = JSON.parse(localStorage.getItem(key)) || { reports: [] };
+        var label = analysisType === 'multi' ? 'Intelligence Scan' : analysisType;
+        var report = {
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+            title: label + ' \u2014 ' + new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+            type: 'tide_analysis',
+            analysisType: analysisType,
+            createdAt: new Date().toISOString(),
+            findingsCount: findings.length,
+            summary: summary ? (summary.total + ' findings') : '',
+            findings: findings
+        };
+        data.reports.push(report);
+        localStorage.setItem(key, JSON.stringify(data));
+        console.log('[saveTideReport] saved via localStorage fallback, total reports:', data.reports.length);
+    } catch (e) { console.warn('[saveTideReport] failed:', e); }
 }
 
 function addAnalysisToEvidence(analysisId) {

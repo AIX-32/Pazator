@@ -11,12 +11,16 @@ function debounce(func, wait) {
 }
 
 aiInput.addEventListener('keydown', debounce((e) => {
-    if ((e.key === 'Enter' && !e.shiftKey) && !aiSendBtn.disabled) {
+    if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
+        if (__aiProcessing) {
+            cancelCurrentAIRequest();
+            return;
+        }
         const command = aiInput.value.trim();
         if (command) {
             aiInput.value = '';
-            aiSendBtn.disabled = true;
+            __aiProcessing = true;
             setAiSendLoading(true);
             showAiTypingIndicator();
             processAICommand(command);
@@ -25,7 +29,9 @@ aiInput.addEventListener('keydown', debounce((e) => {
 }, 100));
 
 aiInput.addEventListener('input', debounce(() => {
-    aiSendBtn.disabled = aiInput.value.trim() === '';
+    if (!__aiProcessing) {
+        aiSendBtn.disabled = aiInput.value.trim() === '';
+    }
 }, 50));
 
 document.getElementById('historyBtn')?.addEventListener('click', () => {

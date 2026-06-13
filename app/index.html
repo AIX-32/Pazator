@@ -180,7 +180,7 @@
     <!-- Update Announcement Modal -->
     <div id="updateModal" class="hidden">
         <div class="update-panel">
-            <div class="update-version">v0.Jun1126</div>
+            <div class="update-version">v0.Jun1326</div>
             <div class="update-title">Pazator Has Come a Long Way</div>
 
             <div class="update-section">
@@ -244,13 +244,6 @@
                     </div>
                 </div>
                 <div class="header-right">
-                    <button class="tool-mode-toggle" id="zorToolModeToggle"
-                        title="Toggle CTXOD (Context On Demand). ON: Zor fetches specific data via tools. OFF: Full context dump."
-                        onclick="setZorToolMode(!isZorToolMode())">
-                        <i class="fas fa-microchip"></i>
-                        <span class="toggle-label">CTXOD</span>
-                    </button>
-
                     <button class="window-toggle-btn" id="windowToggleBtn" title="Toggle windowed mode">
                         <i class="fas fa-window-restore"></i>
                     </button>
@@ -443,6 +436,10 @@
                     <button class="menu-dropdown-item"
                         onclick="window.open('https://discord.gg/74c9RBYD4R', '_blank')"><i class="fab fa-discord"></i>
                         Discord</button>
+                    <button class="menu-dropdown-item" onclick="seedPlaceholderData()"><i class="fas fa-database"></i>
+                        Placeholder Data</button>
+                    <button class="menu-dropdown-item" onclick="wipeAllData()" style="color:#ff6b6b;"><i class="fas fa-trash"></i>
+                        Wipe All Data</button>
 
                 </div>
             </div>
@@ -659,7 +656,7 @@
                                 </div>
                                 <div class="analysis-action-info">
                                     <h3>Network Analysis</h3>
-                                    <p>Map relationships between entities</p>
+                                    <p>Map relationships between entities.</p>
                                 </div>
                                 <button id="findConnectionsBtn" class="btn btn-primary">
                                     <i class="fas fa-search"></i> Discover Links
@@ -1004,7 +1001,7 @@
                                     </div>
                                     <div class="intel-action-info">
                                         <h3>AI Analysis</h3>
-                                        <p>Full intelligence scan</p>
+                                        <p>Full intelligence scan using TIDE</p>
                                     </div>
                                 </div>
                                 <button id="intelAnalyzeBtn" class="btn btn-primary">
@@ -1512,11 +1509,19 @@
             <div class="workspace">
                 <div class="main-panel">
                     <div class="canvas-header">
-                        <h1>Advanced Reporting</h1>
-                        <p class="canvas-version">report builder · scheduled exports · PDF/CSV</p>
+                        <div class="reports-subnav">
+                            <button class="reports-subnav-btn active" data-view="builder" onclick="switchReportsView('builder')">
+                                <i class="fas fa-pen"></i> Report Builder
+                            </button>
+                            <button class="reports-subnav-btn" data-view="saved" onclick="switchReportsView('saved')">
+                                <i class="fas fa-folder-open"></i> Saved Reports
+                            </button>
+                        </div>
                     </div>
                     <div id="reportsTabContent" class="web-container"
                         style="flex:1;display:flex;flex-direction:column;"></div>
+                    <div id="savedReportsContent" class="web-container"
+                        style="flex:1;display:none;flex-direction:column;"></div>
                 </div>
                 <div class="side-panel">
                     <div class="sidebar-section sidebar-mini">
@@ -1525,7 +1530,7 @@
                             <h3>About</h3>
                         </div>
                         <div style="padding:8px 12px;font-size:11px;color:var(--text-muted);line-height:1.6;">
-                            Build report templates with drag-and-drop widgets. Schedule automatic exports to PDF or CSV.
+                            Build report templates with drag-and-drop widgets, or browse saved TIDE intelligence reports. This tab is ideal for compiling findings and generating intelligence summaries to print or export or use outside of Pazator.
                         </div>
                     </div>
                 </div>
@@ -2366,14 +2371,14 @@
                 </div>
             </div>
             <div class="detail-actions">
-                <button id="exportPdfBtn" class="btn-action" style="background: #333; color: #fff;">
+                <button id="exportPdfBtn" class="btn-action" >
                     <i class="fas fa-file-pdf"></i> Export PDF
                 </button>
                 <button id="openInExplorerBtn" class="btn-action"
-                    style="background: #1a3a5c; color: #fff; display:none;">
+                    style=" display:none;">
                     <i class="fas fa-cube"></i> Explore
                 </button>
-                <button id="deleteEntryBtn" class="btn-action btn-danger">
+                <button id="deleteEntryBtn" class="btn-action">
                     <i class="fas fa-trash"></i> Delete
                 </button>
                 <button id="editEntryBtn" class="btn-action btn-primary">
@@ -2409,6 +2414,64 @@
                     <p>I couldn't identify any strong potential connections that aren't already explicitly defined.
                     </p>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TIDE Monitor Modal -->
+    <div id="tideMonitorModal" class="tide-monitor-modal">
+        <div class="tide-monitor-content">
+            <div class="tide-monitor-header">
+                <div class="tide-monitor-icon" id="tideMonitorIcon">
+                    <div class="loader" style="--size:28px;margin:0 auto;"></div>
+                </div>
+                <h2 id="tideMonitorTitle">TIDE Active Scan</h2>
+            </div>
+            <div class="tide-monitor-body">
+                <div class="tide-monitor-type-badge" id="tideMonitorType">Analysis</div>
+
+                <div id="tideMonitorProgressContainer" class="tide-monitor-progress-container">
+                    <div class="tide-monitor-progress-header">
+                        <span class="tide-monitor-progress-label">Progress</span>
+                        <span class="tide-monitor-progress-value" id="tideMonitorProgressText">0 / 0 chunks</span>
+                    </div>
+                    <div class="tide-monitor-progress-bar">
+                        <div class="tide-monitor-progress-fill" id="tideMonitorProgressFill" style="width: 0%"></div>
+                    </div>
+
+                    <div class="tide-monitor-current" id="tideMonitorCurrent">
+                        <span class="tide-monitor-pulse"></span>
+                        <span class="tide-monitor-status-text" id="tideMonitorStatusText">Initializing...</span>
+                    </div>
+                </div>
+
+                <div class="tide-monitor-stats">
+                    <div class="tide-monitor-stat">
+                        <div class="tide-monitor-stat-value" id="tideMonitorChunksDone">0</div>
+                        <div class="tide-monitor-stat-label">Chunks</div>
+                    </div>
+                    <div class="tide-monitor-stat">
+                        <div class="tide-monitor-stat-value" id="tideMonitorFindingsCount">0</div>
+                        <div class="tide-monitor-stat-label">Total Findings</div>
+                    </div>
+                    <div class="tide-monitor-stat">
+                        <div class="tide-monitor-stat-value tide-monitor-stat-new" id="tideMonitorRunFindings">0</div>
+                        <div class="tide-monitor-stat-label">This Run</div>
+                    </div>
+                </div>
+
+                <div id="tideMonitorSummary" class="tide-monitor-summary" style="display: none;">
+                    <h3><i class="fas fa-check-circle"></i> Summary</h3>
+                    <div class="tide-monitor-summary-text" id="tideMonitorSummaryText"></div>
+                </div>
+            </div>
+            <div class="tide-monitor-footer">
+                <button id="tideMonitorCancelBtn" class="btn glass-btn">
+                    <i class="fas fa-stop"></i> Cancel
+                </button>
+                <button id="tideMonitorCloseBtn" class="btn btn-primary" style="display: none;">
+                    <i class="fas fa-times"></i> Close
+                </button>
             </div>
         </div>
     </div>
@@ -2642,6 +2705,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/ai/gemini.js"></script>
     <script src="js/ai/ai.js"></script>
+    <script src="js/ai/tide.js"></script>
+    <script src="js/ai/tide-ui.js"></script>
     <script src="js/ai/agents.js"></script>
     <!-- Apps (lazy-loaded) -->
 

@@ -1,3 +1,24 @@
+var __aiAbortController = null;
+var __aiProcessing = false;
+
+function cancelCurrentAIRequest() {
+    __aiProcessing = false;
+    if (window.AIQueue) {
+        AIQueue.cancelAll();
+    }
+    if (__aiAbortController) {
+        __aiAbortController.abort();
+    }
+    __aiAbortController = null;
+    hideAiTypingIndicator();
+    if (typeof aiSendBtn !== 'undefined' && aiSendBtn) {
+        aiSendBtn.classList.remove('loading');
+        setAiSendLoading(false);
+    }
+    if (typeof aiInput !== 'undefined' && aiInput) aiInput.focus();
+    addMessageToAIChat('Request cancelled.', 'system');
+}
+
 function addMessageToAIChat(message, sender, entityInfo) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `ai-message ${sender}`;
@@ -377,6 +398,7 @@ function generate54PeopleCommand() {
 }
 
 async function processAICommand(command) {
+    __aiAbortController = null;
     try {
         command = command.trim();
 
@@ -389,25 +411,7 @@ async function processAICommand(command) {
 
         addMessageToAIChat(command, 'user');
 
-        if (isZorToolMode()) {
-            aiSendBtn.disabled = true;
-            setAiSendLoading(true);
-            showAiTypingIndicator();
-            try {
-                await processToolBasedCommand(command);
-            } catch (e) {
-                console.error('Tool-based mode error:', e);
-                addMessageToAIChat('CTXOD error: ' + e.message, 'ai');
-            }
-            hideAiTypingIndicator();
-            aiSendBtn.disabled = false;
-            setAiSendLoading(false);
-            aiInput.value = '';
-            aiInput.focus();
-            return;
-        }
-
-        aiSendBtn.disabled = true;
+        __aiProcessing = true;
         setAiSendLoading(true);
         showAiTypingIndicator();
 
@@ -425,74 +429,63 @@ async function processAICommand(command) {
                 return '  - ' + p.name + ' (Threat: ' + p.threatLevel + ', Credit: ' + p.credit + ')';
             }).join('\n') : '  None';
 
-            var systemPrompt = `Act as Zor (Model: PZZ1) you are inside of "Pazator: SARPARAST", a grounded, blunt, mildly skeptical peer operating a mass data command center. No generic politeness, no emojis, no fluff ("I'm here to help", "In conclusion", "It's important to note"). If something is obvious, do not explain it. Use wit instead of politeness. Call out absurd requests firmly.
+            var dataStr = '';
+            if (pazatorData.humans.length < 50) {
+                dataStr = 'ALL HUMANS:\n' + JSON.stringify(pazatorData.humans.map(function (h) { return { id: h.id, name: h.name, gender: h.gender, threatLevel: h.threatLevel || 'None', credit: h.credit, tags: h.tags || [] }; })) + '\n\n';
+                dataStr += 'ALL OTHERS:\n' + JSON.stringify(pazatorData.others.map(function (o) { return { id: o.id, name: o.name }; })) + '\n\n';
+                dataStr += 'TAGS: ' + JSON.stringify(tags || []) + '\n';
+            }
 
-DATABASE SUMMARY:
-- Total humans: ${dataSummary.totalHumans}
-- Total entities: ${dataSummary.totalEntities}
-- Tags: ${dataSummary.tagCount} total
-- Cases: ${dataSummary.casesCount} total
-- High-risk individuals: ${dataSummary.highRiskCount}
-- Average credit score: ${dataSummary.averageCredit}
-- Object system: ${window.pazatorObjects ? (function () { var s = pazatorObjects.getStats(); return s.total + ' reusable field values across ' + (pazatorObjects.getTypes().filter(function (t) { return (s[t] || 0) > 0; }).length) + ' categories'; })() : 'N/A'}
-
-TOP RISKY PEOPLE:
-${topRiskyStr}
-
-[NOTE: Only this summary is provided. Enable CTXOD to fetch specific entry details on demand.]
-
-SCHEMA DEFINITIONS:
-Human Entries: name (req), gender (Male, Female, Non-binary, Other, Prefer not to say), birthDate (YYYY-MM-DD), workplace/occupation, credit (0-370), socialClass (low class, medium class, high class, 1%), maritalStatus (Single, Married, Divorced, Widowed, In Relationship), nationality, countryOfOrigin, immigrationStatus (Citizen, Permanent Resident, Visa Holder, Asylum Seeker, Refugee, Undocumented, Unknown), languages, ethnicity, religion, politicalViews, threatLevel (None, Low, Medium, High, Critical), educationLevel, incomeLevel, friends (array of names/IDs), family (array of names/IDs), extraNotes, tags (array), imagePreview.
-Other Entries: name, note, imagePreview.
-
-OBJECT SYSTEM: 
-Field values (nationality, religion, politicalViews, ethnicity, workplace) function as reusable tracking objects. Setting a value auto-creates or increments its count. You can pre-emptively create an object via: {"action": "add_object", "data": {"type": "nationality", "name": "Canadian"}}.
-
-${adminContext ? `ADMIN CONTEXT:\n${adminContext}\n` : ''}
-
-CRITICAL EXECUTION RULES:
-1. AGENT LOOP — You operate in a strict turn-by-turn loop. Here is the exact protocol:
-
-   TURN 1 (always required): Output a brief natural language plan. Example: "I'll list the current entries first."
-   TURN 2+: Each turn you must output EXACTLY ONE of the following:
-     • A single JSON action object (NOT an array)
-     • {"action": "end", "data": {"response": "Your final message here"}} to finish
-
-   GOLDEN RULES:
-     • ONE action per turn. Wait for the result before deciding the next step.
-     • NEVER make up IDs. Always use list_humans or list_others first to discover valid IDs.
-     • Before modifying or deleting, verify the entry exists.
-     • If something fails, report it and either retry with corrected data or use "end".
-     • When the original request is fully handled, use "end" to deliver your final answer.
-     • Do not generate placeholder IDs like "temp_1" or fake IDs. Only use real IDs from the database.
-
-   EXAMPLE CORRECT FLOW:
-     User: "Delete Alice from humans"
-     Zor: "Let me find Alice first."
-     → {"action": "list_humans"}
-     ← tool shows humans including Alice with id "abc123"
-     Zor: → {"action": "delete_human", "id": "abc123"}
-     ← tool confirms deletion
-     Zor: → {"action": "end", "data": {"response": "Alice has been deleted."}}
-
-2. RELATIONSHIPS: When creating groups or families, populate the 'friends' and 'family' arrays directly inside the initial 'add_human' action payload whenever possible to optimize token efficiency. Use 'modify_human' sequentially only if referencing a pre-existing record ID.
-
-ACTION JSON FORMATS:
-- Add Human: {"action": "add_human", "data": {...}}
-- Modify Human: {"action": "modify_human", "id": "12345", "data": {...}}
-- Delete Human: {"action": "delete_human", "id": "12345"}
-- Add Other: {"action": "add_other", "data": {"name": "X", "note": "", "imagePreview": null}}
-- Modify Other: {"action": "modify_other", "id": "67890", "data": {...}}
-- Delete Other: {"action": "delete_other", "id": "67890"}
-- Case Files: 
-  {"action": "create_case", "title": "X", "description": "Y", "status": "open"}
-  {"action": "edit_case", "title": "X", "description": "Y", "status": "in-progress"}
-  {"action": "add_case_note", "title": "X", "note": "Y"}
-  {"action": "close_case", "title": "X"}
-  {"action": "add_entity_to_case", "case_title": "X", "entity_name": "Y"}
-- JavaScript Runner: {"action": "run_javascript", "data": {"title": "What this does", "description": "Brief explanation", "code": "console.log('hello')"}} — executes JS in the app. A confirmation popup will show the title, description, and code before running.
-- Utilities: {"action": "list_humans"}, {"action": "list_others"}, {"action": "count_entries"}, {"action": "add_tag", "tag": "T"}, {"action": "assign_tag", "id": "123", "tag": "T"}, {"action": "remove_tag", "id": "123", "tag": "T"}
-- End: {"action": "end", "data": {"response": "Your final message here"}} — use this to finish and deliver your answer.`;
+            var systemPrompt = 'Act as Zor (Model: PZZ1), a grounded, blunt, mildly skeptical peer in "Pazator: SARPARAST" No emojis, no fluff, no "I\'m here to help". Be direct.\n\n' +
+'CURRENT DATABASE:\n' +
+(dataStr || 
+  'Humans: ' + pazatorData.humans.length + ' | Others: ' + pazatorData.others.length + ' | Cases: ' + (cases ? cases.length : 0) + ' | Tags: ' + (tags ? tags.length : 0) + '\n' +
+  'High-risk: ' + (dataSummary.highRiskCount || 0) + ' | Avg credit: ' + (dataSummary.averageCredit || 0) + '\n') +
+'\n' +
+'SCHEMA:\n' +
+'Human: name, gender, birthDate, workplace, credit(0-370), socialClass, maritalStatus, nationality, threatLevel(None/Low/Medium/High/Critical), tags, friends, family, extraNotes.\n' +
+'Other: name, note.\n' +
+'\n' +
+'You operate in turns. Each turn you can:\n' +
+'  - Output a JSON action object or an ARRAY of actions\n' +
+'  - Output natural text to converse\n' +
+'  - Output {"action": "end", "data": {"response": "..."}} when done\n' +
+'\n' +
+'JSON ACTIONS (single or in an array):\n' +
+'{"action": "add_human", "data": {name, gender, birthDate, credit, threatLevel, tags, ...}}\n' +
+'{"action": "modify_human", "id": "...", "data": {field: value}}\n' +
+'{"action": "delete_human", "id": "..."}\n' +
+'{"action": "add_other", "data": {name, note}}\n' +
+'{"action": "modify_other", "id": "...", "data": {...}}\n' +
+'{"action": "delete_other", "id": "..."}\n' +
+'{"action": "list_humans"}\n' +
+'{"action": "list_others"}\n' +
+'{"action": "count_entries"}\n' +
+'{"action": "search", "with": {"q": "search term"}} — search all entities by name/tag/field\n' +
+'{"action": "get", "with": {"id": "entity ID"}} — get full details of one person\n' +
+'{"action": "list"} — list all people (name, threat, credit)\n' +
+'{"action": "stats"} — database statistics\n' +
+'{"action": "add_tag", "tag": "name"}\n' +
+'{"action": "assign_tag", "id": "...", "tag": "name"}\n' +
+'{"action": "remove_tag", "id": "...", "tag": "name"}\n' +
+'{"action": "create_case", "title": "...", "description": "..."}\n' +
+'{"action": "add_case_note", "title": "...", "note": "..."}\n' +
+'{"action": "close_case", "title": "..."}\n' +
+'{"action": "add_entity_to_case", "case_title": "...", "entity_name": "..."}\n' +
+'{"action": "run_javascript", "data": {code: "..."}}\n' +
+'\n' +
+'Examples:\n' +
+'  Single: {"action": "list_humans"}\n' +
+'  Array: [{"action": "add_human", "data": {name: "John"}}, {"action": "add_human", "data": {name: "Jane"}}]\n' +
+'\n' +
+'Rules:\n' +
+'  - Use real IDs from list_humans/list_others, never fake IDs\n' +
+'  - If data is in the CURRENT DATABASE section above, use it directly without listing first\n' +
+'  - Use {"action": "end", "data": {"response": "..."}} to finish\n' +
+'\n' +
+(adminContext ? 'ADMIN CONTEXT:\n' + adminContext + '\n\n' : '') +
+'Previous conversation:\n' +
+aiChatHistory.map(function (m) { return m.role + ': ' + m.content; }).join('\n');
 
             var messages = [
                 { role: "system", content: systemPrompt }
@@ -507,7 +500,7 @@ ACTION JSON FORMATS:
             var MAX_LOOPS = 15;
             var loopCount = 0;
             var agentDone = false;
-            var firstTurn = true;
+            var textTurnCount = 0;
             var agentDebug = typeof getAgentDebug === 'function' ? getAgentDebug() : false;
 
             while (loopCount < MAX_LOOPS && !agentDone) {
@@ -522,14 +515,19 @@ ACTION JSON FORMATS:
                 try {
                     if (window.AIQueue) {
                         aiResponse = await AIQueue.enqueue(function (signal) {
-                            return geminiChat(messages);
+                            return geminiChat(messages, signal);
                         });
                     } else {
-                        aiResponse = await geminiChat(messages);
+                        __aiAbortController = new AbortController();
+                        aiResponse = await geminiChat(messages, __aiAbortController.signal);
                     }
                 } catch (e) {
-                    console.error('AI Error:', e);
-                    addMessageToAIChat("Error: " + (e.message || e), 'ai');
+                    if (e.name === 'AbortError') {
+                        addMessageToAIChat('Request cancelled.', 'system');
+                    } else {
+                        console.error('AI Error:', e);
+                        addMessageToAIChat("Error: " + (e.message || e), 'ai');
+                    }
                     if (agentDebug) console.groupEnd();
                     break;
                 }
@@ -556,12 +554,25 @@ ACTION JSON FORMATS:
 
                     var actions = Array.isArray(parsed) ? parsed : [parsed];
                     var results = [];
+                    var hasInvalid = false;
 
                     for (var ai = 0; ai < actions.length; ai++) {
                         var action = actions[ai];
+                        if (!action || !action.action) {
+                            hasInvalid = true;
+                            continue;
+                        }
                         var actionResult = await handleAIAction(action, true);
                         results.push(actionResult);
                         addToolCallCard(action, actionResult);
+                    }
+
+                    if (hasInvalid) {
+                        messages.push({
+                            role: "user",
+                            content: "Your last JSON object was missing the required \"action\" field. Every turn you MUST output {\"action\": \"...\"}. Examples: {\"action\": \"list_humans\"}, {\"action\": \"add_human\", \"data\": {\"name\": \"John\"}}. Use {\"action\": \"end\", \"data\": {\"response\": \"...\"}} to finish."
+                        });
+                        continue;
                     }
 
                     var resultMessages = [];
@@ -570,12 +581,11 @@ ACTION JSON FORMATS:
                             resultMessages.push(results[ri].message);
                         }
                     }
+                    var dbState = pazatorData.humans.length + ' humans, ' + pazatorData.others.length + ' others, ' + (cases ? cases.length : 0) + ' cases';
                     messages.push({
                         role: "user",
-                        content: "Tool result: " + (resultMessages.length > 0 ? resultMessages.join(' | ') : 'Action executed.')
+                        content: "Tool result: " + (resultMessages.length > 0 ? resultMessages.join(' | ') : 'Action executed.') + ' | DB now: ' + dbState
                     });
-
-                    firstTurn = false;
 
                     if (agentDebug) console.groupEnd();
 
@@ -584,13 +594,14 @@ ACTION JSON FORMATS:
                         await new Promise(function (r) { setTimeout(r, toolDelay); });
                     }
 
+                    textTurnCount = 0;
                     showAiTypingIndicator();
                 } else {
 
-                    if (firstTurn) {
+                    if (textTurnCount < 1) {
+                        textTurnCount++;
                         addMessageToAIChat(responseText, 'ai');
                         messages.push({ role: "model", content: responseText });
-                        firstTurn = false;
                         if (agentDebug) console.groupEnd();
                         showAiTypingIndicator();
                         continue;
@@ -610,16 +621,25 @@ ACTION JSON FORMATS:
             }
 
         } catch (error) {
-            console.error('AI Error:', error);
-            addMessageToAIChat("Error: " + (error.message || error), 'ai');
+            if (error.name === 'AbortError') {
+                addMessageToAIChat('Request cancelled.', 'system');
+            } else {
+                console.error('AI Error:', error);
+                addMessageToAIChat("Error: " + (error.message || error), 'ai');
+            }
         }
     } catch (error) {
-        console.error('Critical Error in processAICommand:', error);
-        addMessageToAIChat("Critical error: " + (error.message || error), 'ai');
+        if (error.name === 'AbortError') {
+            addMessageToAIChat('Request cancelled.', 'system');
+        } else {
+            console.error('Critical Error in processAICommand:', error);
+            addMessageToAIChat("Critical error: " + (error.message || error), 'ai');
+        }
     } finally {
         hideAiTypingIndicator();
+        __aiAbortController = null;
+        __aiProcessing = false;
         requestAnimationFrame(() => {
-            aiSendBtn.disabled = false;
             setAiSendLoading(false);
             aiInput.value = '';
 
@@ -667,7 +687,10 @@ function extractJSONFromResponse(responseText) {
     const objectMatch = responseText.match(/\{[\s\S]*\}/);
     if (objectMatch) {
         try {
-            return JSON.parse(objectMatch[0]);
+            var parsedObj = JSON.parse(objectMatch[0]);
+            if (parsedObj && (parsedObj.action || parsedObj.use)) {
+                return parsedObj;
+            }
         } catch (e) {
 
         }
@@ -1267,8 +1290,30 @@ async function handleAIAction(action, isBatch = false) {
             }
             break;
 
+        case "search":
+        case "get":
+        case "list":
+        case "stats":
+            try {
+                var toolResult = ZorTools.run(action.action, action.with || {});
+                if (toolResult.error) {
+                    response = "Tool error: " + toolResult.error;
+                    success = false;
+                } else {
+                    response = action.action + " returned: " + JSON.stringify(toolResult);
+                }
+            } catch (e) {
+                response = "Tool error: " + e.message;
+                success = false;
+            }
+            break;
+
         default:
-            response = "I'm not sure how to help with that request.";
+            if (action.action && action.action !== '?') {
+                response = "Unknown action: \"" + action.action + "\". Valid actions: add_human, add_other, modify_human, modify_other, delete_human, delete_other, list_humans, list_others, count_entries, add_tag, assign_tag, remove_tag, add_object, create_case, edit_case, add_case_note, close_case, add_entity_to_case, run_javascript, end.";
+            } else {
+                response = "Your JSON object is missing the required \"action\" field. Every turn you MUST output a JSON object with an \"action\" key. Examples: {\"action\": \"list_humans\"}, {\"action\": \"add_human\", \"data\": {\"name\": \"...\"}}, {\"action\": \"end\", \"data\": {\"response\": \"Done.\"}}.";
+            }
             success = false;
             shouldRespond = true;
     }
