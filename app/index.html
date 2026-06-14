@@ -1947,36 +1947,120 @@
                 <h2>Upload Data from CSV</h2>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <p><strong>CSV Format Instructions:</strong></p>
-                    <p>For <strong>People (Humans)</strong>, use these columns (in any order):</p>
-                    <ul>
-                        <li><code>Name</code> (required) - Full name</li>
-                        <li><code>Birth Date</code> (optional) - Format: YYYY-MM-DD</li>
-                        <li><code>Notes</code> (optional) - Additional information</li>
-                        <li><code>Tags</code> (optional) - Comma-separated tags</li>
-                        <li><code>Friends</code> (optional) - Comma-separated friend names</li>
-                        <li><code>Family</code> (optional) - Comma-separated family member names</li>
-                    </ul>
-                    <p>For <strong>Companies/Organizations</strong>, use these columns:</p>
-                    <ul>
-                        <li><code>Name</code> (required) - Company/Organization name</li>
-                        <li><code>Type</code> (required) - e.g., Company, Organization, Government</li>
-                        <li><code>Notes</code> (optional) - Additional information</li>
-                    </ul>
-                    <p><em>Note: The first row should be headers. Data will be automatically categorized based on the
-                            presence of 'Type' column.</em></p>
-                </div>
-                <form id="dataUploadForm">
-                    <div class="form-group">
-                        <label for="dataFile">Upload CSV File</label>
-                        <input type="file" id="dataFile" class="form-control" accept=".csv" required>
+                <div id="dataUploadDropZone" class="data-dropzone">
+                    <div class="data-dropzone-inner">
+                        <div class="data-dropzone-icon">
+                            <i class="fas fa-upload"></i>
+                        </div>
+                        <p class="data-dropzone-title">Drop CSV here</p>
+                        <p class="data-dropzone-hint">or <a class="data-dropzone-browse" id="dataFileBrowseBtn">choose a file</a></p>
+                        <input type="file" id="dataFile" accept=".csv" hidden>
+                        <div id="dataUploadFileInfo" class="data-dropzone-file" style="display:none;">
+                            <i class="fas fa-file-csv"></i>
+                            <span id="dataUploadFileName"></span>
+                        </div>
                     </div>
-                </form>
+                </div>
+
+                <div class="data-schemas">
+                    <div class="data-schema">
+                        <div class="data-schema-label">
+                            <i class="fas fa-user"></i> People
+                        </div>
+                        <div class="data-schema-tags">
+                            <span class="data-schema-tag req">Name</span>
+                            <span class="data-schema-tag">Birth Date</span>
+                            <span class="data-schema-tag">Gender</span>
+                            <span class="data-schema-tag">Marital Status</span>
+                            <span class="data-schema-tag">Workplace</span>
+                            <span class="data-schema-tag">Nationality</span>
+                            <span class="data-schema-tag">Country of Origin</span>
+                            <span class="data-schema-tag">Immigration Status</span>
+                            <span class="data-schema-tag">Languages</span>
+                            <span class="data-schema-tag">Ethnicity</span>
+                            <span class="data-schema-tag">Religion</span>
+                            <span class="data-schema-tag">Political Views</span>
+                            <span class="data-schema-tag">Credit Score</span>
+                            <span class="data-schema-tag">Social Class</span>
+                            <span class="data-schema-tag">Income Level</span>
+                            <span class="data-schema-tag">Education Level</span>
+                            <span class="data-schema-tag">Threat Level</span>
+                            <span class="data-schema-tag">Notes</span>
+                            <span class="data-schema-tag">Tags</span>
+                            <span class="data-schema-tag">Friends</span>
+                            <span class="data-schema-tag">Family</span>
+                        </div>
+                    </div>
+                    <div class="data-schema">
+                        <div class="data-schema-label">
+                            <i class="fas fa-building"></i> Companies / Organizations
+                        </div>
+                        <div class="data-schema-tags">
+                            <span class="data-schema-tag req">Name</span>
+                            <span class="data-schema-tag req">Type</span>
+                            <span class="data-schema-tag">Notes</span>
+                            <span class="data-schema-tag">Tags</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="dataPrecisePanel" class="data-precise-panel" style="display:none;">
+                    <div class="data-precise-inner">
+                        <div class="data-precise-group">
+                            <div class="data-precise-group-label"><i class="fas fa-user"></i> People Fields</div>
+                            <div class="data-precise-table">
+                                <div class="data-precise-row"><code class="data-precise-col req">Name</code><span class="data-precise-col">Full name of the person</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Birth Date</code><span class="data-precise-col">Format: YYYY-MM-DD</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Gender</code><span class="data-precise-col">e.g. Male, Female, Non-binary</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Marital Status</code><span class="data-precise-col">e.g. Single, Married, Divorced</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Workplace</code><span class="data-precise-col">Company or organization name</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Nationality</code><span class="data-precise-col">Country of citizenship</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Country of Origin</code><span class="data-precise-col">Country of birth</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Immigration Status</code><span class="data-precise-col">e.g. Citizen, Resident, Visa</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Languages</code><span class="data-precise-col">Comma-separated languages</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Ethnicity</code><span class="data-precise-col">Ethnic background</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Religion</code><span class="data-precise-col">Religious affiliation</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Political Views</code><span class="data-precise-col">Political alignment</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Credit Score</code><span class="data-precise-col">Numeric credit score</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Social Class</code><span class="data-precise-col">e.g. Lower, Middle, Upper</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Income Level</code><span class="data-precise-col">Income bracket</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Education Level</code><span class="data-precise-col">e.g. High School, Bachelor, PhD</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Threat Level</code><span class="data-precise-col">e.g. Low, Medium, High</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Notes</code><span class="data-precise-col">Additional information</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Tags</code><span class="data-precise-col">Comma-separated tags</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Friends</code><span class="data-precise-col">Comma-separated names or PZI IDs</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Family</code><span class="data-precise-col">Comma-separated names or PZI IDs</span></div>
+                            </div>
+                        </div>
+                        <div class="data-precise-group">
+                            <div class="data-precise-group-label"><i class="fas fa-building"></i> Company / Organization Fields</div>
+                            <div class="data-precise-table">
+                                <div class="data-precise-row"><code class="data-precise-col req">Name</code><span class="data-precise-col">Company or organization name</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col req">Type</code><span class="data-precise-col">e.g. Company, Organization, Government</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Notes</code><span class="data-precise-col">Additional information</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Tags</code><span class="data-precise-col">Comma-separated tags</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="data-schemas-note">
+                    <i class="fas fa-info-circle"></i> First row must be headers. Data is auto-categorized by the presence of a <code>Type</code> column.
+                </p>
             </div>
             <div class="form-actions">
+                <button type="button" class="btn glass-btn" id="preciseInstructionsBtn">Precise Instructions</button>
                 <button type="button" class="btn glass-btn" id="cancelDataUploadBtn">Cancel</button>
-                <button type="button" class="btn btn-primary" id="uploadDataBtn">Upload Data</button>
+                <div class="btn-dropdown" id="uploadBtnDropdown">
+                    <button type="button" class="btn btn-primary" id="uploadDataBtn">
+                        <span>Upload Data</span>
+                        <i class="fas fa-caret-down"></i>
+                    </button>
+                    <div class="btn-dropdown-menu" id="uploadDropdownMenu">
+                        <div class="btn-dropdown-item" data-action="upload"><i class="fas fa-upload"></i> Upload Data</div>
+                        <div class="btn-dropdown-item" data-action="test"><i class="fas fa-flask"></i> Test</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

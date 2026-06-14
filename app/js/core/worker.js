@@ -53,7 +53,7 @@ function handleParseCSV(msg) {
         if (row.length === headers.length) {
             var obj = {};
             for (var j = 0; j < headers.length; j++) {
-                obj[headers[j].trim().toLowerCase()] = row[j].trim();
+                obj[headers[j].trim()] = row[j].trim();
             }
             rows.push(obj);
         }

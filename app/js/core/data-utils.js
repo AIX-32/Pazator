@@ -300,7 +300,7 @@ var PazatorWorker = {
             if (vals.length === headers.length) {
                 var obj = {};
                 for (var j = 0; j < headers.length; j++) {
-                    obj[headers[j].toLowerCase()] = vals[j];
+                    obj[headers[j]] = vals[j];
                 }
                 rows.push(obj);
             }

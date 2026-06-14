@@ -26,12 +26,16 @@ function closeDataUploadModal() {
         dataUploadModal.classList.remove('hiding');
     }, 300);
 
-    document.getElementById('dataUploadForm')?.reset();
     if (dataFile) dataFile.value = '';
+    const fi = document.getElementById('dataUploadFileInfo');
+    if (fi) fi.style.display = 'none';
+    const dz = document.getElementById('dataUploadDropZone');
+    if (dz) dz.classList.remove('has-file');
     if (uploadDataBtn) {
         uploadDataBtn.disabled = false;
-        uploadDataBtn.textContent = 'Upload Data';
+        uploadDataBtn.innerHTML = '<span>Upload Data</span><i class="fas fa-caret-down"></i>';
     }
+    closeUploadDropdown();
 }
 
 chatUploadBtn.addEventListener('click', () => {
@@ -64,8 +68,11 @@ dataUploadBtn.addEventListener('click', () => {
         }
     });
 
-    document.getElementById('dataUploadForm').reset();
-    dataFile.value = '';
+    if (dataFile) dataFile.value = '';
+    const fi = document.getElementById('dataUploadFileInfo');
+    if (fi) fi.style.display = 'none';
+    const dz = document.getElementById('dataUploadDropZone');
+    if (dz) dz.classList.remove('has-file');
 
     dataUploadModal.style.display = 'flex';
     dataUploadModal.style.zIndex = '1000';
@@ -495,7 +502,91 @@ cancelDataUploadBtn.addEventListener('click', () => {
     closeDataUploadModal();
 });
 
-uploadDataBtn.addEventListener('click', async () => {
+const preciseInstructionsBtn = document.getElementById('preciseInstructionsBtn');
+const dataPrecisePanel = document.getElementById('dataPrecisePanel');
+
+if (preciseInstructionsBtn && dataPrecisePanel) {
+    preciseInstructionsBtn.addEventListener('click', () => {
+        const isVisible = dataPrecisePanel.style.display !== 'none';
+        dataPrecisePanel.style.display = isVisible ? 'none' : '';
+        preciseInstructionsBtn.classList.toggle('active', !isVisible);
+    });
+}
+
+const dataFileBrowseBtn = document.getElementById('dataFileBrowseBtn');
+const dataUploadDropZone = document.getElementById('dataUploadDropZone');
+const dataUploadFileInfo = document.getElementById('dataUploadFileInfo');
+const dataUploadFileName = document.getElementById('dataUploadFileName');
+
+if (dataFileBrowseBtn && dataFile) {
+    dataFileBrowseBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dataFile.click();
+    });
+}
+
+if (dataUploadDropZone && dataFile) {
+    dataUploadDropZone.addEventListener('click', () => {
+        dataFile.click();
+    });
+
+    dataUploadDropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dataUploadDropZone.classList.add('dragover');
+    });
+
+    dataUploadDropZone.addEventListener('dragleave', () => {
+        dataUploadDropZone.classList.remove('dragover');
+    });
+
+    dataUploadDropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dataUploadDropZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) {
+            dataFile.files = e.dataTransfer.files;
+            dataFile.dispatchEvent(new Event('change'));
+        }
+    });
+}
+
+if (dataFile) {
+    dataFile.addEventListener('change', () => {
+        if (!dataUploadFileInfo || !dataUploadFileName || !dataUploadDropZone) return;
+        if (dataFile.files.length) {
+            dataUploadFileName.textContent = dataFile.files[0].name;
+            dataUploadFileInfo.style.display = '';
+            dataUploadDropZone.classList.add('has-file');
+        } else {
+            dataUploadFileInfo.style.display = 'none';
+            dataUploadDropZone.classList.remove('has-file');
+        }
+    });
+}
+
+// ── Upload / Test dropdown ──
+const uploadBtnDropdown = document.getElementById('uploadBtnDropdown');
+const uploadDropdownMenu = document.getElementById('uploadDropdownMenu');
+
+function closeUploadDropdown() {
+    if (uploadDropdownMenu) uploadDropdownMenu.classList.remove('show');
+}
+
+document.addEventListener('click', (e) => {
+    if (uploadBtnDropdown && !uploadBtnDropdown.contains(e.target)) {
+        closeUploadDropdown();
+    }
+});
+
+if (uploadDataBtn && uploadBtnDropdown) {
+    uploadDataBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (uploadDataBtn.disabled) return;
+        uploadDropdownMenu.classList.toggle('show');
+    });
+}
+
+async function doUpload() {
     const file = dataFile.files[0];
     if (!file) {
         showAlert('Please select a CSV file.', 'Error', 'error');
@@ -507,6 +598,7 @@ uploadDataBtn.addEventListener('click', async () => {
         return;
     }
 
+    closeUploadDropdown();
     uploadDataBtn.disabled = true;
     uploadDataBtn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Processing...';
 
@@ -515,7 +607,8 @@ uploadDataBtn.addEventListener('click', async () => {
         var data;
         if (text.length > 100000 && window.PazatorWorker) {
             if (window.PazatorUI) PazatorUI.showLoading('Parsing CSV with background worker...');
-            data = await PazatorWorker.parseCSV(text);
+            const parsed = await PazatorWorker.parseCSV(text);
+            data = parsed.rows || [];
             if (window.PazatorUI) PazatorUI.hideLoading();
         } else {
             data = parseCSV(text);
@@ -534,9 +627,82 @@ uploadDataBtn.addEventListener('click', async () => {
         showAlert(`Error processing CSV file: ${error.message}`, 'Error', 'error');
     } finally {
         uploadDataBtn.disabled = false;
-        uploadDataBtn.textContent = 'Upload Data';
+        uploadDataBtn.innerHTML = '<span>Upload Data</span><i class="fas fa-caret-down"></i>';
     }
-});
+}
+
+async function testUpload() {
+    const file = dataFile.files[0];
+    if (!file) {
+        showAlert('Please select a CSV file.', 'Error', 'error');
+        return;
+    }
+
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+        showAlert('Please select a valid CSV file.', 'Error', 'error');
+        return;
+    }
+
+    closeUploadDropdown();
+    uploadDataBtn.disabled = true;
+    uploadDataBtn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Testing...';
+
+    try {
+        const text = await file.text();
+        var rows;
+        if (text.length > 100000 && window.PazatorWorker) {
+            if (window.PazatorUI) PazatorUI.showLoading('Parsing CSV with background worker...');
+            const parsed = await PazatorWorker.parseCSV(text);
+            rows = parsed.rows || [];
+            if (window.PazatorUI) PazatorUI.hideLoading();
+        } else {
+            rows = parseCSV(text);
+        }
+
+        if (!rows.length) {
+            showAlert('No data rows found in CSV.', 'Test Results', 'warning');
+            return;
+        }
+
+        const headers = Object.keys(rows[0]);
+        let humans = 0, orgs = 0;
+        rows.forEach(r => {
+            if (String(r.Type || r.type || '').trim()) orgs++;
+            else humans++;
+        });
+
+        const lines = text.trim().split('\n').length;
+        const html = [
+            `<div style="line-height:1.7;">`,
+            `<strong>${rows.length}</strong> data rows parsed`,
+            ` (<strong>${lines - 1}</strong> non-empty lines in file)<br>`,
+            `<strong>${humans}</strong> human entries &middot; <strong>${orgs}</strong> organization entries`,
+            `<br><br>`,
+            `<span style="color:rgba(255,255,255,0.4);font-size:0.85rem;">Headers found:</span><br>`,
+            `<code style="font-size:0.8rem;color:rgba(255,255,255,0.6);">${headers.join(', ')}</code>`,
+            `</div>`
+        ].join('');
+
+        showModal({ title: 'Test Results', html, type: 'info', buttons: [{ text: 'OK', primary: true }] });
+
+    } catch (error) {
+        console.error('Error testing CSV:', error);
+        showAlert(`CSV test failed: ${error.message}`, 'Error', 'error');
+    } finally {
+        uploadDataBtn.disabled = false;
+        uploadDataBtn.innerHTML = '<span>Upload Data</span><i class="fas fa-caret-down"></i>';
+    }
+}
+
+if (uploadDropdownMenu) {
+    uploadDropdownMenu.addEventListener('click', (e) => {
+        const item = e.target.closest('.btn-dropdown-item');
+        if (!item) return;
+        const action = item.dataset.action;
+        if (action === 'upload') doUpload();
+        else if (action === 'test') testUpload();
+    });
+}
 
 function extractCSVFromAIResponse(text) {
     let out = String(text || '').trim();

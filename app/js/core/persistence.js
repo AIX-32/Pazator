@@ -480,25 +480,7 @@ function renderObjectsToField(type, searchQuery) {
     field.innerHTML = html;
 
     _attachTileEvents(field);
-
-    var types = pazatorObjects.getTypes();
-    types.forEach(function (t) {
-        var objects = pazatorObjects.getAll(t);
-        if (objects.length === 0) return;
-        var sorted = objects.slice().sort(function (a, b) { return (b.usageCount || 0) - (a.usageCount || 0); });
-        var search = (searchQuery || '').toLowerCase().trim();
-        if (search) {
-            sorted = sorted.filter(function (o) {
-                return o.name.toLowerCase().indexOf(search) !== -1;
-            });
-        }
-        if (sorted.length > 10) {
-            initClusterVirtualList(t, objects, sorted);
-        }
-    });
 }
-
-var _objClusterVLists = {};
 
 function renderObjectCluster(type, objects, search) {
     var sorted = objects.slice().sort(function (a, b) { return (b.usageCount || 0) - (a.usageCount || 0); });
@@ -514,14 +496,6 @@ function renderObjectCluster(type, objects, search) {
     var label = pazatorObjects.getTypeLabel(type);
     var clusterId = 'obj-cluster-' + type;
 
-    if (_objClusterVLists[type] && _objClusterVLists[type].parent) {
-        var vl = _objClusterVLists[type];
-        vl.vlist.update(sorted);
-        var headEl = vl.parent.querySelector('.obj-cluster-head .obj-cluster-count');
-        if (headEl) headEl.textContent = sorted.length;
-        return vl.outerHtml;
-    }
-
     var html = '<div class="obj-cluster" data-type="' + type + '" id="' + clusterId + '">';
     html += '<div class="obj-cluster-head">';
     html += '<i class="fas ' + icon + '"></i> ';
@@ -529,58 +503,19 @@ function renderObjectCluster(type, objects, search) {
     html += '<span class="obj-cluster-count">' + sorted.length + '</span>';
     html += '</div>';
     html += '<div class="obj-cluster-body" id="' + clusterId + '-body">';
-    if (sorted.length > 10 && window.PazatorUI && PazatorUI.VirtualList) {
-        _objClusterVLists[type] = { parent: null, vlist: null, outerHtml: html };
-    } else {
-        for (var i = 0; i < sorted.length; i++) {
-            var obj = sorted[i];
-            var usage = obj.usageCount || 0;
-            var sizeFactor = maxUsage > 1 ? (usage / maxUsage) : 0.3;
-            var fontSize = 11 + Math.round(sizeFactor * 5);
-            var opacity = 0.5 + sizeFactor * 0.5;
-            html += '<div class="obj-tile" data-obj-id="' + obj.id + '" data-obj-type="' + type + '" style="opacity:' + opacity + '">' +
-                '<div class="obj-tile-inner"><span class="obj-tile-name" style="font-size:' + fontSize + 'px">' + escapeHtml(obj.name) + '</span>' +
-                '<span class="obj-tile-count">' + usage + '</span></div></div>';
-        }
+    for (var i = 0; i < sorted.length; i++) {
+        var obj = sorted[i];
+        var usage = obj.usageCount || 0;
+        var sizeFactor = maxUsage > 1 ? (usage / maxUsage) : 0.3;
+        var fontSize = 11 + Math.round(sizeFactor * 5);
+        var opacity = 0.5 + sizeFactor * 0.5;
+        html += '<div class="obj-tile" data-obj-id="' + obj.id + '" data-obj-type="' + type + '" style="opacity:' + opacity + '">' +
+            '<div class="obj-tile-inner"><span class="obj-tile-name" style="font-size:' + fontSize + 'px">' + escapeHtml(obj.name) + '</span>' +
+            '<span class="obj-tile-count">' + usage + '</span></div></div>';
     }
     html += '</div></div>';
 
     return html;
-}
-
-function initClusterVirtualList(type, objects, sorted) {
-    if (!_objClusterVLists[type]) return;
-    var ref = _objClusterVLists[type];
-    var body = document.getElementById('obj-cluster-' + type + '-body');
-    if (!body) return;
-    ref.parent = body;
-    var maxUsage = sorted.length > 0 ? Math.max(1, sorted[0].usageCount || 1) : 1;
-    ref.vlist = PazatorUI.VirtualList(body, {
-        itemHeight: 36,
-        overscan: 5,
-        renderItem: function (obj) {
-            if (!obj) return '';
-            var usage = obj.usageCount || 0;
-            var sizeFactor = maxUsage > 1 ? (usage / maxUsage) : 0.3;
-            var fontSize = 11 + Math.round(sizeFactor * 5);
-            var opacity = 0.5 + sizeFactor * 0.5;
-            return '<div class="obj-tile" data-obj-id="' + obj.id + '" data-obj-type="' + type + '" style="opacity:' + opacity + '">' +
-                '<div class="obj-tile-inner"><span class="obj-tile-name" style="font-size:' + fontSize + 'px">' + escapeHtml(obj.name) + '</span>' +
-                '<span class="obj-tile-count">' + usage + '</span></div></div>';
-        },
-        onItemClick: function (obj, idx, e) {
-            if (obj) showObjectDetail(obj.id, type);
-        },
-        onItemContext: function (obj, idx, e) {
-            if (!obj) return;
-            _ctxTarget = this;
-            _ensureObjCtxMenu();
-            _objCtxMenu.style.left = Math.min(e.clientX, window.innerWidth - 200) + 'px';
-            _objCtxMenu.style.top = Math.min(e.clientY, window.innerHeight - 160) + 'px';
-            _objCtxMenu.style.display = 'block';
-        }
-    });
-    ref.vlist.update(sorted);
 }
 
 function showObjectDetail(objId, objType) {
