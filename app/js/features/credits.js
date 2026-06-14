@@ -252,7 +252,7 @@ async function findPotentialTerrorists() {
             typesText: findings.length > 0 ? findings.length + ' potential threats identified' : 'No threats detected',
             detailText: ''
         });
-        _saveTideReport('terrorist', findings, { total: findings.length });
+        _saveCreditReport('terrorist', findings, { total: findings.length });
 
         setTimeout(function () {
             TIDE_MONITOR.hide();
@@ -317,17 +317,17 @@ async function findPotentialTerrorists() {
     }
 }
 
-function _saveTideReport(analysisType, findings, summary) {
+function _saveCreditReport(analysisType, findings, summary) {
     if (!findings || !findings.length) {
-        console.log('[saveTideReport] no findings to save for', analysisType);
+        console.log('[saveCreditReport] no findings to save for', analysisType);
         return;
     }
     if (window.pazatorReportManager && window.pazatorReportManager.saveTideReport) {
-        console.log('[saveTideReport] delegating to ReportManager for', analysisType, findings.length, 'findings');
+        console.log('[saveCreditReport] delegating to ReportManager for', analysisType, findings.length, 'findings');
         window.pazatorReportManager.saveTideReport(analysisType, findings, summary);
         return;
     }
-    console.log('[saveTideReport] using localStorage fallback for', analysisType, findings.length, 'findings');
+    console.log('[saveCreditReport] using localStorage fallback for', analysisType, findings.length, 'findings');
     try {
         var key = 'pazator_analysis_reports';
         var data = JSON.parse(localStorage.getItem(key)) || { reports: [] };
@@ -345,6 +345,6 @@ function _saveTideReport(analysisType, findings, summary) {
         };
         data.reports.push(report);
         localStorage.setItem(key, JSON.stringify(data));
-        console.log('[saveTideReport] saved via localStorage fallback, total reports:', data.reports.length);
-    } catch (e) { console.warn('[saveTideReport] failed:', e); }
+        console.log('[saveCreditReport] saved via localStorage fallback, total reports:', data.reports.length);
+    } catch (e) { console.warn('[saveCreditReport] failed:', e); }
 }

@@ -102,7 +102,7 @@ async function findPotentialFraud() {
             typesText: findings.length > 0 ? findings.length + ' potential fraud cases identified' : 'No fraud detected',
             detailText: ''
         });
-        _saveTideReport('fraud', findings, { total: findings.length });
+        _saveFindingsReport('fraud', findings, { total: findings.length });
 
         setTimeout(function () {
             TIDE_MONITOR.hide();

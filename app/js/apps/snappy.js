@@ -170,17 +170,23 @@
 
     document.addEventListener('keydown', handleKeydown);
 
-    document.addEventListener('DOMContentLoaded', function () {
-        var snappyOption = document.getElementById('snappyOption');
-        if (snappyOption) {
-            snappyOption.addEventListener('click', function (e) {
-                e.stopPropagation();
-                var menu = document.getElementById('logoDropdownMenu');
-                if (menu) menu.classList.remove('active');
-                showModal();
-            });
-        }
-    });
+  function initSnappy() {
+    var snappyOption = document.getElementById('snappyOption');
+    if (snappyOption) {
+      snappyOption.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var menu = document.getElementById('logoDropdownMenu');
+        if (menu) menu.classList.remove('active');
+        showModal();
+      });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSnappy);
+  } else {
+    initSnappy();
+  }
 
     window.pazatorSnappy = {
         capture: capture,

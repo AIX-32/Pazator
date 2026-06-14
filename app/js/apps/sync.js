@@ -487,7 +487,7 @@
     showConfigModal();
   }
 
-  document.addEventListener('DOMContentLoaded', function () {
+  function initSync() {
     loadConfig();
     loadState();
     loadAuthToken();
@@ -509,7 +509,13 @@
     if (syncConfigOption) syncConfigOption.addEventListener('click', handleConfigClick);
 
     updateSyncUI();
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSync);
+  } else {
+    initSync();
+  }
 
   window.pazatorSync = {
     push,
