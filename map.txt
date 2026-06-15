@@ -3,16 +3,49 @@
 
 ---
 
-**Key files and changes:**
-- `store.js` – unified `_objectIndex`, `getObjectById()`, `getRelatedObjects()`, `searchObjects()`
-- `objects.js` – entity type CRUD (`createEntityType`, `getEntityTypes`, etc.)
-- `object-explorer.js` – Gotham‑style full‑page Object Explorer overlay
-- `ontology.js` – Entity Types section alongside Value Types
-- `persistence.js` – `showObjectDetail()` delegates to Object Explorer
+## Project Overview
+
+Pazator is a single‑page intelligence analysis application with a dark‑theme UI, local‑first storage (IndexedDB + localStorage), an AI assistant (Zor), a TIDE analysis engine, classification system, logbook, GIS tracking, and LAN sync via a Node.js server (PZLS).
+
+**Companion server:** `https://github.com/AIX-32/PZLS` — SQLite + WebSocket server for multi‑user sync, encryption at rest for classified entities, auth with token expiry.
 
 ---
 
-## TIDE Engine (New – June 2026)
+## Key Files & Recent Changes
+
+| File | Description |
+|------|-------------|
+| `js/features/classification.js` | Classification module (5 levels: Unclassified → TS//SCI), per‑entity modal, bulk classify modal, badge HTML |
+| `js/apps/logbook.js` | Freeform notes/observations with categories (General/Observation/Incident/Intel/Comm), CRUD, classify support |
+| `js/ai/zor-context.js` | AI context selection modal — 7 sections: People, Chats, Intel Findings, Logbook, Cases, Entities, Reports |
+| `js/core/persistence.js` | Object tile right‑click context menu (View Details, Filter, Search, Copy name) at line 617 |
+| `js/core/store.js` | Unified in‑memory store: `_objectIndex`, `getObjectById()`, `getRelatedObjects()`, `searchObjects()`, `kvGet/kvSet` |
+| `js/apps/objects.js` | Ontology entity type CRUD (`createEntityType`, `getEntityTypes`, etc.) |
+| `js/apps/object-explorer.js` | Gotham‑style full‑page Object Explorer overlay |
+| `js/apps/ontology.js` | Entity Types section alongside Value Types |
+| `title.png` | Project logo at repo root, used in README header |
+
+---
+
+## Context Selection Modal (`zor-context.js`)
+
+Opened from chat options menu → "Select Context". Asymmetric layout with 7 data source sections:
+
+| Section | Data Source | Loader Function |
+|---------|-------------|-----------------|
+| People | `pazatorData.humans` | `loadContextPeople()` |
+| Chats | `ChatStorageManager.getChatHistory()` | `loadContextChats()` |
+| Intel Findings | `fraudLogs` + `terroristLogs` + `previousThreats` + `previousFraud` (localStorage) | `loadContextIntel()` |
+| Logbook | `pazatorLogbook.getEntries()` (`pazator_logbook`) | `loadContextLogbook()` |
+| Cases | global `cases` array | `loadContextCases()` |
+| Entities | `pazatorData.others` | `loadContextEntities()` |
+| Reports | `pazator_analysis_reports` (localStorage) | `loadContextReports()` |
+
+Selected items are stored in `localStorage.adminProvidedContext` with a 5‑minute TTL, displayed as pill cards in `#contextDisplay` above the chat input.
+
+---
+
+## TIDE Engine (June 2026)
 
 **Threat Intelligence Distributed Evaluation** – replaces monolithic AI calls with scalable chunked analysis.
 
@@ -21,6 +54,8 @@
 - Dynamic chunk sizing based on token estimation
 - Built‑in deduplication, retry, progress events, persistence
 - CTXOD integration: `prioritize()` returns highest‑value entities
+- Findings persist to localStorage keys: `previousThreats`, `previousFraud`
+- Reports persist to `pazator_analysis_reports`
 
 ---
 
@@ -58,13 +93,13 @@ pazator/
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `globals.js` | – | Global state (`pazatorData`, `tags`, `cases`, etc.) |
+| `globals.js` | 34 | Global state: `pazatorData = {humans, others, chats}`, `tags`, `cases`, `aiChatHistory`, `autoSaveInterval`, `pendingChanges`, `selectedCaseId` |
 | `modal.js` | – | Modal / alert / confirm system |
 | `dom-refs.js` | – | DOM element references |
 | `data-utils.js` | – | ID generation, vector search, worker manager. Exposes `PazatorWorker.graphTick()`, `.heuristicsScan()`, `.bulkTransform()`, `.aggregateStats()` |
 | `store.js` | 558+ | In‑memory store + event system + unified object model. Features: aggregate cache, KV (IndexedDB + localStorage fallback), `entity_changed` events, `_objectIndex`, `getObjectById()`, `getRelatedObjects()`, `searchObjects()` |
 | `worker.js` | 206→330 | Web Worker handlers: `graph_tick` (force layout), `heuristics_scan` (dedup), `bulk_transform` (tags/age), `aggregate_stats` |
-| `persistence.js` | 595 | IndexedDB save/load/autoSave, object canvas, toast/notifications. Uses `entity_changed` events, `scheduleRender()`, `initClusterVirtualList()` |
+| `persistence.js` | 743 | IndexedDB save/load/autoSave, object canvas, toast/notifications. Object tile right‑click context menu (line 617): View Details, Filter by this, Search in graph, Copy name. Uses `entity_changed` events, `scheduleRender()`, `initClusterVirtualList()` |
 | `app-init.js` | – | Auth check, logo dropdown, init entry point |
 | `main.js` | – | Entry point, module docs, init hooks |
 
@@ -92,7 +127,7 @@ pazator/
 | `tide.js` | – | TIDE engine (Threat Intelligence Distributed Evaluation) |
 | `context.js` | 143 | CTXOD tool system (16 tools) |
 | `zor-chat.js` | 1156 | Zor chat UI, actions, conversation |
-| `zor-context.js` | 727 | AI context modal, data loading |
+| `zor-context.js` | 967 | AI context modal — 7 data sections (People, Chats, Intel, Logbook, Cases, Entities, Reports), context display pills, `storeAIContext()`, `getAdminContext()` |
 | `zor-tools.js` | – | Zor tool‑calling mode (4 tools, 4 rounds, seed data) |
 
 ### `js/ui/` – UI Components
@@ -116,7 +151,7 @@ pazator/
 | `credits.js` | 428 | Cached credit scoring via `AIQueue.getCached()` |
 | `findings.js` | 471→490 | Findings migrated to IndexedDB KV + localStorage fallback |
 | `search.js` | 503 | Recent searches dual‑written to IndexedDB KV |
-| `cases.js` | 833 | Case management via `pazatorStore.kvGet/kvSet` |
+| `cases.js` | 833 | Case management via `pazatorStore.kvGet/kvSet`. Data in `pazatorCases` localStorage key. Functions: `loadCases()`, `saveCases()`, `createCase()` |
 | `relationships.js` | 260 | Relationship graph |
 | `timeline.js` | 199 | Entity timeline |
 | `heuristics.js` | 164 | Identity resolution |
@@ -143,6 +178,7 @@ pazator/
 | `objects.js` | 851+ | Ontology objects + entity type configs |
 | `snappy.js` | 191 | Snapshot utility (menu → system → snappy) |
 | `walkthrough.js` | 344 | Onboarding walkthrough (menu → help) |
+| `logbook.js` | 247 | Lazy‑loaded from Reports tab subnav, CRUD for freeform entries, 5 categories, classify support |
 | `gis.js` | 542 | GIS overlays (tracker tab) |
 | `resolver.js` | 447 | **Dead code** (not referenced) |
 
@@ -215,6 +251,24 @@ pazator/
 | **localStorage (fallback)** | – | Used when store unavailable at startup. `migrateToIDB()` copies `pazator_*` keys at init |
 | **In‑memory caches** | `store.js` | `_aggregateCache` for precomputed stats, `_messageBus` for `entity_changed` events |
 | **Chat system cache** | `chat-system.js` | `_cache` with TTL, `_archiveCache`; dual‑writes to IndexedDB `_kvStore` |
+
+### Key localStorage Keys
+
+| Key | Contents | Used By |
+|-----|----------|---------|
+| `pazatorData` | Full app state JSON (humans, others, chats) | `persistence.js` |
+| `pazatorData_backup` | Previous snapshot before save | `persistence.js` |
+| `chatHistory` | Chat objects array | `ChatStorageManager`, `zor-context.js` |
+| `pazator_logbook` | Logbook entries array | `logbook.js` |
+| `pazatorCases` | Cases array | `cases.js` |
+| `pazator_analysis_reports` | TIDE report objects `{reports: [...]}` | `report-manager.js`, `findings.js` |
+| `previousThreats` / `previousFraud` | TIDE finding arrays | `findings.js`, `zor-context.js` |
+| `fraudLogs` / `terroristLogs` | Legacy security log arrays | `chat-manager.js`, `zor-context.js` |
+| `adminProvidedContext` | Active AI context `{summary, data}` | `zor-context.js` |
+| `pazator_sync_config` / `pazator_sync_state` | LAN sync config + state | `sync.js` |
+| `pazator_auth_token` / `pazator_user_cache` | Auth token + cached user | `sync.js` |
+| `gemini_api_key` / `gemini_model` | AI provider config | `gemini.js`, `settings.js` |
+| `pazator_saved_searches` | Saved facet searches | `facets.js` |
 
 ### Data Flow
 
