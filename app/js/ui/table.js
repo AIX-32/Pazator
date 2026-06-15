@@ -103,7 +103,7 @@ function renderVirtualTable(allData) {
         var caseCount = (item.cases || []).length;
         return '<div class="vt-row ' + typeClass + (isSelected ? ' selected' : '') + '" data-id="' + escapeHtml(item.id) + '" data-type="' + item.type + '">' +
             '<div class="vt-col vt-col-checkbox"><input type="checkbox" ' + (isSelected ? 'checked' : '') + ' onclick="event.stopPropagation();toggleBulkSelect(\'' + escapeHtml(item.id) + '\')"></div>' +
-            '<div class="vt-col vt-col-name" onclick="openSlidePanel(\'' + escapeHtml(item.id) + '\',\'' + item.type + '\')">' + escapeHtml(item.name || 'Unknown') + '</div>' +
+            '<div class="vt-col vt-col-name" onclick="openSlidePanel(\'' + escapeHtml(item.id) + '\',\'' + item.type + '\')">' + escapeHtml(item.name || 'Unknown') + (window.pazatorClassification ? window.pazatorClassification.getBadgeHTML(item) : '') + '</div>' +
             '<div class="vt-col vt-col-type"><span class="vt-type-badge ' + item.type + '">' + item.type + '</span></div>' +
             '<div class="vt-col vt-col-threat"><span class="vt-threat-badge ' + threatClass + '" ondblclick="inlineEditThreat(this,\'' + escapeHtml(item.id) + '\')">' + threatLevel + '</span></div>' +
             '<div class="vt-col vt-col-credit"><span class="vt-credit-score ' + creditClass + '" ondblclick="inlineEditCredit(this,\'' + escapeHtml(item.id) + '\')">' + credit + '</span></div>' +

@@ -1,318 +1,280 @@
-=== PAZATOR CODEBASE MAP ===
-Last updated: June 2026 (10 performance improvements applied)
-
-## Recent changes (June 2026):
-  - JS logic → IndexedDB: cursor-advance pagination, index-based queries, kv store
-  - Memory → Worker: graph layout, heuristics, bulk transform, aggregate stats
-  - Full re-renders → Targeted: entity_changed events, aggregate cache, virtual lists
-  - localStorage → IndexedDB (dual-write): chatHistory, findings, cases, recentSearches
-  - Eager scripts → Lazy: 12 app modules removed from index.html, loaded on first tab/menu click
-  - Unthrottled → rAF-throttled: resize handler
-  - AI calls → Cached: credit scoring hash-keyed cache via AIQueue
-  - PHASE 1 GOTHAM (current): Unified object model, Object Explorer, Entity Types in Ontology Designer
-    - store.js: unified _objectIndex, getObjectById(), getRelatedObjects(), searchObjects()
-    - objects.js: entity type CRUD (createEntityType, getEntityTypes, etc.)
-    - object-explorer.js: Gotham-style full-page Object Explorer overlay
-    - ontology.js: Entity Types section alongside Value Types
-    - persistence.js: showObjectDetail() delegates to Object Explorer
-
-## NEW (June 2026):
-##   - TIDE engine: Threat Intelligence Distributed Evaluation
-##     - Replaces monolithic AI calls with scalable chunked analysis
-##     - Handles any dataset size via scoring + tiered chunking
-##     - Types: threat, terrorist, fraud, credit, risk, intel, connection
-##     - Dynamic chunk sizing based on token estimation
-##     - Built-in dedup, retry, progress events, persistence
-##     - CTXOD integration: prioritize() returns highest-value entities
-
-yy PROJECT STRUCTURE yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
-
-pazator/                     Root project directory
-  index.html                 Marketing landing page. Hero, SARPARAST/LCTX products,
-                             Zor AI, CTXOD, design system.
-  map.txt                    This file.
-  google0f064d72b8389aee.html  Google Search Console verification.
-
-  app/                       Main application (SPA shell)
-    index.html               Main app. Tabs, sidebar, graph, dashboard,
-                             intel center, modals (humanModal, otherModal, chatUpload,
-                             dataUpload, aiImport, contextModal, classifyModal,
-                             cleanModal, settingsModal, aboutOverlay, etc.).
-                             Logo dropdown with sync status card.
-                             Scripts loaded from js/ organized folder.
-
-    stylez.css               (12593 lines) Dark theme. CSS vars in :root
-                             (--primary-bg, --card-bg, --border-color,
-                             --text-primary, --text-secondary, --text-muted,
-                             --accent-light, --success, --warning, --danger,
-                             --info, --btn-primary-bg, --panel-shadow, etc.).
-
-    js/                      JavaScript (organized by domain)
-      core/                  Foundation layer
-      data/                  Data persistence layer
-      chat/                  Chat processing
-      ai/                    AI/Zor system
-      ui/                    UI components
-      features/              Feature modules
-      tracker/               LCTX Tracker
-      apps/                  Full application modules
-
-    yyy Module Details yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
-
-    js/core/                  Foundation layer
-      globals.js             Global state (pazatorData, tags, cases, etc.)
-      modal.js               Modal/alert/confirm system
-      dom-refs.js            DOM element references
-      data-utils.js          ID generation, vector search, worker manager
-                             Exposes: PazatorWorker.graphTick(), .heuristicsScan(),
-                             .bulkTransform(), .aggregateStats()
-    store.js               In-memory store + event system + unified object model (pazatorStore)
-                              558 lines + additions. Features:
-                              - _aggregateCache + invalidateCache()
-                              - getAggregate(name) — threatCounts, creditRisk, etc.
-                              - kvGet/kvSet/kvDelete (IndexedDB kv with localStorage fallback)
-                              - migrateToIDB() — bulk copy pazator_* localStorage keys to IDB
-                              - entity_changed event emission on every mutation
-                              - _objectIndex (unified index across humans + others)
-                              - getObjectById(id), getRelatedObjects(id), searchObjects(query)
-                              - objectType auto-assignment on rebuildIndexes()
-      worker.js              Web Worker (206 → 330 lines). Added handlers:
-                             - graph_tick: force-directed layout (repulsion+attraction)
-                             - heuristics_scan: name similarity + dedup
-                             - bulk_transform: tag extraction, age computation
-                             - aggregate_stats: threat/counts
-      persistence.js         IndexedDB save/load/autoSave, object canvas rendering,
-                             toast/notification system (595 lines). Changed:
-                             - Uses entity_changed events instead of full re-renders
-                             - scheduleRender() utility for coalesced updates
-                             - initClusterVirtualList() for object cluster virtual lists
-      app-init.js            Auth check, logo dropdown setup, init entry point
-      main.js                Entry point, module documentation, init hooks
-
-    js/data/                 Data layer
-      db.js                  Legacy IndexedDB v1 (PazatorDB, 184 lines)
-      engine.js              Main IndexedDB engine (PazatorV2 v2, 297 → 420 lines)
-                             7 stores: humans, others, tags, cases, chats, meta, relationships
-                             Added:
-                             - storeIndexes config for extra indexed fields
-                             - dbGetPageCursor() — cursor.advance() fast pagination
-                             - dbCountByIndex() — count via index
-                             - queryRange(), getAllByIndex(), countByIndex()
-                             - kvGet/kvSet/kvDelete on _kvStore object store
-                             - getPage() uses cursor path when no filter/sort
-      facets.js              Faceted search (PazatorFacets, 251 lines)
-
-    js/chat/                 Chat processing
-      chat-system.js         ChatValidator, ChatParser, ChatStorageManager,
-                             ChatAnalysisService (653 lines)
-
-    js/ai/                   AI/Zor system
-      gemini.js              Google Gemini HTTP client (117 lines, 9 models)
-      ai.js                  AI Queue, concurrency control, caching (217 lines)
-      agents.js              Agent analysis engine, orchestrator (990 lines — delegates AI to TIDE)
-      tide.js                TIDE engine (Threat Intelligence Distributed Evaluation)
-      context.js             CTXOD tool system (143 lines, 16 tools)
-      zor-chat.js            Zor chat UI, actions, conversation (1156 lines)
-      zor-context.js         AI context modal, data loading (727 lines)
-      zor-tools.js           Zor tool-calling mode (simplified: 4 tools, 4 rounds, seed data)
-
-    js/ui/                   UI components
-      ui.js                  Common UI utilities (PazatorUI, 327 lines)
-      tabs.js                Tab navigation system (366 → 413 lines)
-                             Added:
-                             - ensureLazyModule() — dynamic <script> loader for app modules
-                             - switchTab() lazy-loads: dashboard, ontology, pipelines,
-                               alerts, api, workflow, reports on first tab click
-                             - lazy-trigger interceptors for walkthrough, snappy, sync
-                               (load module before dispatching click on hidden elements)
-      table.js               Virtual data table, bulk operations, buildFacetIndex (688 lines)
-      settings.js            Settings, password, classification, Gemini UI,
-                             autocomplete fields, initSettings (304 lines)
-
-    js/features/             Feature modules
-      detail.js              Entity detail views, slide panel, timeline, tags, forms (976 lines)
-      uploads.js             Chat/data upload, CSV import (903 lines)
-      visualization.js       Web node zoom/drag, currentScale/translate vars (473 lines)
-                             Changes: removed renderObjectCanvas() from form submit handlers;
-                             resize listener → rAF-throttled handler
-      intel.js               AI suggestions, findings (547 lines)
-      chat-manager.js        Chat listing, D3 graph, path finding, relationships,
-                             updateCreditStats, updateHeaderStats (2129 lines)
-                             Changes: PazatorUI.VirtualList for chat history (itemHeight 130,
-                             overscan 3, event delegation for preview/analyze/delete)
-      credits.js             Credit scoring, refreshPersonCredits (428 lines)
-                             Changes: cacheKey from person data hash + length; uses
-                             AIQueue.getCached() before Gemini call, falls back to direct
-      findings.js            Intel/terrorist/fraudster findings (471 → 490 lines)
-                             Changes: storeFinding/storeFraudLogs/storeTerroristLogs migrated
-                             to IndexedDB kv store with localStorage fallback
-      search.js              Universal search with facets, recent searches (503 lines)
-                             Changes: saveRecentSearches dual-writes to IndexedDB kv store
-      cases.js               Case management + evidence (833 lines)
-                             Changes: loads/saves via pazatorStore.kvGet/kvSet with localStorage fallback
-      relationships.js       Relationship graph (pazator_relationships, 260 lines)
-      timeline.js            Entity timeline (pazator_timeline, 199 lines)
-      heuristics.js          Identity resolution (pazator_heuristics, 164 lines)
-
-    js/tracker/              LCTX Tracker
-      tracker.js             MapLibre globe tracker, Supabase geolocation (1170 lines)
-
-    js/apps/                 Full application modules
-      dashboard.js           Dashboard widgets (pazator_dashboard, 622 lines)
-      ontology.js            Ontology designer (pazator_ontology_designer, 701 lines)
-      pipelines.js           Pipeline builder (pazator_pipelines, 696 lines)
-      alerts.js              Alert engine (pazator_alerts, 692 lines)
-      api.js                 REST/GraphQL console (pazator_api, 634 lines)
-      resolver.js            Entity resolver (pazator_resolver, 447 lines)
-      object-explorer.js     Object Explorer — Gotham-style full-page entity detail view
-      reports.js             Report generator (pazator_reports, 510 lines)
-      workflow.js            TASTUR v2 workflow engine (pazator_workflow, 442 lines)
-      sync.js                Sync server (pazator_sync, 529 lines)
-      gis.js                 GIS mapping (pazator_gis, 542 lines)
-      objects.js             Ontology objects + Entity type configs (pazator_objects, 851+ lines)
-      snappy.js              Snapshot utility (pazator_snappy, 191 lines)
-      walkthrough.js         Onboarding walkthrough (344 lines)
-
-  docs/                      Documentation pages
-    index.html               Docs hub.
-    ctxod.html               CTXOD engine docs (16 tools).
-    tastur.html              TASTUR rule engine docs.
-    timeln.html              Entity timeline docs.
-    facets.html              Faceted search docs.
-    dashbrd.html             Dashboard docs.
-    sync.html                Sync docs.
-    reports.html             Reports docs.
-    workflow.html            Workflow docs.
-    collab.html              Collaboration docs (legacy).
-    about_note.html          About note.
-
-  design/
-    index.html               Design language. Colors, typography, components,
-                             emotion accents (urgent/calm/creative/success/warning).
-
-  mobile/
-    index.html               SHAHED mobile companion. Minimal UI.
-
-  ASKING/
-    index.html               Fullscreen "?" help page.
+# PAZATOR Codebase Map
 
 
-yy LOAD ORDER (from app/index.html) yyyyyyyyyyyyyyyyyyyyyyyy
+---
 
-  <head> scripts + styles:
-     1. jspdf CDN                (jsPDF for PDF export)
-     2. js/data/db.js            (legacy IndexedDB v1)
-     3. js/data/engine.js        (main IndexedDB v2)
-     4. js/core/store.js         (in-memory store + events)
-     5. js/apps/objects.js       (ontology system)
-     6. js/features/relationships.js (relationship graph)
-     7. js/ui/ui.js              (UI helpers)
-     8. js/data/facets.js        (faceted search)
-      9. js/features/heuristics.js (identity resolution)
-    11. js/features/timeline.js  (entity timeline)
-        stylez.css               (stylesheet link)
-        inline <style> block     (landing page CSS vars, RTL, etc.)
+**Key files and changes:**
+- `store.js` – unified `_objectIndex`, `getObjectById()`, `getRelatedObjects()`, `searchObjects()`
+- `objects.js` – entity type CRUD (`createEntityType`, `getEntityTypes`, etc.)
+- `object-explorer.js` – Gotham‑style full‑page Object Explorer overlay
+- `ontology.js` – Entity Types section alongside Value Types
+- `persistence.js` – `showObjectDetail()` delegates to Object Explorer
 
-  <body> scripts (late):
-    12. maplibre-gl CDN          (GIS maps)
-    13. html2canvas CDN          (screenshots)
-    14. supabase-js CDN          (Supabase client)
-    15. js/ai/gemini.js          (Gemini API client)
-     16. js/ai/ai.js              (AI queue)
-     16b.js/ai/tide.js           (TIDE engine — scalable chunked analysis)
-     17. js/ai/agents.js          (agent engine — delegates AI to TIDE)
+---
 
-    -- Core --
-    18. js/core/globals.js       (global state)
-    19. js/core/modal.js         (modal system)
-    20. js/chat/chat-system.js   (chat parser/analysis; dual-writes to IDB kvStore)
-    21. js/core/data-utils.js    (ID utils, vector search, worker mgr)
-    22. js/core/dom-refs.js      (DOM references)
-    23. js/ui/tabs.js            (tab navigation; ensureLazyModule for 12 app modules)
-    24. js/core/persistence.js   (IndexedDB save/load; entity_changed events)
-    25. js/ui/table.js           (virtual table)
+## TIDE Engine (New – June 2026)
 
-    -- Features --
-    26. js/features/detail.js    (detail views)
-    27. js/ai/zor-chat.js        (Zor chat UI)
-    28. js/features/uploads.js   (file uploads, CSV)
-    29. js/ai/zor-context.js     (AI context)
-    30. js/features/visualization.js (zoom/drag; throttled resize, no full re-renders)
-    31. js/features/intel.js     (AI intel findings)
-    32. js/features/chat-manager.js (chat listing, graphs; VirtualList)
-    33. js/features/credits.js   (credit scoring; AIQueue cache)
-    34. js/features/findings.js  (intel/fraud findings; IDB kvStore)
-    35. js/core/app-init.js      (auth, logo dropdown)
-    36. js/features/search.js    (universal search; IDB kvStore)
-    37. js/features/cases.js     (case management; IDB kvStore)
-    38. js/ui/settings.js        (settings, password)
-    39. js/ai/zor-tools.js       (Zor tool mode)
-    40. js/tracker/tracker.js    (LCTX tracker)
-    41. js/core/main.js          (entry point, init hooks)
+**Threat Intelligence Distributed Evaluation** – replaces monolithic AI calls with scalable chunked analysis.
 
-    -- Apps (LAZY-LOADED on first tab/menu trigger) --
-    42. js/ai/context.js         (CTXOD tools — eagerly loaded)
-        (below modules are loaded by ensureLazyModule() in tabs.js)
-        js/apps/dashboard.js     (analysis tab)
-        js/apps/ontology.js      (ontology tab)
-        js/apps/pipelines.js     (pipelines tab)
-        js/apps/alerts.js        (alerts tab)
-        js/apps/api.js           (api tab)
-        js/apps/workflow.js      (workflow tab)
-        js/apps/reports.js       (reports tab)
-        js/apps/sync.js          (menu: sync config / push / pull)
-        js/apps/walkthrough.js   (menu: help → walkthrough; auto-start)
-        js/apps/snappy.js        (menu: system → snappy)
-        js/apps/gis.js           (loaded on tracker tab open; GIS overlays + custom layer support)
-        js/apps/resolver.js      (not referenced by anything — effectively dead)
-        inline <script> blocks   (intro skip, walkthrough/settings handlers;
-                                  fall back to ensureLazyModule on first click)
+- Handles any dataset size via scoring + tiered chunking
+- Analysis types: `threat`, `terrorist`, `fraud`, `credit`, `risk`, `intel`, `connection`
+- Dynamic chunk sizing based on token estimation
+- Built‑in deduplication, retry, progress events, persistence
+- CTXOD integration: `prioritize()` returns highest‑value entities
 
-  Worker: js/core/worker.js (new Worker())
+---
 
+## Project Structure
 
-yy DATA PIPELINE yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+```
+pazator/
+├── index.html                      # Marketing landing page
+├── map.txt                         # This file (original)
+├── google0f064d72b8389aee.html     # Google Search Console verification
+├── app/                            # Main SPA shell
+│   ├── index.html                  # Main app (tabs, sidebar, graph, dashboard, modals, etc.)
+│   ├── stylez.css                  # Dark theme (12,593 lines) – CSS custom properties
+│   ├── js/                         # JavaScript by domain
+│   │   ├── core/                   # Foundation layer
+│   │   ├── data/                   # Data persistence layer
+│   │   ├── chat/                   # Chat processing
+│   │   ├── ai/                     # AI/Zor system + TIDE engine
+│   │   ├── ui/                     # UI components
+│   │   ├── features/               # Feature modules
+│   │   ├── tracker/                # LCTX Tracker
+│   │   └── apps/                   # Full application modules (lazy‑loaded)
+│   └── ... 
+├── docs/                           # Documentation pages
+├── design/                         # Design language system
+├── mobile/                         # SHAHED mobile companion
+└── ASKING/                         # Fullscreen "?" help page
+```
 
-  AI pipeline:  js/ai/gemini.js → js/ai/ai.js (AIQueue, caching) → js/ai/agents.js
-                → js/ai/context.js → js/ai/zor-chat.js (chat UI)
-                Credits: AIQueue.getCached() before Gemini call (cacheKey = hash of person data)
-  Agent system: js/ai/agents.js (orchestrator → registry → agents)
-  Worker:       js/core/worker.js — handlers:
-                  graph_tick       force-directed layout (repulsion + attraction)
-                  heuristics_scan  name similarity + dedup
-                  bulk_transform   tag extraction, age computation
-                  aggregate_stats  threat counts, credit risk distribution
-                  CSV (legacy), credits (legacy), connections (legacy), dedup (legacy)
+---
 
-  Storage layers (bottom → top):
-    IndexedDB (engine.js)            Primary store. 7 object stores + _kvStore.
-                                     Queries via getPage() (cursor-advance fast path)
-                                     or index-based (getAllByIndex, countByIndex, queryRange).
-    localStorage (fallback)          Used when pazatorStore unavailable (startup).
-                                     migrateToIDB() copies pazator_* keys at init.
-    In-memory cache (store.js)       _aggregateCache for precomputed stats.
-                                     _messageBus (pub/sub) for entity_changed events.
-    In-memory cache (chat-system.js) _cache with CACHE_TTL, _archiveCache.
-                                     Dual-writes to IndexedDB _kvStore.
+## Core Modules (Detailed)
 
-  Data flow:
-    User action → store mutation → invalidateCache() + entity_changed event
-      → persistence.scheduleRender() (coalesced DOM update)
-      → visualization (no full re-render; only affected entities)
+### `js/core/` – Foundation Layer
 
-  Tab lazy-loading:
-    ensureLazyModule() in tabs.js (dynamic <script> injection)
-    analysis  → dashboard.js     ontology → ontology.js
-    pipelines → pipelines.js     alerts  → alerts.js
-    api       → api.js           workflow → workflow.js
-    reports   → reports.js       sync    → sync.js (menu trigger)
-    walkthrough                   snappy  → snappy.js (menu trigger)
-    gis/resolver — not referenced by anything, never loaded
+| File | Lines | Purpose |
+|------|-------|---------|
+| `globals.js` | – | Global state (`pazatorData`, `tags`, `cases`, etc.) |
+| `modal.js` | – | Modal / alert / confirm system |
+| `dom-refs.js` | – | DOM element references |
+| `data-utils.js` | – | ID generation, vector search, worker manager. Exposes `PazatorWorker.graphTick()`, `.heuristicsScan()`, `.bulkTransform()`, `.aggregateStats()` |
+| `store.js` | 558+ | In‑memory store + event system + unified object model. Features: aggregate cache, KV (IndexedDB + localStorage fallback), `entity_changed` events, `_objectIndex`, `getObjectById()`, `getRelatedObjects()`, `searchObjects()` |
+| `worker.js` | 206→330 | Web Worker handlers: `graph_tick` (force layout), `heuristics_scan` (dedup), `bulk_transform` (tags/age), `aggregate_stats` |
+| `persistence.js` | 595 | IndexedDB save/load/autoSave, object canvas, toast/notifications. Uses `entity_changed` events, `scheduleRender()`, `initClusterVirtualList()` |
+| `app-init.js` | – | Auth check, logo dropdown, init entry point |
+| `main.js` | – | Entry point, module docs, init hooks |
 
-  JS-bottleneck → IndexedDB-bound:
-    - Cursor-based pagination replaces full table scans
-    - VirtualList replaces manual DOM construction for chat history & clusters
-    - Worker thread handles layout/heuristics/aggregates off main thread
-    - AIQueue caching avoids redundant Gemini calls
-    - Dual-write pattern keeps synchronous localStorage reads while
-      persisting asynchronously to IndexedDB (no sync IO on hot path)
+### `js/data/` – Data Layer
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `db.js` | 184 | Legacy IndexedDB v1 (`PazatorDB`) |
+| `engine.js` | 297→420 | Main IndexedDB v2 (`PazatorV2`). 7 stores + `_kvStore`. Methods: `dbGetPageCursor()` (fast cursor pagination), `dbCountByIndex()`, `queryRange()`, `getAllByIndex()`, `getPage()` |
+| `facets.js` | 251 | Faceted search (`PazatorFacets`) |
+
+### `js/chat/` – Chat Processing
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `chat-system.js` | 653 | `ChatValidator`, `ChatParser`, `ChatStorageManager`, `ChatAnalysisService` |
+
+### `js/ai/` – AI/Zor System + TIDE
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `gemini.js` | 117 | Google Gemini HTTP client (9 models) |
+| `ai.js` | 217 | AI Queue, concurrency control, caching |
+| `agents.js` | 990 | Agent analysis engine, orchestrator – delegates AI to TIDE |
+| `tide.js` | – | TIDE engine (Threat Intelligence Distributed Evaluation) |
+| `context.js` | 143 | CTXOD tool system (16 tools) |
+| `zor-chat.js` | 1156 | Zor chat UI, actions, conversation |
+| `zor-context.js` | 727 | AI context modal, data loading |
+| `zor-tools.js` | – | Zor tool‑calling mode (4 tools, 4 rounds, seed data) |
+
+### `js/ui/` – UI Components
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `ui.js` | 327 | Common UI utilities (`PazatorUI`) |
+| `tabs.js` | 366→413 | Tab navigation + `ensureLazyModule()` (dynamic loader for 12 app modules). Lazy‑loads: dashboard, ontology, pipelines, alerts, api, workflow, reports on first click |
+| `table.js` | 688 | Virtual data table, bulk ops, facet index |
+| `settings.js` | 304 | Settings, password, classification, Gemini UI |
+
+### `js/features/` – Feature Modules
+
+| File | Lines | Changes (June 2026) |
+|------|-------|---------------------|
+| `detail.js` | 976 | Entity detail, slide panel, timeline, tags |
+| `uploads.js` | 903 | Chat/data upload, CSV import |
+| `visualization.js` | 473 | Removed full re‑renders; rAF‑throttled resize |
+| `intel.js` | 547 | AI suggestions, findings |
+| `chat-manager.js` | 2129 | VirtualList for chat history (itemHeight 130, overscan 3) |
+| `credits.js` | 428 | Cached credit scoring via `AIQueue.getCached()` |
+| `findings.js` | 471→490 | Findings migrated to IndexedDB KV + localStorage fallback |
+| `search.js` | 503 | Recent searches dual‑written to IndexedDB KV |
+| `cases.js` | 833 | Case management via `pazatorStore.kvGet/kvSet` |
+| `relationships.js` | 260 | Relationship graph |
+| `timeline.js` | 199 | Entity timeline |
+| `heuristics.js` | 164 | Identity resolution |
+
+### `js/tracker/` – LCTX Tracker
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `tracker.js` | 1170 | MapLibre globe tracker, Supabase geolocation |
+
+### `js/apps/` – Lazy‑Loaded Modules (via `ensureLazyModule`)
+
+| File | Lines | Trigger |
+|------|-------|---------|
+| `dashboard.js` | 622 | "analysis" tab |
+| `ontology.js` | 701 | "ontology" tab |
+| `pipelines.js` | 696 | "pipelines" tab |
+| `alerts.js` | 692 | "alerts" tab |
+| `api.js` | 634 | "api" tab |
+| `workflow.js` | 442 | "workflow" tab |
+| `reports.js` | 510 | "reports" tab |
+| `sync.js` | 529 | menu → sync config/push/pull |
+| `object-explorer.js` | – | Gotham‑style full‑page entity detail |
+| `objects.js` | 851+ | Ontology objects + entity type configs |
+| `snappy.js` | 191 | Snapshot utility (menu → system → snappy) |
+| `walkthrough.js` | 344 | Onboarding walkthrough (menu → help) |
+| `gis.js` | 542 | GIS overlays (tracker tab) |
+| `resolver.js` | 447 | **Dead code** (not referenced) |
+
+---
+
+## Script Load Order (from `app/index.html`)
+
+### Head (eager, blocking)
+
+1. `jspdf` CDN  
+2. `js/data/db.js` (legacy IDB v1)  
+3. `js/data/engine.js` (IDB v2)  
+4. `js/core/store.js` (in‑memory store + events)  
+5. `js/apps/objects.js` (ontology system)  
+6. `js/features/relationships.js`  
+7. `js/ui/ui.js`  
+8. `js/data/facets.js`  
+9. `js/features/heuristics.js`  
+10. `js/features/timeline.js`  
+11. `stylez.css` + inline `<style>` (landing page vars)
+
+### Body (late, ordered)
+
+| Order | File | Notes |
+|-------|------|-------|
+| 12 | `maplibre-gl` CDN | GIS maps |
+| 13 | `html2canvas` CDN | Screenshots |
+| 14 | `supabase-js` CDN | Supabase client |
+| 15 | `js/ai/gemini.js` | Gemini API client |
+| 16 | `js/ai/ai.js` | AI Queue |
+| 16b | `js/ai/tide.js` | TIDE engine |
+| 17 | `js/ai/agents.js` | Delegates AI to TIDE |
+| 18 | `js/core/globals.js` | Global state |
+| 19 | `js/core/modal.js` | Modal system |
+| 20 | `js/chat/chat-system.js` | Chat parser, dual‑writes to IDB KV |
+| 21 | `js/core/data-utils.js` | Worker manager, ID utils |
+| 22 | `js/core/dom-refs.js` | DOM references |
+| 23 | `js/ui/tabs.js` | Lazy‑load interceptor |
+| 24 | `js/core/persistence.js` | IDB save/load, `entity_changed` |
+| 25 | `js/ui/table.js` | Virtual table |
+| 26 | `js/features/detail.js` | Detail views |
+| 27 | `js/ai/zor-chat.js` | Zor chat UI |
+| 28 | `js/features/uploads.js` | File uploads |
+| 29 | `js/ai/zor-context.js` | AI context modal |
+| 30 | `js/features/visualization.js` | Throttled resize, no full re‑renders |
+| 31 | `js/features/intel.js` | AI findings |
+| 32 | `js/features/chat-manager.js` | VirtualList for chat history |
+| 33 | `js/features/credits.js` | Cached credit scoring |
+| 34 | `js/features/findings.js` | IDB KV for findings |
+| 35 | `js/core/app-init.js` | Auth, logo dropdown |
+| 36 | `js/features/search.js` | Universal search, IDB KV |
+| 37 | `js/features/cases.js` | Case management, IDB KV |
+| 38 | `js/ui/settings.js` | Settings UI |
+| 39 | `js/ai/zor-tools.js` | Zor tool mode |
+| 40 | `js/tracker/tracker.js` | LCTX tracker |
+| 41 | `js/core/main.js` | Entry point, init hooks |
+
+> **Lazy‑loaded after body:** `context.js` (CTXOD tools) and all `apps/*` except `objects.js` (already loaded).  
+> **Worker:** `js/core/worker.js` – instantiated via `new Worker()`.
+
+---
+
+## Data Pipeline
+
+### Storage Layers (bottom → top)
+
+| Layer | File | Description |
+|-------|------|-------------|
+| **IndexedDB (primary)** | `engine.js` | 7 stores + `_kvStore`. Queries: `getPage()` (cursor‑advance fast path), index‑based (`getAllByIndex`, `countByIndex`, `queryRange`) |
+| **localStorage (fallback)** | – | Used when store unavailable at startup. `migrateToIDB()` copies `pazator_*` keys at init |
+| **In‑memory caches** | `store.js` | `_aggregateCache` for precomputed stats, `_messageBus` for `entity_changed` events |
+| **Chat system cache** | `chat-system.js` | `_cache` with TTL, `_archiveCache`; dual‑writes to IndexedDB `_kvStore` |
+
+### Data Flow
+
+```
+User action → store mutation → invalidateCache() + entity_changed event
+            → persistence.scheduleRender() (coalesced DOM update)
+            → visualization (only affected entities, no full re‑render)
+```
+
+### AI Pipeline
+
+```
+js/ai/gemini.js → js/ai/ai.js (AIQueue + caching)
+                → js/ai/agents.js (orchestrator)
+                → js/ai/context.js (CTXOD tools)
+                → js/ai/zor-chat.js (chat UI)
+```
+
+**Credit scoring cache:** `cacheKey = hash(person data + length)` – checks `AIQueue.getCached()` before Gemini call.
+
+### Worker Handlers (`js/core/worker.js`)
+
+| Handler | Purpose |
+|---------|---------|
+| `graph_tick` | Force‑directed layout (repulsion + attraction) |
+| `heuristics_scan` | Name similarity + deduplication |
+| `bulk_transform` | Tag extraction, age computation |
+| `aggregate_stats` | Threat counts, credit risk distribution |
+| (legacy) | CSV, credits, connections, dedup |
+
+### Tab Lazy‑Loading (`tabs.js` → `ensureLazyModule`)
+
+Dynamic `<script>` injection on first tab/menu click:
+
+| Tab / Menu | Loaded Module |
+|------------|---------------|
+| analysis | `dashboard.js` |
+| ontology | `ontology.js` |
+| pipelines | `pipelines.js` |
+| alerts | `alerts.js` |
+| api | `api.js` |
+| workflow | `workflow.js` |
+| reports | `reports.js` |
+| sync (menu) | `sync.js` |
+| walkthrough (menu) | `walkthrough.js` |
+| snappy (menu) | `snappy.js` |
+| tracker tab | `gis.js` |
+
+> `resolver.js` is never referenced – effectively dead code.
+
+---
+
+## Key Performance Optimizations Summary
+
+| Problem | Solution |
+|---------|----------|
+| Slow pagination | `cursor.advance()` + virtual lists |
+| Heavy layout on main thread | Worker‑based force layout |
+| Excessive re‑renders | `entity_changed` events + aggregate cache + `scheduleRender()` coalescing |
+| Synchronous storage bottleneck | Dual‑write: localStorage for synchronous reads, IndexedDB for async persistence |
+| 12 blocking scripts | Lazy‑load on first interaction |
+| Unthrottled resize | `requestAnimationFrame` throttling |
+| Redundant AI calls | Hash‑keyed cache in `AIQueue` |

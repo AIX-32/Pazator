@@ -369,8 +369,8 @@
                 <div class="menu-dropdown">
                     <button class="menu-dropdown-item" onclick="document.getElementById('settingsOption')?.click()"><i
                             class="fas fa-cog"></i> Settings</button>
-                    <button class="menu-dropdown-item" onclick="document.getElementById('classifyOption')?.click()"><i
-                            class="fas fa-shield-alt"></i> Classification</button>
+                    <button class="menu-dropdown-item" onclick="window.pazatorClassification?.showBulkClassifyModal()"><i
+                            class="fas fa-shield-alt"></i> Classify Recent</button>
                     <button class="menu-dropdown-item" onclick="document.getElementById('exportCsvOption')?.click()"><i
                             class="fas fa-file-export"></i> Export CSV</button>
                     <button class="menu-dropdown-item" onclick="document.getElementById('syncConfigOption')?.click()"><i
@@ -433,6 +433,10 @@
                     <i class="fas fa-circle-info"></i>
                     <span>About</span>
                 </div>
+                <div class="logo-dropdown-item" id="neofetchOption">
+                    <i class="fas fa-desktop"></i>
+                    <span>System Info</span>
+                </div>
                 <div id="refreshNodesOption" style="display:none;"></div>
                 <div id="settingsOption" style="display:none;"></div>
                 <div id="classifyOption" style="display:none;"></div>
@@ -449,7 +453,7 @@
                 <div class="main-panel">
                     <div class="canvas-header">
                         <h1>Pazator<span class="title-sub">SARPARAST</span></h1>
-                        <p class="canvas-version">v0.Jun1426</p>
+                        <p class="canvas-version" id="appVersionDisplay">v0.Jun1426</p>
                     </div>
                     <div class="web-container" id="webContainer">
                         <div class="web-content" id="webContent">
@@ -559,6 +563,9 @@
                             <span
                                 style="background:rgba(251,191,36,0.15);color:#fbbf24;padding:3px 10px;border-radius:5px;font-size:0.75rem;font-weight:600;"><span
                                     id="sidebarCasesCount">0</span> Cases</span>
+                            <span
+                                style="background:rgba(168,85,247,0.15);color:#a855f7;padding:3px 10px;border-radius:5px;font-size:0.75rem;font-weight:600;"><span
+                                    id="sidebarReportsCount">0</span> Reports</span>
                         </div>
                     </div>
 
@@ -1435,7 +1442,7 @@
                         <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
                             <div>
                                 <h1>Workflow Engine</h1>
-                                <p class="canvas-version">TASTUR v2 · WHEN / IF / THEN</p>
+                                <p class="canvas-version" id="tasturVersionDisplay">TASTUR v2 · WHEN / IF / THEN</p>
                             </div>
                             <div style="display:flex;align-items:center;gap:14px;">
                                 <span id="wfRuleCount" style="font-size:0.72rem;color:var(--text-muted);">0 rules</span>
@@ -1476,11 +1483,16 @@
                             <button class="reports-subnav-btn" data-view="saved" onclick="switchReportsView('saved')">
                                 <i class="fas fa-folder-open"></i> Saved Reports
                             </button>
+                            <button class="reports-subnav-btn" data-view="logbook" onclick="switchReportsView('logbook')">
+                                <i class="fas fa-journal-whills"></i> Logbook
+                            </button>
                         </div>
                     </div>
                     <div id="reportsTabContent" class="web-container"
                         style="flex:1;display:flex;flex-direction:column;"></div>
                     <div id="savedReportsContent" class="web-container"
+                        style="flex:1;display:none;flex-direction:column;"></div>
+                    <div id="logbookContent" class="web-container"
                         style="flex:1;display:none;flex-direction:column;"></div>
                 </div>
                 <div class="side-panel">
@@ -2110,109 +2122,91 @@
 
     <div id="contextModal" class="modal context-modal">
         <button class="close">&times;</button>
-        <div class="modal-content" style="max-width: 800px;">
-            <div class="modal-header">
-                <h2>Select Context for AI</h2>
+        <div class="modal-content" style="max-width: 1100px;">
+            <div class="modal-header" style="border-bottom: 2px solid #333;">
+                <h2 style="font-weight:300;letter-spacing:1px;text-transform:uppercase;font-size:1rem;">Select Context</h2>
+                <span style="font-size:0.75rem;color:#666;margin-left:12px;">choose what to feed the AI</span>
             </div>
             <div class="modal-body">
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
-                    <div>
-                        <h3
-                            style="margin-bottom: 15px; color: #ffffff; border-bottom: 1px solid #444; padding-bottom: 10px;">
-                            People</h3>
-                        <div id="contextPeople"
-                            style="max-height: 300px; overflow-y: auto; border: 1px solid #444; border-radius: 7px; padding: 10px; background: rgba(30, 30, 30, 0.5);">
-                            <p style="color: #777; text-align: center;">Loading people...</p>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="ctx-section" style="border:1px solid #3a3a3a;border-radius:6px;background:rgba(25,25,25,0.6);">
+                            <div style="padding:8px 12px;border-bottom:1px solid #333;font-size:0.75rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#999;"><span style="display:inline-block;width:4px;height:4px;background:#666;border-radius:50%;margin-right:6px;vertical-align:middle;"></span>People</div>
+                            <div id="contextPeople" style="max-height:240px;overflow-y:auto;padding:6px 8px;">
+                                <p style="color: #666; text-align: center; font-size:0.8rem;">Loading people...</p>
+                            </div>
+                        </div>
+                        <div class="ctx-section" style="border:1px solid #3a3a3a;border-radius:6px;background:rgba(25,25,25,0.6);">
+                            <div style="padding:8px 12px;border-bottom:1px solid #333;font-size:0.75rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#999;"><span style="display:inline-block;width:4px;height:4px;background:#666;border-radius:50%;margin-right:6px;vertical-align:middle;"></span>Chats</div>
+                            <div id="contextChats" style="max-height:240px;overflow-y:auto;padding:6px 8px;">
+                                <p style="color: #666; text-align: center; font-size:0.8rem;">Loading chats...</p>
+                            </div>
                         </div>
                     </div>
-
-                    <div>
-                        <h3
-                            style="margin-bottom: 15px; color: #ffffff; border-bottom: 1px solid #444; padding-bottom: 10px;">
-                            Chats</h3>
-                        <div id="contextChats"
-                            style="max-height: 300px; overflow-y: auto; border: 1px solid #444; border-radius: 7px; padding: 10px; background: rgba(30, 30, 30, 0.5);">
-                            <p style="color: #777; text-align: center;">Loading chats...</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px;">
+                        <div class="ctx-section" style="border:1px solid #3a3a3a;border-radius:6px;background:rgba(25,25,25,0.6);">
+                            <div style="padding:6px 10px;border-bottom:1px solid #333;font-size:0.7rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#777;">Intel</div>
+                            <div id="contextIntel" style="max-height:200px;overflow-y:auto;padding:4px 6px;">
+                                <p style="color: #666; text-align: center; font-size:0.75rem;">Loading...</p>
+                            </div>
+                        </div>
+                        <div class="ctx-section" style="border:1px solid #3a3a3a;border-radius:6px;background:rgba(25,25,25,0.6);">
+                            <div style="padding:6px 10px;border-bottom:1px solid #333;font-size:0.7rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#777;">Logbook</div>
+                            <div id="contextLogbook" style="max-height:200px;overflow-y:auto;padding:4px 6px;">
+                                <p style="color: #666; text-align: center; font-size:0.75rem;">Loading...</p>
+                            </div>
+                        </div>
+                        <div class="ctx-section" style="border:1px solid #3a3a3a;border-radius:6px;background:rgba(25,25,25,0.6);">
+                            <div style="padding:6px 10px;border-bottom:1px solid #333;font-size:0.7rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#777;">Cases</div>
+                            <div id="contextCases" style="max-height:200px;overflow-y:auto;padding:4px 6px;">
+                                <p style="color: #666; text-align: center; font-size:0.75rem;">Loading...</p>
+                            </div>
+                        </div>
+                        <div class="ctx-section" style="border:1px solid #3a3a3a;border-radius:6px;background:rgba(25,25,25,0.6);">
+                            <div style="padding:6px 10px;border-bottom:1px solid #333;font-size:0.7rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#777;">Entities</div>
+                            <div id="contextEntities" style="max-height:200px;overflow-y:auto;padding:4px 6px;">
+                                <p style="color: #666; text-align: center; font-size:0.75rem;">Loading...</p>
+                            </div>
                         </div>
                     </div>
-
-                    <div>
-                        <h3
-                            style="margin-bottom: 15px; color: #ffffff; border-bottom: 1px solid #444; padding-bottom: 10px;">
-                            Fraud Logs</h3>
-                        <div id="contextFraudLogs"
-                            style="max-height: 300px; overflow-y: auto; border: 1px solid #444; border-radius: 7px; padding: 10px; background: rgba(30, 30, 30, 0.5);">
-                            <p style="color: #777; text-align: center;">Loading fraud logs...</p>
+                    <div class="ctx-section" style="border:1px solid #3a3a3a;border-radius:6px;background:rgba(25,25,25,0.6);">
+                        <div style="padding:6px 10px;border-bottom:1px solid #333;font-size:0.7rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#777;">Reports</div>
+                        <div id="contextReports" style="max-height:150px;overflow-y:auto;padding:4px 6px;">
+                            <p style="color: #666; text-align: center; font-size:0.75rem;">Loading...</p>
                         </div>
                     </div>
                 </div>
 
-                <div class="form-group" style="margin-top: 20px;">
-                    <label for="contextNotes">Additional Notes</label>
-                    <textarea id="contextNotes" class="form-control" rows="3"
-                        placeholder="Additional context for the selected items..."></textarea>
+                <div style="margin-top:16px;border-top:1px solid #2a2a2a;padding-top:12px;">
+                    <div style="font-size:0.7rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#666;margin-bottom:6px;">Notes</div>
+                    <textarea id="contextNotes" class="form-control" rows="2"
+                        placeholder="Additional context for the selected items..." style="background:rgba(20,20,20,0.6);border-color:#3a3a3a;color:#ccc;font-size:0.8rem;"></textarea>
                 </div>
             </div>
-            <div class="form-actions">
+            <div class="form-actions" style="border-top:1px solid #2a2a2a;padding-top:12px;margin-top:0;">
                 <button type="button" class="btn glass-btn" id="cancelContextBtn">Cancel</button>
                 <button type="button" class="btn btn-primary" id="applyContextBtn">Apply Context</button>
             </div>
         </div>
     </div>
 
-    <div id="classifyModal" class="modal classify-modal">
-        <button class="close">&times;</button>
-        <div class="modal-content">
-            <div class="modal-header">
-                <div>
-                    <h2>Classification Control</h2>
-                    <p style="margin: 4px 0 0 0; font-size: 0.9rem; color: #aaa;">Review and lock down a classification
-                        level for your data.</p>
+    <!-- classification moved to JS-generated modals in classification.js -->
+
+    <div id="neofetchOverlay" class="about-overlay" aria-hidden="true">
+        <div class="neofetch-card" id="neofetchCard" role="dialog" aria-modal="true">
+            <div class="neofetch-body">
+                <div class="neofetch-ascii">
+                    <img src="../logo.png" alt="logo" id="neofetchLogoImg">
+                </div>
+                <div class="neofetch-data">
+                    <div class="neofetch-line"><span class="neofetch-key">Sys</span><span class="neofetch-val">Pazator SARPARAST</span></div>
+                    <div class="neofetch-line"><span class="neofetch-key">Ver</span><span class="neofetch-val" id="neofetchAppVer">—</span></div>
+                    <div class="neofetch-line"><span class="neofetch-key">Build</span><span class="neofetch-val" id="neofetchBuild">—</span></div>
+                    <div class="neofetch-line"><span class="neofetch-key">Entities</span><span class="neofetch-val" id="neofetchEntities">—</span></div>
+                    <div class="neofetch-line"><span class="neofetch-key">Uptime</span><span class="neofetch-val" id="neofetchUptime">—</span></div>
                 </div>
             </div>
-            <div class="modal-body">
-                <div class="classification-controls">
-                    <div class="form-group">
-                        <label for="classificationDataset">Target Dataset</label>
-                        <select id="classificationDataset" class="form-control">
-                            <option value="all">All entries</option>
-                            <option value="humans">Humans only</option>
-                            <option value="others">Jobs & Companies / Entities</option>
-                            <option value="high_risk">High-risk humans</option>
-                            <option value="new_alerts">New alerts</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="classificationConfidence">
-                            Confidence threshold
-                            <span id="classificationConfidenceValue"
-                                style="float: right; font-weight: 600; color: #6bcf7f;">85%</span>
-                        </label>
-                        <input type="range" id="classificationConfidence" min="60" max="98" value="85">
-                    </div>
-
-                    <div class="classification-preview" id="classificationPreview">
-                        Ready to classify once you hit "Apply classification".
-                    </div>
-
-                    <div class="classification-status" id="classificationStatus">
-                        Current state: Inactive — no classification applied.
-                    </div>
-
-                    <button id="resetClassifyBtn" class="btn btn-danger" style="width: 100%; margin-top: 5px;">
-                        Reset classification
-                    </button>
-                </div>
-            </div>
-            <div class="form-actions-horizontal">
-                <button class="btn-enhanced glass-btn" id="cancelClassifyBtn">
-                    <i class="fas fa-times"></i> Close
-                </button>
-                <button class="btn-enhanced btn-primary" id="applyClassifyBtn">
-                    <i class="fas fa-shield-alt"></i> Apply classification
-                </button>
-            </div>
+            <button class="neofetch-close" id="closeNeofetchBtn">&times;</button>
         </div>
     </div>
 
@@ -2421,6 +2415,9 @@
                 <button id="openInExplorerBtn" class="btn-action"
                     style=" display:none;">
                     <i class="fas fa-cube"></i> Explore
+                </button>
+                <button id="classifyEntryBtn" class="btn-action">
+                    <i class="fas fa-shield-alt"></i> Classify
                 </button>
                 <button id="deleteEntryBtn" class="btn-action">
                     <i class="fas fa-trash"></i> Delete
@@ -2775,6 +2772,7 @@
     <script src="js/features/chat-manager.js"></script>
     <script src="js/features/credits.js"></script>
     <script src="js/features/findings.js"></script>
+    <script src="js/features/classification.js"></script>
     <script src="js/core/app-init.js"></script>
     <script src="js/features/search.js"></script>
     <script src="js/features/cases.js"></script>

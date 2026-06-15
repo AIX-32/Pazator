@@ -308,9 +308,21 @@ function updateHeaderStats() {
     var sh = document.getElementById('sidebarHumansCount');
     var so = document.getElementById('sidebarOthersCount');
     var sc = document.getElementById('sidebarCasesCount');
+    var sr = document.getElementById('sidebarReportsCount');
     if (sh) sh.textContent = pazatorData.humans.length;
     if (so) so.textContent = pazatorData.others.length;
     if (sc) sc.textContent = (cases || []).length;
+    if (sr) {
+        try {
+            var raw = localStorage.getItem('pazator_analysis_reports');
+            if (raw) {
+                var data = JSON.parse(raw);
+                sr.textContent = (data && data.reports) ? data.reports.length : 0;
+            } else {
+                sr.textContent = 0;
+            }
+        } catch (e) { sr.textContent = 0; }
+    }
 }
 
 function generateThreatReport() {

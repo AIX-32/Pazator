@@ -126,6 +126,49 @@ function setupLogoDropdownListeners() {
         });
     }
 
+    // ─── Neofetch ─────────────────────────────────────────────────────
+    const neofetchOption = document.getElementById('neofetchOption');
+    const neofetchOverlay = document.getElementById('neofetchOverlay');
+    const neofetchCard = document.getElementById('neofetchCard');
+    const closeNeofetchBtn = document.getElementById('closeNeofetchBtn');
+
+    if (neofetchOverlay && neofetchCard) {
+        function onNeofetchKeydown(e) {
+            if (e.key === 'Escape') setNeofetchOpen(false);
+        }
+
+        function setNeofetchOpen(open) {
+            neofetchOverlay.classList.toggle('open', open);
+            neofetchOverlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+            if (open) {
+                populateNeofetch();
+                closeNeofetchBtn?.focus?.();
+                document.addEventListener('keydown', onNeofetchKeydown);
+            } else {
+                document.removeEventListener('keydown', onNeofetchKeydown);
+            }
+        }
+
+        closeNeofetchBtn?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setNeofetchOpen(false);
+        });
+
+        neofetchOverlay.addEventListener('click', (e) => {
+            if (e.target === neofetchOverlay) setNeofetchOpen(false);
+        });
+
+        neofetchCard.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
+        neofetchOption?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            setNeofetchOpen(true);
+        });
+    }
+
     if (refreshNodesOption) {
         console.log(' Adding event listener to Refresh Nodes');
         refreshNodesOption.addEventListener('click', (e) => {
@@ -139,185 +182,7 @@ function setupLogoDropdownListeners() {
     }
 
     if (classifyOption) {
-        console.log(' Adding event listener to Classify');
-
-        const classificationDataSelect = document.getElementById('classificationDataset');
-        const classificationConfidenceInput = document.getElementById('classificationConfidence');
-        const classificationConfidenceValue = document.getElementById('classificationConfidenceValue');
-        const classificationStatus = document.getElementById('classificationStatus');
-        const classificationPreview = document.getElementById('classificationPreview');
-        const applyClassifyBtn = document.getElementById('applyClassifyBtn');
-        const cancelClassifyBtn = document.getElementById('cancelClassifyBtn');
-        const resetClassifyBtn = document.getElementById('resetClassifyBtn');
-
-        const datasetLabels = {
-            all: 'All entries',
-            humans: 'Humans only',
-            others: 'Other entities',
-            high_risk: 'High-risk humans',
-            new_alerts: 'New alerts'
-        };
-
-        let classificationState = {
-            active: false,
-            dataset: 'all',
-            confidence: 85
-        };
-
-        const getDatasetLabel = (key) => datasetLabels[key] || 'Custom collection';
-
-        const updateClassificationPreview = () => {
-            if (!classificationPreview) return;
-            const label = getDatasetLabel(classificationState.dataset);
-            const confidence = classificationState.confidence;
-            classificationPreview.textContent = classificationState.active
-                ? `Last applied: ${label} (${confidence}% confidence).`
-                : `Targeting ${label} with ${confidence}% confidence when you apply classification.`;
-        };
-
-        const updateClassificationStatusText = () => {
-            if (!classificationStatus) return;
-            const label = getDatasetLabel(classificationState.dataset);
-            classificationStatus.textContent = classificationState.active
-                ? `Active classification · ${label} · ${classificationState.confidence}% confidence`
-                : `Inactive · will target ${label} at ${classificationState.confidence}% confidence`;
-        };
-
-        const updateModalControls = () => {
-            if (classificationDataSelect) {
-                classificationDataSelect.value = classificationState.dataset;
-            }
-            if (classificationConfidenceInput) {
-                classificationConfidenceInput.value = classificationState.confidence;
-            }
-            if (classificationConfidenceValue) {
-                classificationConfidenceValue.textContent = `${classificationState.confidence}%`;
-            }
-        };
-
-        const persistClassificationState = () => {
-            try {
-                localStorage.setItem('classificationState', JSON.stringify(classificationState));
-            } catch (error) {
-                console.warn('Unable to persist classification state:', error);
-            }
-        };
-
-        const loadClassificationState = () => {
-            try {
-                const stored = JSON.parse(localStorage.getItem('classificationState') || 'null');
-                if (stored && typeof stored === 'object') {
-                    classificationState = { ...classificationState, ...stored };
-                }
-            } catch (error) {
-                console.warn('Failed to load classification state:', error);
-            }
-        };
-
-        const updateClassificationBanner = (active) => {
-            if (!classificationBanner) return;
-            if (active) {
-                classificationBanner.style.display = 'flex';
-                document.body.classList.add('classified-active');
-            } else {
-                classificationBanner.style.display = 'none';
-                document.body.classList.remove('classified-active');
-            }
-        };
-
-        const setClassificationVisuals = (active) => {
-            if (!classifyOption) return;
-            window.screenshotsDisabled = active;
-            classifyOption.innerHTML = active
-                ? '<i class="fas fa-shield-alt"></i><span>Classified</span>'
-                : '<i class="fas fa-shield-alt"></i><span>Classify</span>';
-            classifyOption.style.color = active ? '#ff6b6b' : '';
-            updateClassificationBanner(active);
-        };
-
-        const closeClassifyModal = () => {
-            if (!classifyModal) return;
-            classifyModal.classList.add('hiding');
-            setTimeout(() => {
-                classifyModal.style.display = 'none';
-                classifyModal.style.zIndex = '-1';
-                classifyModal.classList.remove('hiding');
-            }, 300);
-        };
-
-        const openClassifyModal = () => {
-            if (!classifyModal) return;
-            updateModalControls();
-            updateClassificationPreview();
-            updateClassificationStatusText();
-            classifyModal.style.display = 'flex';
-            classifyModal.style.zIndex = '1002';
-        };
-
-        classificationDataSelect?.addEventListener('change', () => {
-            classificationState.dataset = classificationDataSelect.value;
-            persistClassificationState();
-            updateClassificationPreview();
-            updateClassificationStatusText();
-        });
-
-        classificationConfidenceInput?.addEventListener('input', () => {
-            const value = parseInt(classificationConfidenceInput.value, 10);
-            if (!Number.isNaN(value)) {
-                classificationState.confidence = value;
-                classificationConfidenceValue.textContent = `${value}%`;
-                persistClassificationState();
-                updateClassificationPreview();
-                updateClassificationStatusText();
-            }
-        });
-
-        applyClassifyBtn?.addEventListener('click', (event) => {
-            event.preventDefault();
-            classificationState.dataset = classificationDataSelect?.value || classificationState.dataset;
-            classificationState.confidence = classificationConfidenceInput
-                ? parseInt(classificationConfidenceInput.value, 10) || classificationState.confidence
-                : classificationState.confidence;
-            classificationState.active = true;
-            persistClassificationState();
-            updateClassificationPreview();
-            updateClassificationStatusText();
-            setClassificationVisuals(true);
-            closeClassifyModal();
-        });
-
-        resetClassifyBtn?.addEventListener('click', (event) => {
-            event.preventDefault();
-            classificationState = {
-                active: false,
-                dataset: 'all',
-                confidence: 85
-            };
-            persistClassificationState();
-            updateModalControls();
-            updateClassificationPreview();
-            updateClassificationStatusText();
-            setClassificationVisuals(false);
-        });
-
-        cancelClassifyBtn?.addEventListener('click', (event) => {
-            event.preventDefault();
-            closeClassifyModal();
-        });
-
-        classifyOption.addEventListener('click', (event) => {
-            event.stopPropagation();
-            console.log('️ Logo dropdown: Classify clicked');
-            openClassifyModal();
-        });
-
-        loadClassificationState();
-        updateModalControls();
-        updateClassificationPreview();
-        updateClassificationStatusText();
-        setClassificationVisuals(classificationState.active);
-    } else {
-        console.error(' ClassifyOption not found!');
+        console.log(' Classification system moved to classification.js');
     }
 
     if (exportCsvOption) {
@@ -449,6 +314,9 @@ try {
         console.log(' Initial data saved');
     }
 
+    loadVersions();
+    console.log(' Versions loaded');
+
     console.log(' Pazator app fully initialized with enhanced data persistence');
     console.log(` Current data: ${pazatorData.humans.length} humans, ${pazatorData.others.length} others`);
 
@@ -460,6 +328,67 @@ try {
     renderObjectCanvas();
     renderTags();
     console.log('️ Using fallback initialization');
+}
+
+function loadVersions() {
+    fetch('../version.json')
+        .then(function (r) { return r.json(); })
+        .then(function (v) {
+            window.pazatorVersions = v;
+
+            var appVer = document.getElementById('appVersionDisplay');
+            if (appVer) appVer.textContent = v.app;
+
+            var tasturVer = document.getElementById('tasturVersionDisplay');
+            if (tasturVer) tasturVer.textContent = 'TASTUR ' + v.tastur + ' · WHEN / IF / THEN';
+
+            var tideEl = document.getElementById('neofetchTide');
+            if (tideEl) tideEl.textContent = 'v' + v.tide;
+
+            var trackerEl = document.getElementById('neofetchTracker');
+            if (trackerEl) trackerEl.textContent = v.tracker;
+
+            var objectsEl = document.getElementById('neofetchObjects');
+            if (objectsEl) objectsEl.textContent = v.objects;
+
+            var tasturEl = document.getElementById('neofetchTastur');
+            if (tasturEl) tasturEl.textContent = v.tastur;
+
+            var buildEl = document.getElementById('neofetchBuild');
+            if (buildEl) buildEl.textContent = v.build;
+
+            var verEl = document.getElementById('neofetchAppVer');
+            if (verEl) verEl.textContent = v.app;
+        })
+        .catch(function (e) {
+            console.warn('Failed to load version.json:', e);
+        });
+}
+
+var _neofetchStart = Date.now();
+
+function populateNeofetch() {
+    var entitiesEl = document.getElementById('neofetchEntities');
+    if (entitiesEl) {
+        var h = (window.pazatorData && window.pazatorData.humans) ? window.pazatorData.humans.length : 0;
+        var o = (window.pazatorData && window.pazatorData.others) ? window.pazatorData.others.length : 0;
+        entitiesEl.textContent = h + ' humans, ' + o + ' others';
+    }
+
+    var uptimeEl = document.getElementById('neofetchUptime');
+    if (uptimeEl) {
+        var sec = Math.floor((Date.now() - _neofetchStart) / 1000);
+        var d = Math.floor(sec / 86400);
+        var h = Math.floor((sec % 86400) / 3600);
+        var m = Math.floor((sec % 3600) / 60);
+        var s = sec % 60;
+        var parts = [];
+        if (d > 0) parts.push(d + 'd');
+        if (h > 0) parts.push(h + 'h');
+        parts.push(m + 'm');
+        parts.push(s + 's');
+        uptimeEl.textContent = parts.join(' ');
+    }
 }
 
 const RECENT_SEARCHES_KEY = 'pazatorRecentSearches';

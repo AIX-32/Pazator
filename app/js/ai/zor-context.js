@@ -19,7 +19,11 @@ document.getElementById('addContextOption')?.addEventListener('click', () => {
 function loadContextData() {
     loadContextPeople();
     loadContextChats();
-    loadContextFraudLogs();
+    loadContextIntel();
+    loadContextLogbook();
+    loadContextCases();
+    loadContextEntities();
+    loadContextReports();
     contextNotes.value = '';
 }
 
@@ -33,35 +37,29 @@ function loadContextPeople() {
 
     container.innerHTML = '';
 
-    pazatorData.humans.forEach(human => {
-        const personDiv = document.createElement('div');
-        personDiv.style.display = 'flex';
-        personDiv.style.alignItems = 'center';
-        personDiv.style.marginBottom = '10px';
-        personDiv.style.padding = '8px';
-        personDiv.style.borderRadius = '5px';
-        personDiv.style.background = 'rgba(40, 40, 40, 0.7)';
-        personDiv.style.cursor = 'pointer';
-        personDiv.style.transition = 'all 0.2s ease';
+    pazatorData.humans.forEach(function (human) {
+        var div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.marginBottom = '4px';
+        div.style.padding = '5px 8px';
+        div.style.borderRadius = '4px';
+        div.style.background = 'rgba(40, 40, 40, 0.5)';
+        div.style.cursor = 'pointer';
+        div.style.transition = 'all 0.2s ease';
 
-        personDiv.innerHTML = `
-                    <input type="checkbox" id="context_person_${human.id}" value="${human.id}" style="margin-right: 10px;">
-                    <label for="context_person_${human.id}" style="flex: 1; cursor: pointer;">
-                        <strong>[${human.id}] ${human.name}</strong>
-                        <br>
-                        <small style="color: #666;">Credit: ${human.credit !== undefined ? Math.round(human.credit) : 'N/A'}</small>
-                    </label>
-                `;
+        div.innerHTML = [
+            '<input type="checkbox" id="context_person_' + human.id + '" value="' + human.id + '" style="margin-right:6px;flex-shrink:0;">',
+            '<label for="context_person_' + human.id + '" style="flex:1;cursor:pointer;font-size:0.75rem;">',
+            '  <strong>' + escapeHtml(human.name) + '</strong>',
+            '  <br><span style="color:#888;font-size:0.7rem;">Credit: ' + (human.credit !== undefined ? Math.round(human.credit) : 'N/A') + '</span>',
+            '</label>'
+        ].join('');
 
-        personDiv.addEventListener('mouseenter', () => {
-            personDiv.style.background = 'rgba(60, 60, 60, 0.7)';
-        });
+        div.addEventListener('mouseenter', function () { div.style.background = 'rgba(60, 60, 60, 0.6)'; });
+        div.addEventListener('mouseleave', function () { div.style.background = 'rgba(40, 40, 40, 0.5)'; });
 
-        personDiv.addEventListener('mouseleave', () => {
-            personDiv.style.background = 'rgba(40, 40, 40, 0.7)';
-        });
-
-        container.appendChild(personDiv);
+        container.appendChild(div);
     });
 }
 
@@ -76,95 +74,214 @@ function loadContextChats() {
 
     container.innerHTML = '';
 
-    chatHistory.forEach((chat, index) => {
-        const chatDiv = document.createElement('div');
-        chatDiv.style.display = 'flex';
-        chatDiv.style.alignItems = 'center';
-        chatDiv.style.marginBottom = '10px';
-        chatDiv.style.padding = '8px';
-        chatDiv.style.borderRadius = '5px';
-        chatDiv.style.background = 'rgba(40, 40, 40, 0.7)';
-        chatDiv.style.cursor = 'pointer';
-        chatDiv.style.transition = 'all 0.2s ease';
+    chatHistory.forEach(function (chat, index) {
+        var div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.marginBottom = '4px';
+        div.style.padding = '5px 8px';
+        div.style.borderRadius = '4px';
+        div.style.background = 'rgba(40, 40, 40, 0.5)';
+        div.style.cursor = 'pointer';
+        div.style.transition = 'all 0.2s ease';
 
-        const date = new Date(chat.timestamp).toLocaleDateString();
-        const participants = chat.participants.map(p => p.name).join(', ');
-        const messageCount = chat.parsed?.messageCount || chat.content.split(' ').length;
+        var date = new Date(chat.timestamp).toLocaleDateString();
+        var participants = (chat.participants || []).map(function (p) { return p.name; }).join(', ');
+        var messageCount = chat.parsed && chat.parsed.messageCount ? chat.parsed.messageCount : (chat.content ? chat.content.split(' ').length : 0);
 
-        chatDiv.innerHTML = `
-                    <input type="checkbox" id="context_chat_${index}" value="${index}" style="margin-right: 10px;">
-                    <label for="context_chat_${index}" style="flex: 1; cursor: pointer;">
-                        <strong>${chat.source.toUpperCase()} Chat</strong>
-                        <br>
-                        <small style="color: #aaa;">${participants} • ${messageCount} messages • ${date}</small>
-                    </label>
-                `;
+        div.innerHTML = [
+            '<input type="checkbox" id="context_chat_' + index + '" value="' + index + '" style="margin-right:6px;flex-shrink:0;">',
+            '<label for="context_chat_' + index + '" style="flex:1;cursor:pointer;font-size:0.75rem;">',
+            '  <strong>' + (chat.source || 'Unknown').toUpperCase() + '</strong>',
+            '  <br><span style="color:#888;font-size:0.7rem;">' + escapeHtml(participants) + ' · ' + messageCount + ' msgs · ' + date + '</span>',
+            '</label>'
+        ].join('');
 
-        chatDiv.addEventListener('mouseenter', () => {
-            chatDiv.style.background = 'rgba(60, 60, 60, 0.7)';
-        });
+        div.addEventListener('mouseenter', function () { div.style.background = 'rgba(60, 60, 60, 0.6)'; });
+        div.addEventListener('mouseleave', function () { div.style.background = 'rgba(40, 40, 40, 0.5)'; });
 
-        chatDiv.addEventListener('mouseleave', () => {
-            chatDiv.style.background = 'rgba(40, 40, 40, 0.7)';
-        });
-
-        container.appendChild(chatDiv);
+        container.appendChild(div);
     });
 }
 
-function loadContextFraudLogs() {
-    const container = document.getElementById('contextFraudLogs');
+function loadContextIntel() {
+    const container = document.getElementById('contextIntel');
+    container.innerHTML = '';
 
     const fraudLogs = JSON.parse(localStorage.getItem('fraudLogs') || '[]');
     const terroristLogs = JSON.parse(localStorage.getItem('terroristLogs') || '[]');
+    var tideThreats = [];
+    var tideFraud = [];
+    try {
+        tideThreats = JSON.parse(localStorage.getItem('previousThreats') || '[]');
+        tideFraud = JSON.parse(localStorage.getItem('previousFraud') || '[]');
+    } catch (e) {}
 
-    const allLogs = [
-        ...fraudLogs.map(log => ({ ...log, category: 'fraud' })),
-        ...terroristLogs.map(log => ({ ...log, category: 'terrorist' }))
-    ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-    container.innerHTML = '';
+    var allLogs = [].concat(fraudLogs, terroristLogs, tideThreats, tideFraud);
+    allLogs.sort(function (a, b) { return new Date(b.timestamp || 0) - new Date(a.timestamp || 0); });
 
     if (allLogs.length === 0) {
-        container.innerHTML = '<p style="color: #777; text-align: center;">No security logs generated yet<br>Run fraud/terrorist detection to generate logs</p>';
+        container.innerHTML = '<p style="color: #777; text-align: center; font-size:0.8rem;">No intel findings yet</p>';
         return;
     }
 
-    allLogs.forEach((log, index) => {
-        const logDiv = document.createElement('div');
-        logDiv.style.display = 'flex';
-        logDiv.style.alignItems = 'center';
-        logDiv.style.marginBottom = '10px';
-        logDiv.style.padding = '8px';
-        logDiv.style.borderRadius = '5px';
-        logDiv.style.background = 'rgba(40, 40, 40, 0.7)';
-        logDiv.style.cursor = 'pointer';
-        logDiv.style.transition = 'all 0.2s ease';
+    allLogs.forEach(function (log) {
+        var div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.marginBottom = '4px';
+        div.style.padding = '5px 8px';
+        div.style.borderRadius = '4px';
+        div.style.background = 'rgba(40, 40, 40, 0.5)';
+        div.style.cursor = 'pointer';
+        div.style.transition = 'all 0.2s ease';
 
-        const severityColor = log.severity === 'high' ? '#ff6b6b' :
-            log.severity === 'medium' ? '#ffd93d' : '#6bcf7f';
+        var label = log.type || log.title || 'Finding';
+        var person = log.person || log.subject || 'Unknown';
+        var date = log.timestamp ? new Date(log.timestamp).toLocaleDateString() : '';
 
-        const iconClass = log.category === 'fraud' ? 'fa-exclamation-circle' : 'fa-user-secret';
-        const date = new Date(log.timestamp).toLocaleDateString();
+        div.innerHTML = [
+            '<input type="checkbox" class="ctx-intel-cb" value="' + (log.id || '') + '" style="margin-right:6px;flex-shrink:0;">',
+            '<label style="flex:1;cursor:pointer;font-size:0.75rem;">',
+            '  <strong>' + escapeHtml(label) + '</strong>',
+            '  <br><span style="color:#888;font-size:0.7rem;">' + escapeHtml(person) + (date ? ' · ' + date : '') + '</span>',
+            '</label>'
+        ].join('');
 
-        logDiv.innerHTML = `
-                    <input type="checkbox" id="context_log_${log.id}" value="${log.id}" style="margin-right: 10px;">
-                    <label for="context_log_${log.id}" style="flex: 1; cursor: pointer;">
-                        <strong style="color: ${severityColor}"><i class="fas ${iconClass}" style="margin-right:6px;"></i>${log.type}</strong>
-                        <br>
-                        <small style="color: #aaa;">${log.person || 'Unknown person'} • ${log.confidence || 'Medium'} confidence • ${date}</small>
-                    </label>
-                `;
+        div.addEventListener('mouseenter', function () { div.style.background = 'rgba(60, 60, 60, 0.6)'; });
+        div.addEventListener('mouseleave', function () { div.style.background = 'rgba(40, 40, 40, 0.5)'; });
+        container.appendChild(div);
+    });
+}
 
-        logDiv.addEventListener('mouseenter', () => {
-            logDiv.style.background = 'rgba(60, 60, 60, 0.7)';
-        });
+function loadContextLogbook() {
+    var container = document.getElementById('contextLogbook');
+    container.innerHTML = '';
+    var entries = typeof pazatorLogbook !== 'undefined' && pazatorLogbook.getEntries ? pazatorLogbook.getEntries() : [];
+    if (!entries.length) {
+        container.innerHTML = '<p style="color: #777; text-align: center; font-size:0.8rem;">No logbook entries</p>';
+        return;
+    }
+    entries.forEach(function (e) {
+        var div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.marginBottom = '4px';
+        div.style.padding = '5px 8px';
+        div.style.borderRadius = '4px';
+        div.style.background = 'rgba(40, 40, 40, 0.5)';
+        div.style.cursor = 'pointer';
+        div.style.transition = 'all 0.2s ease';
+        var date = e.createdAt ? new Date(e.createdAt).toLocaleDateString() : '';
+        div.innerHTML = [
+            '<input type="checkbox" class="ctx-logbook-cb" value="' + e.id + '" style="margin-right:6px;flex-shrink:0;">',
+            '<label style="flex:1;cursor:pointer;font-size:0.75rem;">',
+            '  <strong>' + escapeHtml(e.title || 'Untitled') + '</strong>',
+            '  <br><span style="color:#888;font-size:0.7rem;">' + (e.category || 'general') + (date ? ' · ' + date : '') + '</span>',
+            '</label>'
+        ].join('');
+        div.addEventListener('mouseenter', function () { div.style.background = 'rgba(60, 60, 60, 0.7)'; });
+        div.addEventListener('mouseleave', function () { div.style.background = 'rgba(40, 40, 40, 0.7)'; });
+        container.appendChild(div);
+    });
+}
 
-        logDiv.addEventListener('mouseleave', () => {
-            logDiv.style.background = 'rgba(40, 40, 40, 0.7)';
-        });
+function loadContextCases() {
+    var container = document.getElementById('contextCases');
+    container.innerHTML = '';
+    if (typeof cases === 'undefined' || !cases.length) {
+        container.innerHTML = '<p style="color: #777; text-align: center; font-size:0.8rem;">No cases created yet</p>';
+        return;
+    }
+    cases.forEach(function (c) {
+        var div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.marginBottom = '4px';
+        div.style.padding = '5px 8px';
+        div.style.borderRadius = '4px';
+        div.style.background = 'rgba(40, 40, 40, 0.5)';
+        div.style.cursor = 'pointer';
+        div.style.transition = 'all 0.2s ease';
+        var entityCount = (c.entities ? c.entities.length : 0) + (c.evidence ? c.evidence.length : 0);
+        var date = c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '';
+        div.innerHTML = [
+            '<input type="checkbox" class="ctx-case-cb" value="' + c.id + '" style="margin-right:6px;flex-shrink:0;">',
+            '<label style="flex:1;cursor:pointer;font-size:0.75rem;">',
+            '  <strong>' + escapeHtml(c.title || c.name || 'Untitled Case') + '</strong>',
+            '  <br><span style="color:#888;font-size:0.7rem;">' + (c.status || 'open') + ' · ' + entityCount + ' items' + (date ? ' · ' + date : '') + '</span>',
+            '</label>'
+        ].join('');
+        div.addEventListener('mouseenter', function () { div.style.background = 'rgba(60, 60, 60, 0.7)'; });
+        div.addEventListener('mouseleave', function () { div.style.background = 'rgba(40, 40, 40, 0.7)'; });
+        container.appendChild(div);
+    });
+}
 
-        container.appendChild(logDiv);
+function loadContextEntities() {
+    var container = document.getElementById('contextEntities');
+    container.innerHTML = '';
+    var others = pazatorData && pazatorData.others ? pazatorData.others : [];
+    if (!others.length) {
+        container.innerHTML = '<p style="color: #777; text-align: center; font-size:0.8rem;">No other entities created yet</p>';
+        return;
+    }
+    others.forEach(function (o) {
+        var div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.marginBottom = '4px';
+        div.style.padding = '5px 8px';
+        div.style.borderRadius = '4px';
+        div.style.background = 'rgba(40, 40, 40, 0.5)';
+        div.style.cursor = 'pointer';
+        div.style.transition = 'all 0.2s ease';
+        div.innerHTML = [
+            '<input type="checkbox" class="ctx-entity-cb" value="' + o.id + '" style="margin-right:6px;flex-shrink:0;">',
+            '<label style="flex:1;cursor:pointer;font-size:0.75rem;">',
+            '  <strong>' + escapeHtml(o.name || o.id || 'Unnamed') + '</strong>',
+            '  <br><span style="color:#888;font-size:0.7rem;">' + (o.objectType || 'entity') + (o.note ? ' · ' + escapeHtml(o.note.substring(0, 40)) : '') + '</span>',
+            '</label>'
+        ].join('');
+        div.addEventListener('mouseenter', function () { div.style.background = 'rgba(60, 60, 60, 0.7)'; });
+        div.addEventListener('mouseleave', function () { div.style.background = 'rgba(40, 40, 40, 0.7)'; });
+        container.appendChild(div);
+    });
+}
+
+function loadContextReports() {
+    var container = document.getElementById('contextReports');
+    container.innerHTML = '';
+    var raw;
+    try { raw = localStorage.getItem('pazator_analysis_reports'); } catch (e) {}
+    var reports = raw ? (JSON.parse(raw).reports || JSON.parse(raw)) : [];
+    if (!Array.isArray(reports)) reports = [];
+    if (!reports.length) {
+        container.innerHTML = '<p style="color: #777; text-align: center; font-size:0.8rem;">No saved reports</p>';
+        return;
+    }
+    reports.forEach(function (r) {
+        var div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.marginBottom = '4px';
+        div.style.padding = '5px 8px';
+        div.style.borderRadius = '4px';
+        div.style.background = 'rgba(40, 40, 40, 0.5)';
+        div.style.cursor = 'pointer';
+        div.style.transition = 'all 0.2s ease';
+        var date = r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '';
+        var findCount = r.findings ? r.findings.length : 0;
+        div.innerHTML = [
+            '<input type="checkbox" class="ctx-report-cb" value="' + (r.id || '') + '" style="margin-right:6px;flex-shrink:0;">',
+            '<label style="flex:1;cursor:pointer;font-size:0.75rem;">',
+            '  <strong>' + escapeHtml(r.title || r.analysisType || 'Report') + '</strong>',
+            '  <br><span style="color:#888;font-size:0.7rem;">' + findCount + ' findings' + (date ? ' · ' + date : '') + '</span>',
+            '</label>'
+        ].join('');
+        div.addEventListener('mouseenter', function () { div.style.background = 'rgba(60, 60, 60, 0.7)'; });
+        div.addEventListener('mouseleave', function () { div.style.background = 'rgba(40, 40, 40, 0.7)'; });
+        container.appendChild(div);
     });
 }
 
@@ -178,7 +295,11 @@ applyContextBtn.addEventListener('click', () => {
     const selectedContext = {
         people: [],
         chats: [],
-        fraudLogs: [],
+        intel: [],
+        logbook: [],
+        cases: [],
+        entities: [],
+        reports: [],
         notes: contextNotes.value.trim(),
         timestamp: new Date().toISOString()
     };
@@ -203,17 +324,44 @@ applyContextBtn.addEventListener('click', () => {
         }
     });
 
-    document.querySelectorAll('#contextFraudLogs input[type="checkbox"]:checked').forEach(checkbox => {
-        const logId = checkbox.value;
-        const allLogs = [
-            ...JSON.parse(localStorage.getItem('fraudLogs') || '[]'),
-            ...JSON.parse(localStorage.getItem('terroristLogs') || '[]')
-        ];
+    document.querySelectorAll('#contextIntel .ctx-intel-cb:checked').forEach(cb => {
+        var id = cb.value;
+        var allIntel = [];
+        try {
+            JSON.parse(localStorage.getItem('fraudLogs') || '[]').forEach(function (l) { allIntel.push(l); });
+            JSON.parse(localStorage.getItem('terroristLogs') || '[]').forEach(function (l) { allIntel.push(l); });
+            JSON.parse(localStorage.getItem('previousThreats') || '[]').forEach(function (l) { allIntel.push(l); });
+            JSON.parse(localStorage.getItem('previousFraud') || '[]').forEach(function (l) { allIntel.push(l); });
+        } catch (e) {}
+        var item = allIntel.find(function (l) { return l.id === id; });
+        if (item) selectedContext.intel.push(item);
+    });
 
-        const selectedLog = allLogs.find(log => log.id === logId);
-        if (selectedLog) {
-            selectedContext.fraudLogs.push(selectedLog);
-        }
+    document.querySelectorAll('#contextLogbook .ctx-logbook-cb:checked').forEach(cb => {
+        var entries = typeof pazatorLogbook !== 'undefined' && pazatorLogbook.getEntries ? pazatorLogbook.getEntries() : [];
+        var item = entries.find(function (e) { return e.id === cb.value; });
+        if (item) selectedContext.logbook.push(item);
+    });
+
+    document.querySelectorAll('#contextCases .ctx-case-cb:checked').forEach(cb => {
+        if (typeof cases === 'undefined') return;
+        var item = cases.find(function (c) { return c.id === cb.value; });
+        if (item) selectedContext.cases.push(item);
+    });
+
+    document.querySelectorAll('#contextEntities .ctx-entity-cb:checked').forEach(cb => {
+        var others = pazatorData && pazatorData.others ? pazatorData.others : [];
+        var item = others.find(function (o) { return o.id === cb.value; });
+        if (item) selectedContext.entities.push(item);
+    });
+
+    document.querySelectorAll('#contextReports .ctx-report-cb:checked').forEach(cb => {
+        var raw;
+        try { raw = localStorage.getItem('pazator_analysis_reports'); } catch (e) {}
+        var reports = raw ? (JSON.parse(raw).reports || JSON.parse(raw)) : [];
+        if (!Array.isArray(reports)) reports = [];
+        var item = reports.find(function (r) { return r.id === cb.value; });
+        if (item) selectedContext.reports.push(item);
     });
 
     storeAIContext(selectedContext);
@@ -224,7 +372,7 @@ applyContextBtn.addEventListener('click', () => {
     contextModal.style.zIndex = '-1';
     aiChatModal.style.pointerEvents = 'auto';
 
-    showAlert(`Context applied! Selected: ${selectedContext.people.length} people, ${selectedContext.chats.length} chats, ${selectedContext.fraudLogs.length} fraud logs.`, 'Context Updated', 'success');
+    showAlert('Context applied! Selected: ' + selectedContext.people.length + ' people, ' + selectedContext.chats.length + ' chats, ' + selectedContext.intel.length + ' intel, ' + selectedContext.logbook.length + ' logbook, ' + selectedContext.cases.length + ' cases, ' + selectedContext.entities.length + ' entities, ' + selectedContext.reports.length + ' reports.', 'Context Updated', 'success');
 });
 
 function updateContextDisplay(context) {
@@ -234,7 +382,7 @@ function updateContextDisplay(context) {
 
     contextDisplay.innerHTML = '';
 
-    const hasContext = context.people.length > 0 || context.chats.length > 0 || context.fraudLogs.length > 0;
+    const hasContext = context.people.length > 0 || context.chats.length > 0 || context.intel.length > 0 || context.logbook.length > 0 || context.cases.length > 0 || context.entities.length > 0 || context.reports.length > 0 || context.notes;
 
     if (!hasContext) {
         contextDisplay.style.display = 'none';
@@ -246,40 +394,71 @@ function updateContextDisplay(context) {
     context.people.forEach(person => {
         const card = document.createElement('div');
         card.className = 'context-card people';
-        card.innerHTML = `
-                    <span class="card-icon"></span>
-                    <span class="card-name" title="${person.name}">${person.name}</span>
-                `;
-        card.addEventListener('click', () => {
-            showAlert(`Person: ${person.name}\nCredit: ${person.credit !== undefined ? Math.round(person.credit) : 'N/A'}\nNotes: ${person.extraNotes || 'None'}`, 'Person Details', 'info');
+        card.innerHTML = '<span class="card-icon"></span><span class="card-name" title="' + escapeHtml(person.name) + '">' + escapeHtml(person.name) + '</span>';
+        card.addEventListener('click', function () {
+            showAlert('Person: ' + person.name + '\nCredit: ' + (person.credit !== undefined ? Math.round(person.credit) : 'N/A') + '\nNotes: ' + (person.extraNotes || 'None'), 'Person Details', 'info');
         });
         contextDisplay.appendChild(card);
     });
 
-    context.chats.forEach((chat, index) => {
+    context.chats.forEach(function (chat) {
         const card = document.createElement('div');
         card.className = 'context-card chats';
-        const participants = chat.participants.map(p => p.name).join(', ');
-        const wordCount = chat.content.split(' ').length;
-        card.innerHTML = `
-                    <span class="card-icon"></span>
-                    <span class="card-name" title="${chat.source.toUpperCase()} Chat - ${participants}">${chat.source.toUpperCase()} Chat (${wordCount} words)</span>
-                `;
-        card.addEventListener('click', () => {
-            showAlert(`${chat.source.toUpperCase()} Chat\nParticipants: ${participants}\nWords: ${wordCount}\nContext: ${chat.context || 'None'}`, 'Chat Details', 'info');
+        const participants = (chat.participants || []).map(function (p) { return p.name; }).join(', ');
+        const wordCount = chat.content ? chat.content.split(' ').length : 0;
+        card.innerHTML = '<span class="card-icon"></span><span class="card-name" title="' + ((chat.source || 'Unknown').toUpperCase()) + ' Chat - ' + participants + '">' + (chat.source || 'Unknown').toUpperCase() + ' Chat (' + wordCount + ' words)</span>';
+        card.addEventListener('click', function () {
+            showAlert((chat.source || 'Unknown').toUpperCase() + ' Chat\nParticipants: ' + participants + '\nWords: ' + wordCount + '\nContext: ' + (chat.context || 'None'), 'Chat Details', 'info');
         });
         contextDisplay.appendChild(card);
     });
 
-    context.fraudLogs.forEach(log => {
+    context.intel.forEach(function (log) {
         const card = document.createElement('div');
         card.className = 'context-card fraud';
-        card.innerHTML = `
-                    <span class="card-icon"><i class="fas fa-exclamation-circle"></i></span>
-                    <span class="card-name" title="${log.type} - ${log.person || 'Unknown'}">${log.type} (${log.person || 'Unknown'})</span>
-                `;
-        card.addEventListener('click', () => {
-            showAlert(`${log.type}\nPerson: ${log.person || 'Unknown'}\nSeverity: ${log.severity || 'Unknown'}\nEvidence: ${log.evidence || 'None'}`, 'Fraud Log Details', 'warning');
+        card.innerHTML = '<span class="card-icon"><i class="fas fa-shield-alt"></i></span><span class="card-name" title="' + escapeHtml(log.type || log.title || 'Finding') + ' - ' + escapeHtml(log.person || log.subject || 'Unknown') + '">' + escapeHtml(log.type || log.title || 'Intel') + ' (' + escapeHtml(log.person || log.subject || 'Unknown') + ')</span>';
+        card.addEventListener('click', function () {
+            showAlert((log.type || log.title || 'Intel Finding') + '\nPerson: ' + (log.person || log.subject || 'Unknown') + '\nSeverity: ' + (log.severity || 'Unknown') + '\nEvidence: ' + (log.evidence || 'None'), 'Intel Finding Details', 'warning');
+        });
+        contextDisplay.appendChild(card);
+    });
+
+    context.logbook.forEach(function (e) {
+        const card = document.createElement('div');
+        card.className = 'context-card';
+        card.innerHTML = '<span class="card-icon"><i class="fas fa-book"></i></span><span class="card-name" title="' + escapeHtml(e.title || 'Untitled') + '">' + escapeHtml(e.title || 'Untitled') + '</span>';
+        card.addEventListener('click', function () {
+            showAlert('Logbook: ' + (e.title || 'Untitled') + '\nCategory: ' + (e.category || 'general') + '\n' + (e.body ? e.body.substring(0, 200) : ''), 'Logbook Entry', 'info');
+        });
+        contextDisplay.appendChild(card);
+    });
+
+    context.cases.forEach(function (c) {
+        const card = document.createElement('div');
+        card.className = 'context-card';
+        card.innerHTML = '<span class="card-icon"><i class="fas fa-briefcase"></i></span><span class="card-name" title="' + escapeHtml(c.title || c.name || 'Case') + '">' + escapeHtml(c.title || c.name || 'Case') + '</span>';
+        card.addEventListener('click', function () {
+            showAlert('Case: ' + (c.title || c.name || 'Untitled') + '\nStatus: ' + (c.status || 'open') + '\nEntities: ' + (c.entities ? c.entities.length : 0), 'Case Details', 'info');
+        });
+        contextDisplay.appendChild(card);
+    });
+
+    context.entities.forEach(function (o) {
+        const card = document.createElement('div');
+        card.className = 'context-card';
+        card.innerHTML = '<span class="card-icon"><i class="fas fa-building"></i></span><span class="card-name" title="' + escapeHtml(o.name || o.id || 'Entity') + '">' + escapeHtml(o.name || o.id || 'Entity') + '</span>';
+        card.addEventListener('click', function () {
+            showAlert('Entity: ' + (o.name || 'Unnamed') + '\nType: ' + (o.objectType || 'entity') + '\nNotes: ' + (o.note || 'None'), 'Entity Details', 'info');
+        });
+        contextDisplay.appendChild(card);
+    });
+
+    context.reports.forEach(function (r) {
+        const card = document.createElement('div');
+        card.className = 'context-card';
+        card.innerHTML = '<span class="card-icon"><i class="fas fa-file-alt"></i></span><span class="card-name" title="' + escapeHtml(r.title || r.analysisType || 'Report') + '">' + escapeHtml(r.title || r.analysisType || 'Report') + '</span>';
+        card.addEventListener('click', function () {
+            showAlert('Report: ' + (r.title || r.analysisType || 'Untitled') + '\nFindings: ' + (r.findings ? r.findings.length : 0), 'Report Details', 'info');
         });
         contextDisplay.appendChild(card);
     });
@@ -289,13 +468,10 @@ function updateContextDisplay(context) {
         clearBtn.className = 'context-card';
         clearBtn.style.backgroundColor = 'rgba(200, 50, 50, 0.3)';
         clearBtn.style.borderColor = '#cc4444';
-        clearBtn.innerHTML = `
-                    <span class="card-icon"><i class="fas fa-trash-alt"></i></span>
-                    <span class="card-name">Clear All Context</span>
-                `;
-        clearBtn.addEventListener('click', () => {
+        clearBtn.innerHTML = '<span class="card-icon"><i class="fas fa-trash-alt"></i></span><span class="card-name">Clear All Context</span>';
+        clearBtn.addEventListener('click', function () {
             localStorage.removeItem('adminProvidedContext');
-            updateContextDisplay({ people: [], chats: [], fraudLogs: [] });
+            updateContextDisplay({ people: [], chats: [], intel: [], logbook: [], cases: [], entities: [], reports: [] });
         });
         contextDisplay.appendChild(clearBtn);
     }
@@ -308,35 +484,69 @@ function storeAIContext(context) {
         localStorage.removeItem('adminProvidedContext');
     }, 300000);
 
-    if (context.people.length > 0) {
+    if (context.people && context.people.length > 0) {
         contextSummary += 'PEOPLE:\n';
         context.people.forEach(person => {
-            contextSummary += `- ${person.name} (Credit: ${person.credit !== undefined ? Math.round(person.credit) : 'N/A'})\n`;
-            if (person.extraNotes) {
-                contextSummary += `  Notes: ${person.extraNotes}\n`;
-            }
+            contextSummary += '- ' + person.name + ' (Credit: ' + (person.credit !== undefined ? Math.round(person.credit) : 'N/A') + ')\n';
+            if (person.extraNotes) contextSummary += '  Notes: ' + person.extraNotes + '\n';
         });
         contextSummary += '\n';
     }
 
-    if (context.chats.length > 0) {
+    if (context.chats && context.chats.length > 0) {
         contextSummary += 'CHATS:\n';
         context.chats.forEach((chat, index) => {
-            contextSummary += `${index + 1}. ${chat.source.toUpperCase()} chat with ${chat.participants.length} participants (${chat.content.split(' ').length} words)\n`;
+            var partCount = chat.participants ? chat.participants.length : 0;
+            var wordCount = chat.content ? chat.content.split(' ').length : 0;
+            contextSummary += (index + 1) + '. ' + (chat.source || 'Unknown').toUpperCase() + ' chat with ' + partCount + ' participants (' + wordCount + ' words)\n';
         });
         contextSummary += '\n';
     }
 
-    if (context.fraudLogs.length > 0) {
-        contextSummary += 'FRAUD ALERTS:\n';
-        context.fraudLogs.forEach(log => {
-            contextSummary += `- ${log.type}\n`;
+    if (context.intel && context.intel.length > 0) {
+        contextSummary += 'INTEL FINDINGS:\n';
+        context.intel.forEach(log => {
+            contextSummary += '- ' + (log.type || log.title || 'Finding') + ' (' + (log.person || log.subject || 'Unknown') + ')\n';
+        });
+        contextSummary += '\n';
+    }
+
+    if (context.logbook && context.logbook.length > 0) {
+        contextSummary += 'LOGBOOK ENTRIES:\n';
+        context.logbook.forEach(e => {
+            contextSummary += '- ' + (e.title || 'Untitled') + ' [' + (e.category || 'general') + ']\n';
+            if (e.body) contextSummary += '  Body: ' + e.body.substring(0, 150) + '\n';
+        });
+        contextSummary += '\n';
+    }
+
+    if (context.cases && context.cases.length > 0) {
+        contextSummary += 'CASES:\n';
+        context.cases.forEach(c => {
+            contextSummary += '- ' + (c.title || c.name || 'Untitled') + ' (' + (c.status || 'open') + ')\n';
+        });
+        contextSummary += '\n';
+    }
+
+    if (context.entities && context.entities.length > 0) {
+        contextSummary += 'ENTITIES:\n';
+        context.entities.forEach(o => {
+            contextSummary += '- ' + (o.name || 'Unnamed') + ' (' + (o.objectType || 'entity') + ')\n';
+            if (o.note) contextSummary += '  Notes: ' + o.note.substring(0, 150) + '\n';
+        });
+        contextSummary += '\n';
+    }
+
+    if (context.reports && context.reports.length > 0) {
+        contextSummary += 'SAVED REPORTS:\n';
+        context.reports.forEach(r => {
+            contextSummary += '- ' + (r.title || r.analysisType || 'Report') + ' (' + (r.findings ? r.findings.length : 0) + ' findings)\n';
         });
         contextSummary += '\n';
     }
 
     if (context.notes) {
-        contextSummary += `ADDITIONAL NOTES: ${context.notes}\n`;
+        contextSummary += 'ADDITIONAL NOTES: ' + context.notes + '\n';
     }
 
     localStorage.setItem('adminProvidedContext', JSON.stringify({
@@ -587,6 +797,29 @@ document.getElementById('editEntryBtn').addEventListener('click', () => {
         openOtherFormForEdit(data);
         otherModal.style.zIndex = '1000';
     }
+});
+
+document.getElementById('classifyEntryBtn')?.addEventListener('click', () => {
+    const data = document.currentDetailData;
+    if (!data) return;
+    const entity = data.type === 'human'
+        ? (pazatorData.humans || []).find(h => h.id === data.id)
+        : (pazatorData.others || []).find(o => o.id === data.id);
+    if (!entity) return;
+    const username = window.pazatorSync ? window.pazatorSync.getCurrentUser()?.username || 'local' : 'local';
+    window.pazatorClassification.showClassifyModal(entity, data.type, (levelId) => {
+        if (levelId === 'unclassified') {
+            window.pazatorClassification.removeClassification(entity);
+        } else {
+            window.pazatorClassification.assignClassification(entity, levelId, username);
+        }
+        if (window.pazatorStore && window.pazatorStore.markDirty) {
+            window.pazatorStore.markDirty(data.type === 'human' ? 'humans' : 'others');
+        }
+        if (typeof refreshDetailView === 'function') {
+            refreshDetailView();
+        }
+    });
 });
 
 document.getElementById('deleteEntryBtn').addEventListener('click', () => {

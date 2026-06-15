@@ -99,14 +99,17 @@
                     '<div class="sr-item" data-id="' + r.id + '">' +
                     '  <div class="sr-item-bar" style="background:' + color + ';"></div>' +
                     '  <div class="sr-item-body">' +
-                    '    <div class="sr-item-title">' + r.title + '</div>' +
+                    '    <div class="sr-item-title">' + r.title + (window.pazatorClassification && r.classification ? window.pazatorClassification.getBadgeHTML(r) : '') + '</div>' +
                     '    <div class="sr-item-meta">' +
                     '      <span class="sr-item-type" style="color:' + color + ';">' + (r.analysisType || 'analysis') + '</span>' +
                     '      <span>' + new Date(r.createdAt).toLocaleDateString() + '</span>' +
                     '      <span>' + r.findingsCount + ' finding' + (r.findingsCount !== 1 ? 's' : '') + '</span>' +
                     '    </div>' +
                     '  </div>' +
-                    '  <button class="sr-item-del" data-id="' + r.id + '" title="Delete"><i class="fas fa-trash"></i></button>' +
+                    '  <div class="sr-item-actions">' +
+                    '    <button class="sr-item-cl" data-id="' + r.id + '" title="Classify"><i class="fas fa-shield-alt"></i></button>' +
+                    '    <button class="sr-item-del" data-id="' + r.id + '" title="Delete"><i class="fas fa-trash"></i></button>' +
+                    '  </div>' +
                     '</div>';
             });
         }
@@ -190,6 +193,29 @@
                 render('savedReportsContent');
             });
         });
+
+        document.querySelectorAll('.sr-item-cl').forEach(function (el) {
+            el.addEventListener('click', function (e) {
+                e.stopPropagation();
+                var id = el.dataset.id;
+                var report = _data.reports.find(function (r) { return r.id === id; });
+                if (!report || !window.pazatorClassification) return;
+                var username = window.pazatorSync ? window.pazatorSync.getCurrentUser()?.username || 'local' : 'local';
+                window.pazatorClassification.showClassifyModal(report, 'report', function (levelId) {
+                    if (levelId === 'unclassified') {
+                        delete report.classification;
+                    } else {
+                        report.classification = {
+                            level: levelId,
+                            classifiedBy: username,
+                            classifiedAt: new Date().toISOString()
+                        };
+                    }
+                    _save();
+                    render('savedReportsContent');
+                });
+            });
+        });
     }
 
     window.pazatorReportManager = { init: init, render: render, saveTideReport: saveTideReport };
@@ -201,15 +227,16 @@ function switchReportsView(view) {
     });
     var builderEl = document.getElementById('reportsTabContent');
     var savedEl = document.getElementById('savedReportsContent');
+    var logbookEl = document.getElementById('logbookContent');
     if (view === 'saved') {
         if (builderEl) builderEl.style.display = 'none';
+        if (logbookEl) logbookEl.style.display = 'none';
         if (savedEl) {
             savedEl.style.display = 'flex';
             if (window.pazatorReportManager) {
                 window.pazatorReportManager.init();
                 window.pazatorReportManager.render('savedReportsContent');
             } else {
-                // lazy load report-manager if not loaded yet
                 var s = document.createElement('script');
                 s.src = 'js/apps/report-manager.js';
                 s.onload = function () {
@@ -221,8 +248,25 @@ function switchReportsView(view) {
                 document.body.appendChild(s);
             }
         }
+    } else if (view === 'logbook') {
+        if (builderEl) builderEl.style.display = 'none';
+        if (savedEl) savedEl.style.display = 'none';
+        if (logbookEl) {
+            logbookEl.style.display = 'flex';
+            if (window.pazatorLogbook) {
+                window.pazatorLogbook.render('logbookContent');
+            } else {
+                var s = document.createElement('script');
+                s.src = 'js/apps/logbook.js';
+                s.onload = function () {
+                    if (window.pazatorLogbook) window.pazatorLogbook.render('logbookContent');
+                };
+                document.body.appendChild(s);
+            }
+        }
     } else {
         if (savedEl) savedEl.style.display = 'none';
+        if (logbookEl) logbookEl.style.display = 'none';
         if (builderEl) builderEl.style.display = 'flex';
     }
 }

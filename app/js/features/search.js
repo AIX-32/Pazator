@@ -444,7 +444,7 @@ function displaySearchResults(results, query) {
                 <div class="search-card-type ${typeClass}">${typeLabel}</div>
                 <div class="search-card-body">
                     <div class="search-card-top">
-                        <span class="search-card-name">${escapeHtml(item.name)}</span>
+                        <span class="search-card-name">${escapeHtml(item.name)} ${window.pazatorClassification ? window.pazatorClassification.getBadgeHTML(item) : ''}</span>
                         <div class="search-card-badges">${threatBadge}${creditBadge}</div>
                     </div>
                     ${detailHtml ? `<div class="search-card-detail">${detailHtml}</div>` : ''}

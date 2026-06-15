@@ -8,6 +8,8 @@
   let syncState = null;
   let authToken = null;
   let currentUser = null;
+  let serverConnected;
+  let retryTimer = null;
 
   function loadConfig() {
     try {
@@ -153,11 +155,17 @@
     try {
       const result = await apiFetch('/api/auth/me');
       currentUser = result.user;
+      serverConnected = true;
       localStorage.setItem(USER_CACHE_KEY, JSON.stringify(result.user));
       updateSyncUI();
       return result.user;
     } catch (e) {
-      currentUser = null;
+      if (authToken) {
+        currentUser = currentUser || null;
+      } else {
+        currentUser = null;
+      }
+      serverConnected = false;
       updateSyncUI();
       return null;
     }
@@ -442,6 +450,16 @@
     });
   }
 
+  function scheduleRetry() {
+    if (retryTimer) clearTimeout(retryTimer);
+    retryTimer = setTimeout(async () => {
+      if (authToken && !serverConnected) {
+        try { await fetchCurrentUser(); } catch (e) { /* keep retrying */ }
+        scheduleRetry();
+      }
+    }, 30000);
+  }
+
   function updateSyncUI() {
     loadConfig();
     loadState();
@@ -451,13 +469,26 @@
     const meta = document.getElementById('syncStatusMeta');
     if (!label) return;
 
-    if (currentUser) {
+    if (currentUser && serverConnected === false) {
+      const srv = syncConfig ? (syncConfig.label || syncConfig.url.replace(/^https?:\/\//, '')) : 'Server';
+      if (dot) dot.style.background = '#ff9800';
+      label.textContent = `${currentUser.username}@${srv}`;
+      label.style.color = '#aaa';
+      if (meta) meta.textContent = 'disconnected';
+      scheduleRetry();
+    } else if (currentUser && serverConnected === true) {
       const srv = syncConfig ? (syncConfig.label || syncConfig.url.replace(/^https?:\/\//, '')) : 'Server';
       const lastSync = syncState.lastSync ? new Date(syncState.lastSync).toLocaleString() : 'Never';
       if (dot) dot.style.background = '#4caf50';
       label.textContent = `${currentUser.username}@${srv}`;
       label.style.color = '#fff';
       if (meta) meta.textContent = `last sync: ${lastSync}`;
+    } else if (currentUser && serverConnected === undefined) {
+      const srv = syncConfig ? (syncConfig.label || syncConfig.url.replace(/^https?:\/\//, '')) : 'Server';
+      if (dot) dot.style.background = '#ff9800';
+      label.textContent = `${currentUser.username}@${srv}`;
+      label.style.color = '#aaa';
+      if (meta) meta.textContent = 'verifying...';
     } else if (authToken && !window.__pazatorSyncVerifying) {
       if (dot) dot.style.background = '#ff9800';
       label.textContent = 'Session loading...';
