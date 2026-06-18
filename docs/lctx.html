@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LCTX — Globe Tracker | Pazator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --black: #000; --white: #fff; --dim: #666; }
+    html { font-size: 16px; }
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: 'DM Mono', monospace;
+      overflow-x: hidden;
+      cursor: crosshair;
+    }
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 32px; height: 52px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      background: var(--black);
+    }
+    .tb-left { font-size: 9px; letter-spacing: 0.5em; color: var(--dim); }
+    .tb-center { font-family: 'Anton', sans-serif; font-size: 18px; letter-spacing: 0.12em; }
+    .tb-right { display: flex; gap: 28px; }
+    .tb-right a {
+      font-size: 9px; letter-spacing: 0.35em; color: var(--dim);
+      text-decoration: none; text-transform: uppercase; transition: color 0.2s;
+    }
+    .tb-right a:hover { color: var(--white); }
+    .hero {
+      min-height: 100vh; padding-top: 52px;
+      display: grid; grid-template-rows: auto 1fr auto;
+    }
+    .ticker-wrap {
+      overflow: hidden; white-space: nowrap; padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .ticker-inner {
+      display: inline-block;
+      animation: tick 20s linear infinite;
+      font-size: 9px; letter-spacing: 0.45em; color: var(--dim);
+    }
+    @keyframes tick { to { transform: translateX(-50%); } }
+    .content { border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .content-inner {
+      max-width: 800px; margin: 0 auto; padding: 80px 48px;
+    }
+    .content h1 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(48px, 8vw, 100px);
+      line-height: 0.85; letter-spacing: -0.03em;
+      margin-bottom: 40px;
+    }
+    .content h2 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(20px, 3vw, 36px);
+      letter-spacing: -0.01em;
+      margin-top: 60px; margin-bottom: 20px;
+    }
+    .content h3 {
+      font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--dim); margin-top: 40px; margin-bottom: 12px;
+    }
+    .content p {
+      font-size: 12px; line-height: 2;
+      color: rgba(255,255,255,0.45); margin-bottom: 20px;
+    }
+    .content code, .content .code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px; color: var(--white);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 2px 8px; border-radius: 3px;
+    }
+    .content pre {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px; color: var(--white);
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 20px 24px; border-radius: 4px;
+      overflow-x: auto; margin: 16px 0 24px; line-height: 1.7;
+    }
+    .content ul { margin: 12px 0 20px 20px; }
+    .content li {
+      font-size: 12px; line-height: 2;
+      color: rgba(255,255,255,0.45);
+    }
+    .content .label {
+      font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase;
+      color: var(--dim); margin-bottom: 16px;
+    }
+    .badge {
+      display: inline-block;
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 4px 12px; font-size: 8px; letter-spacing: 0.35em;
+      color: var(--dim); margin-bottom: 20px;
+    }
+    .color-dot {
+      display: inline-block;
+      width: 8px; height: 8px; border-radius: 50%;
+      margin-right: 6px; vertical-align: middle;
+    }
+    hr { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 40px 0; }
+    footer {
+      padding: 40px 48px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      font-size: 9px; letter-spacing: 0.3em; color: var(--dim);
+    }
+    @media(max-width:700px) {
+      .content-inner { padding: 48px 24px; }
+      .tb-right { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="tb-left">PAZATOR DOCS</div>
+    <div class="tb-center">LCTX</div>
+
+  </header>
+
+  <section class="hero">
+    <div class="content">
+      <div class="content-inner">
+        <div class="badge">FEATURE &mdash; v0.May1526</div>
+        <h1>LCTX<br>Globe Tracker.</h1>
+
+        <h3>Why it exists</h3>
+        <p>
+          Pazator ingests structured entity data, but location data is fundamentally different &mdash; it's
+          continuous, time-bound, and comes from a completely separate pipeline (GPS pings, cell tower logs,
+          etc.). The LCTX tracker keeps location data separate from entity profiles, linked only by a shared
+          alias. This means you can have rich location history for a person without polluting the entity data
+          model with hundreds of timestamped coordinates.
+        </p>
+        <p>
+          The globe visualisation gives you a "God's eye" view &mdash; satellite imagery, path lines, and
+          automatic spin so you can watch movement patterns emerge without touching the keyboard.
+        </p>
+
+        <h2>Architecture</h2>
+        <p>
+          The tracker runs on a <strong>Supabase</strong> backend with a single <code class="code">locations</code>
+          table. Pazator connects via the Supabase JavaScript client with an anon key &mdash; no server-side
+          middleware needed. Configuration is stored in <code class="code">localStorage.LCTXTrackerConfig</code>
+          and can be set through the "Configure tracker server" button in the tracker tab.
+        </p>
+
+        <h3>Supabase <code>locations</code> table schema</h3>
+        <pre>
+id          uuid / serial    (primary key)
+name        text             (person alias, used for linking)
+latitude    float8
+longitude   float8
+timestamp   timestamptz
+ip          text
+region      text
+country     text
+device      text
+platform    text
+user_agent  text
+speed       float8
+heading     float8</pre>
+
+        <h2>How It Works</h2>
+
+        <h3>1. Configuration</h3>
+        <p>
+          Click "Configure tracker server" to enter your Supabase project URL and anon key. The key is
+          stored in localStorage and used to create a Supabase client via
+          <code class="code">supabase.createClient(url, key)</code>. The tracker won't initialise until
+          valid credentials are provided. On first visit, it prompts automatically.
+        </p>
+
+        <h3>2. Loading people</h3>
+        <p>
+          On map load, <code class="code">fetchTrackerPeople()</code> queries the <code>locations</code>
+          table with <code class="code">.select('name').order('timestamp', { ascending: false })</code>,
+          then groups by name with a point count. The result is rendered as a list in the sidebar &mdash;
+          each item shows the name and number of data points.
+        </p>
+
+        <h3>3. Viewing a person's path</h3>
+        <p>
+          Click a person in the sidebar. <code class="code">showTrackerPersonLocations(name)</code> fetches
+          all rows for that name sorted ascending by timestamp, then:
+        </p>
+        <ul>
+          <li>Adds a <strong>LineString</strong> GeoJSON source (<code>tracker-path</code>) for the path trace</li>
+          <li>Adds a <strong>Point</strong> GeoJSON source (<code>tracker-markers</code>) for individual pings</li>
+          <li><code class="code">flyTo()</code> the latest coordinate at zoom 15, pitch 60</li>
+          <li>Reverse-geocodes the latest point via <strong>Nominatim</strong> and displays the address + available metadata (IP, device, platform, country, region)</li>
+        </ul>
+
+        <h3>4. Globe controls</h3>
+        <ul>
+          <li><strong>Spin</strong> &mdash; continuous <code class="code">requestAnimationFrame</code> rotation at configurable degrees/second (default 10&deg;/s, max 60). Speed persisted across sessions.</li>
+          <li><strong>Street labels</strong> &mdash; toggles an OSM raster overlay on top of the satellite imagery.</li>
+          <li><strong>Angle / Top-down</strong> &mdash; sets pitch to 60&deg; (isometric) or 0&deg; (flat).</li>
+          <li><strong>Reset view</strong> &mdash; flyTo [0,0] at zoom 2, pitch 60, bearing 0.</li>
+          <li><strong>Filter toggle</strong> &mdash; visual CSS filter toggle on the map container (presentational, not a query filter).</li>
+        </ul>
+
+        <h3>5. Person linking</h3>
+        <p>
+          The tracker integrates with Pazator's entity model. You can connect a human entity to a tracker
+          alias from the tracker tab itself (using the "Connect" dropdown), or from the entity detail slide
+          panel. When linked, the human record gets <code class="code">trackerAlias</code> and
+          <code class="code">trackerLinkedAt</code> fields. The detail panel then shows the latest known
+          location for that alias, fetched live from Supabase.
+        </p>
+
+        <h2>Debug & Status</h2>
+        <p>
+          A <code>#trackerDebug</code> status line at the bottom of the sidebar shows what the tracker is
+          doing: "Fetching tracker people...", "Found 1420 tracker points across 34 people.", or "Tracker
+          disabled until you configure a Supabase connection." This is the main feedback channel since
+          Supabase operations are async.
+        </p>
+
+        <h2>Danger Zone</h2>
+        <p>
+          The "Purge" button calls <code class="code">purgeTrackerData()</code> which fires a
+          <code class="code">DELETE FROM locations WHERE id != 0</code> on Supabase after a confirmation
+          dialog. No undo.
+        </p>
+
+        <hr>
+
+        <h2>What's Missing</h2>
+        <p>
+          No real-time subscriptions. The tracker polls Supabase on demand &mdash; it doesn't use
+          Supabase's real-time features at all. Location history for linked entities is limited to the
+          latest point; there's no timeline view showing all historical pings for a linked human. The
+          tracker also doesn't push location updates to the entity graph or trigger alerts on proximity
+          or geofence events.
+        </p>
+        <p>
+          Reverse geocoding is done client-side via Nominatim's free API, which has usage limits and no
+          caching. If you click through many people in quick succession, you'll get HTTP 429 responses.
+        </p>
+      </div>
+    </div>
+
+    <footer>
+      <span>PAZATOR &mdash; MASS DATA INTELLIGENCE</span>
+    </footer>
+  </section>
+</body>
+</html>

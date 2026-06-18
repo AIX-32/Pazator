@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ONTOL — Ontology Designer | Pazator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --black: #000; --white: #fff; --dim: #666; }
+    html { font-size: 16px; }
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: 'DM Mono', monospace;
+      overflow-x: hidden;
+      cursor: crosshair;
+    }
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 32px; height: 52px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      background: var(--black);
+    }
+    .tb-left { font-size: 9px; letter-spacing: 0.5em; color: var(--dim); }
+    .tb-center { font-family: 'Anton', sans-serif; font-size: 18px; letter-spacing: 0.12em; }
+    .tb-right { display: flex; gap: 28px; }
+    .tb-right a {
+      font-size: 9px; letter-spacing: 0.35em; color: var(--dim);
+      text-decoration: none; text-transform: uppercase; transition: color 0.2s;
+    }
+    .tb-right a:hover { color: var(--white); }
+    .hero {
+      min-height: 100vh; padding-top: 52px;
+      display: grid; grid-template-rows: auto 1fr auto;
+    }
+    .ticker-wrap {
+      overflow: hidden; white-space: nowrap; padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .ticker-inner {
+      display: inline-block;
+      animation: tick 20s linear infinite;
+      font-size: 9px; letter-spacing: 0.45em; color: var(--dim);
+    }
+    @keyframes tick { to { transform: translateX(-50%); } }
+    .content { border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .content-inner {
+      max-width: 800px; margin: 0 auto; padding: 80px 48px;
+    }
+    .content h1 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(48px, 8vw, 100px);
+      line-height: 0.85; letter-spacing: -0.03em;
+      margin-bottom: 40px;
+    }
+    .content h2 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(20px, 3vw, 36px);
+      letter-spacing: -0.01em;
+      margin-top: 60px; margin-bottom: 20px;
+    }
+    .content h3 {
+      font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--dim); margin-top: 40px; margin-bottom: 12px;
+    }
+    .content p {
+      font-size: 12px; line-height: 2;
+      color: rgba(255,255,255,0.45); margin-bottom: 20px;
+    }
+    .content code, .content .code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px; color: var(--white);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 2px 8px; border-radius: 3px;
+    }
+    .content pre {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px; color: var(--white);
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 20px 24px; border-radius: 4px;
+      overflow-x: auto; margin: 16px 0 24px; line-height: 1.7;
+    }
+    .content ul { margin: 12px 0 20px 20px; }
+    .content li {
+      font-size: 12px; line-height: 2;
+      color: rgba(255,255,255,0.45);
+    }
+    .content .label {
+      font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase;
+      color: var(--dim); margin-bottom: 16px;
+    }
+    .badge {
+      display: inline-block;
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 4px 12px; font-size: 8px; letter-spacing: 0.35em;
+      color: var(--dim); margin-bottom: 20px;
+    }
+    .color-dot {
+      display: inline-block;
+      width: 8px; height: 8px; border-radius: 50%;
+      margin-right: 6px; vertical-align: middle;
+    }
+    hr { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 40px 0; }
+    footer {
+      padding: 40px 48px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      font-size: 9px; letter-spacing: 0.3em; color: var(--dim);
+    }
+    @media(max-width:700px) {
+      .content-inner { padding: 48px 24px; }
+      .tb-right { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="tb-left">PAZATOR DOCS</div>
+    <div class="tb-center">ONTOL</div>
+
+  </header>
+
+  <section class="hero">
+    <div class="content">
+      <div class="content-inner">
+        <div class="badge">FEATURE &mdash; v0.May1526</div>
+        <h1>Ontology<br>Designer.</h1>
+
+        <h3>Why it exists</h3>
+        <p>
+          Pazator's entity model isn't hardcoded. The ontology designer lets you define what kinds of
+          things exist in your data and what attributes they can have. Instead of a fixed schema, you
+          get two flexible type systems that control how forms render, how data is displayed in chips
+          and tiles, and how entities are categorised.
+        </p>
+        <p>
+          This is what makes Pazator adaptable to different intelligence domains &mdash; the same
+          application can model persons of interest in one context and cargo shipments in another,
+          just by changing the ontology.
+        </p>
+
+        <h2>Two Type Systems</h2>
+
+        <h3>Value Types (15 default)</h3>
+        <p>
+          Value types define categories of attributes that can be assigned to entities. These appear
+          as dropdowns, autocomplete fields, and chip displays throughout the UI.
+        </p>
+        <ul>
+          <li>gender, nationality, countryOfOrigin, immigrationStatus</li>
+          <li>languages, ethnicity, religion, politicalViews</li>
+          <li>maritalStatus, incomeLevel, educationLevel</li>
+          <li>socialClass, threatLevel, workplace, hairColor</li>
+        </ul>
+
+        <h3>Entity Types (8 default)</h3>
+        <p>
+          Entity types define the categories of things that can exist as top-level records. Each has
+          a label, plural form, icon (60 Font Awesome choices), and colour.
+        </p>
+        <ul>
+          <li>Person, Organization, Vehicle, Location</li>
+          <li>Event, Asset, Communication, Custom</li>
+        </ul>
+
+        <h2>UI Layout</h2>
+        <p>
+          The designer has two modes: <strong>tab</strong> (rendered in <code>#ontologyTabContainer</code>)
+          and <strong>overlay</strong> (fullscreen modal). The sidebar lists types; clicking one opens
+          the editor panel. A toggle switches the sidebar between value types and entity types.
+        </p>
+
+        <h2>Editing a Type</h2>
+        <p>Each type's editor provides:</p>
+        <ul>
+          <li><strong>Label / Plural</strong> &mdash; text inputs for display names. Entity types also have a plural field.</li>
+          <li><strong>Colour picker</strong> &mdash; native <code>&lt;input type="color"&gt;</code>, updates live.</li>
+          <li><strong>Icon selector</strong> &mdash; dropdown of 60 Font Awesome icons.</li>
+          <li><strong>Values list</strong> &mdash; for value types only. Each value shows its name, parent hierarchy, and usage count. Values are draggable to reorder, inline-renameable via contentEditable, and deletable.</li>
+          <li><strong>Bulk add</strong> &mdash; textarea that splits on newlines to create multiple values at once.</li>
+          <li><strong>Parent assignment</strong> &mdash; hierarchy via a prompt-based numbered list of siblings.</li>
+          <li><strong>Delete type</strong> &mdash; with confirmation dialog.</li>
+        </ul>
+
+        <h2>Live Preview</h2>
+        <p>
+          A live preview panel updates on every change. For value types it shows: a simulated form
+          field, detail panel chips (up to 6 with "+N" overflow), and an object tile. For entity types
+          it shows a coloured badge with icon and an object explorer header tile.
+        </p>
+
+        <h2>Import / Export</h2>
+        <p>
+          The entire ontology can be exported as a JSON file (<code>ontology_&lt;timestamp&gt;.json</code>)
+          and re-imported. Import merges/replaces through <code>pazatorObjects.importJSON()</code>. Both
+          operations delegate to <code>window.pazatorObjects</code>, which manages the actual data storage.
+        </p>
+
+        <h2>Data Storage</h2>
+        <p>
+          All ontology data lives in <code>window.pazatorObjects</code>, which persists to localStorage
+          under <code>pazator_objects_data</code>, <code>pazator_ontology_types</code>, and
+          <code>pazator_ontology_entity_types</code>. The designer never accesses storage directly
+          &mdash; all CRUD goes through <code>pazatorObjects</code> methods.
+        </p>
+
+        <hr>
+
+        <h2>What's Missing</h2>
+        <p>
+          No validation rules or constraints on values. You can't say "threatLevel must be one of
+          None/Low/Medium/High/Critical" &mdash; that's enforced by the form code, not the ontology.
+          The parent-child hierarchy is limited to one level (no grandchild relationships). The
+          prompt()-based parent selector is functional but crude compared to a proper tree picker.
+        </p>
+        <p>
+          Entity type deletion doesn't check for existing entities using that type. Deleting "Vehicle"
+          when you have 200 vehicle records will leave them orphaned with a missing type reference.
+        </p>
+      </div>
+    </div>
+
+    <footer>
+      <span>PAZATOR &mdash; MASS DATA INTELLIGENCE</span>
+    </footer>
+  </section>
+</body>
+</html>
