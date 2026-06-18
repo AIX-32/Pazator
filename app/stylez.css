@@ -14342,3 +14342,15 @@
 .plugin-status { font-size:0.65rem; padding:2px 7px; border-radius:3px; font-weight:500; }
 .plugin-status--active { background:rgba(52,211,153,0.08); color:#34d399; }
 .plugin-status--inactive { background:rgba(255,255,255,0.03); color:#555; }
+
+.entity-picker { position:relative; }
+.entity-picker-input { width:100%; padding:6px 24px 6px 8px; border-radius:5px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:#ccc; font-size:0.78rem; outline:none; box-sizing:border-box; }
+.entity-picker-input:focus { border-color:#4d9de0; }
+.entity-picker-clear { position:absolute; right:6px; top:50%; transform:translateY(-50%); cursor:pointer; color:#555; font-size:1rem; padding:0 2px; line-height:1; }
+.entity-picker-clear:hover { color:#ccc; }
+.entity-picker-results { position:absolute; top:100%; left:0; right:0; background:#1a1d23; border:1px solid rgba(255,255,255,0.08); border-radius:5px; margin-top:3px; max-height:200px; overflow-y:auto; z-index:100; }
+.ep-item { display:flex; align-items:center; gap:6px; padding:5px 8px; cursor:pointer; transition:background 0.15s; font-size:0.75rem; }
+.ep-item:hover { background:rgba(77,157,224,0.12); }
+.ep-icon { width:14px; text-align:center; font-size:10px; flex-shrink:0; }
+.ep-name { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#ccc; }
+.ep-type { color:#555; font-size:0.65rem; flex-shrink:0; }

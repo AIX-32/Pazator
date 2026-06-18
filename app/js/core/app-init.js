@@ -317,6 +317,7 @@ try {
     loadVersions();
     console.log(' Versions loaded');
 
+    updateSidebarProfile();
     console.log(' Pazator app fully initialized with enhanced data persistence');
     console.log(` Current data: ${pazatorData.humans.length} humans, ${pazatorData.others.length} others`);
 
@@ -390,5 +391,46 @@ function populateNeofetch() {
         uptimeEl.textContent = parts.join(' ');
     }
 }
+
+function updateSidebarProfile() {
+    var name = document.getElementById('sidebarProfileName');
+    var role = document.getElementById('sidebarProfileRole');
+    var last = document.getElementById('sidebarProfileLast');
+    if (!name) return;
+    var sync = window.pazatorSync;
+    var user = sync && sync.getCurrentUser();
+    var connected = sync && sync.getServerConnected();
+    if (!user) {
+        try {
+            var raw = localStorage.getItem('pazator_user_cache');
+            if (raw) user = JSON.parse(raw);
+        } catch (e) {}
+    }
+
+    if (last) {
+        var state = null;
+        try { var sr = localStorage.getItem('pazator_sync_state'); if (sr) state = JSON.parse(sr); } catch (e) {}
+        if (state) {
+            var parts = [];
+            if (state.lastPush) parts.push('push ' + new Date(state.lastPush).toLocaleString());
+            if (state.lastPull) parts.push('pull ' + new Date(state.lastPull).toLocaleString());
+            last.textContent = parts.join(' · ') || '';
+        } else {
+            last.textContent = '';
+        }
+    }
+
+    if (user) {
+        name.textContent = 'Welcome back, ' + (user.username || 'Unknown');
+        role.textContent = connected ? (user.role || 'user') : 'Offline';
+        role.style.color = connected ? '#555' : '#ff9800';
+    } else {
+        name.textContent = 'Guest';
+        role.textContent = 'Not signed in';
+        role.style.color = '#555';
+        if (last) last.textContent = '';
+    }
+}
+window.updateSidebarProfile = updateSidebarProfile;
 
 const RECENT_SEARCHES_KEY = 'pazatorRecentSearches';

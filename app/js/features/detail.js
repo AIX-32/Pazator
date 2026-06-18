@@ -793,6 +793,7 @@ function renderFamilyGraph(human) {
 }
 
 function renderTags() {
+    if (!tagsContainer) return;
     tagsContainer.innerHTML = '';
     var countEl = document.getElementById('tagCount');
     if (countEl) countEl.textContent = tags.length;

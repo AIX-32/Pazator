@@ -324,11 +324,4 @@ window.addEventListener('resize', function () {
 
 
 
-addTagBtn.addEventListener('click', () => {
-    const tagText = tagInput.value.trim();
-    if (tagText && !tags.includes(tagText)) {
-        tags.push(tagText);
-        renderTags();
-        tagInput.value = '';
-    }
-});
+

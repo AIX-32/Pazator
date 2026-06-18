@@ -113,6 +113,7 @@
     currentUser = result.user;
     localStorage.setItem(USER_CACHE_KEY, JSON.stringify(result.user));
     updateSyncUI();
+    if (typeof updateSidebarProfile === 'function') updateSidebarProfile();
     return result;
   }
 
@@ -132,6 +133,7 @@
     saveAuthToken(result.token);
     currentUser = result.user;
     updateSyncUI();
+    if (typeof updateSidebarProfile === 'function') updateSidebarProfile();
     return result;
   }
 
@@ -142,6 +144,7 @@
     saveAuthToken(null);
     currentUser = null;
     updateSyncUI();
+    if (typeof updateSidebarProfile === 'function') updateSidebarProfile();
   }
 
   function loadUserCache() {
@@ -561,6 +564,7 @@
     register,
     logout,
     getCurrentUser: () => currentUser,
-    getAuthToken: () => authToken
+    getAuthToken: () => authToken,
+    getServerConnected: () => serverConnected
   };
 })();

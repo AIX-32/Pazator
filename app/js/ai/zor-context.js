@@ -27,6 +27,8 @@ function loadContextData() {
     contextNotes.value = '';
 }
 
+var _selectedContextPeople = [];
+
 function loadContextPeople() {
     const container = document.getElementById('contextPeople');
 
@@ -35,32 +37,63 @@ function loadContextPeople() {
         return;
     }
 
+    _selectedContextPeople = [];
     container.innerHTML = '';
 
-    pazatorData.humans.forEach(function (human) {
-        var div = document.createElement('div');
-        div.style.display = 'flex';
-        div.style.alignItems = 'center';
-        div.style.marginBottom = '4px';
-        div.style.padding = '5px 8px';
-        div.style.borderRadius = '4px';
-        div.style.background = 'rgba(40, 40, 40, 0.5)';
-        div.style.cursor = 'pointer';
-        div.style.transition = 'all 0.2s ease';
-
-        div.innerHTML = [
-            '<input type="checkbox" id="context_person_' + human.id + '" value="' + human.id + '" style="margin-right:6px;flex-shrink:0;">',
-            '<label for="context_person_' + human.id + '" style="flex:1;cursor:pointer;font-size:0.75rem;">',
-            '  <strong>' + escapeHtml(human.name) + '</strong>',
-            '  <br><span style="color:#888;font-size:0.7rem;">Credit: ' + (human.credit !== undefined ? Math.round(human.credit) : 'N/A') + '</span>',
-            '</label>'
-        ].join('');
-
-        div.addEventListener('mouseenter', function () { div.style.background = 'rgba(60, 60, 60, 0.6)'; });
-        div.addEventListener('mouseleave', function () { div.style.background = 'rgba(40, 40, 40, 0.5)'; });
-
-        container.appendChild(div);
+    var slot = document.createElement('div');
+    slot.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);cursor:pointer;transition:all 0.15s;min-height:40px;margin-bottom:8px;';
+    slot.innerHTML = '<span style="color:#444;font-size:0.8rem;">Search people...</span>';
+    slot.addEventListener('mouseenter', function () { slot.style.borderColor = 'rgba(77,157,224,0.25)'; slot.style.background = 'rgba(77,157,224,0.04)'; });
+    slot.addEventListener('mouseleave', function () { slot.style.borderColor = 'rgba(255,255,255,0.06)'; slot.style.background = 'rgba(255,255,255,0.02)'; });
+    slot.addEventListener('click', function () {
+        if (window.PazatorUI && window.PazatorUI.showEntityPicker) {
+            PazatorUI.showEntityPicker({
+                title: 'Add Person to Context',
+                typeFilter: 'Person',
+                zIndex: '1006',
+                onSelect: function (id, name, obj) {
+                    if (!_selectedContextPeople.some(function (p) { return p.id === id; })) {
+                        var human = pazatorData.humans.find(function (h) { return h.id === id; });
+                        if (human) {
+                            _selectedContextPeople.push({
+                                id: human.id,
+                                name: human.name,
+                                credit: human.credit,
+                                extraNotes: human.extraNotes
+                            });
+                            renderContextPeopleChips();
+                        }
+                    }
+                }
+            });
+        }
     });
+    container.appendChild(slot);
+
+    var chips = document.createElement('div');
+    chips.id = 'contextPeopleChips';
+    chips.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;';
+    container.appendChild(chips);
+}
+
+function renderContextPeopleChips() {
+    var chips = document.getElementById('contextPeopleChips');
+    if (!chips) return;
+    chips.innerHTML = '';
+    _selectedContextPeople.forEach(function (p) {
+        var chip = document.createElement('span');
+        chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:12px;background:rgba(77,157,224,0.15);border:1px solid rgba(77,157,224,0.25);font-size:0.7rem;color:#ccc;';
+        chip.innerHTML = '<span>' + escapeHtml(p.name) + '</span><span style="cursor:pointer;color:#888;font-size:0.8rem;padding:0 2px;" data-id="' + p.id + '">&times;</span>';
+        chip.querySelector('[data-id]').addEventListener('click', function (e) {
+            e.stopPropagation();
+            _selectedContextPeople = _selectedContextPeople.filter(function (x) { return x.id !== p.id; });
+            renderContextPeopleChips();
+        });
+        chips.appendChild(chip);
+    });
+    if (_selectedContextPeople.length > 0) {
+        chips.style.display = 'flex';
+    }
 }
 
 function loadContextChats() {
@@ -304,17 +337,7 @@ applyContextBtn.addEventListener('click', () => {
         timestamp: new Date().toISOString()
     };
 
-    document.querySelectorAll('#contextPeople input[type="checkbox"]:checked').forEach(checkbox => {
-        const human = pazatorData.humans.find(h => h.id === checkbox.value);
-        if (human) {
-            selectedContext.people.push({
-                id: human.id,
-                name: human.name,
-                credit: human.credit,
-                extraNotes: human.extraNotes
-            });
-        }
-    });
+    selectedContext.people = _selectedContextPeople.slice();
 
     const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
     document.querySelectorAll('#contextChats input[type="checkbox"]:checked').forEach(checkbox => {

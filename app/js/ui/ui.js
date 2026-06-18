@@ -329,5 +329,199 @@
     }
     ensureNotifStyle();
 
+    var _tc = { Person: '#888', Organization: '#aaa', Location: '#666', Unknown: '#555' };
+
+    function _esc(s) {
+        if (!s) return '';
+        var d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
+    PazatorUI.showEntityPicker = function (opts) {
+        opts = opts || {};
+        var onSelect = opts.onSelect || function () {};
+        var title = opts.title || 'Select Entity';
+
+        var modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.display = 'flex';
+        if (opts.zIndex) modal.style.zIndex = opts.zIndex;
+
+        var content = document.createElement('div');
+        content.className = 'modal-content';
+        content.style.maxWidth = '480px';
+
+        var header = document.createElement('div');
+        header.className = 'modal-header';
+        var h2 = document.createElement('h2');
+        h2.textContent = title;
+        var closeBtn = document.createElement('button');
+        closeBtn.className = 'close';
+        closeBtn.type = 'button';
+        closeBtn.innerHTML = '&times;';
+        header.appendChild(h2);
+        header.appendChild(closeBtn);
+
+        var searchWrap = document.createElement('div');
+        searchWrap.className = 'explorer-search-wrap';
+        var searchInput = document.createElement('input');
+        searchInput.className = 'explorer-search';
+        searchInput.type = 'text';
+        searchInput.placeholder = 'Search...';
+        searchInput.autocomplete = 'off';
+        searchInput.spellcheck = false;
+        searchWrap.appendChild(searchInput);
+
+        var body = document.createElement('div');
+        body.className = 'modal-body';
+        body.innerHTML = '<div class="explorer-info-placeholder">Type to search</div>';
+
+        content.appendChild(header);
+        content.appendChild(searchWrap);
+        content.appendChild(body);
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+
+        var currentResults = [];
+
+        function renderResults(results) {
+            currentResults = results || [];
+            if (!results || !results.length) {
+                body.innerHTML = '<div class="explorer-info-placeholder">No results</div>';
+                return;
+            }
+            var html = '';
+            for (var i = 0; i < results.length; i++) {
+                var m = results[i];
+                var icon = m.objectType === 'Person' ? 'fa-user' : 'fa-building';
+                var c = _tc[m.objectType] || _tc.Unknown;
+                html += '<div class="es-item" data-id="' + m.id + '"><span class="es-icon" style="color:' + c + '"><i class="fas ' + icon + '"></i></span><span class="es-name"><div>' + _esc(m.name || m.id) + '</div><div class="explorer-info-meta">' + _esc(String(m.id)) + '</div></span><span class="es-type">' + (m.objectType || '') + '</span></div>';
+            }
+            body.innerHTML = html;
+            Array.from(body.children).forEach(function (el) {
+                el.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    var id = el.dataset.id;
+                    for (var j = 0; j < currentResults.length; j++) {
+                        if (String(currentResults[j].id) === id) {
+                            modal.remove();
+                            onSelect(currentResults[j].id, currentResults[j].name || currentResults[j].id, currentResults[j]);
+                            return;
+                        }
+                    }
+                });
+            });
+        }
+
+        function doSearch() {
+            var q = searchInput.value.trim();
+            if (!q) { body.innerHTML = '<div class="explorer-info-placeholder">Type to search</div>'; return; }
+            if (window.pazatorStore && window.pazatorStore.searchObjects) {
+                var results = window.pazatorStore.searchObjects(q, 30);
+                if (opts.typeFilter) {
+                    results = results.filter(function (r) { return r.objectType === opts.typeFilter; });
+                }
+                renderResults(results);
+            }
+        }
+
+        searchInput.addEventListener('input', doSearch);
+        searchInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') { modal.remove(); }
+            if (e.key === 'Enter') { var f = body.querySelector('.es-item'); if (f) f.click(); }
+        });
+
+        function close() { modal.remove(); }
+        closeBtn.addEventListener('click', close);
+        modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
+
+        setTimeout(function () { searchInput.focus(); }, 50);
+        return { close: close };
+    };
+
+    PazatorUI.EntityPicker = function (container, opts) {
+        opts = opts || {};
+        var onChange = opts.onSelect || function () {};
+        var placeholder = opts.placeholder || 'Search entities...';
+        var val = null;
+        var wrap = document.createElement('div');
+        wrap.className = 'entity-picker';
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = placeholder;
+        input.autocomplete = 'off';
+        input.spellcheck = false;
+        input.className = 'entity-picker-input';
+        var clearBtn = document.createElement('span');
+        clearBtn.className = 'entity-picker-clear';
+        clearBtn.innerHTML = '&times;';
+        clearBtn.style.display = 'none';
+        var resultsEl = document.createElement('div');
+        resultsEl.className = 'entity-picker-results';
+        resultsEl.style.display = 'none';
+        wrap.appendChild(input);
+        wrap.appendChild(clearBtn);
+        wrap.appendChild(resultsEl);
+        container.appendChild(wrap);
+
+        function renderResults(results) {
+            if (!results || !results.length) { resultsEl.style.display = 'none'; return; }
+            var html = '';
+            for (var i = 0; i < results.length; i++) {
+                var m = results[i];
+                var icon = m.objectType === 'Person' ? 'fa-user' : 'fa-building';
+                var c = _tc[m.objectType] || _tc.Unknown;
+                html += '<div class="ep-item" data-id="' + m.id + '"><span class="ep-icon" style="color:' + c + '"><i class="fas ' + icon + '"></i></span><span class="ep-name">' + _esc(m.name || m.id) + '</span><span class="ep-type">' + (m.objectType || '') + '</span></div>';
+            }
+            resultsEl.innerHTML = html;
+            resultsEl.style.display = '';
+            Array.from(resultsEl.children).forEach(function (el) {
+                el.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    var id = el.dataset.id;
+                    for (var j = 0; j < results.length; j++) {
+                        if (String(results[j].id) === id) { selectItem(results[j]); break; }
+                    }
+                });
+            });
+        }
+
+        function selectItem(item) {
+            val = item.id;
+            input.value = item.name || item.id;
+            resultsEl.style.display = 'none';
+            clearBtn.style.display = '';
+            onChange(item.id, item.name || item.id, item);
+        }
+
+        function doSearch() {
+            var q = input.value.trim();
+            if (!q) { resultsEl.style.display = 'none'; return; }
+            if (window.pazatorStore && window.pazatorStore.searchObjects) {
+                renderResults(window.pazatorStore.searchObjects(q, 20));
+            }
+        }
+
+        input.addEventListener('input', doSearch);
+        input.addEventListener('blur', function () { setTimeout(function () { resultsEl.style.display = 'none'; }, 200); });
+        input.addEventListener('focus', function () { if (input.value) doSearch(); });
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') { resultsEl.style.display = 'none'; input.blur(); }
+            if (e.key === 'Enter') { var f = resultsEl.querySelector('.ep-item'); if (f) f.click(); }
+        });
+        clearBtn.addEventListener('click', function () { val = null; input.value = ''; clearBtn.style.display = 'none'; input.focus(); onChange(null, null, null); });
+
+        return {
+            getValue: function () { return val; },
+            setValue: function (id, name) {
+                if (!id) { val = null; input.value = ''; clearBtn.style.display = 'none'; return; }
+                val = id; input.value = name || id; clearBtn.style.display = '';
+            },
+            clear: function () { val = null; input.value = ''; clearBtn.style.display = 'none'; },
+            destroy: function () { container.removeChild(wrap); }
+        };
+    };
+
     window.PazatorUI = PazatorUI;
 })();

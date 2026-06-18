@@ -590,13 +590,14 @@ const trackerSettingsBtn = document.getElementById('trackerSettingsBtn');
 const trackerSettingsMenu = document.getElementById('trackerSettingsMenu');
 const trackerSpinSpeedInput = document.getElementById('trackerSpinSpeed');
 const trackerSpinSpeedValue = document.getElementById('trackerSpinSpeedValue');
-const trackerHumanSelect = document.getElementById('trackerHumanSelect');
 const trackerConnectBtn = document.getElementById('trackerConnectBtn');
 const trackerRefreshBtn = document.getElementById('trackerRefreshBtn');
 const trackerPurgeBtn = document.getElementById('trackerPurgeBtn');
 const trackerConfigureBtn = document.getElementById('trackerConfigureBtn');
 const trackerMapContainer = document.getElementById('trackerMap');
 
+let _trackerHumanId = null;
+let _trackerHumanName = null;
 let trackerMap;
 let trackerSpinning = false;
 let trackerAnimationFrame = null;
@@ -935,14 +936,12 @@ async function showTrackerPersonLocations(name) {
 }
 
 function connectTrackerSelection() {
-    if (!trackerHumanSelect) return;
-    const humanId = trackerHumanSelect.value;
+    const humanId = _trackerHumanId;
     if (!humanId) {
         trackerDebug && (trackerDebug.innerText = 'Select a Pazator person to connect.');
         return;
     }
 
-    const option = trackerHumanSelect.selectedOptions?.[0];
     const human = pazatorData.humans.find(h => String(h.id) === humanId || h.name === humanId);
 
     if (!human) {
@@ -950,7 +949,7 @@ function connectTrackerSelection() {
         return;
     }
 
-    const trackerAlias = (option?.dataset?.trackerName || option?.textContent || human.name).trim();
+    const trackerAlias = (human.trackerAlias || _trackerHumanName || human.name).trim();
     human.trackerAlias = trackerAlias || human.name;
     human.trackerLinkedAt = new Date().toISOString();
     saveData();
@@ -999,35 +998,21 @@ async function purgeTrackerData() {
     }
 }
 
-function refreshTrackerHumanOptions() {
-    if (!trackerHumanSelect) return;
-
-    const previousValue = trackerHumanSelect.value;
-    trackerHumanSelect.innerHTML = '';
-    const placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = 'Select a human';
-    trackerHumanSelect.appendChild(placeholder);
-
-    const humanOptions = pazatorData.humans
-        .filter(human => human?.name)
-        .slice()
-        .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-
-    humanOptions.forEach(human => {
-        const option = document.createElement('option');
-        const optionValue = human.id ?? human.name;
-        option.value = optionValue;
-        const alias = human.trackerAlias;
-        option.textContent = '[' + human.id + '] ' + (alias ? human.name + ' / ' + alias : human.name);
-        option.dataset.trackerName = alias || human.name;
-        trackerHumanSelect.appendChild(option);
-    });
-
-    if (previousValue) {
-        trackerHumanSelect.value = previousValue;
+function openTrackerHumanPicker() {
+    if (window.PazatorUI && window.PazatorUI.showEntityPicker) {
+        PazatorUI.showEntityPicker({
+            title: 'Select Person to Link',
+            onSelect: function (id, name, obj) {
+                _trackerHumanId = id;
+                _trackerHumanName = name;
+                var slot = document.getElementById('trackerHumanSlot');
+                if (slot) slot.innerHTML = '<span style="color:#ccc;">' + (name || id) + '</span>';
+            }
+        });
     }
 }
+
+function refreshTrackerHumanOptions() {}
 
 function saveDetailTrackerAlias(humanId) {
     var human = pazatorData.humans.find(function (h) { return h.id === humanId; });

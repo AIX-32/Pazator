@@ -576,16 +576,18 @@
                         </div>
                     </div>
 
-                    <div class="sidebar-section sidebar-mini">
+                    <div class="sidebar-section sidebar-mini" id="sidebarProfileSection">
                         <div class="sidebar-section-header">
-                            <i class="fas fa-tags"></i>
-                            <h3>Tags <span id="tagCount" class="sidebar-count-badge">0</span></h3>
+                            <i class="fas fa-user"></i>
+                            <h3>Profile</h3>
                         </div>
-                        <input type="text" id="tagInput" class="tag-input" placeholder="New tag...">
-                        <button id="addTagBtn" class="sidebar-apply-btn" style="margin-top: 6px;">
-                            <i class="fas fa-plus"></i> Add Tag
-                        </button>
-                        <div id="tagsContainer" class="tags-container" style="margin-top: 10px;"></div>
+                        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;">
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-size:0.82rem;color:#ccc;font-weight:500;" id="sidebarProfileName">Analyst</div>
+                                <div style="font-size:0.65rem;color:#555;" id="sidebarProfileRole">Active User</div>
+                                <div style="font-size:0.6rem;color:#444;margin-top:1px;" id="sidebarProfileLast"></div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="sidebar-section sidebar-mini">
@@ -1539,6 +1541,7 @@
                         </div>
                         <button class="sidebar-action-item" id="explorerLoadAllBtn"><i class="fas fa-database"></i> Load All</button>
                         <button class="sidebar-action-item" id="explorerResetBtn"><i class="fas fa-home"></i> Reset View</button>
+                        <button class="sidebar-action-item" id="explorerPathBtn"><i class="fas fa-route"></i> Find Path</button>
                         <button class="sidebar-action-item" id="explorerClearBtn" style="color:#ff6b6b;"><i class="fas fa-eraser"></i> Clear Graph</button>
                     </div>
                     <div class="sidebar-section sidebar-mini">
@@ -1651,9 +1654,7 @@
                                 tracker
                                 profile to a Pazator person</label>
                             <div style="display: flex; gap: 8px;">
-                                <select id="trackerHumanSelect" class="input-flat" style="flex:1;">
-                                    <option value="">Select a human</option>
-                                </select>
+                                <div id="trackerHumanSlot" style="flex:1;display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:5px;border:1px solid rgba(255,255,255,0.08);background:rgba(0,0,0,0.3);cursor:pointer;min-height:34px;box-sizing:border-box;font-size:0.78rem;color:#444;" onclick="openTrackerHumanPicker()">Select person...</div>
                                 <button class="btn btn-primary" id="trackerConnectBtn"
                                     style="padding: 8px 12px; font-size: 0.8rem;">Show</button>
                             </div>

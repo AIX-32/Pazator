@@ -507,53 +507,15 @@ function showEntityPickerModal() {
     const caseData = cases.find(c => c.id === selectedCaseId);
     if (!caseData) return;
 
-    const allEntities = [
-        ...pazatorData.humans.map(h => ({ ...h, type: 'human' })),
-        ...pazatorData.others.map(o => ({ ...o, type: 'other' }))
-    ];
-
-    const availableEntities = allEntities.filter(e => !caseData.entities.includes(e.id));
-
-    if (availableEntities.length === 0 && caseData.entities.length === 0) {
-        showFloatingNotification('No entities to add', 'info');
-        return;
+    if (window.PazatorUI && window.PazatorUI.showEntityPicker) {
+        PazatorUI.showEntityPicker({
+            title: 'Add Entity to Case',
+            onSelect: function (id, name, obj) {
+                var type = (obj && obj.objectType === 'Person') ? 'human' : 'other';
+                addEntityToCase(id, type);
+            }
+        });
     }
-
-    const modal = document.createElement('div');
-    modal.className = 'modal case-modal';
-    modal.innerHTML = `
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Add Entities</h2>
-            </div>
-            <div class="modal-body">
-                ${caseData.entities.length > 0 ? `
-                    <div class="case-bulk-actions">
-                        <button class="btn btn-secondary btn-sm" onclick="addAllEntitiesToCase()">
-                            <i class="fas fa-plus"></i> Add All (${availableEntities.length})
-                        </button>
-                        <button class="btn btn-secondary btn-sm" onclick="addRelatedEntitiesToCase()">
-                            <i class="fas fa-link"></i> Add Related
-                        </button>
-                    </div>
-                ` : ''}
-                <h4 style="margin: 16px 0 8px; color: #888; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Available Entities</h4>
-                <div class="entity-picker-list">
-                    ${availableEntities.length > 0 ? availableEntities.map(e => `
-                        <div class="entity-picker-item ${e.type}" onclick="addEntityToCase('${e.id}', '${e.type}')">
-                            <i class="fas ${e.type === 'human' ? 'fa-user' : 'fa-building'}"></i>
-                            <span>${escapeHtml(e.name)}</span>
-                            <span style="margin-left: auto; color: #666; font-size: 0.8rem;">
-                                ${getRelatedCount(e)}
-                            </span>
-                        </div>
-                    `).join('') : '<p style="color: #666; text-align: center; padding: 20px;">All entities are already in this case</p>'}
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-    modal.classList.add('active');
 }
 
 function getRelatedCount(entity) {
@@ -592,7 +554,6 @@ function addAllEntitiesToCase() {
     });
 
     saveCases();
-    document.querySelector('.case-modal')?.remove();
     selectCase(selectedCaseId);
     showFloatingNotification(`Added ${added} entities to case`, 'success');
 }
@@ -638,7 +599,6 @@ function addRelatedEntitiesToCase() {
     });
 
     saveCases();
-    document.querySelector('.case-modal')?.remove();
     selectCase(selectedCaseId);
 
     if (added > 0) {
@@ -664,7 +624,6 @@ function addEntityToCase(entityId, type) {
     });
 
     saveCases();
-    document.querySelector('.case-modal')?.remove();
     selectCase(selectedCaseId);
     showFloatingNotification('Entity added to case', 'success');
 }

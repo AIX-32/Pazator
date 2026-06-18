@@ -8,6 +8,7 @@
     var inputEl, resultsEl;
     var info = {};
     var freezeSim = false;
+    var _path = null;
     var _roTick = null;
 
     var TC = { Person: '#888', Organization: '#aaa', Location: '#666', Unknown: '#555' };
@@ -70,6 +71,9 @@
 
         var loadAllBtn = byId('explorerLoadAllBtn');
         if (loadAllBtn) loadAllBtn.addEventListener('click', loadAll);
+
+        var pathBtn = byId('explorerPathBtn');
+        if (pathBtn) pathBtn.addEventListener('click', showPathfindingModal);
 
         info.name = byId('explorerInfoName');
         info.meta = byId('explorerInfoMeta');
@@ -187,7 +191,7 @@
 
         if (added > 0 || L.length > 0) update();
 
-
+        clearPathHighlight();
     }
 
     function resize() {
@@ -243,6 +247,226 @@
         };
     }
 
+    function showPathfindingModal() {
+        var existing = document.getElementById('explorerPathModal');
+        if (existing) existing.remove();
+
+        var fromId = null, fromName = null;
+        var toId = null, toName = null;
+
+        var modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.id = 'explorerPathModal';
+        modal.style.display = 'flex';
+
+        var content = document.createElement('div');
+        content.className = 'modal-content';
+        content.style.maxWidth = '480px';
+
+        var header = document.createElement('div');
+        header.className = 'modal-header';
+
+        var title = document.createElement('h2');
+        title.textContent = 'Pathfinding';
+
+        var closeBtn = document.createElement('button');
+        closeBtn.className = 'close';
+        closeBtn.type = 'button';
+        closeBtn.innerHTML = '&times;';
+
+        header.appendChild(title);
+        header.appendChild(closeBtn);
+
+        var body = document.createElement('div');
+        body.className = 'modal-body';
+
+        function makeSlot(label) {
+            var wrap = document.createElement('div');
+            wrap.style.cssText = 'margin-bottom:12px;';
+
+            var lbl = document.createElement('div');
+            lbl.style.cssText = 'font-size:0.65rem;color:#555;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;';
+            lbl.textContent = label;
+
+            var slot = document.createElement('div');
+            slot.id = 'mpSlot' + label;
+            slot.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);cursor:pointer;transition:all 0.15s;min-height:40px;';
+            slot.innerHTML = '<span style="color:#444;font-size:0.8rem;">Select entity...</span>';
+
+            slot.addEventListener('mouseenter', function () { slot.style.borderColor = 'rgba(77,157,224,0.25)'; slot.style.background = 'rgba(77,157,224,0.04)'; });
+            slot.addEventListener('mouseleave', function () { slot.style.borderColor = 'rgba(255,255,255,0.06)'; slot.style.background = 'rgba(255,255,255,0.02)'; });
+
+            wrap.appendChild(lbl);
+            wrap.appendChild(slot);
+            return { wrap: wrap, slot: slot, set: function (id, name, obj) {}, clear: function () {} };
+        }
+
+        var fromSlot = makeSlot('From');
+        var toSlot = makeSlot('To');
+
+        fromSlot.set = function (id, name, obj) {
+            fromId = id; fromName = name || id;
+            fromSlot.slot.innerHTML = '<span style="color:#34d399;font-size:0.7rem;">●</span><span style="flex:1;color:#e0e0e0;font-size:0.85rem;">' + esc(fromName) + '</span><span style="color:#555;font-size:0.65rem;">' + (obj ? obj.objectType || '' : '') + '</span><span class="mp-remove" style="color:#555;font-size:1rem;cursor:pointer;padding:0 4px;">&times;</span>';
+            fromSlot.slot.querySelector('.mp-remove').addEventListener('click', function (e) { e.stopPropagation(); fromSlot.clear(); });
+        };
+        fromSlot.clear = function () { fromId = null; fromName = null; fromSlot.slot.innerHTML = '<span style="color:#444;font-size:0.8rem;">Select entity...</span>'; };
+
+        toSlot.set = function (id, name, obj) {
+            toId = id; toName = name || id;
+            toSlot.slot.innerHTML = '<span style="color:#4d9de0;font-size:0.7rem;">●</span><span style="flex:1;color:#e0e0e0;font-size:0.85rem;">' + esc(toName) + '</span><span style="color:#555;font-size:0.65rem;">' + (obj ? obj.objectType || '' : '') + '</span><span class="mp-remove" style="color:#555;font-size:1rem;cursor:pointer;padding:0 4px;">&times;</span>';
+            toSlot.slot.querySelector('.mp-remove').addEventListener('click', function (e) { e.stopPropagation(); toSlot.clear(); });
+        };
+        toSlot.clear = function () { toId = null; toName = null; toSlot.slot.innerHTML = '<span style="color:#444;font-size:0.8rem;">Select entity...</span>'; };
+
+        fromSlot.slot.addEventListener('click', function () {
+            if (window.PazatorUI && window.PazatorUI.showEntityPicker) {
+                PazatorUI.showEntityPicker({ title: 'Select Start Node', onSelect: fromSlot.set });
+            }
+        });
+        toSlot.slot.addEventListener('click', function () {
+            if (window.PazatorUI && window.PazatorUI.showEntityPicker) {
+                PazatorUI.showEntityPicker({ title: 'Select End Node', onSelect: toSlot.set });
+            }
+        });
+
+        var resEl = document.createElement('div');
+        resEl.id = 'mpResult';
+        resEl.style.cssText = 'margin-top:6px;font-size:0.8rem;line-height:1.8;min-height:0;';
+
+        var findBtn = document.createElement('button');
+        findBtn.className = 'btn btn-primary';
+        findBtn.type = 'button';
+        findBtn.style.cssText = 'margin-top:12px;width:100%;padding:10px;';
+        findBtn.innerHTML = '<i class="fas fa-route"></i> Find Path';
+
+        var statusEl = document.createElement('div');
+        statusEl.id = 'mpStatus';
+        statusEl.style.cssText = 'font-size:0.75rem;color:#555;margin-top:6px;text-align:center;';
+
+        body.appendChild(fromSlot.wrap);
+        body.appendChild(toSlot.wrap);
+        body.appendChild(resEl);
+        body.appendChild(findBtn);
+        body.appendChild(statusEl);
+
+        content.appendChild(header);
+        content.appendChild(body);
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+
+        function runFind() {
+            resEl.innerHTML = '';
+            statusEl.innerHTML = '';
+            if (!fromId || !toId) { statusEl.innerHTML = '<span style="color:#ff6b6b;">Select both nodes</span>'; return; }
+            if (fromId === toId) { statusEl.innerHTML = 'Same node'; return; }
+
+            if (!N.has(fromId)) addEntity(fromId);
+            if (!N.has(toId)) addEntity(toId);
+
+            clearPathHighlight();
+            var path = findPath(fromId, toId);
+            if (!path) {
+                resEl.innerHTML = '<div style="text-align:center;padding:16px;color:#ff6b6b;font-size:0.8rem;">No path found between these nodes</div>';
+                return;
+            }
+            highlightPath(path);
+
+            var html = '<div style="padding:12px 0;">';
+            for (var i = 0; i < path.length; i++) {
+                var n = N.get(path[i].id);
+                var name = n ? n.name : path[i].id;
+                if (i > 0) {
+                    html += '<div style="display:flex;align-items:center;gap:6px;padding:4px 0 4px 16px;"><span style="color:#555;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.05em;">' + (path[i].type || 'connected') + '</span><span style="color:#333;font-size:0.7rem;">→</span></div>';
+                }
+                var dot = i === 0 ? '#34d399' : i === path.length - 1 ? '#4d9de0' : '#888';
+                html += '<div style="display:flex;align-items:center;gap:10px;padding:5px 12px;border-radius:6px;background:rgba(255,255,255,0.02);"><span style="color:' + dot + ';font-size:0.6rem;">●</span><span style="flex:1;color:#e0e0e0;font-size:0.85rem;">' + esc(name) + '</span></div>';
+            }
+            html += '</div>';
+            resEl.innerHTML = html;
+            statusEl.innerHTML = '<span style="color:#34d399;">' + (path.length - 1) + ' hop' + (path.length > 2 ? 's' : '') + '</span>';
+        }
+
+        findBtn.addEventListener('click', runFind);
+
+        function closeModal() { modal.remove(); }
+        closeBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+        document.addEventListener('keydown', function handler(e) { if (e.key === 'Escape' && document.getElementById('explorerPathModal')) { closeModal(); document.removeEventListener('keydown', handler); } });
+    }
+
+    function findPath(sid, tid) {
+        var adj = {};
+        L.forEach(function (e) {
+            var src = typeof e.source === 'object' ? e.source.id : e.source;
+            var tgt = typeof e.target === 'object' ? e.target.id : e.target;
+            (adj[src] = adj[src] || []).push({ id: tgt, type: e.type });
+            (adj[tgt] = adj[tgt] || []).push({ id: src, type: e.type });
+        });
+        var visited = new Set([sid]);
+        var queue = [{ id: sid, path: [{ id: sid, type: null }] }];
+        while (queue.length) {
+            var cur = queue.shift();
+            var neighbors = adj[cur.id] || [];
+            for (var i = 0; i < neighbors.length; i++) {
+                var nb = neighbors[i];
+                if (visited.has(nb.id)) continue;
+                visited.add(nb.id);
+                var newPath = cur.path.concat([{ id: nb.id, type: nb.type }]);
+                if (nb.id === tid) return newPath;
+                queue.push({ id: nb.id, path: newPath });
+            }
+        }
+        return null;
+    }
+
+    function highlightPath(path) {
+        _path = path;
+        var ids = new Set(path.map(function (s) { return s.id; }));
+        var edgeKeys = new Set();
+        for (var i = 1; i < path.length; i++) {
+            var a = path[i - 1].id, b = path[i].id;
+            edgeKeys.add(a < b ? a + '::' + b : b + '::' + a);
+        }
+        _node.attr('opacity', function (d) { return ids.has(d.id) ? 1 : 0.15; })
+            .attr('stroke', function (d) { return ids.has(d.id) ? '#00ff88' : d.threatColor; })
+            .attr('stroke-width', function (d) { return ids.has(d.id) ? 3.5 : 1.5; });
+        _label.attr('opacity', function (d) { return ids.has(d.id) ? 1 : 0.15; });
+        _link.attr('stroke-opacity', function (d) {
+            var src = typeof d.source === 'object' ? d.source.id : d.source;
+            var tgt = typeof d.target === 'object' ? d.target.id : d.target;
+            var k = src < tgt ? src + '::' + tgt : tgt + '::' + src;
+            return edgeKeys.has(k) ? 1 : 0.08;
+        }).attr('stroke', function (d) {
+            var src = typeof d.source === 'object' ? d.source.id : d.source;
+            var tgt = typeof d.target === 'object' ? d.target.id : d.target;
+            var k = src < tgt ? src + '::' + tgt : tgt + '::' + src;
+            return edgeKeys.has(k) ? '#00ff88' : '#555';
+        }).attr('stroke-width', function (d) {
+            var src = typeof d.source === 'object' ? d.source.id : d.source;
+            var tgt = typeof d.target === 'object' ? d.target.id : d.target;
+            var k = src < tgt ? src + '::' + tgt : tgt + '::' + src;
+            return edgeKeys.has(k) ? 3 : 1;
+        });
+        var coords = path.map(function (s) { var n = N.get(s.id); return n && n.x != null ? [n.x, n.y] : null; }).filter(Boolean);
+        if (coords.length > 1) {
+            var mx = coords.reduce(function (s, c) { return s + c[0]; }, 0) / coords.length;
+            var my = coords.reduce(function (s, c) { return s + c[1]; }, 0) / coords.length;
+            var w = ctr.clientWidth, h = ctr.clientHeight;
+            var t = d3.zoomIdentity.translate(w / 2, h / 2).scale(1.5).translate(-mx, -my);
+            svg.transition().duration(400).call(zoom.transform, t);
+        }
+    }
+
+    function clearPathHighlight() {
+        if (!_path) return;
+        _path = null;
+        if (_node) _node.attr('opacity', function (d) { return !sel || d.id === sel ? 1 : 0.35; })
+            .attr('stroke', function (d) { return d.threatColor; })
+            .attr('stroke-width', function (d) { return d.id === sel ? 3.5 : 2; });
+        if (_label) _label.attr('opacity', function (d) { return !sel || d.id === sel ? 1 : 0.35; });
+        if (_link) _link.attr('stroke-opacity', 0.4).attr('stroke', function (d) { return EC[d.type] || '#555'; }).attr('stroke-width', function (d) { return EW[d.type] || 1; });
+    }
+
     function update() {
         var nodes = Array.from(N.values());
 
@@ -296,6 +520,7 @@
     }
 
     function select(id) {
+        if (_path) clearPathHighlight();
         sel = id;
         if (_node) {
             _node.attr('opacity', function (d) { return !id || d.id === id ? 1 : 0.35; }).attr('stroke-width', function (d) { return d.id === id ? 3.5 : 2; });

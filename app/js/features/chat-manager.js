@@ -1928,10 +1928,13 @@ function clearGraphPath() {
 }
 
 /* Relationship Management */
+var _relTargetId = null, _relTargetType = 'human';
+
 function showAddRelationship(entityId, entityType) {
     entityType = entityType || 'human';
     var existing = document.getElementById('relManagerModal');
     if (existing) existing.remove();
+    _relTargetId = null; _relTargetType = 'human';
 
     var modal = document.createElement('div');
     modal.id = 'relManagerModal';
@@ -1947,68 +1950,136 @@ function showAddRelationship(entityId, entityType) {
         if (e) entityName = e.name;
     }
 
-    var candidateOptions = '';
-    pazatorData.humans.forEach(function (h) {
-        if (h.id !== entityId) {
-            candidateOptions += '<option value="' + h.id + '">' + escapeHtml(h.name) + ' (Human)</option>';
-        }
-    });
-    pazatorData.others.forEach(function (o) {
-        if (o.id !== entityId) {
-            candidateOptions += '<option value="' + o.id + '" data-type="other">' + escapeHtml(o.name) + ' (Entity)</option>';
-        }
-    });
-
     var typeOptions = '';
     types.forEach(function (t) {
         typeOptions += '<option value="' + t.key + '" style="color:' + t.color + ';">' + t.label + '</option>';
     });
 
-    modal.innerHTML =
-        '<div class="modal-content" style="max-width:500px;">' +
-        '<button class="close" onclick="document.getElementById(\'relManagerModal\').remove()">&times;</button>' +
-        '<div class="modal-header"><h2>Add Relationship</h2></div>' +
-        '<div class="modal-body">' +
-        '<p style="color:#888;margin-bottom:16px;">Creating relationship for <strong>' + escapeHtml(entityName) + '</strong></p>' +
-        '<div class="form-group">' +
-        '<label>Target Entity</label>' +
-        '<select id="relTargetSelect" class="form-control">' + candidateOptions + '</select>' +
-        '</div>' +
-        '<div class="form-group">' +
-        '<label>Relationship Type</label>' +
-        '<select id="relTypeSelect" class="form-control">' + typeOptions + '</select>' +
-        '</div>' +
-        '<div class="form-group">' +
-        '<label>Strength (1-5)</label>' +
-        '<input type="range" id="relStrength" min="1" max="5" value="3" style="width:100%;">' +
-        '<div style="display:flex;justify-content:space-between;font-size:11px;color:#666;"><span>Weak</span><span>Strong</span></div>' +
-        '</div>' +
-        '<div class="form-group">' +
-        '<label>Notes (optional)</label>' +
-        '<textarea id="relNotes" class="form-control" rows="2" placeholder="Context about this relationship..."></textarea>' +
-        '</div>' +
-        '</div>' +
-        '<div class="form-actions-horizontal">' +
-        '<button class="btn-enhanced glass-btn" onclick="document.getElementById(\'relManagerModal\').remove()">Cancel</button>' +
-        '<button class="btn-enhanced btn-primary" onclick="confirmAddRelationship(\'' + entityId + '\',\'' + entityType + '\')"><i class="fas fa-link"></i> Add Relationship</button>' +
-        '</div></div>';
+    var content = document.createElement('div');
+    content.className = 'modal-content';
+    content.style.maxWidth = '500px';
 
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'close';
+    closeBtn.type = 'button';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.addEventListener('click', function () { modal.remove(); });
+
+    var header = document.createElement('div');
+    header.className = 'modal-header';
+    var h2 = document.createElement('h2');
+    h2.textContent = 'Add Relationship';
+    header.appendChild(h2);
+    header.appendChild(closeBtn);
+
+    var body = document.createElement('div');
+    body.className = 'modal-body';
+
+    body.innerHTML = '<p style="color:#888;margin-bottom:16px;">Creating relationship for <strong>' + escapeHtml(entityName) + '</strong></p>';
+
+    var targetGroup = document.createElement('div');
+    targetGroup.className = 'form-group';
+    var targetLabel = document.createElement('label');
+    targetLabel.textContent = 'Target Entity';
+    var targetSlot = document.createElement('div');
+    targetSlot.id = 'relTargetSlot';
+    targetSlot.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);cursor:pointer;transition:all 0.15s;min-height:40px;';
+    targetSlot.innerHTML = '<span style="color:#444;font-size:0.8rem;">Select entity...</span>';
+    targetSlot.addEventListener('mouseenter', function () { targetSlot.style.borderColor = 'rgba(77,157,224,0.25)'; targetSlot.style.background = 'rgba(77,157,224,0.04)'; });
+    targetSlot.addEventListener('mouseleave', function () { targetSlot.style.borderColor = 'rgba(255,255,255,0.06)'; targetSlot.style.background = 'rgba(255,255,255,0.02)'; });
+    targetSlot.addEventListener('click', function () {
+        if (window.PazatorUI && window.PazatorUI.showEntityPicker) {
+            PazatorUI.showEntityPicker({
+                title: 'Select Target Entity',
+                onSelect: function (id, name, obj) {
+                    _relTargetId = id;
+                    _relTargetType = (obj && obj.objectType === 'Person') ? 'human' : 'other';
+                    targetSlot.innerHTML = '<span style="color:#e0e0e0;font-size:0.85rem;">' + escapeHtml(name || id) + '</span><span style="color:#555;font-size:0.65rem;margin-left:auto;">' + (obj ? obj.objectType || '' : '') + '</span>';
+                }
+            });
+        }
+    });
+    targetGroup.appendChild(targetLabel);
+    targetGroup.appendChild(targetSlot);
+
+    body.appendChild(targetGroup);
+
+    var typeGroup = document.createElement('div');
+    typeGroup.className = 'form-group';
+    var typeLabel = document.createElement('label');
+    typeLabel.textContent = 'Relationship Type';
+    var typeSelect = document.createElement('select');
+    typeSelect.id = 'relTypeSelect';
+    typeSelect.className = 'form-control';
+    typeSelect.innerHTML = typeOptions;
+    typeGroup.appendChild(typeLabel);
+    typeGroup.appendChild(typeSelect);
+
+    var strengthGroup = document.createElement('div');
+    strengthGroup.className = 'form-group';
+    var strengthLabel = document.createElement('label');
+    strengthLabel.textContent = 'Strength (1-5)';
+    var strengthInput = document.createElement('input');
+    strengthInput.type = 'range';
+    strengthInput.id = 'relStrength';
+    strengthInput.min = '1';
+    strengthInput.max = '5';
+    strengthInput.value = '3';
+    strengthInput.style.width = '100%';
+    var strengthLabels = document.createElement('div');
+    strengthLabels.style.cssText = 'display:flex;justify-content:space-between;font-size:11px;color:#666;';
+    strengthLabels.innerHTML = '<span>Weak</span><span>Strong</span>';
+    strengthGroup.appendChild(strengthLabel);
+    strengthGroup.appendChild(strengthInput);
+    strengthGroup.appendChild(strengthLabels);
+
+    var notesGroup = document.createElement('div');
+    notesGroup.className = 'form-group';
+    var notesLabel = document.createElement('label');
+    notesLabel.textContent = 'Notes (optional)';
+    var notesTextarea = document.createElement('textarea');
+    notesTextarea.id = 'relNotes';
+    notesTextarea.className = 'form-control';
+    notesTextarea.rows = '2';
+    notesTextarea.placeholder = 'Context about this relationship...';
+    notesGroup.appendChild(notesLabel);
+    notesGroup.appendChild(notesTextarea);
+
+    body.appendChild(typeGroup);
+    body.appendChild(strengthGroup);
+    body.appendChild(notesGroup);
+
+    var actions = document.createElement('div');
+    actions.className = 'form-actions-horizontal';
+    var cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn-enhanced glass-btn';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', function () { modal.remove(); });
+    var confirmBtn = document.createElement('button');
+    confirmBtn.className = 'btn-enhanced btn-primary';
+    confirmBtn.innerHTML = '<i class="fas fa-link"></i> Add Relationship';
+    confirmBtn.addEventListener('click', function () { confirmAddRelationship(entityId, entityType); });
+    actions.appendChild(cancelBtn);
+    actions.appendChild(confirmBtn);
+
+    content.appendChild(header);
+    content.appendChild(body);
+    content.appendChild(actions);
+    modal.appendChild(content);
     document.body.appendChild(modal);
 }
 
 function confirmAddRelationship(entityId, entityType) {
-    var targetSelect = document.getElementById('relTargetSelect');
     var typeSelect = document.getElementById('relTypeSelect');
     var strength = parseInt(document.getElementById('relStrength').value) || 3;
     var notes = document.getElementById('relNotes').value || '';
 
-    var targetId = targetSelect.value;
+    var targetId = _relTargetId;
+    var targetType = _relTargetType || 'human';
     if (!targetId) {
         showAlert('Please select a target entity', 'Error', 'error');
         return;
     }
-    var targetOption = targetSelect.options[targetSelect.selectedIndex];
-    var targetType = targetOption.getAttribute('data-type') || 'human';
     var relType = typeSelect.value;
 
     if (window.pazatorRelationships) {
