@@ -517,8 +517,10 @@
 
         if (graphBtn) {
             graphBtn.addEventListener('click', function () {
+                var id = _currentId;
                 close();
-                if (window.switchTab) window.switchTab('graph');
+                window._explorerPendingId = id;
+                if (window.switchTab) window.switchTab('explorer');
             });
         }
 

@@ -203,6 +203,7 @@ function createTab(tabId) {
     if (tabId === 'threats') tabLabel = 'Threats & Fraud';
     if (tabId === 'chat-control') tabLabel = 'Chat Security';
     if (tabId === 'tracker') tabLabel = 'LCTX';
+    if (tabId === 'plugins') tabLabel = 'Plugins';
 
     newTab.innerHTML = `
                 ${tabLabel}
@@ -373,6 +374,24 @@ function switchTab(tabId) {
             }
         });
         ensureLazyModule('report-manager', 'js/apps/report-manager.js', function () { return !!window.pazatorReportManager; });
+    } else if (tabId === 'explorer') {
+        ensureLazyModule('explorer', 'js/graph/explorer.js', function () { return !!window.pazatorExplorer; }).then(function () {
+            if (window.pazatorExplorer) {
+                var ctr = document.getElementById('explorerGraph');
+                if (ctr && !window.pazatorExplorer._initialized) {
+                    window.pazatorExplorer.init(ctr);
+                    window.pazatorExplorer._initialized = true;
+                } else if (window.pazatorExplorer._initialized) {
+                    window.pazatorExplorer.resetView();
+                }
+            }
+        });
+    } else if (tabId === 'plugins') {
+        if (window.pazatorPlugins) {
+            setTimeout(function () {
+                window.pazatorPlugins.renderManager('pluginsContainer');
+            }, 50);
+        }
     }
 
     if (window.Tastur) {

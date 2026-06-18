@@ -1,334 +1,458 @@
 # PAZATOR Codebase Map
 
-
----
-
 ## Project Overview
 
-Pazator is a single‑page intelligence analysis application with a dark‑theme UI, local‑first storage (IndexedDB + localStorage), an AI assistant (Zor), a TIDE analysis engine, classification system, logbook, GIS tracking, and LAN sync via a Node.js server (PZLS).
+Pazator is a single‑page browser‑based intelligence analysis application (~50K lines: 34K JS, 12.8K CSS, 2.9K HTML). Dark theme, local‑first storage (IndexedDB + localStorage), AI assistant (Zor) via Gemini, TIDE analysis engine, classification system, logbook, GIS overlays, MapLibre globe tracker (LCTX) with Supabase, entity relationship graph, case management, ontology designer, pipeline ETL, rule engine (alerts + workflow), in-browser API console with GraphQL, report builder, LAN sync via the PZLS Node.js server, plugin system, and D3 force-directed graph explorer.
 
-**Companion server:** `https://github.com/AIX-32/PZLS` — SQLite + WebSocket server for multi‑user sync, encryption at rest for classified entities, auth with token expiry.
+**Size:** 37 JS modules, ~80 exported functions, 15 tab views, 16 modal dialogs, 2.9K lines of HTML.
 
----
-
-## Key Files & Recent Changes
-
-| File | Description |
-|------|-------------|
-| `js/features/classification.js` | Classification module (5 levels: Unclassified → TS//SCI), per‑entity modal, bulk classify modal, badge HTML |
-| `js/apps/logbook.js` | Freeform notes/observations with categories (General/Observation/Incident/Intel/Comm), CRUD, classify support |
-| `js/ai/zor-context.js` | AI context selection modal — 7 sections: People, Chats, Intel Findings, Logbook, Cases, Entities, Reports |
-| `js/core/persistence.js` | Object tile right‑click context menu (View Details, Filter, Search, Copy name) at line 617 |
-| `js/core/store.js` | Unified in‑memory store: `_objectIndex`, `getObjectById()`, `getRelatedObjects()`, `searchObjects()`, `kvGet/kvSet` |
-| `js/apps/objects.js` | Ontology entity type CRUD (`createEntityType`, `getEntityTypes`, etc.) |
-| `js/apps/object-explorer.js` | Gotham‑style full‑page Object Explorer overlay |
-| `js/apps/ontology.js` | Entity Types section alongside Value Types |
-| `title.png` | Project logo at repo root, used in README header |
+**Fonts:** Alliance No.2 (branding), Maven Pro (UI), DM Mono (code/monospace in mobile), Anton (mobile headers).
 
 ---
 
-## Context Selection Modal (`zor-context.js`)
+## Tabs & UI Structure (15 Tabs)
 
-Opened from chat options menu → "Select Context". Asymmetric layout with 7 data source sections:
+All tabs rendered statically in `app/index.html`, shown/hidden via `switchTab()` in `js/ui/tabs.js`.
 
-| Section | Data Source | Loader Function |
-|---------|-------------|-----------------|
-| People | `pazatorData.humans` | `loadContextPeople()` |
-| Chats | `ChatStorageManager.getChatHistory()` | `loadContextChats()` |
-| Intel Findings | `fraudLogs` + `terroristLogs` + `previousThreats` + `previousFraud` (localStorage) | `loadContextIntel()` |
-| Logbook | `pazatorLogbook.getEntries()` (`pazator_logbook`) | `loadContextLogbook()` |
-| Cases | global `cases` array | `loadContextCases()` |
-| Entities | `pazatorData.others` | `loadContextEntities()` |
-| Reports | `pazator_analysis_reports` (localStorage) | `loadContextReports()` |
+| Tab ID | Label | Sidebar? | Key Contents | Loaded By |
+|--------|-------|----------|-------------|-----------|
+| `dashboard-tab` | Dashboard | Yes | `#webContainer` (entity card grid), `#virtualTableContainer`, `#skeletonGraph` (loading skeleton), `#detailSlidePanel`, quick action buttons, DB counts, tags input, AI config | Eager (default) |
+| `analysis-tab` | Analysis | No | Action grid (Network Analysis, Risk Assessment, Credit Ranking, AI Suggestions), metrics grid, Quick Tools | Lazy: `dashboard.js` (misnamed tab) |
+| `chat-control-tab` | Comms Security | Yes | Threat Detection Suite, Quick Tools, Conversation Archives with filter/source select, Danger Zone purge | Eager |
+| `threats-tab` | Intel Center | Yes | AI Analysis card, Risk Distribution, Hidden Connections, Analysis Results, Context Sources checkboxes, Analysis Mode | Eager |
+| `search-tab` | Search | No | `#universalSearchInput`, type pills, field chips, results area | Eager |
+| `cases-tab` | Cases | Yes | Case detail (header, stats, description, entities, evidence, activity timeline), case file list sidebar | Eager |
+| `ontology-tab` | Ontology | No | `#ontologyTabContainer` (JS-rendered designer) | Lazy: `ontology.js` |
+| `pipelines-tab` | Pipelines | Yes | `#pipelineTabContent` (JS-rendered ETL pipeline manager) | Lazy: `pipelines.js` |
+| `alerts-tab` | Alerts | Yes | `#alertTabContent` (JS-rendered rule engine) | Lazy: `alerts.js` |
+| `api-tab` | API Console | Yes | `#apiTabContent` (JS-rendered REST/GraphQL console) | Lazy: `api.js` |
+| `workflow-tab` | Workflow | Yes | `#workflowTabContent` (JS-rendered WHEN/IF/THEN engine) | Lazy: `workflow.js` |
+| `reports-tab` | Reports | Yes | Subnav (Builder/Saved/Logbook), `#reportsTabContent`, `#savedReportsContent`, `#logbookContent` | Lazy: `reports.js` |
+| `explorer-tab` | Explorer | Yes | D3 force-directed entity graph (`#explorerGraph`), search sidebar, node info panel, load/clear/reset controls | Lazy: `explorer.js` |
+| `plugins-tab` | Plugins | Yes | Plugin cards grid, search filter, install from URL or paste code, toggle enable/disable | Eager: `plugins.js` |
+| `tracker-tab` | LCTX Tracker | Yes | MapLibre globe (`#trackerMap`), overlay controls, sidebar with people list, search, config | Lazy: `gis.js` (overlays) |
 
-Selected items are stored in `localStorage.adminProvidedContext` with a 5‑minute TTL, displayed as pill cards in `#contextDisplay` above the chat input.
+### Persistent UI Elements
 
----
-
-## TIDE Engine (June 2026)
-
-**Threat Intelligence Distributed Evaluation** – replaces monolithic AI calls with scalable chunked analysis.
-
-- Handles any dataset size via scoring + tiered chunking
-- Analysis types: `threat`, `terrorist`, `fraud`, `credit`, `risk`, `intel`, `connection`
-- Dynamic chunk sizing based on token estimation
-- Built‑in deduplication, retry, progress events, persistence
-- CTXOD integration: `prioritize()` returns highest‑value entities
-- Findings persist to localStorage keys: `previousThreats`, `previousFraud`
-- Reports persist to `pazator_analysis_reports`
-
----
-
-## Project Structure
-
-```
-pazator/
-├── index.html                      # Marketing landing page
-├── map.txt                         # This file (original)
-├── google0f064d72b8389aee.html     # Google Search Console verification
-├── app/                            # Main SPA shell
-│   ├── index.html                  # Main app (tabs, sidebar, graph, dashboard, modals, etc.)
-│   ├── stylez.css                  # Dark theme (12,593 lines) – CSS custom properties
-│   ├── js/                         # JavaScript by domain
-│   │   ├── core/                   # Foundation layer
-│   │   ├── data/                   # Data persistence layer
-│   │   ├── chat/                   # Chat processing
-│   │   ├── ai/                     # AI/Zor system + TIDE engine
-│   │   ├── ui/                     # UI components
-│   │   ├── features/               # Feature modules
-│   │   ├── tracker/                # LCTX Tracker
-│   │   └── apps/                   # Full application modules (lazy‑loaded)
-│   └── ... 
-├── docs/                           # Documentation pages
-├── design/                         # Design language system
-├── mobile/                         # SHAHED mobile companion
-└── ASKING/                         # Fullscreen "?" help page
-```
+- **`#classificationBanner`** — Red "CLASSIFIED - DO NOT SHARE" bar at top of page. Currently dead — `display: none` by default, no code ever toggles `<body class="classified-active">`.
+- **`#aiChatModal`** — Floating AI chat panel (Zor). Toggled from dashboard quick-actions or menu bar.
+- **`#toastContainer`** — Fixed-position toast notification container.
+- **`#passwordOverlay`** — Simple binary app lock (not truly secure per its own warning text).
+- **`#dataLoadIndicator`** — Fullscreen loading spinner during data load.
+- **`#introOverlay`** — Fullscreen intro video with 30s timeout fallback and space-to-skip.
 
 ---
 
-## Core Modules (Detailed)
+## Modal Dialogs (16)
 
-### `js/core/` – Foundation Layer
+| Modal ID | Purpose | Trigger |
+|----------|---------|---------|
+| `#updateModal` | Release notes on first load after version change | `main.js` |
+| `#typeModal` | "Select Data Type" (Human/Job & Company/Something Else) | Dashboard quick-add |
+| `#humanModal` | Create/Edit Person form (14 autocomplete fields, relationships, tags, tracker link, image upload) | Form submit or entity edit |
+| `#otherModal` | Create/Edit Organization/Entity form (name, industry, notes, image) | Form submit or entity edit |
+| `#chatUploadModal` | Upload Chat (WhatsApp/Telegram/Discord/Signal/Manual) with .txt file or paste | `#chatUploadBtn` |
+| `#dataUploadModal` | Upload CSV with drop zone, schema reference, precise instructions toggle | `#dataUploadBtn` |
+| `#aiImportModal` | AI Import — drop zone + text area, auto-detect Human/Org type | `#aiImportBtn` |
+| `#contextModal` | AI Context Selector — 7-section grid (People, Chats, Intel, Logbook, Cases, Entities, Reports) + notes | Chat menu → Select Context |
+| `#detailViewModal` | Full read-only entity detail (profile, stats, 3 info columns, family graph, chats, timeline, classify, export PDF, edit, delete) | Entity click |
+| `#hiddenConnectionsModal` | Multi-agent connection analysis results (graph + list) | Analysis → Hidden Connections |
+| `#tideMonitorModal` | TIDE batch analysis progress (chunks, findings, cancel/close) | TIDE analysis start |
+| `#creditEvalModal` | AI Credit Evaluation progress + results summary | Analysis → Credit Ranking |
+| `#cleanModal` | Generic modal (dynamically populated: icon, title, body, actions) | Various (settings, alerts, api, workflow, etc.) |
+| `#settingsModal` | App settings: No Blur, Skip Intro, Tool Call Delay, Agent Debug, Walkthrough, Password Lock | Menu → Settings |
+| `#neofetchOverlay` / `#neofetchCard` | System info (neofetch-style): version, builds, entities, uptime | Menu → System Info |
+| `#aboutOverlay` / `#aboutCard` | About page with description, Discord link, credits | Menu → About |
 
-| File | Lines | Purpose |
-|------|-------|---------|
-| `globals.js` | 34 | Global state: `pazatorData = {humans, others, chats}`, `tags`, `cases`, `aiChatHistory`, `autoSaveInterval`, `pendingChanges`, `selectedCaseId` |
-| `modal.js` | – | Modal / alert / confirm system |
-| `dom-refs.js` | – | DOM element references |
-| `data-utils.js` | – | ID generation, vector search, worker manager. Exposes `PazatorWorker.graphTick()`, `.heuristicsScan()`, `.bulkTransform()`, `.aggregateStats()` |
-| `store.js` | 558+ | In‑memory store + event system + unified object model. Features: aggregate cache, KV (IndexedDB + localStorage fallback), `entity_changed` events, `_objectIndex`, `getObjectById()`, `getRelatedObjects()`, `searchObjects()` |
-| `worker.js` | 206→330 | Web Worker handlers: `graph_tick` (force layout), `heuristics_scan` (dedup), `bulk_transform` (tags/age), `aggregate_stats` |
-| `persistence.js` | 743 | IndexedDB save/load/autoSave, object canvas, toast/notifications. Object tile right‑click context menu (line 617): View Details, Filter by this, Search in graph, Copy name. Uses `entity_changed` events, `scheduleRender()`, `initClusterVirtualList()` |
-| `app-init.js` | – | Auth check, logo dropdown, init entry point |
-| `main.js` | – | Entry point, module docs, init hooks |
+---
 
-### `js/data/` – Data Layer
+## Key Architecture Patterns
+
+### IIFE Module Pattern
+Every JS module uses an IIFE that exposes a single global on `window`:
+- `window.pazatorDashboard`, `pazatorAlerts`, `pazatorAPI`, `pazatorWorkflow`, `pazatorReports`, `pazatorPipelines`, `pazatorOntologyDesigner`, `pazatorObjectExplorer`, `pazatorObjects`, `pazatorLogbook`, `pazatorGIS`, `pazatorRelationships`, `pazatorClassification`, `pazatorStore`, `pazatorFacets`, `pazatorSync`, `pazatorCollab` (referenced in reports.js), `pazatorHumanTile`, `pazatorPlugins`, `pazatorExplorer`.
+
+### Global State (`js/core/globals.js`)
+- `pazatorData = { humans: [], others: [], chats: [] }` — main entity arrays
+- `tags = []` — global tag list
+- `cases = []` — case objects
+- `aiChatHistory = []` — Zor conversation history
+- `autoSaveInterval`, `pendingChanges`, `selectedCaseId`
+
+### Event Bus (`Tastur`)
+Custom global event bus (`Tastur`). Defined in `js/core/plugins.js` if not already present by plugin registration time. Used by persistence (`data_saved`, `data_loaded`), intel (`threat_detected`), search (`search_performed`), plugins (lifecycle hooks), etc. Supports `on()`, `off()`, `emit()`.
+
+### Lazy Module Loading (`js/ui/tabs.js` → `ensureLazyModule()`)
+Dynamic `<script>` injection on first tab click. Modules: dashboard, ontology, pipelines, alerts, api, workflow, reports, explorer, sync, walkthrough, snappy, gis.
+
+---
+
+## Core Modules (by Directory)
+
+### `js/core/` — Foundation
+
+| File | Lines | Exports / Purpose |
+|------|-------|-------------------|
+| `globals.js` | 34 | Global state: `pazatorData`, `tags`, `cases`, `aiChatHistory`, `autoSaveInterval`, `pendingChanges`, `selectedCaseId` |
+| `store.js` | 558 | **In-memory store + event system.** Proxy-patched arrays on `_data: {humans, others, tags, cases, chats, relationships}`. Indexes: `_objectIndex` (Map<id, entity>), `_humanIndex`, `_nameIndex`. Events: `entity_changed`, `humans_changed`, `others_changed`, `data_changed`. Batch operations via `batch(fn)`. Aggregate cache. Dirty tracking (2s debounced auto-sync to IndexedDB). Exposes `window.pazatorStore` with CRUD, `getRelatedObjects()`, `searchObjects()`, `kvGet/kvSet`, `getAggregate()`. |
+| `persistence.js` | 743 | **Save/load subsystem + object canvas + toast notifications.** `saveData()` → localStorage `pazatorData` + backup. `loadData()` → parse, normalize, rebuild indexes. Auto-save (3s debounce + 30s interval). `renderObjectCanvas()` — visual tile grid of ontology objects with search + type filter. `showObjectDetail()` — ontology object detail. Right-click context menu on tiles. `showToast()` — 4 types (info/success/warning/error), auto-dismiss. |
+| `modal.js` | – | `showAlert()`, `showModal()`, `showConfirm()` — modal/alert/confirm system using `#cleanModal` |
+| `dom-refs.js` | – | Cached DOM element references |
+| `data-utils.js` | – | ID generation (`generatePersonId()`), vector search, `PazatorWorker` manager. Worker dispatch: `graphTick()`, `heuristicsScan()`, `bulkTransform()`, `aggregateStats()` |
+| `worker.js` | 330 | **Web Worker.** 4 main handlers + legacy. `graph_tick` — O(n²) N-body force layout with linear cooling. `heuristics_scan` — pairwise name similarity + dedup. `bulk_transform` — tag extraction, age computation. `aggregate_stats` — threat counts, credit risk distribution. |
+| `plugins.js` | 487 | **Plugin registry + Tastur event bus.** `pazatorPlugins` with `register()`, `unregister()`, `installFromUrl()`, `installFromCode()`, enable/disable, state persistence. Plugin API exposes store, events, tab registration (dynamic tab content creation), menu item injection, modals, settings KV. Built-in demo plugin registers Graph Explorer. Hooks: `onLoad`, `onUnload`, `tabs[]`, `menuItems[]`, `handlers{}`. |
+| `app-init.js` | – | Auth check (sync token), logo dropdown wiring, init sequence |
+| `main.js` | – | Entry point after all scripts load. Fires `DOMContentLoaded` handlers, calls `loadData()`, `startAutoSave()`, checks for updates. |
+
+### `js/data/` — Database Layer
 
 | File | Lines | Purpose |
 |------|-------|---------|
 | `db.js` | 184 | Legacy IndexedDB v1 (`PazatorDB`) |
-| `engine.js` | 297→420 | Main IndexedDB v2 (`PazatorV2`). 7 stores + `_kvStore`. Methods: `dbGetPageCursor()` (fast cursor pagination), `dbCountByIndex()`, `queryRange()`, `getAllByIndex()`, `getPage()` |
-| `facets.js` | 251 | Faceted search (`PazatorFacets`) |
+| `engine.js` | 420 | **Main IndexedDB v2 (`PazatorV2`).** 8 object stores (humans, others, tags, cases, chats, relationships, meta, kv) with indexes. Methods: `getPage()` (cursor-advance fast path), `getAllByIndex()`, `countByIndex()`, `queryRange()`, `putMany()`, `bulkRemove()`, `kvGet/kvSet/kvDelete`. The `kv` store is used by settings, findings, search history, AI config, case data. |
+| `facets.js` | 251 | **Faceted search index (`PazatorFacets`).** In-memory index of 17 facet fields → `Set<entityId>`. Methods: `build()`, `getValues()` (sorted counts), `getCounts()`, `filterByFacets()` (AND-combined), `search()` (full-text across name, workplace, notes, tags, dates, relationships). Saved searches via `addSaved()`/`getSaved()`. |
 
-### `js/chat/` – Chat Processing
+### `js/features/` — Feature Modules
 
-| File | Lines | Purpose |
-|------|-------|---------|
-| `chat-system.js` | 653 | `ChatValidator`, `ChatParser`, `ChatStorageManager`, `ChatAnalysisService` |
+| File | Lines | Key Functions / Purpose |
+|------|-------|------------------------|
+| `chat-manager.js` | 2129 | **Chat CRUD + virtual list + D3 force graph + multi-agent connection finder + PDF export.** Load/chats from `ChatStorageManager`. Virtual list (`PazatorUI.VirtualList`, itemHeight 130, overscan 3). D3 `forceSimulation` graph rendering with zoom/pan, tooltips, drag, shared-attribute inferred links. BFS pathfinding over `pazatorRelationships`. Multi-agent connection finder (divides humans into N chunks, recursive depth-limited exploration, 8-attribute comparison). `exportHumanToPDF()` — A4 jsPDF report. `deployConnectionAgents()` — parallel agent connection analysis. `analyzeAllChats()` — batch AI analysis with auto-entity creation and case generation. |
+| `detail.js` | 988 | **Entity detail view + timeline assembly + cross-entity search + family graph.** `showDetailView()` populates all entity fields, linked chats/cases, timeline. `buildEntityTimeline()` merges 6 event types (relationships, cases, chats, tracker, analysis, notes) sorted desc. `renderFamilyGraph()` — circular CSS layout with orbiting family nodes. `performCrossSearch()` — searches humans, chats, cases with 50-result limit. `exportCaseToPDF()` — A4 jsPDF. `openHumanFormForEdit()` / `openOtherFormForEdit()`. |
+| `search.js` | 513 | **Universal search with facets.** Multi-field search across 7 toggles (Names, Jobs/Workplace, Dates, Notes, Tags, Relationships, ID). Facet filtering on 9 dimensions + tags. Paginated results (30/page). Recent searches (capped 12, dual-written to `_kvStore` + localStorage). Saved searches via `pazatorFacets`. 500ms debounce. |
+| `cases.js` | 854 | **Case management.** CRUD for `{id, title, description, status, entities, evidence, timeline, createdAt}`. Filter by status (all/open/in-progress/closed). Entity picker with "Add All" and "Add Related" (transitive closure: friends + family + workplace). Evidence system via `analysesStore` (localStorage `pazatorAnalyses`). `handoffCaseToZor()` — sends case to Gemini for AI analysis, appends as timeline entry. Export as JSON. |
+| `classification.js` | – | **5-level classification.** Unclassified → Confidential → Secret → Top Secret → TS//SCI. Per-entity modal, bulk classify by time range, badge HTML. **Cosmetic only** — zero enforcement, no clearance filtering, no banner toggling. |
+| `relationships.js` | 260 | **Relationship graph.** Flat edge array, 13 types, O(n) scans. Dual coexistence with legacy `friends`/`family` inline fields. `migrateFromLegacy()` conversion. No adjacency index. |
+| `timeline.js` | 199 | Entity timeline component |
+| `heuristics.js` | 164 | Identity resolution (name similarity via worker) |
+| `findings.js` | 490 | TIDE findings stored in IndexedDB KV + localStorage fallback |
+| `credits.js` | 428 | Credit scoring via `AIQueue.getCached()` with hash-keyed cache |
+| `intel.js` | 547 | AI suggestions, findings UI |
+| `uploads.js` | 903 | Chat/data file upload, CSV import with schema mapping |
+| `visualization.js` | 334 | **Misnamed** — actually handles AI chat input, human/other form CRUD, autocomplete field management. The name is misleading; there is no graph visualization here. |
 
-### `js/ai/` – AI/Zor System + TIDE
+### `js/apps/` — Lazy-Loaded Modules
 
-| File | Lines | Purpose |
-|------|-------|---------|
-| `gemini.js` | 117 | Google Gemini HTTP client (9 models) |
-| `ai.js` | 217 | AI Queue, concurrency control, caching |
-| `agents.js` | 990 | Agent analysis engine, orchestrator – delegates AI to TIDE |
-| `tide.js` | – | TIDE engine (Threat Intelligence Distributed Evaluation) |
-| `context.js` | 143 | CTXOD tool system (16 tools) |
-| `zor-chat.js` | 1156 | Zor chat UI, actions, conversation |
-| `zor-context.js` | 967 | AI context modal — 7 data sections (People, Chats, Intel, Logbook, Cases, Entities, Reports), context display pills, `storeAIContext()`, `getAdminContext()` |
-| `zor-tools.js` | – | Zor tool‑calling mode (4 tools, 4 rounds, seed data) |
+| File | Lines | Tab Trigger | Key Capabilities |
+|------|-------|-------------|------------------|
+| `dashboard.js` | 622 | `analysis` | **Drag-and-drop widget dashboard.** 7 widget types: Entity Count, Risk Pie (conic-gradient chart), Recent Activity (scrollable list), Graph Snapshot (canvas mini node-link), Case Status (bar-track), Threat Timeline, AI Insights. Widgets: drag-reposition, 4 size presets, add/remove. Layout persisted to `pazatorEngine` meta store + localStorage fallback. |
+| `ontology.js` | 908 | `ontology` | **Ontology designer overlay/tab.** Two type systems: 15 value types (gender, nationality, etc.) + 8 entity types (Person, Organization, etc.). Manage values: CRUD, drag reorder, parent-child hierarchy, inline rename, bulk add. Entity types: label, plural, icon (58 Font Awesome), color picker. Live preview: form field, detail chip, object tile. Import/export as JSON. |
+| `pipelines.js` | 696 | `pipelines` | **ETL pipeline manager.** 4 connectors (CSV, JSON with JSONPath, SQL via PZLS `/api/query`, REST API). 5 transforms (Filter, Map Fields, Sort, Limit, Deduplicate). Run history (capped 200). Scheduler with interval-based auto-run. UI: pipeline list with run/delete, scheduler view, connector/transform configuration modals. Completely client-side + localStorage. |
+| `alerts.js` | 692 | `alerts` | **Rule-based alert engine.** Rules with conditions (eq/neq/gt/gte/lt/lte/changed/contains), AND/OR logic, 3 severities. Delivery channels: in-app notification, WebSocket push, webhook POST. Polling monitor (5s interval) + store event subscriptions. WebSocket auto-reconnect (10s). Alert history (capped 500). CRUD for rules. |
+| `api.js` | 634 | `api` | **In-browser API console.** REST CRUD over all stores (humans, others, cases, chats, tags, relationships). GraphQL query engine with regex parser supporting all stores + stats + search + introspection. API key management (`paz_` + 40 chars). Webhook management with event-driven dispatch. Request logger (capped 200). Entirely client-side — no network calls except outbound webhooks. |
+| `workflow.js` | 442 | `workflow` | **WHEN/IF/THEN rule engine.** 7 trigger types (Tab Switch, Data Added, Threat Detected, Search Performed, App Load, Data Changed, Schedule). 6 action types (Popup, Notify, Toast, Switch Tab, Webhook, API Call). Condition evaluation with 6 operators. Schedule parsing (`5m`, `1h`, `30s`, `7d`). Monkeys patches `window.switchTab` and `pazatorStore.emit`. |
+| `reports.js` | 510 | `reports` | **Report template builder.** 6 widget types (Entity Count, Risk Pie Chart, Recent Activity, Data Table, Tag Cloud, Relationship Stats). Live preview. PDF export via jsPDF. CSV export. Schedule with interval + format selection. |
+| `sync.js` | 566 | menu | **LAN sync client.** REST-based push/pull to PZLS server. JWT Bearer auth (login/register/logout). Full-state sync with global version counter. 30s retry loop. See "Sync Protocol" section below. |
+| `object-explorer.js` | 551 | menu | **Full-page entity detail overlay.** 3-column layout: Properties/Notes/Ontology → Timeline → Relationships/Cases/Chats. Edit button, graph button, Escape close, backdrop click close. |
+| `objects.js` | 943 | head | **Ontology object system.** Two-level: 15 attribute types with CRUD + hierarchy + usage counts + `getOrCreate()`. 8 entity types with label/plural/icon/color config. `createAutocompleteField()` — reusable form widget supporting single-select, multi-select (chips), inline creation, keyboard nav, destroy cleanup. |
+| `snappy.js` | 191 | menu | **Snapshot utility** — captures app state |
+| `walkthrough.js` | 344 | menu | **Onboarding walkthrough** — guided tour |
+| `logbook.js` | 247 | reports subnav | **Structured logbook.** 5 categories (General/Observation/Incident/Intel/Comm) with color coding. CRUD, 120-char body preview, classification integration. |
+| `gis.js` | 832 | tracker tab | **GIS overlay manager.** Entity location visualization on MapLibre map. Clustered GeoJSON source + stepped cluster circles + cluster count labels + threat-colored entity dots. Heatmap weighted by credit value. Nominatim geocoding (forward + reverse). Custom GeoJSON layer CRUD (Point/LineString/Polygon). Config persistence. |
+| `resolver.js` | 447 | — | **Dead code.** Not referenced anywhere. |
 
-### `js/ui/` – UI Components
-
-| File | Lines | Purpose |
-|------|-------|---------|
-| `ui.js` | 327 | Common UI utilities (`PazatorUI`) |
-| `tabs.js` | 366→413 | Tab navigation + `ensureLazyModule()` (dynamic loader for 12 app modules). Lazy‑loads: dashboard, ontology, pipelines, alerts, api, workflow, reports on first click |
-| `table.js` | 688 | Virtual data table, bulk ops, facet index |
-| `settings.js` | 304 | Settings, password, classification, Gemini UI |
-
-### `js/features/` – Feature Modules
-
-| File | Lines | Changes (June 2026) |
-|------|-------|---------------------|
-| `detail.js` | 976 | Entity detail, slide panel, timeline, tags |
-| `uploads.js` | 903 | Chat/data upload, CSV import |
-| `visualization.js` | 473 | Removed full re‑renders; rAF‑throttled resize |
-| `intel.js` | 547 | AI suggestions, findings |
-| `chat-manager.js` | 2129 | VirtualList for chat history (itemHeight 130, overscan 3) |
-| `credits.js` | 428 | Cached credit scoring via `AIQueue.getCached()` |
-| `findings.js` | 471→490 | Findings migrated to IndexedDB KV + localStorage fallback |
-| `search.js` | 503 | Recent searches dual‑written to IndexedDB KV |
-| `cases.js` | 833 | Case management via `pazatorStore.kvGet/kvSet`. Data in `pazatorCases` localStorage key. Functions: `loadCases()`, `saveCases()`, `createCase()` |
-| `relationships.js` | 260 | Relationship graph |
-| `timeline.js` | 199 | Entity timeline |
-| `heuristics.js` | 164 | Identity resolution |
-
-### `js/tracker/` – LCTX Tracker
+### `js/ai/` — AI / Zor System
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `tracker.js` | 1170 | MapLibre globe tracker, Supabase geolocation |
+| `gemini.js` | 117 | Google Gemini HTTP client — 9 models, API key from `localStorage.gemini_api_key` |
+| `ai.js` | 217 | `AIQueue` — concurrency control (1 at a time), hash-keyed response cache |
+| `tide.js` | – | TIDE engine: chunked threat/terrorist/fraud/credit/risk/intel/connection analysis |
+| `agents.js` | 990 | Agent orchestrator — delegates to TIDE, manages analysis pipeline |
+| `context.js` | 143 | CTXOD tool system — 16 tools (prioritize, search, filter, etc.) |
+| `zor-chat.js` | 1156 | Zor chat UI — conversation, actions, quick commands, message rendering |
+| `zor-context.js` | 967 | AI context modal — 7 data sections, context display pills, 5-min TTL |
+| `zor-tools.js` | – | Zor tool-calling mode — 4 tools, 4 rounds, seed data |
 
-### `js/apps/` – Lazy‑Loaded Modules (via `ensureLazyModule`)
+### `js/chat/` — Chat Processing
 
-| File | Lines | Trigger |
+| File | Lines | Purpose |
 |------|-------|---------|
-| `dashboard.js` | 622 | "analysis" tab |
-| `ontology.js` | 701 | "ontology" tab |
-| `pipelines.js` | 696 | "pipelines" tab |
-| `alerts.js` | 692 | "alerts" tab |
-| `api.js` | 634 | "api" tab |
-| `workflow.js` | 442 | "workflow" tab |
-| `reports.js` | 510 | "reports" tab |
-| `sync.js` | 529 | menu → sync config/push/pull |
-| `object-explorer.js` | – | Gotham‑style full‑page entity detail |
-| `objects.js` | 851+ | Ontology objects + entity type configs |
-| `snappy.js` | 191 | Snapshot utility (menu → system → snappy) |
-| `walkthrough.js` | 344 | Onboarding walkthrough (menu → help) |
-| `logbook.js` | 247 | Lazy‑loaded from Reports tab subnav, CRUD for freeform entries, 5 categories, classify support |
-| `gis.js` | 542 | GIS overlays (tracker tab) |
-| `resolver.js` | 447 | **Dead code** (not referenced) |
+| `chat-system.js` | 653 | `ChatValidator`, `ChatParser` (WhatsApp/Telegram/Discord/Signal format parsers), `ChatStorageManager` (IndexedDB KV + localStorage dual-write, TTL cache, archive, storage stats), `ChatAnalysisService` (batch analysis with progress) |
+
+### `js/ui/` — UI Components
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `ui.js` | 327 | `PazatorUI` — common utilities: `VirtualList`, `debounce()`, `showFloatingNotification()`, etc. |
+| `tabs.js` | 413 | Tab navigation + `ensureLazyModule()` for 12 lazy modules |
+| `table.js` | 688 | Virtual data table (columns: Name/Type/Threat/Credit/Tags/Actions), bulk ops, facet index integration, pagination |
+| `settings.js` | 304 | Settings UI: No Blur, Skip Intro, Tool Call Delay, Agent Debug, Walkthrough, Password Lock, Gemini config |
+
+### `js/graph/` — Graph Explorer
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `explorer.js` | 431 | **D3 force-directed entity graph.** Full standalone graph tab with `workspace`/`side-panel` layout. Loads all humans + others as nodes, builds edges from `pazatorRelationships` and legacy `friends`/`family` arrays. Search to add individual entities. O(1) edge dedup via `edgeSet`. Page Visibility API freeze. Label culling on zoom < 0.3x. ResizeObserver coalesced to rAF. Null-safe tick guards against stale edges. Grayscale color palette. |
+
+### `js/tracker/` — LCTX Tracker
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `tracker.js` | 1177 | **MapLibre GL globe tracker.** Supabase `locations` table integration. Esri satellite basemap. Person list from Supabase (unique names + counts). Path line rendering + marker dots. `requestAnimationFrame` spin animation. Angle/top-down/reset view controls. Street label toggle. Reverse geocoding. Person linking (writes `trackerAlias`/`trackerLinkedAt` on human entities). Metadata display cards. Danger zone purge. Config modal. |
+
+---
+
+## Data Model
+
+### Humans (`store._data.humans`)
+~30 fields: `id`, `name`, `objectType` (default `'Person'`), `gender`, `birthDate`, `workplace`, `credit` (0-370, default 185), `socialClass`, `friends[]`, `family[]`, `extraNotes`, `tags[]`, `imagePreview` (base64), `chats[]`, `cases[]`, `trackerAlias`, `trackerLinkedAt`, `maritalStatus`, `nationality`, `countryOfOrigin`, `immigrationStatus`, `languages`, `ethnicity`, `religion`, `politicalViews`, `threatLevel` (None/Low/Medium/High/Critical), `incomeLevel`, `educationLevel`, `classification` (optional `{level, classifiedBy, classifiedAt}`).
+
+### Others (`store._data.others`)
+Simpler: `id`, `name`, `objectType` (default `'Organization'`, can be Vehicle/Location/Event/etc.), `type`, `note`/`notes`, `imagePreview`, `classification`.
+
+### Relationship Edges (`pazatorRelationships`)
+Flat array: `{id, sourceId, targetId, sourceType, targetType, type (13 types), strength (1-5), confidence (0-1), notes, createdAt, updatedAt, metadata}`. O(n) scan for all queries. Dual system with legacy `friends`/`family` inline arrays on humans — `getRelatedObjects()` merges both with no dedup.
+
+### Cases
+`{id, title, description, status (open/in-progress/closed), entities: [{id, name, type}], evidence: [{id, type, title, findingCount, addedAt}], timeline: [{type, content, timestamp}], createdAt}`. Stored in `pazatorCases` localStorage key + IndexedDB KV.
+
+### Logbook Entries
+`{id, title, body, category (general/observation/incident/intel/comm), createdAt, updatedAt, classification}`. Stored in `pazator_logbook` localStorage key.
+
+### Chat Objects
+`{id, source (whatsapp/telegram/discord/signal/manual), participants[], content, timestamp, context, parsed}`. Managed by `ChatStorageManager` with IndexedDB KV + localStorage `chatHistory` dual-write, TTL cache, archive system.
+
+### Pipeline Objects
+`{id, name, connector: {type, config}, transforms: [{type, config}], targetStore, createdAt, updatedAt}`. Stored in `pazator_pipelines` localStorage. Run history capped at 200 in `pazator_pipeline_runs`.
+
+---
+
+## Storage Architecture
+
+### IndexedDB (`PazatorV2`, 8 stores)
+
+| Store | Key | Indexes | Used For |
+|-------|-----|---------|----------|
+| `humans` | `id` | name, threatLevel, credit, socialClass, nationality | Person entities |
+| `others` | `id` | (none) | Organization/entity records |
+| `tags` | `id` | (none) | Tag list (single record `{id: '_tags', list: []}`) |
+| `cases` | `id` | status, createdAt | Case objects |
+| `chats` | `id` | source, timestamp | Chat objects |
+| `relationships` | `id` | (none) | Relationship edges |
+| `meta` | `id` | (none) | Dashboard layout, etc. (mostly unused) |
+| `kv` | out-of-line | (none) | General-purpose KV: settings, findings, search history, AI config, case data |
+
+### localStorage Keys (25+)
+
+| Key | Format | Used By |
+|-----|--------|---------|
+| `pazatorData` | JSON `{humans, others, chats}` | `persistence.js` — primary save |
+| `pazatorData_backup` | Same | Pre-save snapshot |
+| `pazator_logbook` | Array | `logbook.js` |
+| `pazatorCases` | Array | `cases.js` |
+| `pazatorAnalyses` | Array | `cases.js` evidence store |
+| `pazator_analysis_reports` | `{reports: [...]}` | Reports + findings |
+| `pazatorRecentSearches` | Array (max 12) | `search.js` |
+| `pazator_saved_searches` | Array | `facets.js` |
+| `chatHistory` | Array | `ChatStorageManager` |
+| `pazator_pipelines` | Array | `pipelines.js` |
+| `pazator_pipeline_runs` | Array (capped 200) | `pipelines.js` |
+| `pazator_pipeline_schedules` | Array | `pipelines.js` |
+| `pazator_alerts` | Array | `alerts.js` |
+| `pazator_alert_rules` | Array | `alerts.js` |
+| `pazator_alert_history` | Array (capped 500) | `alerts.js` |
+| `pazator_api_key` | String | `api.js` |
+| `pazator_webhooks` | Array | `api.js` |
+| `pazator_api_logs` | Array (capped 200) | `api.js` |
+| `pazator_workflow_rules` | Array | `workflow.js` |
+| `pazator_workflow_schedules` | Array | `workflow.js` |
+| `pazator_report_templates` | Array | `reports.js` |
+| `pazator_report_schedules` | Array | `reports.js` |
+| `pazator_dashboardLayout` | Array | `dashboard.js` (fallback) |
+| `pazator_objects_data` | Object | `objects.js` ontology instances |
+| `pazator_ontology_types` | Object | `objects.js` type configs |
+| `pazator_ontology_entity_types` | Object | `objects.js` entity type configs |
+| `LCTXTrackerConfig` | Object | `tracker.js` Supabase config |
+| `pazator_gis_config` / `pazator_gis_layers` | Object/Array | `gis.js` |
+| `previousThreats` / `previousFraud` | Array | TIDE findings |
+| `fraudLogs` / `terroristLogs` | Array | Legacy security logs |
+| `adminProvidedContext` | Object | AI context (5-min TTL) |
+| `pazator_sync_config` / `pazator_sync_state` | Object | Sync config + version state |
+| `pazator_auth_token` / `pazator_user_cache` | String/Object | Sync auth |
+| `gemini_api_key` / `gemini_model` | String | AI provider config |
+
+### Persistence Flow
+
+```
+User action → store._data array mutation → proxy push/splice fires:
+  1. invalidateCache()
+  2. rebuildIndexes() (_objectIndex, _humanIndex, _nameIndex)
+  3. _dirtyStores.add(storeName)
+  4. emit('entity_changed', {id, type, action})
+  → 2s debounce flushDirty() → syncToEngine() → IndexedDB putMany()
+  → 3s debounce saveData() → localStorage.pazatorData
+  → 30s periodic saveData() (safety net)
+```
 
 ---
 
 ## Script Load Order (from `app/index.html`)
 
-### Head (eager, blocking)
+### Head (eager, blocking — 13 scripts)
+1. `jspdf` CDN — PDF generation
+2. `d3.v7` CDN — D3 force graph (explorer)
+3. `js/data/db.js` — Legacy IndexedDB v1
+4. `js/data/engine.js` — IndexedDB v2 (`PazatorV2`)
+5. `js/core/store.js` — In-memory store + events
+6. `js/core/plugins.js` — Plugin registry + Tastur event bus
+7. `js/apps/objects.js` — Ontology object system
+8. `js/features/relationships.js` — Relationship graph
+9. `js/ui/ui.js` — Common UI utilities
+10. `js/data/facets.js` — Faceted search index
+11. `js/features/heuristics.js` — Identity resolution
+12. `js/features/timeline.js` — Entity timeline
+13. `stylez.css` + inline `<style>` — Styles
 
-1. `jspdf` CDN  
-2. `js/data/db.js` (legacy IDB v1)  
-3. `js/data/engine.js` (IDB v2)  
-4. `js/core/store.js` (in‑memory store + events)  
-5. `js/apps/objects.js` (ontology system)  
-6. `js/features/relationships.js`  
-7. `js/ui/ui.js`  
-8. `js/data/facets.js`  
-9. `js/features/heuristics.js`  
-10. `js/features/timeline.js`  
-11. `stylez.css` + inline `<style>` (landing page vars)
+### Body (late, ordered — 34 scripts)
+12. `maplibre-gl` CDN — MapLibre GL
+13. `html2canvas` CDN — Screenshot capture
+14. `supabase-js` CDN — Supabase client (tracker)
+15. `js/ai/gemini.js` — Gemini API client
+16. `js/ai/ai.js` — AI Queue + caching
+16b. `js/ai/tide.js` — TIDE engine
+17. `js/ai/agents.js` — Agent orchestrator
+18. `js/core/globals.js` — Global state
+19. `js/core/modal.js` — Modal system
+20. `js/chat/chat-system.js` — Chat parser, storage, analysis
+21. `js/core/data-utils.js` — Worker manager, ID utils
+22. `js/core/dom-refs.js` — DOM references
+23. `js/ui/tabs.js` — Tab navigation, lazy loader
+24. `js/core/persistence.js` — Save/load, object canvas, toasts
+25. `js/apps/object-explorer.js` — Entity detail overlay
+26. `js/ui/table.js` — Virtual data table
+27. `js/features/detail.js` — Entity detail view + timeline
+28. `js/ai/zor-chat.js` — Zor chat UI
+29. `js/features/uploads.js` — File uploads
+30. `js/ai/zor-context.js` — AI context modal
+31. `js/features/visualization.js` — AI chat input + human/other forms (misnamed)
+32. `js/features/intel.js` — AI findings UI
+33. `js/features/chat-manager.js` — Chat CRUD, virtual list, D3 graph, connection agents
+34. `js/features/credits.js` — Credit scoring
+35. `js/features/findings.js` — TIDE findings
+36. `js/features/classification.js` — Classification system
+37. `js/core/app-init.js` — Auth check, init
+38. `js/features/search.js` — Universal search + facets
+39. `js/features/cases.js` — Case management
+40. `js/ui/settings.js` — Settings UI
+41. `js/ai/zor-tools.js` — Zor tool mode
+42. `js/tracker/tracker.js` — LCTX globe tracker
+43. `js/core/main.js` — Entry point, boot
+44. `js/ai/context.js` — CTXOD tools (redundant load — already in head? Actually loaded here too)
+45-46. Inline scripts — Intro video handling, walkthrough triggers, update modal, lazy module wiring
 
-### Body (late, ordered)
-
-| Order | File | Notes |
-|-------|------|-------|
-| 12 | `maplibre-gl` CDN | GIS maps |
-| 13 | `html2canvas` CDN | Screenshots |
-| 14 | `supabase-js` CDN | Supabase client |
-| 15 | `js/ai/gemini.js` | Gemini API client |
-| 16 | `js/ai/ai.js` | AI Queue |
-| 16b | `js/ai/tide.js` | TIDE engine |
-| 17 | `js/ai/agents.js` | Delegates AI to TIDE |
-| 18 | `js/core/globals.js` | Global state |
-| 19 | `js/core/modal.js` | Modal system |
-| 20 | `js/chat/chat-system.js` | Chat parser, dual‑writes to IDB KV |
-| 21 | `js/core/data-utils.js` | Worker manager, ID utils |
-| 22 | `js/core/dom-refs.js` | DOM references |
-| 23 | `js/ui/tabs.js` | Lazy‑load interceptor |
-| 24 | `js/core/persistence.js` | IDB save/load, `entity_changed` |
-| 25 | `js/ui/table.js` | Virtual table |
-| 26 | `js/features/detail.js` | Detail views |
-| 27 | `js/ai/zor-chat.js` | Zor chat UI |
-| 28 | `js/features/uploads.js` | File uploads |
-| 29 | `js/ai/zor-context.js` | AI context modal |
-| 30 | `js/features/visualization.js` | Throttled resize, no full re‑renders |
-| 31 | `js/features/intel.js` | AI findings |
-| 32 | `js/features/chat-manager.js` | VirtualList for chat history |
-| 33 | `js/features/credits.js` | Cached credit scoring |
-| 34 | `js/features/findings.js` | IDB KV for findings |
-| 35 | `js/core/app-init.js` | Auth, logo dropdown |
-| 36 | `js/features/search.js` | Universal search, IDB KV |
-| 37 | `js/features/cases.js` | Case management, IDB KV |
-| 38 | `js/ui/settings.js` | Settings UI |
-| 39 | `js/ai/zor-tools.js` | Zor tool mode |
-| 40 | `js/tracker/tracker.js` | LCTX tracker |
-| 41 | `js/core/main.js` | Entry point, init hooks |
-
-> **Lazy‑loaded after body:** `context.js` (CTXOD tools) and all `apps/*` except `objects.js` (already loaded).  
-> **Worker:** `js/core/worker.js` – instantiated via `new Worker()`.
-
----
-
-## Data Pipeline
-
-### Storage Layers (bottom → top)
-
-| Layer | File | Description |
-|-------|------|-------------|
-| **IndexedDB (primary)** | `engine.js` | 7 stores + `_kvStore`. Queries: `getPage()` (cursor‑advance fast path), index‑based (`getAllByIndex`, `countByIndex`, `queryRange`) |
-| **localStorage (fallback)** | – | Used when store unavailable at startup. `migrateToIDB()` copies `pazator_*` keys at init |
-| **In‑memory caches** | `store.js` | `_aggregateCache` for precomputed stats, `_messageBus` for `entity_changed` events |
-| **Chat system cache** | `chat-system.js` | `_cache` with TTL, `_archiveCache`; dual‑writes to IndexedDB `_kvStore` |
-
-### Key localStorage Keys
-
-| Key | Contents | Used By |
-|-----|----------|---------|
-| `pazatorData` | Full app state JSON (humans, others, chats) | `persistence.js` |
-| `pazatorData_backup` | Previous snapshot before save | `persistence.js` |
-| `chatHistory` | Chat objects array | `ChatStorageManager`, `zor-context.js` |
-| `pazator_logbook` | Logbook entries array | `logbook.js` |
-| `pazatorCases` | Cases array | `cases.js` |
-| `pazator_analysis_reports` | TIDE report objects `{reports: [...]}` | `report-manager.js`, `findings.js` |
-| `previousThreats` / `previousFraud` | TIDE finding arrays | `findings.js`, `zor-context.js` |
-| `fraudLogs` / `terroristLogs` | Legacy security log arrays | `chat-manager.js`, `zor-context.js` |
-| `adminProvidedContext` | Active AI context `{summary, data}` | `zor-context.js` |
-| `pazator_sync_config` / `pazator_sync_state` | LAN sync config + state | `sync.js` |
-| `pazator_auth_token` / `pazator_user_cache` | Auth token + cached user | `sync.js` |
-| `gemini_api_key` / `gemini_model` | AI provider config | `gemini.js`, `settings.js` |
-| `pazator_saved_searches` | Saved facet searches | `facets.js` |
-
-### Data Flow
-
-```
-User action → store mutation → invalidateCache() + entity_changed event
-            → persistence.scheduleRender() (coalesced DOM update)
-            → visualization (only affected entities, no full re‑render)
-```
-
-### AI Pipeline
-
-```
-js/ai/gemini.js → js/ai/ai.js (AIQueue + caching)
-                → js/ai/agents.js (orchestrator)
-                → js/ai/context.js (CTXOD tools)
-                → js/ai/zor-chat.js (chat UI)
-```
-
-**Credit scoring cache:** `cacheKey = hash(person data + length)` – checks `AIQueue.getCached()` before Gemini call.
-
-### Worker Handlers (`js/core/worker.js`)
-
-| Handler | Purpose |
-|---------|---------|
-| `graph_tick` | Force‑directed layout (repulsion + attraction) |
-| `heuristics_scan` | Name similarity + deduplication |
-| `bulk_transform` | Tag extraction, age computation |
-| `aggregate_stats` | Threat counts, credit risk distribution |
-| (legacy) | CSV, credits, connections, dedup |
-
-### Tab Lazy‑Loading (`tabs.js` → `ensureLazyModule`)
-
-Dynamic `<script>` injection on first tab/menu click:
-
-| Tab / Menu | Loaded Module |
-|------------|---------------|
-| analysis | `dashboard.js` |
-| ontology | `ontology.js` |
-| pipelines | `pipelines.js` |
-| alerts | `alerts.js` |
-| api | `api.js` |
-| workflow | `workflow.js` |
-| reports | `reports.js` |
-| sync (menu) | `sync.js` |
-| walkthrough (menu) | `walkthrough.js` |
-| snappy (menu) | `snappy.js` |
-| tracker tab | `gis.js` |
-
-> `resolver.js` is never referenced – effectively dead code.
+### Lazy-Loaded (on first interaction)
+`context.js` (CTXOD tools) + all `apps/*` (except `objects.js`) + `js/graph/explorer.js` + `worker.js` (via `new Worker()`)
 
 ---
 
-## Key Performance Optimizations Summary
+## Sync Protocol (`js/apps/sync.js`)
+
+**Client expects from PZLS:**
+- `POST /api/auth/login`, `/register`, `/logout` — JWT Bearer auth
+- `GET /api/auth/me` — current user info
+- `GET /api/sync` — full pull (all data for user)
+- `POST /api/sync` — full push `{clientVersion, stores}`
+- `GET /api/sync/changes?since=N` — changelog diffs
+- `GET /api/sync/status` — server health + account stats
+
+**Sync model:** Full-state push/replace, full-state pull/append. Global integer version counter. No delta sync, no deletion sync (pull additive-only), no conflict resolution (last-write-wins). 30s retry loop. No real-time WebSocket for data sync (WebSocket only exists in `alerts.js` for alert push).
+
+**Storage (PZLS):** Per-user flat JSON files, not SQLite. The `POST /api/query` endpoint used by pipelines queries external databases.
+
+**Data synced:** 6 stores → object maps keyed by ID: `humans`, `others`, `tags`, `cases`, `chats`, `relationships`.
+
+---
+
+## Graph & Relationships
+
+### Entity Graph Explorer (`js/graph/explorer.js`)
+Dedicated graph tab with full entity relationship visualization. Uses D3 `forceSimulation` with `forceLink`, `forceManyBody(-200)`, `forceCenter`, `forceCollide(28)`.
+
+**Layout:** Workspace with main-panel (full-bleed SVG) and side-panel (controls + info). Sidebar sections: Add Entity (search), Controls (Load All / Reset View / Clear Graph), Stats (node/edge counts), Node Info (expand/details/remove).
+
+**Features:**
+- Auto-loads all entities from store on first open
+- Search by name to add individual entities (with auto-expand of relations via double-click)
+- O(1) edge dedup via `edgeSet` (instead of O(n) array scan)
+- Grayscale color palette — node shade by entity type, stroke by threat level
+- ResizeObserver coalesced to rAF
+- Visibility API freezes simulation when tab hidden
+- Labels hidden at zoom < 0.3x
+- Null-safe tick guards against stale D3 references
+
+**Limitations (current):** No BFS pathfinding UI, no edge filtering, single-select only.
+
+### Other Graph Features
+- D3 force-directed graph in `chat-manager.js` — renders connections from `deployConnectionAgents()` or shared-attribute heuristics. Supports zoom/pan, tooltips, click-to-open-detail, drag, path highlighting (green). ResizeObserver for responsive re-center.
+- BFS pathfinding (`chat-manager.js:findPath()`) — shortest path over `pazatorRelationships`, returns `{nodeId, relType}` steps, renders on D3 graph.
+- Family graph in `detail.js` — circular CSS-based layout for direct family/friend connections only.
+
+---
+
+## Key Performance Optimizations
 
 | Problem | Solution |
 |---------|----------|
-| Slow pagination | `cursor.advance()` + virtual lists |
-| Heavy layout on main thread | Worker‑based force layout |
-| Excessive re‑renders | `entity_changed` events + aggregate cache + `scheduleRender()` coalescing |
-| Synchronous storage bottleneck | Dual‑write: localStorage for synchronous reads, IndexedDB for async persistence |
-| 12 blocking scripts | Lazy‑load on first interaction |
-| Unthrottled resize | `requestAnimationFrame` throttling |
-| Redundant AI calls | Hash‑keyed cache in `AIQueue` |
+| Slow pagination | `cursor.advance()` + virtual lists (chat list + data table) |
+| Heavy layout on main thread | Worker-based force layout (`graph_tick`) |
+| Excessive re-renders | `entity_changed` events + aggregate cache + `scheduleRender()` coalescing |
+| Synchronous storage bottleneck | Dual-write: localStorage sync reads, IndexedDB async persistence |
+| 12 blocking scripts | Lazy-load on first interaction (`ensureLazyModule()`) |
+| Unthrottled resize | `requestAnimationFrame` throttling (`visualization.js:314`) |
+| Redundant AI calls | Hash-keyed cache in `AIQueue` |
+| Chat system performance | TTL cache + archive system in `ChatStorageManager` |
+| Data loading on startup | `skeletonGraph` CSS loading skeleton while data loads |
+
+---
+
+## Notable Algorithms & Data Structures
+
+1. **Virtual List** (`chat-manager.js`): `PazatorUI.VirtualList` with itemHeight 130, overscan 3, pagination 25 per page. Fallback DOM rendering.
+2. **D3 Force Graph** (`chat-manager.js`): `forceSimulation` with `forceLink`, `forceManyBody(-200)`, `forceCenter`, `forceCollide`. Shared-attribute inferred links (workplace, nationality, etc.). Custom tooltip + drag + zoom/pan.
+3. **Multi-Agent Connection Finder** (`chat-manager.js`): Divides humans into N chunks, recursive depth-limited exploration up to `depth` (default 2), 8-attribute comparison for shared values.
+4. **BFS Pathfinding** (`chat-manager.js`): Queue-based, visited Set, over `pazatorRelationships` edges.
+5. **Entity Timeline Assembly** (`detail.js`): Merges 6 event types (relationships, cases, chats, tracker, analysis, notes) with dedup, sorts desc by timestamp.
+6. **Case Related-Entity Expansion** (`cases.js`): Transitive closure one-level: friends + family + workplace from current case entities.
+7. **Cross-Entity Search** (`detail.js`): 3 data sources (humans, chats, cases), multi-field matching, 50-result limit, 300ms debounce.
+8. **Facet Filtering** (`search.js`, `facets.js`): AND-combined facet filters, OR within a facet. 17 indexed dimensions.
+9. **Aggregate Cache** (`store.js`): Lazy-recomputed on mutation, stores threat counts, credit risk, case statuses.
+10. **O(n²) Force Layout** (`worker.js`): N-body repulsion + attraction with linear cooling schedule.
+11. **Credit Risk Categorization**: Three-tier bins (0-124 high, 125-249 medium, 250-370 low).
+12. **Time-Ago Formatting** (multiple files): "just now", "Xm ago", "Xh ago", "Xd ago", date — millisecond-diff buckets.
+
+---
+
+## Dead / Unused Code
+
+- **`resolver.js`** — 447 lines, never referenced by any module or script tag.
+- **`#meta` IndexedDB store** — defined in schema but unused by application code.
+- **Classification banner** — HTML exists, CSS exists, but no JS ever toggles it.
+- **`app-init.js` classify option** — logo dropdown menu item wired to a `console.log` no-op ("Classification system moved to classification.js").
+- **`visualization.js` name** — the file exists but does not contain graph visualization; it's AI chat input handling + form CRUD.
+
+---
+
+## Project Directory Structure
+
+```
+pazator/
+├── index.html                       # Marketing landing page
+├── map.txt                          # This file
+├── google0f064d72b8389aee.html     # Google Search Console verification
+├── app/
+│   ├── index.html                   # Main SPA (2841 lines, 13 tabs, 16 modals)
+│   ├── stylez.css                   # Dark theme (12,593 lines, CSS custom properties)
+│   ├── js/
+│   │   ├── core/                    # Foundation (globals, store, worker, persistence, modal, etc.)
+│   │   ├── data/                    # Database (IndexedDB engine, facet index)
+│   │   ├── chat/                    # Chat processing (parser, storage, analysis service)
+│   │   ├── ai/                      # AI/Zor system + TIDE engine (8 modules)
+│   │   ├── ui/                      # UI components (tabs, table, settings, common utils)
+│   │   ├── features/                # Feature modules (12 modules)
+│   │   ├── tracker/                 # LCTX globe tracker (1 module, 1177 lines)
+│   │   └── apps/                    # Lazy-loaded app modules (16 modules)
+├── docs/                            # Documentation pages (11 HTML files)
+├── design/                          # Design language system (style guide HTML + fonts)
+├── mobile/                          # SHAHED mobile companion (single HTML file)
+└── ASKING/                          # Fullscreen help/landing page (+ fonts)
+```

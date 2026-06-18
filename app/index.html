@@ -10,9 +10,11 @@
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.css">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="js/data/db.js"></script>
     <script src="js/data/engine.js"></script>
     <script src="js/core/store.js"></script>
+    <script src="js/core/plugins.js"></script>
     <script src="js/apps/objects.js"></script>
     <script src="js/features/relationships.js"></script>
     <script src="js/ui/ui.js"></script>
@@ -332,6 +334,8 @@
                         Analysis</button>
                     <button class="menu-dropdown-item" onclick="switchTab('threats')"><i class="fas fa-shield-alt"></i>
                         Threats</button>
+                    <button class="menu-dropdown-item" onclick="switchTab('explorer')"><i class="fas fa-project-diagram"></i>
+                        Explorer</button>
                 </div>
             </div>
             <div class="menu-item" data-menu="data">
@@ -381,7 +385,10 @@
                             class="fas fa-download"></i> Pull</button>
                     <div class="menu-separator"></div>
                     <button class="menu-dropdown-item" onclick="document.getElementById('snappyOption')?.click()"><i
-                            class="fas fa-camera"></i> Snappy</button>
+                             class="fas fa-camera"></i> Snappy</button>
+                    <div class="menu-separator"></div>
+                    <button class="menu-dropdown-item" onclick="openOrCreateTab('plugins')"><i
+                             class="fas fa-puzzle-piece"></i> Plugins</button>
 
                 </div>
             </div>
@@ -1503,6 +1510,111 @@
                         </div>
                         <div style="padding:8px 12px;font-size:11px;color:var(--text-muted);line-height:1.6;">
                             Build report templates with drag-and-drop widgets, or browse saved TIDE intelligence reports. This tab is ideal for compiling findings and generating intelligence summaries to print or export or use outside of Pazator.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="explorer-tab">
+            <div class="workspace">
+                <div class="main-panel" style="position:relative;padding:0;">
+                    <div class="explorer-graph" id="explorerGraph"></div>
+                </div>
+                <div class="side-panel">
+                    <div class="sidebar-section sidebar-mini">
+                        <div class="sidebar-section-header">
+                            <i class="fas fa-search"></i>
+                            <h3>Add Entity</h3>
+                        </div>
+                        <div class="explorer-search-wrap">
+                            <input type="text" class="explorer-search" id="explorerSearch" placeholder="Search entities..." autocomplete="off" spellcheck="false">
+                            <div class="explorer-search-results" id="explorerSearchResults"></div>
+                        </div>
+                    </div>
+                    <div class="sidebar-section sidebar-mini">
+                        <div class="sidebar-section-header">
+                            <i class="fas fa-sliders-h"></i>
+                            <h3>Controls</h3>
+                        </div>
+                        <button class="sidebar-action-item" id="explorerLoadAllBtn"><i class="fas fa-database"></i> Load All</button>
+                        <button class="sidebar-action-item" id="explorerResetBtn"><i class="fas fa-home"></i> Reset View</button>
+                        <button class="sidebar-action-item" id="explorerClearBtn" style="color:#ff6b6b;"><i class="fas fa-eraser"></i> Clear Graph</button>
+                    </div>
+                    <div class="sidebar-section sidebar-mini">
+                        <div class="sidebar-section-header">
+                            <i class="fas fa-chart-simple"></i>
+                            <h3>Stats</h3>
+                        </div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <span style="background:rgba(129,140,248,0.15);color:#818cf8;padding:3px 10px;border-radius:5px;font-size:0.75rem;font-weight:600;"><span id="explorerNodeCount">0</span> nodes</span>
+                            <span style="background:rgba(52,211,153,0.15);color:#34d399;padding:3px 10px;border-radius:5px;font-size:0.75rem;font-weight:600;"><span id="explorerEdgeCount">0</span> edges</span>
+                        </div>
+                    </div>
+                    <div class="sidebar-section sidebar-mini" id="explorerInfo">
+                        <div class="sidebar-section-header">
+                            <i class="fas fa-info-circle"></i>
+                            <h3>Node Info</h3>
+                        </div>
+                        <div class="explorer-info-placeholder" id="explorerInfoPlaceholder">
+                            <p style="margin:0;font-size:0.75rem;color:#555;">Select a node</p>
+                        </div>
+                        <div class="explorer-info-body" id="explorerInfoBody" style="display:none;">
+                            <div class="explorer-info-header">
+                                <div class="explorer-info-name" id="explorerInfoName">—</div>
+                                <div class="explorer-info-meta" id="explorerInfoMeta">—</div>
+                            </div>
+                            <div class="explorer-info-details" style="margin:8px 0;">
+                                <div class="eid-row"><span class="eid-label">Threat</span><span class="eid-value" id="explorerInfoThreat">—</span></div>
+                                <div class="eid-row"><span class="eid-label">Credit</span><span class="eid-value" id="explorerInfoCredit">—</span></div>
+                                <div class="eid-row"><span class="eid-label">Connections</span><span class="eid-value" id="explorerInfoConnections">—</span></div>
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:4px;">
+                                <button class="btn btn-primary btn-sm" id="explorerInfoExpand"><i class="fas fa-expand"></i> Expand</button>
+                                <button class="btn btn-sm" id="explorerInfoOpen"><i class="fas fa-external-link-alt"></i> Details</button>
+                                <button class="btn btn-sm" id="explorerInfoRemove" style="color:#ff6b6b;"><i class="fas fa-times"></i> Remove</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="plugins-tab">
+            <div class="workspace">
+                <div class="main-panel">
+                    <div class="canvas-header">
+                        <h1><i class="fas fa-puzzle-piece"></i> Plugin Manager</h1>
+                        <p class="canvas-version" style="font-size:0.8rem;color:#666;">Extend Pazator with community and custom modules</p>
+                    </div>
+                    <div class="plugins-grid" id="pluginsContainer">
+                        <div class="plugins-empty">
+                            <i class="fas fa-puzzle-piece" style="font-size:2rem;color:#444;margin-bottom:12px;"></i>
+                            <p style="color:#666;">Loading plugins...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="side-panel">
+                    <div class="sidebar-section sidebar-mini">
+                        <div class="sidebar-section-header">
+                            <i class="fas fa-search"></i>
+                            <h3>Search</h3>
+                        </div>
+                        <input type="text" id="pluginsSearch" class="tag-input" placeholder="Search plugins..." oninput="window.pazatorPlugins?.renderManager('pluginsContainer')">
+                    </div>
+                    <div class="sidebar-section sidebar-mini">
+                        <div class="sidebar-section-header">
+                            <i class="fas fa-download"></i>
+                            <h3>Install</h3>
+                        </div>
+                        <button class="sidebar-action-item" id="pluginsInstallBtn" onclick="togglePluginInstall()"><i class="fas fa-plus"></i> Install from URL</button>
+                        <div id="pluginsInstallArea" style="display:none;margin-top:8px;">
+                            <input type="text" id="pluginsInstallUrl" class="tag-input" placeholder="https://example.com/plugin.js" spellcheck="false" style="margin-bottom:6px;">
+                            <button class="sidebar-apply-btn" onclick="installPluginFromUrl()" style="width:100%;"><i class="fas fa-download"></i> Load</button>
+                            <div style="margin:8px 0;text-align:center;font-size:0.7rem;color:#555;">— or paste code —</div>
+                            <textarea id="pluginsInstallCode" class="tag-input" placeholder="// plugin code..." spellcheck="false" rows="3" style="margin-bottom:6px;resize:vertical;"></textarea>
+                            <button class="sidebar-apply-btn" onclick="installPluginFromCode()" style="width:100%;"><i class="fas fa-play"></i> Run</button>
+                            <div id="pluginsInstallStatus" style="margin-top:6px;font-size:0.7rem;color:#555;"></div>
                         </div>
                     </div>
                 </div>
