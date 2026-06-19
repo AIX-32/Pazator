@@ -9,7 +9,7 @@
         content="Pazator delivers AI‑driven operational systems and predictive intelligence to stop threats before they happen.">
     <meta name="keywords"
         content="Pazator, operational systems, intelligence solutions, free, predictive intelligence, AI security">
-    <meta name="author" content="AIX.">
+    <meta name="author" content="AIX.">½
     <meta name="theme-color" content="#ffffff">
 
     <link rel="icon" type="image/x-icon" href="./favicon.ico" />
@@ -52,10 +52,12 @@
             --dim: #666;
             --accent: #e8e8e8;
             --grain-opacity: 0.035;
+            --snap: cubic-bezier(0.51, -0.01, 0.49, 1);
         }
 
         html {
             font-size: 16px;
+            scroll-behavior: smooth;
         }
 
         body {
@@ -157,6 +159,213 @@
             color: var(--white);
         }
 
+        /* -- HORIZONTAL SCROLL PIN -- */
+        .scroll-pin {
+            position: relative;
+            height: 200vh;
+        }
+
+        .scroll-track {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            width: 200vw;
+            display: flex;
+            overflow: hidden;
+            will-change: transform;
+        }
+
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .slide-hero {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 52px;
+        }
+
+        .slide-products {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .slide-products .sp-label {
+            font-size: 9px;
+            letter-spacing: 0.4em;
+            color: var(--dim);
+            margin-bottom: 20px;
+        }
+
+        .slide-products .sp-title {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(48px, 8vw, 120px);
+            letter-spacing: -0.02em;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .sp-sub {
+            font-size: 10px;
+            letter-spacing: 0.25em;
+            color: rgba(255, 255, 255, 0.25);
+            margin-bottom: 48px;
+        }
+
+        .sp-lead {
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            color: rgba(255, 255, 255, 0.35);
+            margin-bottom: 16px;
+        }
+
+        .sp-version {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(56px, 10vw, 140px);
+            letter-spacing: -0.03em;
+            line-height: 1;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .sp-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 9px;
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            color: var(--white);
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+            padding-bottom: 8px;
+            transition: border-color 0.3s, gap 0.3s;
+        }
+
+        .sp-cta:hover {
+            border-color: var(--white);
+            gap: 18px;
+        }
+
+        .sp-cta span {
+            transition: transform 0.3s;
+        }
+
+        .sp-cta:hover span {
+            transform: translateY(3px);
+        }
+
+        .slide-products .sp-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .slide-products .sp-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .slide-products .sp-row:last-child {
+            border-bottom: none;
+        }
+
+        .sp-row .sp-name {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(20px, 2.5vw, 36px);
+            letter-spacing: -0.01em;
+        }
+
+        .sp-row .sp-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 9px;
+            letter-spacing: 0.3em;
+            color: var(--dim);
+        }
+
+        .sp-row .sp-meta .pill {
+            font-size: 8px;
+            letter-spacing: 0.35em;
+            padding: 5px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--dim);
+        }
+
+        .sp-row .sp-meta .pill.live {
+            border-color: rgba(255, 255, 255, 0.4);
+            color: var(--white);
+        }
+
+        .sp-row .sp-meta .sdot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--dim);
+        }
+
+        .sp-row .sp-meta .sdot.live {
+            background: var(--white);
+            animation: blink 1.8s infinite;
+        }
+
+        /* -- REVEAL UTILITIES (scroll‑triggered clip‑path + translate) -- */
+        .reveal-right {
+            clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
+            transform: translateX(-24px);
+            transition: clip-path 1s var(--snap), transform 1s var(--snap);
+        }
+        .reveal-right.vis {
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+            transform: translateX(0);
+        }
+
+        .reveal-left {
+            clip-path: polygon(100% 0, 100% 0, 100% 100%, 100% 100%);
+            transform: translateX(24px);
+            transition: clip-path 1s var(--snap), transform 1s var(--snap);
+        }
+        .reveal-left.vis {
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+            transform: translateX(0);
+        }
+
+        .reveal-up {
+            clip-path: polygon(0 100%, 100% 100%, 100% 100%, 0 100%);
+            transform: translateY(20px);
+            transition: clip-path 0.9s var(--snap), transform 0.9s var(--snap);
+        }
+        .reveal-up.vis {
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+            transform: translateY(0);
+        }
+
+        .reveal-scale {
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity 0.8s var(--snap), transform 0.8s var(--snap);
+        }
+        .reveal-scale.vis {
+            opacity: 1;
+            transform: scale(1);
+        }
+
         .hero {
             min-height: 100vh;
             padding-top: 52px;
@@ -188,8 +397,38 @@
 
         .hero-grid {
             display: grid;
-            grid-template-columns: 1fr 360px;
+            grid-template-columns: 1fr 44px 360px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .hero-stripe {
+            width: 44px;
+            overflow: hidden;
+            pointer-events: none;
+            position: relative;
+        }
+
+        .hero-stripe-track {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 44px;
+            height: 200%;
+            display: flex;
+            flex-direction: column;
+            animation: stripeUp 16s linear infinite;
+        }
+
+        .hero-stripe-track img {
+            width: 44px;
+            height: 44px;
+            flex-shrink: 0;
+            opacity: 0.15;
+            display: block;
+        }
+
+        @keyframes stripeUp {
+            to { transform: translateY(-50%); }
         }
 
         .hero-left {
@@ -211,38 +450,12 @@
             opacity: 0.9;
             filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.1));
             z-index: 0;
-            animation: logoFloat 6s ease-in-out infinite, logoPulse 3s ease-in-out infinite;
-            transition: filter 0.3s ease, opacity 0.3s ease;
             cursor: pointer;
+            will-change: transform, opacity, filter;
         }
 
         .hero-logo:hover {
-            opacity: 1;
             filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.3));
-        }
-
-        @keyframes logoFloat {
-
-            0%,
-            100% {
-                transform: translateY(0px) scale(1);
-            }
-
-            50% {
-                transform: translateY(-12px) scale(1.02);
-            }
-        }
-
-        @keyframes logoPulse {
-
-            0%,
-            100% {
-                opacity: 0.9;
-            }
-
-            50% {
-                opacity: 1;
-            }
         }
 
         .hero-wordmark {
@@ -251,6 +464,8 @@
             line-height: 0.82;
             letter-spacing: -0.03em;
             overflow: hidden;
+            position: relative;
+            z-index: 2;
         }
 
         .wm-line {
@@ -281,6 +496,7 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            position: relative;
         }
 
         .hr-label {
@@ -1478,6 +1694,211 @@
             left: 22px;
         }
 
+        /* -- PAZATOR BLOCKS (masonry layout) -- */
+        .pb-section {
+            padding: 80px 48px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            overflow: hidden;
+        }
+
+        .pb-label {
+            font-size: 9px;
+            letter-spacing: 0.5em;
+            color: var(--dim);
+            margin-bottom: 48px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .pb-label::before {
+            content: '';
+            display: block;
+            width: 24px;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .pb-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            justify-content: center;
+            opacity: 0;
+            translate: 0 20px;
+            transition: opacity 0.5s var(--snap), translate 0.5s var(--snap);
+        }
+
+        .pb-section.vis .pb-row {
+            opacity: 1;
+            translate: 0 0;
+        }
+
+        .pb-section.vis .pb-row-2 {
+            transition-delay: 0.12s;
+        }
+
+        .pb-section.vis .pb-row-3 {
+            transition-delay: 0.24s;
+        }
+
+        .pb-row-1 {
+            transform: translateX(-36px) translateY(4px);
+        }
+        .pb-row-2 {
+            transform: translateX(34px) translateY(2px);
+        }
+        .pb-row-3 {
+            transform: translateX(24px) translateY(1px);
+        }
+
+        .pb-card {
+            text-decoration: none;
+            color: var(--white);
+            cursor: crosshair;
+            flex-shrink: 0;
+            width: 200px;
+            height: 200px;
+            outline: 1px solid rgba(255, 255, 255, 0.06);
+            outline-offset: -1px;
+        }
+
+        .pb-card.wide {
+            width: 400px;
+        }
+
+        .pb-card.med {
+            height: 160px;
+        }
+
+        .pb-card.short {
+            height: 120px;
+        }
+
+        .pb-card.short .pb-card-icon {
+            display: none;
+        }
+
+        .pb-inner {
+            padding: 12px;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: flex-start;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: var(--black);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s;
+            will-change: transform;
+        }
+
+        .pb-card-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.07);
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.4);
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .pb-card-title {
+            font-family: 'Anton', sans-serif;
+            font-size: 15px;
+            letter-spacing: 0.06em;
+            transition: letter-spacing 0.3s;
+        }
+
+        .pb-card-desc {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.3);
+            line-height: 1.5;
+            margin-top: 2px;
+        }
+
+        /* Hover */
+
+        /* Decorative blocks */
+        .pb-deco {
+            display: none;
+            flex-shrink: 0;
+        }
+
+        @media (min-width: 1024px) {
+            .pb-deco {
+                display: block;
+            }
+        }
+
+        .pb-rotated {
+            width: 60px;
+            height: 60px;
+            transform: rotate(45deg);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.012);
+        }
+
+        .pb-empty-tall {
+            width: 200px;
+            height: 200px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            background: rgba(255, 255, 255, 0.006);
+        }
+
+        .pb-empty-short {
+            width: 80px;
+            height: 80px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            background: rgba(255, 255, 255, 0.006);
+        }
+
+        .pb-spacer {
+            width: 80px;
+            flex-shrink: 0;
+            display: none;
+        }
+
+        @media (min-width: 1024px) {
+            .pb-spacer {
+                display: block;
+            }
+        }
+
+        body.rtl .pb-row-1 {
+            transform: translateX(36px) translateY(4px);
+        }
+        body.rtl .pb-row-2 {
+            transform: translateX(-34px) translateY(2px);
+        }
+        body.rtl .pb-row-3 {
+            transform: translateX(-24px) translateY(1px);
+        }
+        body.rtl .pb-card-desc {
+            font-family: 'Vazir', 'DM Mono', monospace;
+        }
+        body.rtl .pb-card-title,
+        body.rtl .pb-label {
+            font-family: 'Vazir', 'Anton', sans-serif;
+        }
+
+        @media (max-width: 860px) {
+            .pb-section {
+                padding: 60px 24px;
+            }
+            .pb-card {
+                width: 100% !important;
+                height: 140px !important;
+            }
+            .pb-row {
+                transform: none !important;
+                margin-top: 0 !important;
+            }
+        }
+
         /* -- RESPONSIVE -- */
         @media(max-width:860px) {
             .hero-grid {
@@ -1486,6 +1907,10 @@
 
             .hero-right {
                 border-top: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            .hero-stripe {
+                display: none;
             }
 
             .hero-logo {
@@ -1572,48 +1997,64 @@
         </nav>
     </header>
 
-    <section class="hero">
-        <div class="ticker-wrap">
-            <span class="ticker-inner">PAZATOR · MASS DATA INTELLIGENCE · ANOMALY DETECTION · RISK ASSESSMENT ·
-                OPERATIONAL SYSTEMS · PAZATOR · MASS DATA INTELLIGENCE · ANOMALY DETECTION · RISK ASSESSMENT ·
-                OPERATIONAL SYSTEMS · PAZATOR · MASS DATA INTELLIGENCE · ANOMALY DETECTION · RISK ASSESSMENT ·
-                OPERATIONAL SYSTEMS ·</span>
-        </div>
+    <div class="scroll-pin">
+        <div class="scroll-track" id="scrollTrack">
 
-        <div class="hero-grid">
-            <div class="hero-left">
-                <img class="hero-logo" src="./logo.png" alt="Pazator logo" width="176" height="176" decoding="async"
-                    fetchpriority="high">
-                <div>
-                    <div class="hero-wordmark" id="wm">
-                        <span class="wm-line">PAZA</span>
-                        <span class="wm-line">TOR.</span>
-                    </div>
-                    <div class="hero-sub">Stopping problems before they start.</div>
+            <section class="slide slide-hero">
+                <div class="ticker-wrap">
+                    <span class="ticker-inner">PAZATOR · MASS DATA INTELLIGENCE · ANOMALY DETECTION · RISK ASSESSMENT ·
+                        OPERATIONAL SYSTEMS · CTXOD · LCTX · TIDE · PZLS · ZOR · SARPARAST ·
+                        RETRIEVAL ENGINE · FACETED SEARCH · AI ASSISTANT · ETL PIPELINES · GLOBE TRACKING ·
+                        PLUGIN ECOSYSTEM · COLLABORATION · WORKFLOW · DASHBOARD · ONTOLOGY · ONTOL · REPORTS ·
+                        PAZATOR · MASS DATA INTELLIGENCE · ANOMALY DETECTION · RISK ASSESSMENT ·
+                        OPERATIONAL SYSTEMS · CTXOD · LCTX · TIDE · PZLS · ZOR · SARPARAST ·
+                        RETRIEVAL ENGINE · FACETED SEARCH · AI ASSISTANT · ETL PIPELINES · GLOBE TRACKING ·
+                        PLUGIN ECOSYSTEM · COLLABORATION · WORKFLOW · DASHBOARD · ONTOLOGY · ONTOL · REPORTS ·</span>
                 </div>
-            </div>
-            <div class="hero-right">
-                <div>
-                    <div class="hr-label">// PLATFORM</div>
-                    <p class="hr-desc">Mass data infrastructure engineered to identify anomalies, assess risk, and
-                        deliver actionable intelligence before disruption occurs.</p>
-                </div>
-                <div>
-                    <div class="lang-switcher-hero">
-                        <a href="#" id="langSwitch" class="lang-btn">فا</a>
+                <div class="hero-grid">
+                    <div class="hero-left">
+                        <div>
+                            <div class="hero-wordmark" id="wm">
+                                <span class="wm-line">PAZA</span>
+                                <span class="wm-line">TOR.</span>
+                            </div>
+                            <div class="hero-sub">Stopping problems before they start.</div>
+                        </div>
                     </div>
-                    <div class="hr-actions">
-                        <a href="./app" class="hbtn fill"><span>Launch App</span><span class="a">→</span></a>
-                        <a href="https://discord.gg/74c9RBYD4R" target="_blank" class="hbtn"><span>Join
-                                Discord</span><span class="a">↗</span></a>
-                        <a href="https://aix-32.github.io/zor/" class="hbtn"><span>Zor Personal</span><span
-                                class="a">→</span></a>
-                        <a href="docs/" class="hbtn"><span>Docs</span><span class="a">→</span></a>
+                    <div class="hero-stripe" id="heroStripe">
+                        <div class="hero-stripe-track" id="stripeTrack"></div>
+                    </div>
+                    <div class="hero-right">
+                        <div>
+                            <div class="hr-label">// PLATFORM</div>
+                            <p class="hr-desc">Mass data infrastructure engineered to identify anomalies, assess risk, and
+                                deliver actionable intelligence before disruption occurs.</p>
+                        </div>
+                        <div>
+                            <div class="lang-switcher-hero">
+                                <a href="#" id="langSwitch" class="lang-btn">فا</a>
+                            </div>
+                            <div class="hr-actions">
+                                <a href="./app" class="hbtn fill"><span>Launch App</span><span class="a">→</span></a>
+                                <a href="https://discord.gg/74c9RBYD4R" target="_blank" class="hbtn"><span>Join
+                                        Discord</span><span class="a">↗</span></a>
+                                <a href="https://aix-32.github.io/zor/" class="hbtn"><span>Zor Personal</span><span
+                                        class="a">→</span></a>
+                                <a href="docs/" class="hbtn"><span>Docs</span><span class="a">→</span></a>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </section>
+
+            <section class="slide slide-products">
+                <span class="sp-label">// STATUS</span>
+                <p class="sp-lead">Pazator's last update was</p>
+                <div class="sp-version" id="spVersion">v0.Jun1826</div>
+            </section>
+
         </div>
-    </section>
+    </div>
 
     <div class="wmarquee">
         <div class="wmarquee-track" aria-label="Endless Pazator marquee">
@@ -1629,42 +2070,11 @@
         </div>
     </div>
 
-    <section>
-        <div class="products-head">
-            <h2>SYSTEMS</h2>
-            <span>02 PRODUCTS</span>
-        </div>
-        <div class="prow">
-            <div class="pidx">01</div>
-            <div class="pmain">
-                <div class="pname">SARPARAST</div>
-            </div>
-            <div class="pdesc">Mass data infrastructure engineered to identify anomalies, assess risk, and deliver
-                actionable intelligence before disruption occurs.</div>
-            <div class="pstatus">
-                <div class="pill live">LIVE</div>
-                <div class="sdot live"></div>
-            </div>
-        </div>
-        <div class="prow">
-            <div class="pidx">02</div>
-            <div class="pmain">
-                <div class="pname">LCTX</div>
-            </div>
-            <div class="pdesc">Gives location context to Zor for pattern finding and analysis. Bridges spatial data with
-                intelligence operations.</div>
-            <div class="pstatus">
-                <div class="pill live">LIVE</div>
-                <div class="sdot live"></div>
-            </div>
-        </div>
-    </section>
-
     <!-- ZOR SECTION -->
     <section class="zor-section">
 
         <div class="zor-top">
-            <div class="zor-intro">
+            <div class="zor-intro reveal-right" style="transition-delay:0.1s">
                 <div class="zor-eyebrow">AI ASSISTANT</div>
                 <div class="zor-title">
                     MEET<br>ZOR<span class="zor-italic">.</span>
@@ -1673,7 +2083,7 @@
                     entities, relationships, tags - and can act on it in plain language.</p>
             </div>
 
-            <div class="zor-terminal-wrap">
+            <div class="zor-terminal-wrap reveal-left" style="transition-delay:0.25s">
                 <div class="zor-terminal">
                     <div class="terminal-header">
                         <div class="terminal-dots">
@@ -1692,21 +2102,21 @@
         </div>
 
         <div class="zor-caps">
-            <div class="zor-cap">
+            <div class="zor-cap reveal-up" style="transition-delay:0.1s">
                 <div class="cap-num">01</div>
                 <div class="cap-icon"><i class="fas fa-brain"></i></div>
                 <div class="cap-title">KNOWS YOUR DATA</div>
                 <p class="cap-desc">Full context on every person, entity, tag, and relationship in your system. Ask
                     anything - get instant, precise answers.</p>
             </div>
-            <div class="zor-cap">
+            <div class="zor-cap reveal-up" style="transition-delay:0.25s">
                 <div class="cap-num">02</div>
                 <div class="cap-icon"><i class="fas fa-link"></i></div>
                 <div class="cap-title">CONNECTS EVERYTHING</div>
                 <p class="cap-desc">Draws from all Pazator systems simultaneously - SARPARAST, LCTX, chat history,
                     threat intel - unified in one query.</p>
             </div>
-            <div class="zor-cap">
+            <div class="zor-cap reveal-up" style="transition-delay:0.4s">
                 <div class="cap-num">03</div>
                 <div class="cap-icon"><i class="fas fa-bolt"></i></div>
                 <div class="cap-title">TAKES ACTION</div>
@@ -1727,11 +2137,86 @@
 
     </section>
 
+    <!-- PAZATOR BLOCKS -->
+    <section class="pb-section" id="capabilities">
+        <div class="pb-label">CAPABILITIES</div>
+
+        <div class="pb-row pb-row-1">
+            <div class="pb-deco pb-rotated"></div>
+            <a href="./app" class="pb-card wide med pb-hover-right">
+                <div class="pb-inner">
+                    <div class="pb-card-icon"><i class="fas fa-database"></i></div>
+                    <div>
+                        <div class="pb-card-title">SARPARAST</div>
+                        <div class="pb-card-desc">ETL pipelines with 4 connectors, 5 transforms, and scheduler.</div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="pb-row pb-row-2">
+            <div class="pb-deco pb-empty-tall"></div>
+            <a href="./app" class="pb-card pb-hover-left">
+                <div class="pb-inner">
+                    <div class="pb-card-icon"><i class="fas fa-robot"></i></div>
+                    <div>
+                        <div class="pb-card-title">ZOR</div>
+                        <div class="pb-card-desc">Multi-agent TIDE engine, credit eval, connection finding.</div>
+                    </div>
+                </div>
+            </a>
+            <a href="./app" class="pb-card pb-hover-right">
+                <div class="pb-inner">
+                    <div class="pb-card-icon"><i class="fas fa-map-marker-alt"></i></div>
+                    <div>
+                        <div class="pb-card-title">LCTX</div>
+                        <div class="pb-card-desc">Real-time globe tracking, GIS heatmaps, custom geo layers.</div>
+                    </div>
+                </div>
+            </a>
+            <div class="pb-deco pb-spacer"></div>
+            <a href="./app" class="pb-card short pb-hover-up">
+                <div class="pb-inner">
+                    <div class="pb-card-icon"><i class="fas fa-search"></i></div>
+                    <div>
+                        <div class="pb-card-title">CTXOD</div>
+                        <div class="pb-card-desc">17-dimension faceted search with saved queries and filters.</div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="pb-row pb-row-3">
+            <a href="./app" class="pb-card short">
+                <div class="pb-inner">
+                    <div class="pb-card-icon"><i class="fas fa-server"></i></div>
+                    <div>
+                        <div class="pb-card-title">PZLS</div>
+                        <div class="pb-card-desc">LAN sync server for multi-user collaboration.</div>
+                    </div>
+                </div>
+            </a>
+            <div class="pb-deco pb-empty-short"></div>
+            <a href="./app" class="pb-card wide pb-hover-left">
+                <div class="pb-inner">
+                    <div class="pb-card-icon"><i class="fas fa-cubes"></i></div>
+                    <div>
+                        <div class="pb-card-title">PLATFORM</div>
+                        <div class="pb-card-desc">Plugin ecosystem, GraphQL API, workflow automation, LAN sync.</div>
+                    </div>
+                </div>
+            </a>
+            <div class="pb-deco pb-empty-short"></div>
+            <div class="pb-deco pb-empty-tall"></div>
+            <div class="pb-deco pb-rotated"></div>
+        </div>
+    </section>
+
     <!-- CTXOD SECTION -->
     <section class="ctxod-section">
 
         <div class="ctxod-head">
-            <div class="ctxod-head-left">
+            <div class="ctxod-head-left reveal-right" style="transition-delay:0.1s">
                 <div class="ctxod-eyebrow">RETRIEVAL ENGINE</div>
                 <div>
                     <div class="ctxod-wordmark">
@@ -1740,7 +2225,7 @@
                     </div>
                 </div>
             </div>
-            <div class="ctxod-head-right">
+            <div class="ctxod-head-right reveal-left" style="transition-delay:0.25s">
                 <p class="ctxod-desc">An intelligent retrieval engine that instantly pulls real-time context about any
                     person, entity, or relationship from across all Pazator systems - using natural language, with no
                     manual data correlation, and without flooding the AI context window with irrelevant data.</p>
@@ -1748,26 +2233,26 @@
         </div>
 
         <div class="ctxod-flow">
-            <div class="ctxod-step">
+            <div class="ctxod-step reveal-up" style="transition-delay:0.1s">
                 <div class="step-num">01</div>
                 <div class="step-label">NATURAL LANGUAGE QUERY</div>
                 <p class="step-desc">Ask in plain language. No SQL, no filters, no schema knowledge required.</p>
                 <span class="step-arrow">→</span>
             </div>
-            <div class="ctxod-step">
+            <div class="ctxod-step reveal-up" style="transition-delay:0.2s">
                 <div class="step-num">02</div>
                 <div class="step-label">CROSS-SYSTEM FETCH</div>
-                <p class="step-desc">CTXOD queries SARPARAST, SHAHED, and all connected sources simultaneously.</p>
+                <p class="step-desc">CTXOD queries SARPARAST, LCTX, and all connected sources simultaneously.</p>
                 <span class="step-arrow">→</span>
             </div>
-            <div class="ctxod-step">
+            <div class="ctxod-step reveal-up" style="transition-delay:0.3s">
                 <div class="step-num">03</div>
                 <div class="step-label">RELEVANCE FILTERING</div>
                 <p class="step-desc">Only the data that matters is extracted. Unrelated records stay out of the AI
                     window.</p>
                 <span class="step-arrow">→</span>
             </div>
-            <div class="ctxod-step">
+            <div class="ctxod-step reveal-up" style="transition-delay:0.4s">
                 <div class="step-num">04</div>
                 <div class="step-label">FOCUSED RESPONSE</div>
                 <p class="step-desc">Zor receives a tight, precise context payload - fast, clean, actionable.</p>
@@ -1775,7 +2260,7 @@
         </div>
 
         <!-- Visual: full DB vs focused context window -->
-        <div class="ctxod-visual">
+        <div class="ctxod-visual reveal-scale" style="transition-delay:0.2s">
             <div class="ctxod-db-side">
                 <div class="ctxod-db-label">FULL DATABASE - ALL RECORDS</div>
                 <div class="ctxod-db-rows" id="ctxodDbRows">
@@ -1835,37 +2320,37 @@
 
         <!-- Use cases -->
         <div class="ctxod-usecases">
-            <div class="ctxod-uc">
+            <div class="ctxod-uc reveal-up" style="transition-delay:0.05s">
                 <div class="uc-icon"><i class="fas fa-user-circle"></i></div>
                 <div class="uc-title">INSTANT PROFILING</div>
                 <p class="uc-desc">Pull a complete person or entity summary across all systems in one query. Name, risk
                     score, tags, relationships, timeline.</p>
             </div>
-            <div class="ctxod-uc">
+            <div class="ctxod-uc reveal-up" style="transition-delay:0.12s">
                 <div class="uc-icon"><i class="fas fa-project-diagram"></i></div>
                 <div class="uc-title">RELATIONSHIP MAPPING</div>
                 <p class="uc-desc">Discover connections between entities - shared contacts, locations, chat threads -
                     surfaced automatically.</p>
             </div>
-            <div class="ctxod-uc">
+            <div class="ctxod-uc reveal-up" style="transition-delay:0.19s">
                 <div class="uc-icon"><i class="fas fa-history"></i></div>
                 <div class="uc-title">TIMELINE RECONSTRUCTION</div>
                 <p class="uc-desc">Chronological view of all interactions, location pings, and events linked to a
                     subject, assembled on demand.</p>
             </div>
-            <div class="ctxod-uc">
+            <div class="ctxod-uc reveal-up" style="transition-delay:0.26s">
                 <div class="uc-icon"><i class="fas fa-map-marker-alt"></i></div>
                 <div class="uc-title">LOCATION DISCOVERY</div>
                 <p class="uc-desc">Cross-reference LCTX data to find entities connected through geographic proximity or
                     shared movement patterns.</p>
             </div>
-            <div class="ctxod-uc">
+            <div class="ctxod-uc reveal-up" style="transition-delay:0.33s">
                 <div class="uc-icon"><i class="fas fa-tag"></i></div>
                 <div class="uc-title">AUTOMATED RISK TAGGING</div>
                 <p class="uc-desc">Let CTXOD classify and tag entries based on pattern analysis. One prompt, bulk
                     intelligence update.</p>
             </div>
-            <div class="ctxod-uc">
+            <div class="ctxod-uc reveal-up" style="transition-delay:0.4s">
                 <div class="uc-icon"><i class="fas fa-shield-alt"></i></div>
                 <div class="uc-title">THREAT ASSESSMENT</div>
                 <p class="uc-desc">Real-time intelligence gathering for active investigations - CTXOD pulls only what's
@@ -1876,8 +2361,8 @@
     </section>
 
     <section class="statement">
-        <div class="st-left">Data doesn't wait.<br><em>Neither<br>should you.</em></div>
-        <div class="st-right">
+        <div class="st-left reveal-right" style="transition-delay:0.1s">Data doesn't wait.<br><em>Neither<br>should you.</em></div>
+        <div class="st-right reveal-left" style="transition-delay:0.3s">
             <p class="st-body">Pazator is built for operators who need answers before questions form. Our systems
                 process mass data at the edge of what's possible, surfacing the signal in the noise with zero compromise
                 on speed or precision.</p>
@@ -1886,11 +2371,11 @@
     </section>
 
     <footer>
-        <div class="fl">
+        <div class="fl reveal-right" style="transition-delay:0.1s">
             <div class="flogo">PAZA<br>TOR</div>
             <div class="fcopy">A SOLO PROJECT BY AIX..</div>
         </div>
-        <div class="fr">
+        <div class="fr reveal-left" style="transition-delay:0.25s">
             <nav class="fnav">
                 <a href="./app">Launch App</a>
                 <a href="./docs/">Docs</a>
@@ -1919,20 +2404,56 @@
             } else { lc.textContent = n; }
         }, 55);
 
+        // -- LOAD VERSION --
+        fetch('./version.json').then(r=>r.json()).then(v=>{
+            const el=document.getElementById('spVersion');
+            if(el) el.textContent=v.app;
+        }).catch(()=>{});
+
+        // -- HORIZONTAL SCROLL PIN --
+        const track = document.getElementById('scrollTrack');
+        const pin = track ? track.parentElement : null;
+        const spVersion = document.getElementById('spVersion');
+
+        function populateStripe() {
+            const track = document.getElementById('stripeTrack');
+            if (!track) return;
+            track.innerHTML = '';
+            const h = track.parentElement.offsetHeight;
+            const size = 44;
+            const count = Math.ceil((h * 2) / size) + 4;
+            for (let i = 0; i < count; i++) {
+                const img = document.createElement('img');
+                img.src = './logo.png';
+                img.alt = '';
+                img.width = size;
+                img.height = size;
+                img.loading = 'lazy';
+                track.appendChild(img);
+            }
+        }
+        populateStripe();
+
+        function updateScrollPin() {
+            if (!pin || !track) return;
+            const rect = pin.getBoundingClientRect();
+            const total = pin.offsetHeight - window.innerHeight;
+            if (total <= 0) return;
+            const progress = Math.max(0, Math.min(1, -rect.top / total));
+            track.style.transform = 'translateX(-' + (progress * 100) + 'vw)';
+        }
+        window.addEventListener('scroll', updateScrollPin);
+        window.addEventListener('resize', updateScrollPin);
+        setTimeout(updateScrollPin, 600);
+        window.addEventListener('scroll', updateScrollPin);
+        window.addEventListener('resize', updateScrollPin);
+        setTimeout(updateScrollPin, 600);
+
+        // -- SCROLL REVEAL --
         const obs = new IntersectionObserver(entries => {
             entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('vis'); });
-        }, { threshold: 0.1 });
-        document.querySelectorAll('.prow, .st-left, .st-right, .zor-cap, .ctxod-step, .ctxod-uc').forEach(el => obs.observe(el));
-
-        document.querySelectorAll('.zor-cap').forEach((el, i) => {
-            el.style.transitionDelay = `${i * 0.12}s`;
-        });
-        document.querySelectorAll('.ctxod-step').forEach((el, i) => {
-            el.style.transitionDelay = `${i * 0.1}s`;
-        });
-        document.querySelectorAll('.ctxod-uc').forEach((el, i) => {
-            el.style.transitionDelay = `${i * 0.08}s`;
-        });
+        }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+        document.querySelectorAll('.reveal-right, .reveal-left, .reveal-up, .reveal-scale, .st-left, .st-right, .zor-cap, .ctxod-step, .ctxod-uc, .pb-section').forEach(el => obs.observe(el));
 
         const queries = [
             { q: 'Show everyone with credit score under 100', r: '→ Found 14 entries · sorted by risk score', type: 'data' },
@@ -2001,37 +2522,13 @@
         // Start terminal after loader
         setTimeout(typeQuery, 2000);
 
-        // -- LOGO PARALLAX --
-        const heroLogo = document.querySelector('.hero-logo');
-        const heroLeft = document.querySelector('.hero-left');
-        let mouseX = 0, mouseY = 0;
-
-        document.addEventListener('mousemove', (e) => {
-            mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
-            mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
-        });
-
-        let ticking = false;
-        window.addEventListener('scroll', () => {
-            if (!ticking) {
-                requestAnimationFrame(() => {
-                    const scrollY = window.scrollY;
-                    const mouseInfluence = 15;
-                    const parallax = scrollY * 0.3;
-                    heroLogo.style.transform = `translate(${mouseX * mouseInfluence}px, ${mouseY * mouseInfluence - parallax}px)`;
-                    ticking = false;
-                });
-                ticking = true;
-            }
-        });
-
         // -- TRANSLATIONS --
         const translations = {
             en: {
                 title: "Pazator - Mass Data Intelligence",
                 loaderLabel: "PAZATOR - INITIALIZING",
                 topbarLeft: "MASS DATA INTELLIGENCE",
-                navApp: "App", navGallery: "Gallery", navDiscord: "Discord",
+                navApp: "App", navGallery: "Gallery", navDiscord: "Discord", navDocs: "Docs",
                 langSwitch: "فا",
                 ticker: "PAZATOR · MASS DATA INTELLIGENCE · ANOMALY DETECTION · RISK ASSESSMENT · OPERATIONAL SYSTEMS · PAZATOR · MASS DATA INTELLIGENCE · ANOMALY DETECTION · RISK ASSESSMENT · OPERATIONAL SYSTEMS ·",
                 heroSub: "Stopping problems before they start.",
@@ -2048,19 +2545,49 @@
                 cap2num: "02", cap2title: "CONNECTS EVERYTHING", cap2desc: "Draws from all Pazator systems simultaneously - SARPARAST, LCTX, chat history, threat intel - unified in one query.",
                 cap3num: "03", cap3title: "TAKES ACTION", cap3desc: "Don't just ask - delegate. Create entries, trigger analyses, launch investigations, tag entities with a single prompt.",
                 zqLabel: "EXAMPLE QUERIES",
+                spLabel: "// STATUS", spLead: "Pazator's last update was",
+                termTitle: "Zor chat", termPrompt: "zor&gt;",
+                pbLabel: "CAPABILITIES",
+                pb1title: "SARPARAST", pb1desc: "ETL pipelines with 4 connectors, 5 transforms, and scheduler.",
+                pb2title: "ZOR", pb2desc: "Multi-agent TIDE engine, credit eval, connection finding.",
+                pb3title: "LCTX", pb3desc: "Real-time globe tracking, GIS heatmaps, custom geo layers.",
+                pb4title: "CTXOD", pb4desc: "17-dimension faceted search with saved queries and filters.",
+                pb5title: "PZLS", pb5desc: "LAN sync server for multi-user collaboration.",
+                pb6title: "PLATFORM", pb6desc: "Plugin ecosystem, GraphQL API, workflow automation, LAN sync.",
+                ctxodEyebrow: "RETRIEVAL ENGINE",
+                ctxodWordmark: "CTXOD", ctxodSub: "CONTEXT ON DEMAND",
+                ctxodDesc: "An intelligent retrieval engine that instantly pulls real-time context about any person, entity, or relationship from across all Pazator systems - using natural language, with no manual data correlation, and without flooding the AI context window with irrelevant data.",
+                step1label: "NATURAL LANGUAGE QUERY", step1desc: "Ask in plain language. No SQL, no filters, no schema knowledge required.",
+                step2label: "CROSS-SYSTEM FETCH", step2desc: "CTXOD queries SARPARAST, LCTX, and all connected sources simultaneously.",
+                step3label: "RELEVANCE FILTERING", step3desc: "Only the data that matters is extracted. Unrelated records stay out of the AI window.",
+                step4label: "FOCUSED RESPONSE", step4desc: "Zor receives a tight, precise context payload - fast, clean, actionable.",
+                ctxodDbLabel: "FULL DATABASE - ALL RECORDS",
+                ctxodArrowLabel: "CTXOD FILTER",
+                ctxodCtxLabel: "AI CONTEXT WINDOW - CTXOD PAYLOAD",
+                ctxodQuery: 'QUERY: "everything on Karim V."',
+                ctxodTokens: "~420 tokens",
+                keyProfile: "profile:", keyChat: "chat_log:", keyLink: "link:", keyNote: "note:",
+                ctxodVs: "vs. ~18,400 tokens without CTXOD",
+                uc1title: "INSTANT PROFILING", uc1desc: "Pull a complete person or entity summary across all systems in one query. Name, risk score, tags, relationships, timeline.",
+                uc2title: "RELATIONSHIP MAPPING", uc2desc: "Discover connections between entities - shared contacts, locations, chat threads - surfaced automatically.",
+                uc3title: "TIMELINE RECONSTRUCTION", uc3desc: "Chronological view of all interactions, location pings, and events linked to a subject, assembled on demand.",
+                uc4title: "LOCATION DISCOVERY", uc4desc: "Cross-reference LCTX data to find entities connected through geographic proximity or shared movement patterns.",
+                uc5title: "AUTOMATED RISK TAGGING", uc5desc: "Let CTXOD classify and tag entries based on pattern analysis. One prompt, bulk intelligence update.",
+                uc6title: "THREAT ASSESSMENT", uc6desc: "Real-time intelligence gathering for active investigations - CTXOD pulls only what's needed, keeping analysis sharp.",
                 stLeft: "Data doesn't wait.<br><em>Neither<br>should you.</em>",
                 stBody: "Pazator is built for operators who need answers before questions form. Our systems process mass data at the edge of what's possible, surfacing the signal in the noise with zero compromise on speed or precision.",
                 getEarlyAccess: "Get Early Access",
                 fLogo: "PAZA<br>TOR", fCopy: "A SOLO PROJECT BY AIX..", fStatus: "Note. This is a real project and is in beta.",
+                fNavLaunch: "Launch App", fNavDocs: "Docs", fNavDiscord: "Discord",
                 wmarquee: "PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp; PAZATOR &nbsp;/&nbsp;"
             },
             fa: {
                 title: "پازاتور - هوشمندی داده‌های کلان",
                 loaderLabel: "پازاتور - در حال راه‌اندازی",
                 topbarLeft: "هوشمندی داده‌های کلان",
-                navApp: "اپلیکیشن", navGallery: "گالری", navDiscord: "دیسکورد",
+                navApp: "اپلیکیشن", navGallery: "گالری", navDiscord: "دیسکورد", navDocs: "مستندات",
                 langSwitch: "EN",
-                ticker: "پازاتور · هوشمندی داده‌های کلان · تشخیص ناهنجاری · ارزیابی ریسک · سامانه‌های عملیاتی · پازاتور · هوشمندی داده‌های کلان · تشخیص ناهنجاری · ارزیابی ریسک · سامانه‌های عملیاتی ·",
+                ticker: "پازاتور · هوشمندی داده‌های کلان · تشخیص ناهنجاری · ارزیابی ریسک · سامانه‌های عملیاتی · CTXOD · LCTX · TIDE · PZLS · زور · سپرست · موتور جستجو · جستجوی چندبعدی · دستیار هوش مصنوعی · خطوط لوله ETL · ردیاب جهانی · اکوسیستم افزونه · همکاری · گردش کار · داشبورد · هستی‌شناسی · هستی‌شناسی · گزارشات ·",
                 heroSub: "پیشگیری از بحران، پیش از آغاز.",
                 hrLabel: "// پلتفرم",
                 hrDesc: "زیرساخت داده‌های کلان مهندسی‌شده برای شناسایی ناهنجاری‌ها، ارزیابی ریسک و ارائه بینش عملیاتی پیش از وقوع اختلال.",
@@ -2075,10 +2602,40 @@
                 cap2num: "۰۲", cap2title: "همه چیز را متصل می‌کند", cap2desc: "همزمان از تمام سیستم‌های پازاتور می‌کشد - سپرست، LCTX، تاریخچه چت، اطلاعات تهدید - یکپارچه در یک پرس‌و‌جو.",
                 cap3num: "۰۳", cap3title: "اقدام می‌کند", cap3desc: "فقط نپرسید - تفویض کنید. ورودی ایجاد کنید، تحلیل‌ها را راه‌اندازی کنید، تحقیقات را با یک دستور شروع کنید.",
                 zqLabel: "نمونه پرسش‌ها",
+                spLabel: "// وضعیت", spLead: "آخرین بروزرسانی پازاتور",
+                termTitle: "چت زور", termPrompt: "زور&gt;",
+                pbLabel: "قابلیت‌ها",
+                pb1title: "سپرست", pb1desc: "خطوط لوله ETL با ۴ کانکتور، ۵ تبدیل و زمانبند.",
+                pb2title: "زور", pb2desc: "موتور TIDE چندعاملی، ارزیابی اعتبار، یافتن ارتباطات.",
+                pb3title: "LCTX", pb3desc: "ردیاب جهانی لحظه‌ای، نقشه‌های حرارتی GIS، لایه‌های جغرافیایی سفارشی.",
+                pb4title: "CTXOD", pb4desc: "جستجوی چندبعدی با ۱۷ بعد با پرسش‌های ذخیره شده و فیلترها.",
+                pb5title: "PZLS", pb5desc: "سرور همگام‌سازی LAN برای همکاری چندکاربره.",
+                pb6title: "پلتفرم", pb6desc: "اکوسیستم افزونه، API GraphQL، اتوماسیون گردش کار، همگام‌سازی LAN.",
+                ctxodEyebrow: "موتور بازیابی",
+                ctxodWordmark: "CTXOD", ctxodSub: "زمینه بر اساس درخواست",
+                ctxodDesc: "یک موتور بازیابی هوشمند که فوراً زمینه بلادرنگ هر شخص، موجودیت یا رابطه را از تمام سیستم‌های پازاتور استخراج می‌کند - با زبان طبیعی، بدون همبستگی دستی داده‌ها، و بدون پر کردن پنجره زمینه AI با داده‌های نامرتبط.",
+                step1label: "پرسش به زبان طبیعی", step1desc: "به زبان ساده بپرسید. بدون SQL، بدون فیلتر، بدون نیاز به دانش ساختار.",
+                step2label: "جستجوی میان‌سیستمی", step2desc: "CTXOD همزمان از SARPARAST، LCTX و تمام منابع متصل پرس و جو می‌کند.",
+                step3label: "فیلترگذاری مرتبط", step3desc: "فقط داده‌های مهم استخراج می‌شوند. رکوردهای نامرتبط از پنجره AI خارج می‌مانند.",
+                step4label: "پاسخ متمرکز", step4desc: "زور یک محموله زمینه دقیق و فشرده دریافت می‌کند - سریع، تمیز، عملیاتی.",
+                ctxodDbLabel: "پایگاه داده کامل - تمام رکوردها",
+                ctxodArrowLabel: "فیلتر CTXOD",
+                ctxodCtxLabel: "پنجره زمینه AI - محموله CTXOD",
+                ctxodQuery: 'پرسش: "همه چیز درباره کریم V."',
+                ctxodTokens: "~۴۲۰ توکن",
+                keyProfile: "پروفایل:", keyChat: "گفتگو:", keyLink: "ارتباط:", keyNote: "یادداشت:",
+                ctxodVs: "در مقابل ~۱۸,۴۰۰ توکن بدون CTXOD",
+                uc1title: "پروفایل فوری", uc1desc: "خلاصه کامل شخص یا موجودیت را در یک پرسش از تمام سیستم‌ها دریافت کنید. نام، امتیاز ریسک، برچسب‌ها، روابط، زمان‌بندی.",
+                uc2title: "نگاشت روابط", uc2desc: "ارتباطات بین موجودیت‌ها را کشف کنید - مخاطبین مشترک، مکان‌ها، موضوعات گفتگو - به صورت خودکار.",
+                uc3title: "بازسازی زمان‌بندی", uc3desc: "نمای زمانی از تمام تعاملات، مکان‌یابی‌ها و رویدادهای مرتبط با یک موضوع، به صورت درخواستی.",
+                uc4title: "کشف مکان", uc4desc: "با مرجع‌گیری داده‌های LCTX، موجودیت‌های متصل از طریق نزدیکی جغرافیایی یا الگوهای حرکتی مشترک را بیابید.",
+                uc5title: "برچسب‌گذاری خودکار ریسک", uc5desc: "اجازه دهید CTXOD بر اساس تحلیل الگو، ورودی‌ها را طبقه‌بندی و برچسب‌گذاری کند. یک دستور، به‌روزرسانی هوشمند انبوه.",
+                uc6title: "ارزیابی تهدید", uc6desc: "جمع‌آوری هوشمند بلادرنگ برای تحقیقات فعال - CTXOD فقط آنچه لازم است استخراج می‌کند و تحلیل را دقیق نگه می‌دارد.",
                 stLeft: "داده‌ها منتظر نمی‌مانند.<br><em>شما هم<br>نباید منتظر بمانید.</em>",
                 stBody: "پازاتور برای اپراتورهایی ساخته شده که پیش از شکل‌گیری سوالات، به پاسخ نیاز دارند.",
                 getEarlyAccess: "دسترسی زودهنگام",
                 fLogo: "پازا<br>تور", fCopy: "پروژه‌ای از AIX..", fStatus: "نکته. این یک پروژه واقعی است و در نسخه بتا قرار دارد.",
+                fNavLaunch: "ورود به اپلیکیشن", fNavDocs: "مستندات", fNavDiscord: "دیسکورد",
                 wmarquee: "پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp; پازاتور &nbsp;/&nbsp;"
             }
         };
@@ -2106,21 +2663,27 @@
             document.querySelector('.hr-label').textContent = t.hrLabel;
             document.querySelector('.hr-desc').textContent = t.hrDesc;
 
-            const hbtnSpans = document.querySelectorAll('.hbtn span:first-child');
-            hbtnSpans[0].textContent = t.launchApp;
-            hbtnSpans[1].textContent = t.joinDiscord;
-            hbtnSpans[2].textContent = t.zorPersonal;
+            const hbtns = document.querySelectorAll('.hbtn');
+            if (hbtns[0]) hbtns[0].querySelector('span:first-child').textContent = t.launchApp;
+            if (hbtns[1]) hbtns[1].querySelector('span:first-child').textContent = t.joinDiscord;
+            if (hbtns[2]) hbtns[2].querySelector('span:first-child').textContent = t.zorPersonal;
+            if (hbtns[3]) hbtns[3].querySelector('span:first-child').textContent = t.navDocs;
 
-            document.querySelector('.products-head h2').textContent = t.productsHead;
-            document.querySelector('.products-head span').textContent = t.productsCount;
+            const productsHead = document.querySelector('.products-head');
+            if (productsHead) {
+                productsHead.querySelector('h2').textContent = t.productsHead;
+                productsHead.querySelector('span').textContent = t.productsCount;
+            }
 
             const prows = document.querySelectorAll('.prow');
-            prows[0].querySelector('.pname').textContent = t.p1name;
-            prows[0].querySelector('.pdesc').textContent = t.p1desc;
-            prows[0].querySelector('.pill').textContent = t.p1status;
-            prows[1].querySelector('.pname').textContent = t.p2name;
-            prows[1].querySelector('.pdesc').textContent = t.p2desc;
-            prows[1].querySelector('.pill').textContent = t.p2status;
+            if (prows[0]) {
+                prows[0].querySelector('.pname').textContent = t.p1name;
+                prows[0].querySelector('.pdesc').textContent = t.p1desc;
+                prows[0].querySelector('.pill').textContent = t.p1status;
+                prows[1].querySelector('.pname').textContent = t.p2name;
+                prows[1].querySelector('.pdesc').textContent = t.p2desc;
+                prows[1].querySelector('.pill').textContent = t.p2status;
+            }
 
             document.querySelector('.zor-eyebrow').textContent = t.zorEyebrow;
             document.querySelector('.zor-title').innerHTML = t.zorTitle;
@@ -2139,13 +2702,87 @@
 
             document.querySelector('.zq-label').textContent = t.zqLabel;
 
+            const spLabel = document.querySelector('.sp-label');
+            if (spLabel) spLabel.textContent = t.spLabel;
+            const spLead = document.querySelector('.sp-lead');
+            if (spLead) spLead.textContent = t.spLead;
+
+            document.querySelector('.terminal-title').textContent = t.termTitle;
+            document.querySelector('.t-prompt').textContent = t.termPrompt;
+
+            const pbLabel = document.querySelector('.pb-label');
+            if (pbLabel) pbLabel.textContent = t.pbLabel;
+            const pbTitles = document.querySelectorAll('.pb-card-title');
+            const pbDescs = document.querySelectorAll('.pb-card-desc');
+            if (pbTitles[0]) { pbTitles[0].textContent = t.pb1title; pbDescs[0].textContent = t.pb1desc; }
+            if (pbTitles[1]) { pbTitles[1].textContent = t.pb2title; pbDescs[1].textContent = t.pb2desc; }
+            if (pbTitles[2]) { pbTitles[2].textContent = t.pb3title; pbDescs[2].textContent = t.pb3desc; }
+            if (pbTitles[3]) { pbTitles[3].textContent = t.pb4title; pbDescs[3].textContent = t.pb4desc; }
+            if (pbTitles[4]) { pbTitles[4].textContent = t.pb5title; pbDescs[4].textContent = t.pb5desc; }
+            if (pbTitles[5]) { pbTitles[5].textContent = t.pb6title; pbDescs[5].textContent = t.pb6desc; }
+
+            document.querySelector('.ctxod-eyebrow').textContent = t.ctxodEyebrow;
+            document.querySelector('.ctxod-wordmark').textContent = t.ctxodWordmark;
+            document.querySelector('.ctxod-sub').textContent = t.ctxodSub;
+            document.querySelector('.ctxod-desc').textContent = t.ctxodDesc;
+
+            const steps = document.querySelectorAll('.ctxod-step');
+            if (steps[0]) {
+                steps[0].querySelector('.step-label').textContent = t.step1label;
+                steps[0].querySelector('.step-desc').textContent = t.step1desc;
+                steps[1].querySelector('.step-label').textContent = t.step2label;
+                steps[1].querySelector('.step-desc').textContent = t.step2desc;
+                steps[2].querySelector('.step-label').textContent = t.step3label;
+                steps[2].querySelector('.step-desc').textContent = t.step3desc;
+                steps[3].querySelector('.step-label').textContent = t.step4label;
+                steps[3].querySelector('.step-desc').textContent = t.step4desc;
+            }
+
+            const ctxodDbLabel = document.querySelector('.ctxod-db-label');
+            if (ctxodDbLabel) ctxodDbLabel.textContent = t.ctxodDbLabel;
+            document.querySelector('.ctxod-arrow-label').textContent = t.ctxodArrowLabel;
+            document.querySelector('.ctxod-ctx-label').textContent = t.ctxodCtxLabel;
+            document.querySelector('.ctx-window-title span:first-child').textContent = t.ctxodQuery;
+            const tc = document.getElementById('tokenCount');
+            if (tc) tc.textContent = t.ctxodTokens;
+
+            const keys = document.querySelectorAll('.ctx-entry-key');
+            if (keys[0]) keys[0].textContent = t.keyProfile;
+            if (keys[1]) keys[1].textContent = t.keyChat;
+            if (keys[2]) keys[2].textContent = t.keyLink;
+            if (keys[3]) keys[3].textContent = t.keyNote;
+
+            const ctxodVs = document.querySelector('.ctxod-ctx-side > div:last-child');
+            if (ctxodVs && ctxodVs.tagName === 'DIV') ctxodVs.textContent = t.ctxodVs;
+
+            const ucs = document.querySelectorAll('.ctxod-uc');
+            if (ucs[0]) {
+                ucs[0].querySelector('.uc-title').textContent = t.uc1title;
+                ucs[0].querySelector('.uc-desc').textContent = t.uc1desc;
+                ucs[1].querySelector('.uc-title').textContent = t.uc2title;
+                ucs[1].querySelector('.uc-desc').textContent = t.uc2desc;
+                ucs[2].querySelector('.uc-title').textContent = t.uc3title;
+                ucs[2].querySelector('.uc-desc').textContent = t.uc3desc;
+                ucs[3].querySelector('.uc-title').textContent = t.uc4title;
+                ucs[3].querySelector('.uc-desc').textContent = t.uc4desc;
+                ucs[4].querySelector('.uc-title').textContent = t.uc5title;
+                ucs[4].querySelector('.uc-desc').textContent = t.uc5desc;
+                ucs[5].querySelector('.uc-title').textContent = t.uc6title;
+                ucs[5].querySelector('.uc-desc').textContent = t.uc6desc;
+            }
+
             document.querySelector('.st-left').innerHTML = t.stLeft;
             document.querySelector('.st-body').textContent = t.stBody;
-            document.querySelector('.st-link span:first-child').textContent = t.getEarlyAccess;
+            document.querySelector('.st-link').childNodes[0].textContent = t.getEarlyAccess + ' ';
 
             document.querySelector('.flogo').innerHTML = t.fLogo;
             document.querySelector('.fcopy').textContent = t.fCopy;
             document.querySelector('.fstatus').innerHTML = '<div class="fdot"></div>' + t.fStatus;
+
+            const fnavLinks = document.querySelectorAll('.fnav a');
+            if (fnavLinks[0]) fnavLinks[0].textContent = t.fNavLaunch;
+            if (fnavLinks[1]) fnavLinks[1].textContent = t.fNavDocs;
+            if (fnavLinks[2]) fnavLinks[2].textContent = t.fNavDiscord;
 
             const wmarqueeSpans = document.querySelectorAll('.wmarquee-track span');
             wmarqueeSpans[0].innerHTML = t.wmarquee;
