@@ -54,7 +54,7 @@
             object-fit: cover;
         }
 
-        /* Update Announcement Modal */
+        
         #updateModal {
             position: fixed;
             top: 0;
@@ -596,10 +596,11 @@
                             <h3>AI Engine</h3>
                         </div>
                         <div class="ai-config-group">
-                            <input type="password" id="geminiApiKeyInput" class="ai-config-input"
-                                placeholder="Gemini API Key">
-                            <select id="geminiModelSelect" class="ai-config-select"></select>
-                            <div id="geminiStatus" class="gemini-status">No API key configured</div>
+                            <select id="aiProviderSelect" class="ai-config-select"></select>
+                            <input type="password" id="aiApiKeyInput" class="ai-config-input"
+                                placeholder="API Key">
+                            <select id="aiModelSelect" class="ai-config-select"></select>
+                            <div id="aiStatus" class="gemini-status">No API key configured</div>
                         </div>
                     </div>
 
@@ -1287,7 +1288,7 @@
             </div>
         </div>
 
-        <!-- ONTOLOGY TAB -->
+        
         <div class="tab-content" id="ontology-tab">
             <div class="workspace">
                 <div class="main-panel">
@@ -1297,7 +1298,7 @@
             </div>
         </div>
 
-        <!-- PIPELINES TAB -->
+        
         <div class="tab-content" id="pipelines-tab">
             <div class="workspace">
                 <div class="main-panel">
@@ -1341,7 +1342,7 @@
             </div>
         </div>
 
-        <!-- ALERTS TAB -->
+        
         <div class="tab-content" id="alerts-tab">
             <div class="workspace">
                 <div class="main-panel">
@@ -1393,7 +1394,7 @@
             </div>
         </div>
 
-        <!-- API TAB -->
+        
         <div class="tab-content" id="api-tab">
             <div class="workspace">
                 <div class="main-panel">
@@ -1443,7 +1444,7 @@
             </div>
         </div>
 
-        <!-- WORKFLOW TAB -->
+        
         <div class="tab-content" id="workflow-tab">
             <div class="workspace">
                 <div class="main-panel">
@@ -1480,7 +1481,7 @@
             </div>
         </div>
 
-        <!-- REPORTS TAB -->
+        
         <div class="tab-content" id="reports-tab">
             <div class="workspace">
                 <div class="main-panel">
@@ -2303,7 +2304,7 @@
         </div>
     </div>
 
-    <!-- classification moved to JS-generated modals in classification.js -->
+    
 
     <div id="neofetchOverlay" class="about-overlay" aria-hidden="true">
         <div class="neofetch-card" id="neofetchCard" role="dialog" aria-modal="true">
@@ -2572,7 +2573,7 @@
         </div>
     </div>
 
-    <!-- TIDE Monitor Modal -->
+    
     <div id="tideMonitorModal" class="tide-monitor-modal">
         <div class="tide-monitor-content">
             <div class="tide-monitor-header">
@@ -2630,7 +2631,7 @@
         </div>
     </div>
 
-    <!-- Credit Evaluation Modal -->
+    
     <div id="creditEvalModal" class="credit-eval-modal">
         <div class="credit-eval-content">
             <div class="credit-eval-header">
@@ -2680,7 +2681,7 @@
         </div>
     </div>
 
-    <!-- Clean Modal UI -->
+    
     <div id="cleanModal" class="clean-modal">
         <div class="clean-modal-backdrop"></div>
         <div class="clean-modal-content">
@@ -2695,90 +2696,101 @@
 
 
 
-    <!-- Toast Notification -->
+    
     <div id="toastContainer" class="toast-container"></div>
 
-    <!-- Settings Modal -->
+    
     <div id="settingsModal" class="modal settings-modal">
-        <div class="settings-modal-content">
+        <div class="settings-modal-wrap">
+            <div class="settings-tab-bar" id="settingsTabBar">
+                <button class="settings-tab active" data-tab="general">General</button>
+                <button class="settings-tab" data-tab="ai">AI</button>
+                <button class="settings-tab" data-tab="security">Security</button>
+            </div>
+            <div class="settings-modal-content">
             <div class="settings-header">
                 <h2>Settings</h2>
             </div>
             <div class="settings-body">
-                <div class="settings-group">
-                    <label class="settings-toggle">
-                        <span>No Blur</span>
-                        <input type="checkbox" id="noBlurToggle" onchange="toggleNoBlur(this.checked)">
-                        <span class="toggle-slider"></span>
-                    </label>
-                    <p class="settings-desc">Turn off all blur effects throughout the app</p>
+                <div class="settings-tab-content active" id="settingsGeneral">
+                    <div class="settings-group">
+                        <label class="settings-toggle">
+                            <span>No Blur</span>
+                            <input type="checkbox" id="noBlurToggle" onchange="toggleNoBlur(this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <p class="settings-desc">Turn off all blur effects throughout the app</p>
+                    </div>
+                    <div class="settings-group">
+                        <label class="settings-toggle">
+                            <span>Skip Intro Animation</span>
+                            <input type="checkbox" id="skipIntroToggle" onchange="toggleSkipIntro(this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <p class="settings-desc">Skip the intro video on next load</p>
+                    </div>
+                    <div class="settings-group">
+                        <button id="settingsWalkthroughBtn" class="btn btn-primary btn-full"
+                            style="padding: 12px; font-size: 0.9rem;">
+                            <i class="fas fa-question-circle"></i> Show Walkthrough
+                        </button>
+                    </div>
                 </div>
-                <div class="settings-group">
-                    <label class="settings-toggle">
-                        <span>Skip Intro Animation</span>
-                        <input type="checkbox" id="skipIntroToggle" onchange="toggleSkipIntro(this.checked)">
-                        <span class="toggle-slider"></span>
-                    </label>
-                    <p class="settings-desc">Skip the intro video on next load</p>
+                <div class="settings-tab-content" id="settingsAI">
+                    <div class="settings-group">
+                        <label style="display:flex;align-items:center;justify-content:space-between;">
+                            <span>Tool Call Delay</span>
+                            <input type="number" id="toolDelayInput" min="0" max="10000" step="100"
+                                style="width:80px;padding:6px 8px;background:#1a1a1a;border:1px solid #444;border-radius:4px;color:#fff;font-size:0.8rem;text-align:center;">
+                        </label>
+                        <p class="settings-desc">Milliseconds to wait between each tool call in the agent loop (0 = off)</p>
+                    </div>
+                    <div class="settings-group">
+                        <label class="settings-toggle">
+                            <span>Agent Debug Mode</span>
+                            <input type="checkbox" id="agentDebugToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <p class="settings-desc">Log full API messages to console for debugging the agent loop</p>
+                    </div>
                 </div>
-                <div class="settings-group">
-                    <label style="display:flex;align-items:center;justify-content:space-between;">
-                        <span>Tool Call Delay</span>
-                        <input type="number" id="toolDelayInput" min="0" max="10000" step="100"
-                            style="width:80px;padding:6px 8px;background:#1a1a1a;border:1px solid #444;border-radius:4px;color:#fff;font-size:0.8rem;text-align:center;">
-                    </label>
-                    <p class="settings-desc">Milliseconds to wait between each tool call in the agent loop (0 = off)</p>
-                </div>
-                <div class="settings-group">
-                    <label class="settings-toggle">
-                        <span>Agent Debug Mode</span>
-                        <input type="checkbox" id="agentDebugToggle">
-                        <span class="toggle-slider"></span>
-                    </label>
-                    <p class="settings-desc">Log full API messages to console for debugging the agent loop</p>
-                </div>
-                <div class="settings-group">
-                    <button id="settingsWalkthroughBtn" class="btn btn-primary btn-full"
-                        style="margin-top: 10px; padding: 12px; font-size: 0.9rem;">
-                        <i class="fas fa-question-circle"></i> Show Walkthrough
-                    </button>
-                </div>
-                <div class="settings-group"
-                    style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;margin-top:4px;">
-                    <label class="settings-toggle">
-                        <span>Password Lock</span>
-                        <input type="checkbox" id="passwordLockToggle" onchange="togglePasswordLock(this.checked)">
-                        <span class="toggle-slider"></span>
-                    </label>
-                    <p class="settings-desc" style="color:#ff6b6b;">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <strong>Not truly secure.</strong> The password is stored in your browser's localStorage — it's
-                        a simple client-side lock that stops casual snooping. Anyone with access to your computer can
-                        bypass it by clearing site data or inspecting the source. Do not rely on this for sensitive
-                        data.
-                    </p>
-                    <div id="passwordChangeArea"
-                        style="display:none;margin-top:8px;padding:8px;background:rgba(0,0,0,0.2);border-radius:6px;">
-                        <input type="password" id="passwordInput" placeholder="Enter new password"
-                            style="width:100%;padding:8px 10px;background:#1a1a1a;border:1px solid #444;border-radius:4px;color:#fff;font-size:0.85rem;margin-bottom:6px;box-sizing:border-box;">
-                        <input type="password" id="passwordConfirmInput" placeholder="Confirm new password"
-                            style="width:100%;padding:8px 10px;background:#1a1a1a;border:1px solid #444;border-radius:4px;color:#fff;font-size:0.85rem;margin-bottom:6px;box-sizing:border-box;">
-                        <div style="display:flex;gap:6px;">
-                            <button id="passwordSaveBtn" class="btn btn-primary"
-                                style="flex:1;padding:8px;font-size:0.8rem;" onclick="savePassword()">Set
-                                Password</button>
-                            <button id="passwordRemoveBtn" class="btn btn-secondary"
-                                style="flex:1;padding:8px;font-size:0.8rem;display:none;"
-                                onclick="removePassword()">Remove Password</button>
+                <div class="settings-tab-content" id="settingsSecurity">
+                    <div class="settings-group">
+                        <label class="settings-toggle">
+                            <span>Password Lock</span>
+                            <input type="checkbox" id="passwordLockToggle" onchange="togglePasswordLock(this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <p class="settings-desc" style="color:#ff6b6b;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Not truly secure.</strong> The password is stored in your browser's localStorage — it's
+                            a simple client-side lock that stops casual snooping. Anyone with access to your computer can
+                            bypass it by clearing site data or inspecting the source. Do not rely on this for sensitive
+                            data.
+                        </p>
+                        <div id="passwordChangeArea"
+                            style="display:none;margin-top:8px;padding:8px;background:rgba(0,0,0,0.2);border-radius:6px;">
+                            <input type="password" id="passwordInput" placeholder="Enter new password"
+                                style="width:100%;padding:8px 10px;background:#1a1a1a;border:1px solid #444;border-radius:4px;color:#fff;font-size:0.85rem;margin-bottom:6px;box-sizing:border-box;">
+                            <input type="password" id="passwordConfirmInput" placeholder="Confirm new password"
+                                style="width:100%;padding:8px 10px;background:#1a1a1a;border:1px solid #444;border-radius:4px;color:#fff;font-size:0.85rem;margin-bottom:6px;box-sizing:border-box;">
+                            <div style="display:flex;gap:6px;">
+                                <button id="passwordSaveBtn" class="btn btn-primary"
+                                    style="flex:1;padding:8px;font-size:0.8rem;" onclick="savePassword()">Set
+                                    Password</button>
+                                <button id="passwordRemoveBtn" class="btn btn-secondary"
+                                    style="flex:1;padding:8px;font-size:0.8rem;display:none;"
+                                    onclick="removePassword()">Remove Password</button>
+                            </div>
+                            <div id="passwordStatus" style="font-size:0.75rem;margin-top:4px;color:#aaa;"></div>
                         </div>
-                        <div id="passwordStatus" style="font-size:0.75rem;margin-top:4px;color:#aaa;"></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Password Lock Overlay -->
+    
     <div id="passwordOverlay" class="password-overlay" style="display:none;">
         <div class="password-overlay-content">
             <div class="password-overlay-label">Protected</div>
@@ -2857,14 +2869,16 @@
     <script src="https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/ai/provider.js"></script>
     <script src="js/ai/gemini.js"></script>
+    <script src="js/ai/providers/deepseek.js"></script>
     <script src="js/ai/ai.js"></script>
     <script src="js/ai/tide.js"></script>
     <script src="js/ai/tide-ui.js"></script>
     <script src="js/ai/agents.js"></script>
-    <!-- Apps (lazy-loaded) -->
+    
 
-    <!-- Core -->
+    
     <script src="js/core/globals.js"></script>
     <script src="js/core/modal.js"></script>
     <script src="js/chat/chat-system.js"></script>
@@ -2875,7 +2889,7 @@
     <script src="js/apps/object-explorer.js"></script>
     <script src="js/ui/table.js"></script>
 
-    <!-- Features -->
+    
     <script src="js/features/detail.js"></script>
     <script src="js/ai/zor-chat.js"></script>
     <script src="js/features/uploads.js"></script>
@@ -2894,7 +2908,7 @@
     <script src="js/tracker/tracker.js"></script>
     <script src="js/core/main.js"></script>
 
-    <!-- Apps (lazy loaded per tab/menu trigger) -->
+    
     <script src="js/ai/context.js"></script>
     <script>
         (function () {
@@ -2928,7 +2942,7 @@
             }
         })();
 
-        // Update Modal Handler
+        
         function closeUpdateModal() {
             const updateModal = document.getElementById('updateModal');
             updateModal.classList.add('hidden');

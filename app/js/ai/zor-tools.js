@@ -1,6 +1,6 @@
-// ============================================================
-// Zor Tool-Calling System (simplified)
-// ============================================================
+
+
+
 
 var ZorTools = {
     tools: {
@@ -154,7 +154,7 @@ async function wipeAllData() {
     var ok = await showConfirm('Wipe all entries, cases, tags, and chat history? API key and settings will be preserved. This cannot be undone.', 'Wipe All Data', 'warning');
     if (!ok) return;
 
-    var preserveKeys = ['pazator_gemini_api_key', 'pazator_gemini_model', 'pz_passwordEnabled', 'pz_passwordHash', 'skipIntro', 'noBlur', 'classificationState', 'adminProvidedContext'];
+    var preserveKeys = ['pazator_ai_provider', 'pazator_ai_gemini_api_key', 'pazator_ai_gemini_model', 'pazator_ai_deepseek_api_key', 'pazator_ai_deepseek_model', 'pz_passwordEnabled', 'pz_passwordHash', 'skipIntro', 'noBlur', 'classificationState', 'adminProvidedContext'];
 
     pazatorData.humans = [];
     pazatorData.others = [];

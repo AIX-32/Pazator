@@ -8,7 +8,7 @@
 
     const _aggregateCache = {};
 
-    // Store → aggregate dependency map: which caches are invalidated by each store's mutation
+    
     const STORE_DEPENDS = {
         humans: ['threatCounts', 'creditRisk', 'totalHumans', 'totalObjects', 'avgCredit', 'highRiskCount'],
         others: ['totalOthers', 'totalObjects'],
@@ -323,7 +323,7 @@
 
         syncToEngine: function () {
             const eng = getEngine();
-            if (!eng) return;
+            if (!eng) return Promise.resolve();
             const p = [];
             if (store._data.humans.length && isFn(eng.putMany)) p.push(eng.putMany('humans', store._data.humans));
             if (store._data.others.length && isFn(eng.putMany)) p.push(eng.putMany('others', store._data.others));

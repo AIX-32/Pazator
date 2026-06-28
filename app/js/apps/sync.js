@@ -151,7 +151,7 @@
     try {
       const raw = localStorage.getItem(USER_CACHE_KEY);
       if (raw) currentUser = JSON.parse(raw);
-    } catch (e) { /* ignore */ }
+    } catch (e) {  }
   }
 
   async function fetchCurrentUser() {
@@ -457,7 +457,7 @@
     if (retryTimer) clearTimeout(retryTimer);
     retryTimer = setTimeout(async () => {
       if (authToken && !serverConnected) {
-        try { await fetchCurrentUser(); } catch (e) { /* keep retrying */ }
+        try { await fetchCurrentUser(); } catch (e) {  }
         scheduleRetry();
       }
     }, 30000);
@@ -473,21 +473,21 @@
     if (!label) return;
 
     if (currentUser && serverConnected === false) {
-      const srv = syncConfig ? (syncConfig.label || syncConfig.url.replace(/^https?:\/\//, '')) : 'Server';
+      const srv = syncConfig ? (syncConfig.label || syncConfig.url.replace(/^https?:\/\//, '').split('/')[0]) : '';
       if (dot) dot.style.background = '#ff9800';
       label.textContent = `${currentUser.username}@${srv}`;
       label.style.color = '#aaa';
       if (meta) meta.textContent = 'disconnected';
       scheduleRetry();
     } else if (currentUser && serverConnected === true) {
-      const srv = syncConfig ? (syncConfig.label || syncConfig.url.replace(/^https?:\/\//, '')) : 'Server';
+      const srv = syncConfig ? (syncConfig.label || syncConfig.url.replace(/^https?:\/\//, '').split('/')[0]) : '';
       const lastSync = syncState.lastSync ? new Date(syncState.lastSync).toLocaleString() : 'Never';
       if (dot) dot.style.background = '#4caf50';
       label.textContent = `${currentUser.username}@${srv}`;
       label.style.color = '#fff';
       if (meta) meta.textContent = `last sync: ${lastSync}`;
     } else if (currentUser && serverConnected === undefined) {
-      const srv = syncConfig ? (syncConfig.label || syncConfig.url.replace(/^https?:\/\//, '')) : 'Server';
+      const srv = syncConfig ? (syncConfig.label || syncConfig.url.replace(/^https?:\/\//, '').split('/')[0]) : '';
       if (dot) dot.style.background = '#ff9800';
       label.textContent = `${currentUser.username}@${srv}`;
       label.style.color = '#aaa';
@@ -501,7 +501,7 @@
       fetchCurrentUser().finally(() => { window.__pazatorSyncVerifying = false; });
     } else if (authToken && window.__pazatorSyncVerifying) {
     } else if (syncConfig) {
-      const srv = syncConfig.label || syncConfig.url.replace(/^https?:\/\//, '');
+      const srv = syncConfig.label || syncConfig.url.replace(/^https?:\/\//, '').split('/')[0];
       if (dot) dot.style.background = '#ff9800';
       label.textContent = srv;
       label.style.color = '#aaa';

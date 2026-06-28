@@ -36,6 +36,10 @@ function openSettingsModal() {
     }
 
     modal.classList.add('active');
+    var tabBar = document.getElementById('settingsTabBar');
+    if (tabBar) tabBar.classList.add('active');
+
+    switchSettingsTab('general');
 
     modal.onclick = function (e) {
         if (e.target === modal) {
@@ -44,9 +48,20 @@ function openSettingsModal() {
     };
 }
 
+function switchSettingsTab(tab) {
+    document.querySelectorAll('.settings-tab').forEach(function (t) {
+        t.classList.toggle('active', t.dataset.tab === tab);
+    });
+    document.querySelectorAll('.settings-tab-content').forEach(function (c) {
+        c.classList.toggle('active', c.id === 'settings' + tab.charAt(0).toUpperCase() + tab.slice(1));
+    });
+}
+
 function closeSettingsModal() {
     const modal = document.getElementById('settingsModal');
     modal.classList.remove('active');
+    var tabBar = document.getElementById('settingsTabBar');
+    if (tabBar) tabBar.classList.remove('active');
 }
 
 function toggleNoBlur(enabled) {
@@ -62,7 +77,14 @@ function toggleSkipIntro(enabled) {
     localStorage.setItem('skipIntro', enabled ? 'true' : 'false');
 }
 
-// Password lock functions
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.settings-tab').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            switchSettingsTab(this.dataset.tab);
+        });
+    });
+});
+
 async function togglePasswordLock(enabled) {
     var area = document.getElementById('passwordChangeArea');
     var toggle = document.getElementById('passwordLockToggle');
@@ -161,47 +183,70 @@ function checkPassword() {
     }
 }
 
-// Initialize settings on load
-function initGeminiUI() {
-    var apiKeyInput = document.getElementById('geminiApiKeyInput');
-    var modelSelect = document.getElementById('geminiModelSelect');
-    var statusEl = document.getElementById('geminiStatus');
 
-    if (!modelSelect || !apiKeyInput) return;
+function populateModels() {
+    var modelSelect = document.getElementById('aiModelSelect');
+    if (!modelSelect) return;
+    var models = window.pazatorAI ? window.pazatorAI.getModels() : [];
+    modelSelect.innerHTML = models.map(function (m) {
+        return '<option value="' + m.id + '">' + m.name + '</option>';
+    }).join('');
+    if (window.pazatorAI) {
+        modelSelect.value = window.pazatorAI.getModel();
+    }
+}
 
-    if (window.pazatorGemini && window.pazatorGemini.models) {
-        modelSelect.innerHTML = window.pazatorGemini.models.map(function (m) {
-            return '<option value="' + m.id + '">' + m.name + '</option>';
+function initAIUI() {
+    var providerSelect = document.getElementById('aiProviderSelect');
+    var apiKeyInput = document.getElementById('aiApiKeyInput');
+    var modelSelect = document.getElementById('aiModelSelect');
+    var statusEl = document.getElementById('aiStatus');
+
+    if (!providerSelect || !apiKeyInput || !modelSelect) return;
+
+    if (window.pazatorAI) {
+        var names = window.pazatorAI.list();
+        providerSelect.innerHTML = names.map(function (n) {
+            var p = window.pazatorAI.getProvider(n);
+            return '<option value="' + n + '">' + (p ? p.name : n) + '</option>';
         }).join('');
+        providerSelect.value = window.pazatorAI.getCurrent();
     }
 
-    var savedKey = window.pazatorGemini ? window.pazatorGemini.getApiKey() : '';
-    var savedModel = window.pazatorGemini ? window.pazatorGemini.getModel() : '';
+    populateModels();
+    apiKeyInput.value = window.pazatorAI ? window.pazatorAI.getApiKey() : '';
+    updateAIStatus();
 
-    apiKeyInput.value = savedKey;
-    modelSelect.value = savedModel;
-
-    updateGeminiStatus();
+    providerSelect.addEventListener('change', function () {
+        if (!window.pazatorAI) return;
+        window.pazatorAI.setCurrent(this.value);
+        populateModels();
+        apiKeyInput.value = window.pazatorAI.getApiKey();
+        updateAIStatus();
+    });
 
     apiKeyInput.addEventListener('input', function () {
-        if (window.pazatorGemini) {
-            window.pazatorGemini.setApiKey(this.value);
+        if (window.pazatorAI) {
+            window.pazatorAI.setApiKey(this.value);
         }
-        updateGeminiStatus();
+        updateAIStatus();
     });
 
     modelSelect.addEventListener('change', function () {
-        if (window.pazatorGemini) {
-            window.pazatorGemini.setModel(this.value);
+        if (window.pazatorAI) {
+            window.pazatorAI.setModel(this.value);
         }
     });
 }
 
-function updateGeminiStatus() {
-    var statusEl = document.getElementById('geminiStatus');
+function updateAIStatus() {
+    var statusEl = document.getElementById('aiStatus');
     if (!statusEl) return;
-    var key = window.pazatorGemini ? window.pazatorGemini.getApiKey() : '';
-    var model = window.pazatorGemini ? window.pazatorGemini.getModel() : '';
+    if (!window.pazatorAI) { statusEl.textContent = 'AI system unavailable'; return; }
+
+    var key = window.pazatorAI.getApiKey();
+    var model = window.pazatorAI.getModel();
+    var pName = window.pazatorAI.getName();
 
     statusEl.className = 'gemini-status';
 
@@ -209,17 +254,15 @@ function updateGeminiStatus() {
         statusEl.textContent = 'No API key configured';
     } else {
         statusEl.classList.add('configured');
-        var modelName = model || 'gemini-3.1-flash-lite';
-        var displayName = modelName;
-        if (window.pazatorGemini && window.pazatorGemini.models) {
-            for (var j = 0; j < window.pazatorGemini.models.length; j++) {
-                if (window.pazatorGemini.models[j].id === modelName) {
-                    displayName = window.pazatorGemini.models[j].name;
-                    break;
-                }
+        var displayName = model;
+        var models = window.pazatorAI.getModels();
+        for (var j = 0; j < models.length; j++) {
+            if (models[j].id === model) {
+                displayName = models[j].name;
+                break;
             }
         }
-        statusEl.textContent = 'Using ' + displayName;
+        statusEl.textContent = 'Using ' + pName + ' · ' + displayName;
     }
 }
 
@@ -294,11 +337,11 @@ function initSettings() {
             }, 100);
         }
     }
-    initGeminiUI();
+    initAIUI();
 }
 
-// Allow pressing Enter in the unlock input
-// Allow pressing Enter in the unlock input
+
+
 document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Enter') {

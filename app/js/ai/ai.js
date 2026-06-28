@@ -129,88 +129,10 @@
     };
 
     AIQueue.streamChat = async function (messages, onChunk, signal) {
-        var apiKey = (typeof window.pazatorGemini !== 'undefined' && window.pazatorGemini.getApiKey) ? window.pazatorGemini.getApiKey() : '';
-        var model = (typeof window.pazatorGemini !== 'undefined' && window.pazatorGemini.getModel) ? window.pazatorGemini.getModel() : window.pazatorGemini && window.pazatorGemini.defaultModel ? window.pazatorGemini.defaultModel : 'gemini-3.1-flash-lite-preview';
-
-        if (!apiKey) throw new Error('Gemini API key not configured.');
-
-        var systemInstruction = '';
-        var contents = [];
-        for (var i = 0; i < messages.length; i++) {
-            var msg = messages[i];
-            if (msg.role === 'system') {
-                systemInstruction += msg.content + '\n';
-            } else if (msg.role === 'assistant') {
-                contents.push({ role: 'model', parts: [{ text: msg.content }] });
-            } else {
-                contents.push({ role: 'user', parts: [{ text: msg.content }] });
-            }
+        if (window.pazatorAI && window.pazatorAI.streamChat) {
+            return window.pazatorAI.streamChat(messages, onChunk, signal);
         }
-
-        var requestBody = { contents: contents };
-        if (systemInstruction.trim()) {
-            requestBody.systemInstruction = { parts: [{ text: systemInstruction.trim() }] };
-        }
-
-        var response = await fetch(
-            'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':streamGenerateContent?alt=sse',
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-goog-api-key': apiKey
-                },
-                body: JSON.stringify(requestBody),
-                signal: signal
-            }
-        );
-
-        if (!response.ok) {
-            var errorText;
-            try {
-                var errorJson = await response.json();
-                errorText = errorJson.error && errorJson.error.message ? errorJson.error.message : JSON.stringify(errorJson);
-            } catch (e) {
-                errorText = await response.text();
-            }
-            throw new Error('Gemini API error (' + response.status + '): ' + errorText);
-        }
-
-        var reader = response.body.getReader();
-        var decoder = new TextDecoder();
-        var fullText = '';
-        var buffer = '';
-
-        while (true) {
-            var readResult = await reader.read();
-            if (readResult.done) break;
-            buffer += decoder.decode(readResult.value, { stream: true });
-            var lines = buffer.split('\n');
-            buffer = lines.pop() || '';
-            var done = false;
-            for (var li = 0; li < lines.length; li++) {
-                var line = lines[li].trim();
-                if (line.startsWith('data: ')) {
-                    var jsonStr = line.slice(6).trim();
-                    if (jsonStr === '[DONE]') { done = true; break; }
-                    if (jsonStr) {
-                        try {
-                            var parsed = JSON.parse(jsonStr);
-                            if (parsed.candidates && parsed.candidates[0] && parsed.candidates[0].content &&
-                                parsed.candidates[0].content.parts) {
-                                for (var pi = 0; pi < parsed.candidates[0].content.parts.length; pi++) {
-                                    var text = parsed.candidates[0].content.parts[pi].text || '';
-                                    fullText += text;
-                                    if (onChunk) onChunk(text, fullText);
-                                }
-                            }
-                        } catch (e) { }
-                    }
-                }
-            }
-            if (done) break;
-        }
-        return fullText;
+        throw new Error('AI provider not available');
     };
 
     window.AIQueue = AIQueue;

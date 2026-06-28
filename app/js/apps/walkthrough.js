@@ -90,77 +90,158 @@
 
   document.head.appendChild(wtStyles);
 
-  var steps = [
-    {
-      target: '#tabBar',
-      title: 'Navigation',
-      desc: 'Switch between workspaces: Dashboard, Analysis, Threats, Chat Security, Search, Tracker, and Cases.'
-    },
-    {
-      target: '#newDataBtn',
-      title: 'Quick Actions',
-      desc: 'Add people or entities to your database, open the AI assistant Zor, upload chats, bulk data, or use AI-powered import.'
-    },
-    {
-      target: '#searchInput',
-      title: 'Search & Filter',
-      desc: 'Search and filter your entire database. Type a name, select a type, and hit Apply. The node visualization updates in real-time.'
-    },
-    {
-      target: '#tagInput',
-      title: 'Tags',
-      desc: 'Create and manage tags to categorize your data. Tags help organize, filter, and run targeted AI analysis.'
-    },
-    {
-      target: '#geminiApiKeyInput',
-      title: 'AI Engine',
-      desc: 'Paste your Google Gemini API key here. Zor uses this engine for analysis, suggestions, and intelligent responses.'
-    },
-    {
-      target: '#askAIBtn',
-      title: 'Zor AI Assistant',
-      desc: 'Your AI analyst. Ask questions, find connections, analyze threats, or manage data through natural language.'
-    },
-    {
-      target: '#analysisBtn',
-      title: 'Analysis Hub',
-      desc: 'Network analysis, risk assessment, credit ranking, and AI tag suggestions. View metrics on people, entities, and risk levels.'
-    },
-    {
-      target: '#threatsBtn',
-      title: 'Intelligence Center',
-      desc: 'Run AI security scans, review risk distribution, find hidden connections between entities, and toggle context sources.'
-    },
-    {
-      target: '#chatControlBtn',
-      title: 'Chat Security',
-      desc: 'Import chats from WhatsApp, Telegram, Discord, and Signal. Scan for threats, generate reports, detect duplicates.'
-    },
-    {
-      target: '#searchBtn',
-      title: 'Universal Search',
-      desc: 'Search across names, workplaces, dates, notes, tags, and relationships. Filter by type and field.'
-    },
-    {
-      target: '#trackerBtn',
-      title: 'LCTX Tracker',
-      desc: 'LCTX enables location data to be provided to Zor and associates tracker profiles with users. Setting up the tracker hardware and server infrastructure is a separate process not included in this application.'
-    },
-    {
-      target: '#casesBtn',
-      title: 'Case Files',
-      desc: 'Create investigation cases. Track entities, log timestamped activities, and hand off to Zor for AI analysis.'
-    },
-    {
-      target: '.logo-card',
-      title: 'Settings & Tools',
-      desc: 'Access settings, classification, CSV export, and the About page from the logo menu.'
-    }
-  ];
+  function openMenu(name) {
+    var d = document.querySelector('.menu-item[data-menu="' + name + '"] .menu-dropdown');
+    if (d) { d.style.opacity = '1'; d.style.visibility = 'visible'; d.style.pointerEvents = 'auto'; d.style.transform = 'translateX(-50%) translateY(0)'; }
+  }
+  function closeMenu(name) {
+    var d = document.querySelector('.menu-item[data-menu="' + name + '"] .menu-dropdown');
+    if (d) { d.style.opacity = ''; d.style.visibility = ''; d.style.pointerEvents = ''; d.style.transform = ''; }
+  }
+  function closeAllMenus() {
+    ['view', 'data', 'tools', 'system', 'help'].forEach(closeMenu);
+  }
 
   var cur = 0;
   var active = false;
   var highlight, card, stepEl, titleEl, descEl, prevBtn, nextBtn, skipBtn;
+  var prevTab = 'dashboard';
+
+  var steps = [
+    {
+      target: '#tabBar',
+      title: 'Navigation',
+      desc: 'Switch between workspaces: Dashboard, Analysis, Threats, Chat Security, Search, Tracker, and Cases.',
+      before: function () { prevTab = document.querySelector('.tab-content.active')?.id?.replace('-tab', '') || 'dashboard'; closeAllMenus(); }
+    },
+    {
+      target: '#newDataBtn',
+      title: 'Quick Actions',
+      desc: 'Add people or entities, open Zor AI assistant, upload chats, bulk data, or use AI-powered import.',
+      before: function () { closeAllMenus(); }
+    },
+    {
+      target: '#askAIBtn',
+      title: 'Zor AI Assistant',
+      desc: 'Your AI analyst. Ask questions, find connections, analyze threats, or manage data through natural language. Use the element select tool in the chat to inspect any UI element and ask Zor about it.'
+    },
+    {
+      target: '#aiApiKeyInput',
+      title: 'AI Engine',
+      desc: 'Select your AI provider and paste your API key. Zor uses this engine for analysis, suggestions, and responses.'
+    },
+    {
+      target: '.menu-item[data-menu="view"]',
+      title: 'View Menu',
+      desc: 'Switch between Dashboard, Analysis, Threats, and the Explorer graph view.',
+      before: function () { openMenu('view'); },
+      after: function () { closeMenu('view'); }
+    },
+    {
+      target: '.menu-item[data-menu="data"]',
+      title: 'Data Menu',
+      desc: 'Access Search, Chat Control, Cases, Ontology Designer, Pipelines ETL, and LCTX Tracker.',
+      before: function () { openMenu('data'); },
+      after: function () { closeMenu('data'); }
+    },
+    {
+      target: '.menu-item[data-menu="tools"]',
+      title: 'Tools Menu',
+      desc: 'Open Alerts engine, API Console, Workflow automation, and Report builder.',
+      before: function () { openMenu('tools'); },
+      after: function () { closeMenu('tools'); }
+    },
+    {
+      target: '.menu-item[data-menu="system"]',
+      title: 'System Menu',
+      desc: 'Settings, Classification, Export CSV, Sync Config, Plugins, and Snappy screenshot tool.',
+      before: function () { openMenu('system'); },
+      after: function () { closeMenu('system'); }
+    },
+    {
+      target: '.menu-item[data-menu="help"]',
+      title: 'Help Menu',
+      desc: 'Restart this walkthrough, open docs, join Discord, load placeholder data, or wipe all data.',
+      before: function () { openMenu('help'); },
+      after: function () { closeMenu('help'); }
+    },
+    {
+      target: '.logo-card',
+      title: 'Logo Menu',
+      desc: 'Click the logo for About, System Info, Settings, and sync configuration.',
+      before: function () { closeAllMenus(); }
+    },
+    {
+      target: '#analysis-tab',
+      title: 'Analysis Hub',
+      desc: 'Network analysis, risk assessment, credit ranking, AI tag suggestions, and key metrics.',
+      before: function () { closeAllMenus(); switchTab('analysis'); },
+      after: function () { switchTab(prevTab); }
+    },
+    {
+      target: '#threats-tab',
+      title: 'Intelligence Center',
+      desc: 'AI security scans, risk distribution charts, hidden connection finder, and context source toggles.',
+      before: function () { switchTab('threats'); },
+      after: function () { switchTab(prevTab); }
+    },
+    {
+      target: '#search-tab',
+      title: 'Universal Search',
+      desc: 'Search across names, workplaces, dates, notes, tags, and relationships. Filter by type and field.',
+      before: function () { switchTab('search'); },
+      after: function () { switchTab(prevTab); }
+    },
+    {
+      target: '#chat-control-tab',
+      title: 'Chat Security',
+      desc: 'Import chats from WhatsApp, Telegram, Discord, and Signal. Scan for threats, find duplicates, generate reports.',
+      before: function () { switchTab('chat-control'); },
+      after: function () { switchTab(prevTab); }
+    },
+    {
+      target: '#tracker-tab',
+      title: 'LCTX Tracker',
+      desc: 'Real-time MapLibre globe tracker. Link tracker profiles to people, view paths, and configure the server.',
+      before: function () { switchTab('tracker'); },
+      after: function () { switchTab(prevTab); }
+    },
+    {
+      target: '#cases-tab',
+      title: 'Case Files',
+      desc: 'Create investigation cases, track entities, log evidence, and hand off to Zor for AI analysis.',
+      before: function () { switchTab('cases'); },
+      after: function () { switchTab(prevTab); }
+    },
+    {
+      target: '#settingsWalkthroughBtn',
+      title: 'Settings',
+      desc: 'Configure blur effects, skip intro, set AI tool delay, toggle debug mode, password lock, and restart this walkthrough.',
+      before: function () {
+        closeAllMenus();
+        switchTab(prevTab);
+        var s = document.getElementById('settingsOption');
+        if (s) s.click();
+        var m = document.getElementById('settingsModal');
+        if (m) m.classList.add('active');
+      },
+      after: function () {
+        var m = document.getElementById('settingsModal');
+        if (m) m.classList.remove('active');
+      }
+    },
+    {
+      target: '#askAIBtn',
+      title: 'Pro Tip: Element Select',
+      desc: 'Open Zor and click the select button to pick any element on screen. Zor will show you what it is — you can then ask anything about it without typing selectors.',
+      before: function () {
+        var m = document.getElementById('settingsModal');
+        if (m) m.classList.remove('active');
+        closeAllMenus();
+        switchTab(prevTab);
+      }
+    }
+  ];
 
   function build() {
     highlight = document.createElement('div');
@@ -205,11 +286,16 @@
     active = false;
     highlight.style.opacity = '0';
     card.classList.remove('visible');
+    closeAllMenus();
+    var m = document.getElementById('settingsModal');
+    if (m) m.classList.remove('active');
   }
 
   function show() {
     var s = steps[cur];
     if (!s) { end(); return; }
+
+    if (s.before) s.before();
 
     stepEl.textContent = (cur + 1) + ' / ' + steps.length;
     titleEl.textContent = s.title;
@@ -222,7 +308,11 @@
       nextBtn.textContent = 'Next';
     }
 
-    var el = document.querySelector(s.target);
+    highlightTarget(s.target);
+  }
+
+  function highlightTarget(selector) {
+    var el = document.querySelector(selector);
     if (!el) { card.classList.add('visible'); return; }
 
     var r = el.getBoundingClientRect();
@@ -244,8 +334,11 @@
           positionCard(el);
         }
       }, 350);
+    } else {
+      positionCard(el);
     }
   }
+
   function positionCard(el) {
     var r = el.getBoundingClientRect();
     var cw = Math.min(360, window.innerWidth - 32);
@@ -285,18 +378,21 @@
       }
     }
 
-    // fallback
     card.style.left = '16px';
     card.style.top = '16px';
     card.classList.add('visible');
   }
 
   function next() {
+    var s = steps[cur];
+    if (s && s.after) s.after();
     if (cur < steps.length - 1) { cur++; show(); }
     else { end(); }
   }
 
   function prev() {
+    var s = steps[cur];
+    if (s && s.after) s.after();
     if (cur > 0) { cur--; show(); }
   }
 
@@ -304,15 +400,7 @@
     if (!active) return;
     var s = steps[cur];
     if (!s) return;
-    var el = document.querySelector(s.target);
-    if (el) {
-      var r = el.getBoundingClientRect();
-      highlight.style.left = (r.left - 4) + 'px';
-      highlight.style.top = (r.top - 4) + 'px';
-      highlight.style.width = (r.width + 8) + 'px';
-      highlight.style.height = (r.height + 8) + 'px';
-      positionCard(el);
-    }
+    highlightTarget(s.target);
   }
 
   function onKey(e) {

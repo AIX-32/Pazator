@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-Pazator is a single‑page browser‑based intelligence analysis application (~50K lines: 34K JS, 12.8K CSS, 2.9K HTML). Dark theme, local‑first storage (IndexedDB + localStorage), AI assistant (Zor) via Gemini, TIDE analysis engine, classification system, logbook, GIS overlays, MapLibre globe tracker (LCTX) with Supabase, entity relationship graph, case management, ontology designer, pipeline ETL, rule engine (alerts + workflow), in-browser API console with GraphQL, report builder, LAN sync via the PZLS Node.js server, plugin system, and D3 force-directed graph explorer.
+Pazator is a single‑page browser‑based intelligence analysis application (~50K lines: 34K JS, 12.8K CSS, 2.9K HTML). Dark theme, local‑first storage (IndexedDB + localStorage), AI assistant (Zor) with pluggable provider system (Gemini, DeepSeek), TIDE analysis engine, classification system, logbook, GIS overlays, MapLibre globe tracker (LCTX) with Supabase, entity relationship graph, case management, ontology designer, pipeline ETL, rule engine (alerts + workflow), in-browser API console with GraphQL, report builder, LAN sync via the PZLS Node.js server, plugin system, and D3 force-directed graph explorer.
 
-**Size:** 37 JS modules, ~80 exported functions, 15 tab views, 16 modal dialogs, 2.9K lines of HTML.
+**Size:** 39 JS modules, ~80 exported functions, 15 tab views, 16 modal dialogs, 2.9K lines of HTML.
 
 **Fonts:** Alliance No.2 (branding), Maven Pro (UI), DM Mono (code/monospace in mobile), Anton (mobile headers).
 
@@ -60,7 +60,7 @@ All tabs rendered statically in `app/index.html`, shown/hidden via `switchTab()`
 | `#tideMonitorModal` | TIDE batch analysis progress (chunks, findings, cancel/close) | TIDE analysis start |
 | `#creditEvalModal` | AI Credit Evaluation progress + results summary | Analysis → Credit Ranking |
 | `#cleanModal` | Generic modal (dynamically populated: icon, title, body, actions) | Various (settings, alerts, api, workflow, etc.) |
-| `#settingsModal` | App settings: No Blur, Skip Intro, Tool Call Delay, Agent Debug, Walkthrough, Password Lock | Menu → Settings |
+| `#settingsModal` | App settings (3 tabs: General, AI, Security). General: No Blur, Skip Intro, Walkthrough. AI: Tool Call Delay, Agent Debug, provider select, API key, model select. Security: Password Lock. | Menu → Settings |
 | `#neofetchOverlay` / `#neofetchCard` | System info (neofetch-style): version, builds, entities, uptime | Menu → System Info |
 | `#aboutOverlay` / `#aboutCard` | About page with description, Discord link, credits | Menu → About |
 
@@ -70,7 +70,7 @@ All tabs rendered statically in `app/index.html`, shown/hidden via `switchTab()`
 
 ### IIFE Module Pattern
 Every JS module uses an IIFE that exposes a single global on `window`:
-- `window.pazatorDashboard`, `pazatorAlerts`, `pazatorAPI`, `pazatorWorkflow`, `pazatorReports`, `pazatorPipelines`, `pazatorOntologyDesigner`, `pazatorObjectExplorer`, `pazatorObjects`, `pazatorLogbook`, `pazatorGIS`, `pazatorRelationships`, `pazatorClassification`, `pazatorStore`, `pazatorFacets`, `pazatorSync`, `pazatorCollab` (referenced in reports.js), `pazatorHumanTile`, `pazatorPlugins`, `pazatorExplorer`.
+- `window.pazatorDashboard`, `pazatorAlerts`, `pazatorAPI`, `pazatorWorkflow`, `pazatorReports`, `pazatorPipelines`, `pazatorOntologyDesigner`, `pazatorObjectExplorer`, `pazatorObjects`, `pazatorLogbook`, `pazatorGIS`, `pazatorRelationships`, `pazatorClassification`, `pazatorStore`, `pazatorFacets`, `pazatorSync`, `pazatorCollab` (referenced in reports.js), `pazatorHumanTile`, `pazatorPlugins`, `pazatorExplorer`, `pazatorAI`.
 
 ### Global State (`js/core/globals.js`)
 - `pazatorData = { humans: [], others: [], chats: [] }` — main entity arrays
@@ -145,7 +145,7 @@ Dynamic `<script>` injection on first tab click. Modules: dashboard, ontology, p
 | `object-explorer.js` | 551 | menu | **Full-page entity detail overlay.** 3-column layout: Properties/Notes/Ontology → Timeline → Relationships/Cases/Chats. Edit button, graph button, Escape close, backdrop click close. |
 | `objects.js` | 943 | head | **Ontology object system.** Two-level: 15 attribute types with CRUD + hierarchy + usage counts + `getOrCreate()`. 8 entity types with label/plural/icon/color config. `createAutocompleteField()` — reusable form widget supporting single-select, multi-select (chips), inline creation, keyboard nav, destroy cleanup. |
 | `snappy.js` | 191 | menu | **Snapshot utility** — captures app state |
-| `walkthrough.js` | 344 | menu | **Onboarding walkthrough** — guided tour |
+| `walkthrough.js` | 432 | menu | **Onboarding walkthrough** — 18-step guided tour with menu interactions, tab switching, settings control. Uses `before`/`after` lifecycle hooks. |
 | `logbook.js` | 247 | reports subnav | **Structured logbook.** 5 categories (General/Observation/Incident/Intel/Comm) with color coding. CRUD, 120-char body preview, classification integration. |
 | `gis.js` | 832 | tracker tab | **GIS overlay manager.** Entity location visualization on MapLibre map. Clustered GeoJSON source + stepped cluster circles + cluster count labels + threat-colored entity dots. Heatmap weighted by credit value. Nominatim geocoding (forward + reverse). Custom GeoJSON layer CRUD (Point/LineString/Polygon). Config persistence. |
 | `resolver.js` | 447 | — | **Dead code.** Not referenced anywhere. |
@@ -154,14 +154,16 @@ Dynamic `<script>` injection on first tab click. Modules: dashboard, ontology, p
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `gemini.js` | 117 | Google Gemini HTTP client — 9 models, API key from `localStorage.gemini_api_key` |
-| `ai.js` | 217 | `AIQueue` — concurrency control (1 at a time), hash-keyed response cache |
+| `provider.js` | 91 | **Provider registry + router (`pazatorAI`).** Single API: `chat()`, `streamChat()`, `getApiKey()`, `setApiKey()`, `getModel()`, `setModel()`, `getModels()`, `setCurrent()`, `list()`, `getProvider()`. All consumer code calls this. |
+| `gemini.js` | 168 | Google Gemini provider — registers with `pazatorAI.register('gemini', ...)`. Auto-migrates old `pazator_gemini_api_key` → `pazator_ai_gemini_api_key`. |
+| `providers/deepseek.js` | 144 | DeepSeek provider — OpenAI-compatible format. Registers with `pazatorAI.register('deepseek', ...)`. Uses `api.deepseek.com/chat/completions` with Bearer auth. |
+| `ai.js` | 139 | `AIQueue` — concurrency control (1 at a time), hash-keyed response cache. `streamChat()` delegates to `pazatorAI.streamChat()`. |
 | `tide.js` | – | TIDE engine: chunked threat/terrorist/fraud/credit/risk/intel/connection analysis |
 | `agents.js` | 990 | Agent orchestrator — delegates to TIDE, manages analysis pipeline |
 | `context.js` | 143 | CTXOD tool system — 16 tools (prioritize, search, filter, etc.) |
 | `zor-chat.js` | 1156 | Zor chat UI — conversation, actions, quick commands, message rendering |
 | `zor-context.js` | 967 | AI context modal — 7 data sections, context display pills, 5-min TTL |
-| `zor-tools.js` | – | Zor tool-calling mode — 4 tools, 4 rounds, seed data |
+| `zor-tools.js` | 207 | Zor tool-calling mode — 4 tools, 4 rounds, seed data. `preserveKeys` updated for provider keys. |
 
 ### `js/chat/` — Chat Processing
 
@@ -176,7 +178,7 @@ Dynamic `<script>` injection on first tab click. Modules: dashboard, ontology, p
 | `ui.js` | 327 | `PazatorUI` — common utilities: `VirtualList`, `debounce()`, `showFloatingNotification()`, etc. |
 | `tabs.js` | 413 | Tab navigation + `ensureLazyModule()` for 12 lazy modules |
 | `table.js` | 688 | Virtual data table (columns: Name/Type/Threat/Credit/Tags/Actions), bulk ops, facet index integration, pagination |
-| `settings.js` | 304 | Settings UI: No Blur, Skip Intro, Tool Call Delay, Agent Debug, Walkthrough, Password Lock, Gemini config |
+| `settings.js` | 371 | Settings UI: 3-tab modal (General, AI, Security). `initAIUI()` with provider selector (`#aiProviderSelect`), API key input (`#aiApiKeyInput`), model select (`#aiModelSelect`), status indicator (`#aiStatus`). Dynamic model list per provider. |
 
 ### `js/graph/` — Graph Explorer
 
@@ -269,7 +271,9 @@ Flat array: `{id, sourceId, targetId, sourceType, targetType, type (13 types), s
 | `adminProvidedContext` | Object | AI context (5-min TTL) |
 | `pazator_sync_config` / `pazator_sync_state` | Object | Sync config + version state |
 | `pazator_auth_token` / `pazator_user_cache` | String/Object | Sync auth |
-| `gemini_api_key` / `gemini_model` | String | AI provider config |
+| `pazator_ai_provider` | String | Current AI provider name (`gemini` / `deepseek`) |
+| `pazator_ai_gemini_api_key` / `pazator_ai_gemini_model` | String | Gemini provider config (auto-migrated from old `pazator_gemini_api_key`/`pazator_gemini_model`) |
+| `pazator_ai_deepseek_api_key` / `pazator_ai_deepseek_model` | String | DeepSeek provider config |
 
 ### Persistence Flow
 
@@ -303,42 +307,44 @@ User action → store._data array mutation → proxy push/splice fires:
 12. `js/features/timeline.js` — Entity timeline
 13. `stylez.css` + inline `<style>` — Styles
 
-### Body (late, ordered — 34 scripts)
+### Body (late, ordered — 36 scripts)
 12. `maplibre-gl` CDN — MapLibre GL
 13. `html2canvas` CDN — Screenshot capture
 14. `supabase-js` CDN — Supabase client (tracker)
-15. `js/ai/gemini.js` — Gemini API client
-16. `js/ai/ai.js` — AI Queue + caching
-16b. `js/ai/tide.js` — TIDE engine
-17. `js/ai/agents.js` — Agent orchestrator
-18. `js/core/globals.js` — Global state
-19. `js/core/modal.js` — Modal system
-20. `js/chat/chat-system.js` — Chat parser, storage, analysis
-21. `js/core/data-utils.js` — Worker manager, ID utils
-22. `js/core/dom-refs.js` — DOM references
-23. `js/ui/tabs.js` — Tab navigation, lazy loader
-24. `js/core/persistence.js` — Save/load, object canvas, toasts
-25. `js/apps/object-explorer.js` — Entity detail overlay
-26. `js/ui/table.js` — Virtual data table
-27. `js/features/detail.js` — Entity detail view + timeline
-28. `js/ai/zor-chat.js` — Zor chat UI
-29. `js/features/uploads.js` — File uploads
-30. `js/ai/zor-context.js` — AI context modal
-31. `js/features/visualization.js` — AI chat input + human/other forms (misnamed)
-32. `js/features/intel.js` — AI findings UI
-33. `js/features/chat-manager.js` — Chat CRUD, virtual list, D3 graph, connection agents
-34. `js/features/credits.js` — Credit scoring
-35. `js/features/findings.js` — TIDE findings
-36. `js/features/classification.js` — Classification system
-37. `js/core/app-init.js` — Auth check, init
-38. `js/features/search.js` — Universal search + facets
-39. `js/features/cases.js` — Case management
-40. `js/ui/settings.js` — Settings UI
-41. `js/ai/zor-tools.js` — Zor tool mode
-42. `js/tracker/tracker.js` — LCTX globe tracker
-43. `js/core/main.js` — Entry point, boot
-44. `js/ai/context.js` — CTXOD tools (redundant load — already in head? Actually loaded here too)
-45-46. Inline scripts — Intro video handling, walkthrough triggers, update modal, lazy module wiring
+15. `js/ai/provider.js` — Provider registry + router (`pazatorAI`)
+16. `js/ai/gemini.js` — Gemini provider (registers with provider registry)
+17. `js/ai/providers/deepseek.js` — DeepSeek provider (registers with provider registry)
+18. `js/ai/ai.js` — AI Queue + caching (delegates to `pazatorAI`)
+19. `js/ai/tide.js` — TIDE engine
+20. `js/ai/agents.js` — Agent orchestrator
+21. `js/core/globals.js` — Global state
+22. `js/core/modal.js` — Modal system
+23. `js/chat/chat-system.js` — Chat parser, storage, analysis
+24. `js/core/data-utils.js` — Worker manager, ID utils
+25. `js/core/dom-refs.js` — DOM references
+26. `js/ui/tabs.js` — Tab navigation, lazy loader
+27. `js/core/persistence.js` — Save/load, object canvas, toasts
+28. `js/apps/object-explorer.js` — Entity detail overlay
+29. `js/ui/table.js` — Virtual data table
+30. `js/features/detail.js` — Entity detail view + timeline
+31. `js/ai/zor-chat.js` — Zor chat UI
+32. `js/features/uploads.js` — File uploads
+33. `js/ai/zor-context.js` — AI context modal
+34. `js/features/visualization.js` — AI chat input + human/other forms (misnamed)
+35. `js/features/intel.js` — AI findings UI
+36. `js/features/chat-manager.js` — Chat CRUD, virtual list, D3 graph, connection agents
+37. `js/features/credits.js` — Credit scoring
+38. `js/features/findings.js` — TIDE findings
+39. `js/features/classification.js` — Classification system
+40. `js/core/app-init.js` — Auth check, init
+41. `js/features/search.js` — Universal search + facets
+42. `js/features/cases.js` — Case management
+43. `js/ui/settings.js` — Settings UI (3 tabs, provider selector)
+44. `js/ai/zor-tools.js` — Zor tool mode
+45. `js/tracker/tracker.js` — LCTX globe tracker
+46. `js/core/main.js` — Entry point, boot
+47. `js/ai/context.js` — CTXOD tools (redundant load — already in head? Actually loaded here too)
+48-49. Inline scripts — Intro video handling, walkthrough triggers, update modal, lazy module wiring
 
 ### Lazy-Loaded (on first interaction)
 `context.js` (CTXOD tools) + all `apps/*` (except `objects.js`) + `js/graph/explorer.js` + `worker.js` (via `new Worker()`)
@@ -446,7 +452,7 @@ pazator/
 │   │   ├── core/                    # Foundation (globals, store, worker, persistence, modal, etc.)
 │   │   ├── data/                    # Database (IndexedDB engine, facet index)
 │   │   ├── chat/                    # Chat processing (parser, storage, analysis service)
-│   │   ├── ai/                      # AI/Zor system + TIDE engine (8 modules)
+│   │   ├── ai/                      # AI/Zor system + TIDE engine (11 modules incl. providers/)
 │   │   ├── ui/                      # UI components (tabs, table, settings, common utils)
 │   │   ├── features/                # Feature modules (12 modules)
 │   │   ├── tracker/                 # LCTX globe tracker (1 module, 1177 lines)
