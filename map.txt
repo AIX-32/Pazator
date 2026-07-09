@@ -70,7 +70,7 @@ All tabs rendered statically in `app/index.html`, shown/hidden via `switchTab()`
 
 ### IIFE Module Pattern
 Every JS module uses an IIFE that exposes a single global on `window`:
-- `window.pazatorDashboard`, `pazatorAlerts`, `pazatorAPI`, `pazatorWorkflow`, `pazatorReports`, `pazatorPipelines`, `pazatorOntologyDesigner`, `pazatorObjectExplorer`, `pazatorObjects`, `pazatorLogbook`, `pazatorGIS`, `pazatorRelationships`, `pazatorClassification`, `pazatorStore`, `pazatorFacets`, `pazatorSync`, `pazatorCollab` (referenced in reports.js), `pazatorHumanTile`, `pazatorPlugins`, `pazatorExplorer`, `pazatorAI`.
+- `window.pazatorDashboard`, `pazatorAlerts`, `pazatorAPI`, `pazatorWorkflow`, `pazatorReports`, `pazatorPipelines`, `pazatorOntologyDesigner`, `pazatorObjectExplorer`, `pazatorObjects`, `pazatorLogbook`, `pazatorGIS`, `pazatorRelationships`, `pazatorClassification`, `pazatorStore`, `pazatorFacets`, `pazatorSync`, `pazatorCollab` (referenced in reports.js), `pazatorHumanTile`, `pazatorPlugins`, `pazatorExplorer`, `pazatorAI`, `pazatorAdmin`, `pazatorFile`, `pazatorServerSearchResult`.
 
 ### Global State (`js/core/globals.js`)
 - `pazatorData = { humans: [], others: [], chats: [] }` — main entity arrays
@@ -83,7 +83,7 @@ Every JS module uses an IIFE that exposes a single global on `window`:
 Custom global event bus (`Tastur`). Defined in `js/core/plugins.js` if not already present by plugin registration time. Used by persistence (`data_saved`, `data_loaded`), intel (`threat_detected`), search (`search_performed`), plugins (lifecycle hooks), etc. Supports `on()`, `off()`, `emit()`.
 
 ### Lazy Module Loading (`js/ui/tabs.js` → `ensureLazyModule()`)
-Dynamic `<script>` injection on first tab click. Modules: dashboard, ontology, pipelines, alerts, api, workflow, reports, explorer, sync, walkthrough, snappy, gis.
+Dynamic `<script>` injection on first tab click. Modules: dashboard, ontology, pipelines, alerts, api, workflow, reports, explorer, sync, walkthrough, snappy, gis, lsad.
 
 ---
 
@@ -101,6 +101,7 @@ Dynamic `<script>` injection on first tab click. Modules: dashboard, ontology, p
 | `data-utils.js` | – | ID generation (`generatePersonId()`), vector search, `PazatorWorker` manager. Worker dispatch: `graphTick()`, `heuristicsScan()`, `bulkTransform()`, `aggregateStats()` |
 | `worker.js` | 330 | **Web Worker.** 4 main handlers + legacy. `graph_tick` — O(n²) N-body force layout with linear cooling. `heuristics_scan` — pairwise name similarity + dedup. `bulk_transform` — tag extraction, age computation. `aggregate_stats` — threat counts, credit risk distribution. |
 | `plugins.js` | 487 | **Plugin registry + Tastur event bus.** `pazatorPlugins` with `register()`, `unregister()`, `installFromUrl()`, `installFromCode()`, enable/disable, state persistence. Plugin API exposes store, events, tab registration (dynamic tab content creation), menu item injection, modals, settings KV. Built-in demo plugin registers Graph Explorer. Hooks: `onLoad`, `onUnload`, `tabs[]`, `menuItems[]`, `handlers{}`. |
+| `files.js` | 92 | **File upload helper.** `pazatorFile` — uploads base64 images/data to PZLS server. Falls back to local base64 if no server. Exposes `uploadBase64()`, `getFileUrl()`, `getFileMeta()`, `getEntityFiles()`, `deleteFile()`. |
 | `app-init.js` | – | Auth check (sync token), logo dropdown wiring, init sequence |
 | `main.js` | – | Entry point after all scripts load. Fires `DOMContentLoaded` handlers, calls `loadData()`, `startAutoSave()`, checks for updates. |
 
@@ -141,7 +142,8 @@ Dynamic `<script>` injection on first tab click. Modules: dashboard, ontology, p
 | `api.js` | 634 | `api` | **In-browser API console.** REST CRUD over all stores (humans, others, cases, chats, tags, relationships). GraphQL query engine with regex parser supporting all stores + stats + search + introspection. API key management (`paz_` + 40 chars). Webhook management with event-driven dispatch. Request logger (capped 200). Entirely client-side — no network calls except outbound webhooks. |
 | `workflow.js` | 442 | `workflow` | **WHEN/IF/THEN rule engine.** 7 trigger types (Tab Switch, Data Added, Threat Detected, Search Performed, App Load, Data Changed, Schedule). 6 action types (Popup, Notify, Toast, Switch Tab, Webhook, API Call). Condition evaluation with 6 operators. Schedule parsing (`5m`, `1h`, `30s`, `7d`). Monkeys patches `window.switchTab` and `pazatorStore.emit`. |
 | `reports.js` | 510 | `reports` | **Report template builder.** 6 widget types (Entity Count, Risk Pie Chart, Recent Activity, Data Table, Tag Cloud, Relationship Stats). Live preview. PDF export via jsPDF. CSV export. Schedule with interval + format selection. |
-| `sync.js` | 566 | menu | **LAN sync client.** REST-based push/pull to PZLS server. JWT Bearer auth (login/register/logout). Full-state sync with global version counter. 30s retry loop. See "Sync Protocol" section below. |
+| `sync.js` | 566 | menu | **LAN sync client (PZLS).** REST-based push/pull to PZLS server. JWT Bearer auth (login/register/logout). Full-state sync with global version counter. PZLS config modal with 2-column layout (Account + Server sections), Docs button, Test Connection, status info. 30s retry loop. See "Sync Protocol" section below. |
+| `lsad.js` | ~370 | menu | **LSAD admin panel modal** (System → Admin Panel). 5 tabs: Audit Log (paginated ops table), Users (enable/disable, session management), Stores (bar chart from `GET /api/sync/stores`), Config (runtime, paths, env from `GET /api/admin/config`), Sessions (view/kill own sessions from `GET /api/auth/sessions`), Export/Import (full DB dump/restore). Admin role required. |
 | `object-explorer.js` | 551 | menu | **Full-page entity detail overlay.** 3-column layout: Properties/Notes/Ontology → Timeline → Relationships/Cases/Chats. Edit button, graph button, Escape close, backdrop click close. |
 | `objects.js` | 943 | head | **Ontology object system.** Two-level: 15 attribute types with CRUD + hierarchy + usage counts + `getOrCreate()`. 8 entity types with label/plural/icon/color config. `createAutocompleteField()` — reusable form widget supporting single-select, multi-select (chips), inline creation, keyboard nav, destroy cleanup. |
 | `snappy.js` | 191 | menu | **Snapshot utility** — captures app state |
@@ -292,14 +294,16 @@ User action → store._data array mutation → proxy push/splice fires:
 
 ## Script Load Order (from `app/index.html`)
 
-### Head (eager, blocking — 13 scripts)
+### Head (eager, blocking — 14 scripts)
 1. `jspdf` CDN — PDF generation
 2. `d3.v7` CDN — D3 force graph (explorer)
 3. `js/data/db.js` — Legacy IndexedDB v1
 4. `js/data/engine.js` — IndexedDB v2 (`PazatorV2`)
 5. `js/core/store.js` — In-memory store + events
 6. `js/core/plugins.js` — Plugin registry + Tastur event bus
-7. `js/apps/objects.js` — Ontology object system
+7. `js/core/files.js` — PZLS file upload helper (`pazatorFile`)
+8. `js/plugins/server-search.js` — **Server Search plugin** (built-in, default-off). Registers "Server Search" menu item under Data menu, opens modal with live search via `GET /api/search`
+9. `js/apps/objects.js` — Ontology object system
 8. `js/features/relationships.js` — Relationship graph
 9. `js/ui/ui.js` — Common UI utilities
 10. `js/data/facets.js` — Faceted search index
@@ -353,19 +357,61 @@ User action → store._data array mutation → proxy push/splice fires:
 
 ## Sync Protocol (`js/apps/sync.js`)
 
-**Client expects from PZLS:**
-- `POST /api/auth/login`, `/register`, `/logout` — JWT Bearer auth
+**PZLS server endpoints (all at `http://<host>:3456`):**
+
+Auth (rate-limited, 10/min by default):
+- `POST /api/auth/register` — create account `{username, password}`
+- `POST /api/auth/login` — login → `{token, user}`
+- `POST /api/auth/logout` — invalidate session
 - `GET /api/auth/me` — current user info
-- `GET /api/sync` — full pull (all data for user)
+- `POST /api/auth/change-password` — `{currentPassword, newPassword}`
+- `GET /api/auth/sessions` — list your active sessions
+- `DELETE /api/auth/sessions/:token` — kill your session
+
+Sync:
+- `GET /api/sync` — full pull (all entities)
 - `POST /api/sync` — full push `{clientVersion, stores}`
-- `GET /api/sync/changes?since=N` — changelog diffs
+- `GET /api/sync/ops?since=N&limit=500` — operation log (paginated)
+- `POST /api/sync/ops` — push individual operations
+- `GET /api/sync/changes?since=N` — changes since version
 - `GET /api/sync/status` — server health + account stats
+- `GET /api/sync/stores` — record counts per store
 
-**Sync model:** Full-state push/replace, full-state pull/append. Global integer version counter. No delta sync, no deletion sync (pull additive-only), no conflict resolution (last-write-wins). 30s retry loop. No real-time WebSocket for data sync (WebSocket only exists in `alerts.js` for alert push).
+Search:
+- `GET /api/search?q=&store=&page=&perPage=` — server-side SQL LIKE search across all entity data
 
-**Storage (PZLS):** Per-user flat JSON files, not SQLite. The `POST /api/query` endpoint used by pipelines queries external databases.
+Files:
+- `POST /api/files/upload` — upload file (base64, max 10MB)
+- `GET /api/files/:id` — download raw file
+- `GET /api/files/meta/:id` — file metadata
+- `GET /api/files?entityId=&entityStore=` — list files for entity
+- `DELETE /api/files/:id` — delete file
+
+Admin (admin role required):
+- `GET /api/admin/config` — runtime info, paths, env vars
+- `GET /api/admin/export` — full DB dump as JSON
+- `POST /api/admin/import` — restore from dump
+- `GET /api/admin/users` — list all users
+- `PATCH /api/admin/users/:id` — enable/disable user
+- `DELETE /api/admin/users/:id` — delete user
+- `GET /api/admin/users/:id/sessions` — list user's sessions
+- `DELETE /api/admin/sessions/:token` — force-kill session
+- `GET /api/admin/ops?since=N&limit=200` — audit log
+- `GET /api/admin/admins` — list forced admin usernames
+- `POST /api/admin/admins` — set forced admin list
+
+Other:
+- `GET /api/resolve?threshold=0.6` — Jaro-Winkler entity resolution
+- `POST /api/query` — external SQL query `{connectionString, query}`
+- `GET /api/auth/health` — health check
+
+**Sync model:** Full-state push/replace, full-state pull/append. Global integer version counter. Op log for audit trail. Version-based conflict detection (rejects stale writes).
+
+**Storage (PZLS):** Shared SQLite database (`better-sqlite3`) in `data/pazator.db`. Single `entities` table with `(id, store)` PK, shared across all users. AES-256-GCM encryption-at-rest for classified entities. Files stored as BLOBs in `files` table. Op log in `ops` table (auto-increment seq). Sessions in `sessions` table with TTL.
 
 **Data synced:** 6 stores → object maps keyed by ID: `humans`, `others`, `tags`, `cases`, `chats`, `relationships`.
+
+**Desktop:** `npm run desktop` launches **LSAD** (Electron app wrapping the admin panel). Opens in a native window with menu bar (PZLS, Edit, View, Window).
 
 ---
 
@@ -449,15 +495,16 @@ pazator/
 │   ├── index.html                   # Main SPA (2841 lines, 13 tabs, 16 modals)
 │   ├── stylez.css                   # Dark theme (12,593 lines, CSS custom properties)
 │   ├── js/
-│   │   ├── core/                    # Foundation (globals, store, worker, persistence, modal, etc.)
+│   │   ├── core/                    # Foundation (globals, store, worker, persistence, modal, files.js, etc.)
 │   │   ├── data/                    # Database (IndexedDB engine, facet index)
 │   │   ├── chat/                    # Chat processing (parser, storage, analysis service)
 │   │   ├── ai/                      # AI/Zor system + TIDE engine (11 modules incl. providers/)
 │   │   ├── ui/                      # UI components (tabs, table, settings, common utils)
 │   │   ├── features/                # Feature modules (12 modules)
 │   │   ├── tracker/                 # LCTX globe tracker (1 module, 1177 lines)
-│   │   └── apps/                    # Lazy-loaded app modules (16 modules)
-├── docs/                            # Documentation pages (11 HTML files)
+│   │   ├── apps/                    # Lazy-loaded app modules (16 modules + lsad.js)
+│   │   └── plugins/                 # Built-in plugins (server-search.js, default-off)
+├── docs/                            # Documentation pages (14 HTML files, incl. sync.html for PZLS)
 ├── design/                          # Design language system (style guide HTML + fonts)
 ├── mobile/                          # SHAHED mobile companion (single HTML file)
 └── ASKING/                          # Fullscreen help/landing page (+ fonts)

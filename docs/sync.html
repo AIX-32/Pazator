@@ -153,14 +153,12 @@
   <section class="hero">
     <div class="content">
       <div class="content-inner">
-        <div class="badge">INFRASTRUCTURE &mdash; v0.May1726</div>
-        <h1>Sync<br>Server.</h1>
+        <div class="badge">INFRASTRUCTURE &mdash; v0.Jul326</div>
+        <h1>PZLS<br>Server.</h1>
 
         <p>
-          PZLS (Pazator Sync Server) is a lightweight Node.js backend that provides data sync,
-          account management, entity resolution, and remote SQL query execution. It lets you
-          push and pull your Pazator data across devices with per-user isolation and
-          token-based authentication.
+          <strong>PZLS</strong> is the sync server. <strong>LSAD</strong> (Local Sync Admin Dashboard) is its built-in admin panel, wrapped as an Electron desktop app.
+          <strong>Sarparast</strong> is the main Pazator app that connects to PZLS.
         </p>
 
         <h2>Quick Start</h2>
@@ -168,10 +166,10 @@
         <div class="step">
           <span class="step-num">1</span>
           <div class="step-body">
-            <p>Clone and install.</p>
-            <pre>git clone https://github.com/AIX-32/PZLS.git
-cd PZLS
-npm install</pre>
+            <p>Install dependencies.</p>
+            <pre>cd PZLS
+npm install
+npx electron-rebuild  # rebuild native SQLite for Electron</pre>
           </div>
         </div>
 
@@ -180,7 +178,7 @@ npm install</pre>
           <div class="step-body">
             <p>Start the server.</p>
             <pre>npm start</pre>
-            <p>Runs on <code class="code">http://localhost:3456</code> by default. Set <code class="code">PORT</code> to change it:</p>
+            <p>Runs on <code class="code">http://localhost:3456</code>. Set <code class="code">PORT</code> to change it:</p>
             <pre>PORT=8080 npm start</pre>
           </div>
         </div>
@@ -188,59 +186,55 @@ npm install</pre>
         <div class="step">
           <span class="step-num">3</span>
           <div class="step-body">
-            <p>Configure Pazator to connect. Click the logo &rarr; <strong>Sync Config</strong> &rarr; enter the server URL &rarr; <strong>Test Connection</strong>.</p>
+            <p>Launch the desktop app (LSAD).</p>
+            <pre>npm run desktop</pre>
+            <p>Opens the admin panel in a native Electron window. Or just open <code class="code">http://localhost:3456</code> in a browser.</p>
           </div>
         </div>
 
         <div class="step">
           <span class="step-num">4</span>
           <div class="step-body">
-            <p>Create your account. Type a username + password (6+ chars) and click <strong>Register</strong>. The first user is <strong>admin</strong>; everyone after is <strong>analyst</strong>.</p>
+            <p>In Sarparast, click System &rarr; <strong>PZLS</strong> &rarr; enter the server URL &rarr; <strong>Test Connection</strong>. Register an account (first user is admin).</p>
           </div>
         </div>
 
         <div class="step">
           <span class="step-num">5</span>
           <div class="step-body">
-            <p>Push your data. Logo &rarr; <strong>Push</strong> uploads your local data to the server. <strong>Pull</strong> downloads server data to your local app.</p>
+            <p>Push your data via System &rarr; <strong>Push</strong>. Pull to download server data.</p>
           </div>
         </div>
 
         <h2>Account System</h2>
         <p>
-          Authentication is handled via Bearer tokens. Register once, then login from any
-          Pazator instance to access your data. Tokens persist in <code class="code">localStorage</code>
-          and auto-renew on page load.
+          Bearer token auth. Rate-limited on login/register (10 attempts/min by default). Disabled accounts can't log in.
         </p>
 
         <div class="tbl">
           <div class="tbl-item"><span class="key">POST /api/auth/register</span><span class="val">Create account &mdash; <code class="code">{username, password}</code></span></div>
           <div class="tbl-item"><span class="key">POST /api/auth/login</span><span class="val">Login &mdash; <code class="code">{username, password}</code> &rarr; <code class="code">{token, user}</code></span></div>
-          <div class="tbl-item"><span class="key">POST /api/auth/logout</span><span class="val">Invalidate session token</span></div>
-          <div class="tbl-item"><span class="key">GET /api/auth/me</span><span class="val">Get current user info</span></div>
+          <div class="tbl-item"><span class="key">POST /api/auth/logout</span><span class="val">Invalidate session</span></div>
+          <div class="tbl-item"><span class="key">GET /api/auth/me</span><span class="val">Current user info</span></div>
           <div class="tbl-item"><span class="key">POST /api/auth/change-password</span><span class="val">Change password &mdash; <code class="code">{currentPassword, newPassword}</code></span></div>
+          <div class="tbl-item"><span class="key">GET /api/auth/sessions</span><span class="val">List your active sessions</span></div>
+          <div class="tbl-item"><span class="key">DELETE /api/auth/sessions/:token</span><span class="val">Kill one of your sessions</span></div>
         </div>
 
-        <p>
-          Passwords are hashed with <strong>scrypt</strong> + a random salt. Tokens are UUIDs
-          stored in <code class="code">data/tokens.json</code>.
-        </p>
+        <p>Passwords: scrypt + random salt. Sessions expire after 24h (configurable via <code class="code">TOKEN_TTL_MS</code>).</p>
 
         <h2>Data Sync</h2>
-        <p>
-          Each user gets their own isolated data namespace. Sync operations only affect the
-          authenticated user's data.
-        </p>
+        <p>All entities live in a shared SQLite database. Stores: humans, others, tags, cases, chats, relationships.</p>
 
         <div class="tbl">
-          <div class="tbl-item"><span class="key">GET /api/sync</span><span class="val">Pull all data for the authenticated user</span></div>
-          <div class="tbl-item"><span class="key">POST /api/sync</span><span class="val">Push data &mdash; <code class="code">{clientVersion, stores: {...}}</code></span></div>
-          <div class="tbl-item"><span class="key">GET /api/sync/changes?since=N</span><span class="val">List changelog entries after version N</span></div>
-          <div class="tbl-item"><span class="key">GET /api/sync/status</span><span class="val">Server health + account stats (partial info without auth)</span></div>
+          <div class="tbl-item"><span class="key">GET /api/sync</span><span class="val">Pull all data</span></div>
+          <div class="tbl-item"><span class="key">POST /api/sync</span><span class="val">Push data &mdash; <code class="code">{clientVersion, stores}</code></span></div>
+          <div class="tbl-item"><span class="key">GET /api/sync/ops?since=N&limit=500</span><span class="val">Operation log (paginated)</span></div>
+          <div class="tbl-item"><span class="key">POST /api/sync/ops</span><span class="val">Push operations individually</span></div>
+          <div class="tbl-item"><span class="key">GET /api/sync/changes?since=N</span><span class="val">Changes since version</span></div>
+          <div class="tbl-item"><span class="key">GET /api/sync/status</span><span class="val">Server health + account stats</span></div>
+          <div class="tbl-item"><span class="key">GET /api/sync/stores</span><span class="val">Record counts per store</span></div>
         </div>
-
-        <p>All sync endpoints require a valid Bearer token:</p>
-        <pre>Authorization: Bearer &lt;your-token&gt;</pre>
 
         <h3>Push format</h3>
         <pre>{
@@ -255,40 +249,75 @@ npm install</pre>
   }
 }</pre>
 
-        <h2>Other Endpoints</h2>
-
+        <h2>Search</h2>
         <div class="tbl">
-          <div class="tbl-item"><span class="key">GET /api/resolve?threshold=0.6</span><span class="val">Jaro-Winkler entity resolution against user's data</span></div>
-          <div class="tbl-item"><span class="key">POST /api/query</span><span class="val">Execute SQL &mdash; <code class="code">{connectionString, query}</code> (MySQL/Postgres)</span></div>
-          <div class="tbl-item"><span class="key">GET /api/admin/users</span><span class="val">List all users (admin only)</span></div>
-          <div class="tbl-item"><span class="key">DELETE /api/admin/users/:id</span><span class="val">Delete a user (admin only)</span></div>
+          <div class="tbl-item"><span class="key">GET /api/search?q=&store=&page=&perPage=</span><span class="val">Server-side search via SQL LIKE across all entity data</span></div>
         </div>
+
+        <h2>File Storage</h2>
+        <p>Upload files (images, documents) linked to entities. 10MB max per file.</p>
+        <div class="tbl">
+          <div class="tbl-item"><span class="key">POST /api/files/upload</span><span class="val">Upload file (base64) &mdash; <code class="code">{name, mimeType, data, entityId, entityStore}</code></span></div>
+          <div class="tbl-item"><span class="key">GET /api/files/:id</span><span class="val">Download raw file</span></div>
+          <div class="tbl-item"><span class="key">GET /api/files/meta/:id</span><span class="val">File metadata (no binary)</span></div>
+          <div class="tbl-item"><span class="key">GET /api/files?entityId=&entityStore=</span><span class="val">List files for an entity</span></div>
+          <div class="tbl-item"><span class="key">DELETE /api/files/:id</span><span class="val">Delete a file (owner or admin)</span></div>
+        </div>
+
+        <h2>Other Endpoints</h2>
+        <div class="tbl">
+          <div class="tbl-item"><span class="key">GET /api/resolve?threshold=0.6</span><span class="val">Jaro-Winkler entity resolution</span></div>
+          <div class="tbl-item"><span class="key">POST /api/query</span><span class="val">Execute SQL against external DB &mdash; <code class="code">{connectionString, query}</code></span></div>
+        </div>
+
+        <h2>Admin Endpoints (admin role required)</h2>
+        <div class="tbl">
+          <div class="tbl-item"><span class="key">GET /api/admin/config</span><span class="val">Server config: node version, paths, env vars</span></div>
+          <div class="tbl-item"><span class="key">GET /api/admin/export</span><span class="val">Full DB dump (JSON)</span></div>
+          <div class="tbl-item"><span class="key">POST /api/admin/import</span><span class="val">Restore from dump</span></div>
+          <div class="tbl-item"><span class="key">GET /api/admin/users</span><span class="val">List all users</span></div>
+          <div class="tbl-item"><span class="key">PATCH /api/admin/users/:id</span><span class="val">Enable/disable user &mdash; <code class="code">{disabled: true}</code></span></div>
+          <div class="tbl-item"><span class="key">DELETE /api/admin/users/:id</span><span class="val">Delete user and their data</span></div>
+          <div class="tbl-item"><span class="key">GET /api/admin/users/:id/sessions</span><span class="val">List a user's sessions</span></div>
+          <div class="tbl-item"><span class="key">DELETE /api/admin/sessions/:token</span><span class="val">Force-kill any session</span></div>
+          <div class="tbl-item"><span class="key">GET /api/admin/ops?since=N&limit=200</span><span class="val">Audit log (paginated)</span></div>
+          <div class="tbl-item"><span class="key">GET /api/admin/admins</span><span class="val">List forced admin usernames</span></div>
+          <div class="tbl-item"><span class="key">POST /api/admin/admins</span><span class="val">Set forced admin list</span></div>
+        </div>
+
+        <h2>LSAD — Admin Panel</h2>
+        <p>
+          The built-in admin panel (LSAD) is served at <code class="code">/</code> on the PZLS server. It includes:
+        </p>
+        <ul>
+          <li><strong>Dashboard</strong> &mdash; stats grid, store breakdown bar chart, recent operations feed (live via WebSocket), connected clients</li>
+          <li><strong>Users</strong> &mdash; user list with status, last active, enable/disable, forced admins config</li>
+          <li><strong>Data</strong> &mdash; browse all entities with live search, click to view JSON</li>
+          <li><strong>Changelog</strong> &mdash; paginated operation log with colored action pills</li>
+          <li><strong>Sessions</strong> &mdash; view and kill your own login sessions</li>
+          <li><strong>Config</strong> &mdash; runtime info, paths, environment variables</li>
+          <li><strong>API Test</strong> &mdash; test any endpoint</li>
+        </ul>
+        <p>Launch via <code class="code">npm run desktop</code> (Electron) or open <code class="code">http://localhost:3456</code> in a browser.</p>
 
         <h2>Architecture</h2>
         <p>
-          The server stores everything as flat JSON files in a <code class="code">data/</code> directory.
-          No database required.
+          SQLite via <code class="code">better-sqlite3</code>. Single shared <code class="code">entities</code> table.
+          Encryption-at-rest for classified entities (AES-256-GCM). Op log for audit trail.
         </p>
 
         <pre>PZLS/
-  server.js              # Main server
+  server.js              # Express server + WebSocket
+  db.js                  # SQLite schema + queries
+  electron.js            # Electron main process
   package.json
-  README.md
-  data/                  # Created on first run (gitignored)
-    users.json           # Registered users
-    tokens.json          # Active session tokens
-    repo.json            # Legacy — migrated to per-user on first registration
-    repo_&lt;userId&gt;.json    # Per-user data stores
-    changelog_&lt;userId&gt;.json</pre>
+  data/
+    pazator.db           # SQLite database
+    encryption.key       # Auto-generated AES key</pre>
 
+        <h2>From Sarparast</h2>
         <p>
-          If you were running the old (pre-auth) server with a <code class="code">repo.json</code>,
-          it will be automatically migrated to the first registered user's namespace.
-        </p>
-
-        <h2>From Pazator</h2>
-        <p>
-          The logo menu in the app shows your connection status at a glance:
+          The logo menu shows connection status:
         </p>
         <ul>
           <li><strong style="color:#4caf50;">Green</strong> &mdash; logged in and connected</li>
@@ -296,18 +325,17 @@ npm install</pre>
           <li><strong style="color:#666;">Grey</strong> &mdash; not configured</li>
         </ul>
         <p>
-          Click <strong>Sync Config</strong> to change server URL, login, register, or logout.
-          Use <strong>Push</strong> and <strong>Pull</strong> to transfer data on demand.
+          System &rarr; <strong>PZLS</strong> to configure. Click <strong>Push</strong>/<strong>Pull</strong> to transfer data.
+          Admin users see System &rarr; <strong>Admin Panel</strong> for audit log, user management, stores breakdown, server config, sessions, and export/import.
         </p>
 
         <hr>
 
-        <div class="label">Related</div>
+        <div class="label">Naming</div>
         <p>
-          See the <a href="collab.html" style="color:var(--white);">COLLAB docs</a> for
-          the local user role system and permissions. The sync server account system
-          is separate &mdash; it controls <em>server access</em>, while COLLAB controls
-          <em>in-app permissions</em>.
+          <strong>PZLS</strong> = the sync server itself (Node.js + Express + SQLite + WebSocket).<br>
+          <strong>LSAD</strong> = the admin panel UI (Electron app and/or browser).<br>
+          <strong>Sarparast</strong> = the main Pazator app (50K-line SPA).<br>
         </p>
       </div>
     </div>

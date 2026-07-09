@@ -115,7 +115,8 @@ function initTabs() {
         var lazyTriggers = {
             walkthroughOption: function () { return ensureLazyModule('walkthrough', 'js/apps/walkthrough.js', function () { return !!window.startPazatorWalkthrough; }); },
             snappyOption: function () { return ensureLazyModule('snappy', 'js/apps/snappy.js', function () { return !!window.pazatorSnappy; }); },
-            syncConfigOption: function () { return ensureLazyModule('sync', 'js/apps/sync.js', function () { return !!window.pazatorSync; }); }
+            syncConfigOption: function () { return ensureLazyModule('sync', 'js/apps/sync.js', function () { return !!window.pazatorSync; }); },
+            adminPanelOption: function () { return ensureLazyModule('admin', 'js/apps/lsad.js', function () { return !!window.pazatorAdmin; }); }
         };
         Object.keys(lazyTriggers).forEach(function (id) {
             var el = document.getElementById(id);

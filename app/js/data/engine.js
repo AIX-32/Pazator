@@ -273,8 +273,10 @@
             if (!db) return Promise.resolve();
             return new Promise(function (resolve, reject) {
                 try {
+                    // ponytail: JSON round-trip to strip Proxy wrappers for IndexedDB
+                    var clean = JSON.parse(JSON.stringify(value));
                     var tx = db.transaction(storeName, 'readwrite');
-                    tx.objectStore(storeName).put(value);
+                    tx.objectStore(storeName).put(clean);
                     tx.oncomplete = function () { resolve(); };
                     tx.onerror = function (e) { reject(e.target.error); };
                 } catch (err) { reject(err); }
@@ -285,9 +287,11 @@
             if (!db || !values.length) return Promise.resolve();
             return new Promise(function (resolve, reject) {
                 try {
+                    // ponytail: JSON round-trip to strip Proxy wrappers for IndexedDB
+                    var clean = JSON.parse(JSON.stringify(values));
                     var tx = db.transaction(storeName, 'readwrite');
                     var store = tx.objectStore(storeName);
-                    values.forEach(function (v) { store.put(v); });
+                    clean.forEach(function (v) { store.put(v); });
                     tx.oncomplete = function () { resolve(); };
                     tx.onerror = function (e) { reject(e.target.error); };
                 } catch (err) { reject(err); }

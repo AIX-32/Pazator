@@ -15,6 +15,16 @@
     <script src="js/data/engine.js"></script>
     <script src="js/core/store.js"></script>
     <script src="js/core/plugins.js"></script>
+    <script src="js/core/files.js"></script>
+    <script src="js/plugins/server-search.js"></script>
+    <script>
+      // Server Search plugin is default-off
+      setTimeout(function () {
+        if (window.pazatorPlugins && window.pazatorPlugins.isEnabled('pazator-server-search')) {
+          window.pazatorPlugins.disable('pazator-server-search');
+        }
+      }, 0);
+    </script>
     <script src="js/apps/objects.js"></script>
     <script src="js/features/relationships.js"></script>
     <script src="js/ui/ui.js"></script>
@@ -377,8 +387,9 @@
                             class="fas fa-shield-alt"></i> Classify Recent</button>
                     <button class="menu-dropdown-item" onclick="document.getElementById('exportCsvOption')?.click()"><i
                             class="fas fa-file-export"></i> Export CSV</button>
+                    <div class="menu-separator"></div>
                     <button class="menu-dropdown-item" onclick="document.getElementById('syncConfigOption')?.click()"><i
-                            class="fas fa-plug"></i> Sync Config</button>
+                             class="fas fa-plug"></i> PZLS</button>
                     <button class="menu-dropdown-item" onclick="window.pazatorSync?.push()"><i
                             class="fas fa-upload"></i> Push</button>
                     <button class="menu-dropdown-item" onclick="window.pazatorSync?.pull()"><i
@@ -386,7 +397,6 @@
                     <div class="menu-separator"></div>
                     <button class="menu-dropdown-item" onclick="document.getElementById('snappyOption')?.click()"><i
                              class="fas fa-camera"></i> Snappy</button>
-                    <div class="menu-separator"></div>
                     <button class="menu-dropdown-item" onclick="openOrCreateTab('plugins')"><i
                              class="fas fa-puzzle-piece"></i> Plugins</button>
 
@@ -419,7 +429,7 @@
                     style="padding:10px 10px 8px;margin:2px;border-radius:5px;background:rgba(255,255,255,0.03);">
                     <div
                         style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;padding:0 2px;">
-                        Sync Server</div>
+                        PZLS</div>
                     <div id="syncStatusIndicator" style="display:flex;align-items:center;gap:8px;">
                         <span id="syncStatusDot"
                             style="width:7px;height:7px;border-radius:50%;background:#555;flex-shrink:0;"></span>
@@ -432,7 +442,7 @@
                         </div>
                         <button id="syncConfigOption"
                             style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:3px;border-radius:4px;font-size:11px;flex-shrink:0;"
-                            title="Configure sync server"><i class="fas fa-plug"></i></button>
+                            title="Configure PZLS"><i class="fas fa-plug"></i></button>
                     </div>
                 </div>
                 <div class="logo-dropdown-divider"></div>

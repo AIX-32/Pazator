@@ -374,7 +374,7 @@
             <div style="color:#888;padding:30px;text-align:center;">
               <i class="fas fa-fingerprint" style="font-size:2rem;margin-bottom:10px;opacity:0.3;"></i>
               <p>Run a scan to find potential duplicate entities</p>
-              <small>Client-side scanning works offline. Server-side requires a sync server connection.</small>
+              <small>Client-side scanning works offline. Server-side requires PZLS connection.</small>
             </div>
           </div>
         </div>

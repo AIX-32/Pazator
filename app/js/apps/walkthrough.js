@@ -154,7 +154,7 @@
     {
       target: '.menu-item[data-menu="system"]',
       title: 'System Menu',
-      desc: 'Settings, Classification, Export CSV, Sync Config, Plugins, and Snappy screenshot tool.',
+      desc: 'Settings, Classification, Export CSV, PZLS, Plugins, and Snappy screenshot tool.',
       before: function () { openMenu('system'); },
       after: function () { closeMenu('system'); }
     },
@@ -168,7 +168,7 @@
     {
       target: '.logo-card',
       title: 'Logo Menu',
-      desc: 'Click the logo for About, System Info, Settings, and sync configuration.',
+      desc: 'Click the logo for About, System Info, Settings, and PZLS configuration.',
       before: function () { closeAllMenus(); }
     },
     {

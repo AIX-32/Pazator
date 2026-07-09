@@ -1,4 +1,26 @@
 (function () {
+  // inject PZLS modal styles once
+  if (!document.getElementById('pzls-style')) {
+    var s = document.createElement('style');
+    s.id = 'pzls-style';
+    s.textContent =
+      '.pzls-modal .modal-content{max-width:520px}' +
+      '.pzls-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}' +
+      '.pzls-user-row{display:flex;align-items:center;gap:10px}' +
+      '.pzls-user-avatar{width:36px;height:36px;border-radius:50%;background:var(--info-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--info)}' +
+      '.pzls-user-info{flex:1;min-width:0}' +
+      '.pzls-user-name{color:var(--text-primary);font-size:0.85rem;font-weight:500}' +
+      '.pzls-user-role{color:var(--text-muted);font-size:0.7rem;margin-top:1px}' +
+      '.pzls-logout-btn{padding:5px 10px;background:var(--danger-bg);border:1px solid var(--danger-border);color:var(--danger);border-radius:4px;cursor:pointer;font-size:0.7rem}' +
+      '.pzls-msg{font-size:0.72rem;color:var(--danger);min-height:16px}' +
+      '.pzls-btn-row{display:flex;gap:8px}' +
+      '.pzls-btn{flex:1;justify-content:center}' +
+      '.pzls-full-btn{width:100%;margin-top:4px;justify-content:center}' +
+      '.pzls-status{font-size:0.75rem;color:var(--text-muted);margin-top:8px;min-height:16px}' +
+      '.pzls-info-box{display:none;margin-top:8px;padding:10px 12px;border-radius:var(--border-radius-sm);background:rgba(0,0,0,0.25);font-size:0.7rem;line-height:1.8}';
+    document.head.appendChild(s);
+  }
+
   const SYNC_CONFIG_KEY = 'pazator_sync_config';
   const SYNC_STATE_KEY = 'pazator_sync_state';
   const AUTH_TOKEN_KEY = 'pazator_auth_token';
@@ -78,7 +100,7 @@
 
   async function apiFetch(path, options) {
     const url = getServerUrl();
-    if (!url) throw new Error('No sync server configured');
+    if (!url) throw new Error('No PZLS server configured');
     options = options || {};
     const resp = await fetch(url + path, {
       ...options,
@@ -98,7 +120,7 @@
 
   async function login(username, password) {
     const url = getServerUrl();
-    if (!url) throw new Error('Configure sync server first');
+    if (!url) throw new Error('Configure PZLS first');
     const resp = await fetch(url + '/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -119,7 +141,7 @@
 
   async function register(username, password) {
     const url = getServerUrl();
-    if (!url) throw new Error('Configure sync server first');
+    if (!url) throw new Error('Configure PZLS first');
     const resp = await fetch(url + '/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -299,79 +321,65 @@
     const serverLabel = syncConfig && syncConfig.label ? syncConfig.label : '';
 
     const loggedInCard = currentUser
-      ? '<div style="display:flex;align-items:center;gap:10px;">' +
-        '<span style="width:34px;height:34px;border-radius:50%;background:linear-gradient(145deg,#4d9de0,#3a7fc4);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-user" style="color:#fff;font-size:13px;"></i></span>' +
-        '<div style="flex:1;min-width:0;">' +
-        '  <div style="color:var(--text-primary);font-size:0.85rem;font-weight:500;">' + currentUser.username + '</div>' +
-        '  <div style="color:var(--text-muted);font-size:0.7rem;margin-top:1px;">Role: ' + currentUser.role + '</div>' +
+      ? '<div class="pzls-user-row">' +
+        '<span class="pzls-user-avatar"><i class="fas fa-user"></i></span>' +
+        '<div class="pzls-user-info">' +
+        '  <div class="pzls-user-name">' + currentUser.username + '</div>' +
+        '  <div class="pzls-user-role">Role: ' + currentUser.role + '</div>' +
         '</div>' +
-        '<button id="syncLogoutBtn" style="padding:5px 10px;background:var(--danger-bg);border:1px solid var(--danger-border);color:var(--danger);border-radius:4px;cursor:pointer;font-size:0.7rem;"><i class="fas fa-sign-out-alt"></i></button>' +
+        '<button id="syncLogoutBtn" class="pzls-logout-btn"><i class="fas fa-sign-out-alt"></i></button>' +
         '</div>'
-      : '<input type="text" id="syncLoginUser" class="form-control" placeholder="Username" style="width:100%;box-sizing:border-box;">' +
-        '<input type="password" id="syncLoginPass" class="form-control" placeholder="Password" style="width:100%;box-sizing:border-box;margin-top:7px;">' +
-        '<div id="syncAccountMsg" style="font-size:0.72rem;color:var(--text-muted);min-height:14px;margin-top:5px;"></div>' +
-        '<div style="display:flex;gap:6px;margin-top:6px;">' +
-        '  <button id="syncLoginBtn" style="flex:1;padding:7px;border:none;background:var(--btn-primary-bg);color:#111;border-radius:5px;cursor:pointer;font-size:0.75rem;font-weight:600;"><i class="fas fa-sign-in-alt"></i> Login</button>' +
-        '  <button id="syncRegisterBtn" style="flex:1;padding:7px;border:1px solid var(--border-color);background:transparent;color:var(--text-secondary);border-radius:5px;cursor:pointer;font-size:0.75rem;"><i class="fas fa-user-plus"></i> Register</button>' +
+      : '<div class="form-group"><label>Username</label><input type="text" id="syncLoginUser" class="form-control" placeholder="Username"></div>' +
+        '<div class="form-group"><label>Password</label><input type="password" id="syncLoginPass" class="form-control" placeholder="Password"></div>' +
+        '<div id="syncAccountMsg" class="pzls-msg"></div>' +
+        '<div class="pzls-btn-row">' +
+        '  <button id="syncLoginBtn" class="btn btn-primary pzls-btn"><i class="fas fa-sign-in-alt"></i> Login</button>' +
+        '  <button id="syncRegisterBtn" class="btn glass-btn pzls-btn"><i class="fas fa-user-plus"></i> Register</button>' +
         '</div>';
 
     const modal = document.createElement('div');
+    modal.className = 'modal active';
     modal.id = 'syncConfigModal';
     modal.innerHTML =
-      '<div style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;" id="syncModalBackdrop">' +
-      '  <div style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:7px;width:100%;max-width:500px;box-shadow:0 16px 48px rgba(0,0,0,0.4);">' +
-
-      '    <div style="display:flex;align-items:center;gap:8px;padding:14px 16px 0 16px;">' +
-      '      <span style="width:28px;height:28px;border-radius:6px;background:var(--info-bg);display:flex;align-items:center;justify-content:center;"><i class="fas fa-plug" style="font-size:12px;color:var(--info);"></i></span>' +
-      '      <span style="flex:1;color:var(--text-primary);font-size:0.9rem;font-weight:600;">Sync Server</span>' +
-      '      <span id="syncModalClose" style="width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-muted);font-size:16px;transition:background 0.15s;">&times;</span>' +
-      '    </div>' +
-
-      '    <div style="padding:14px 16px 12px 16px;display:flex;flex-direction:column;gap:10px;">' +
-
-      '      <div style="background:var(--secondary-bg);border:1px solid var(--border-color);border-radius:7px;padding:12px 14px;">' +
-      '        <div style="display:flex;align-items:center;gap:5px;margin-bottom:8px;">' +
-      '          <i class="fas fa-user" style="font-size:10px;color:var(--info);width:14px;"></i>' +
-      '          <span style="font-size:9px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">Account</span>' +
-      '        </div>' +
+      '<div class="modal-content pzls-modal">' +
+      '  <div class="modal-header">' +
+      '    <h2><i class="fas fa-plug"></i> PZLS</h2>' +
+      '  </div>' +
+      '  <div class="modal-body">' +
+      '    <div class="pzls-grid">' +
+      '      <div class="form-section">' +
+      '        <h3><i class="fas fa-user"></i> Account</h3>' +
       '        <div id="syncAccountContainer">' + loggedInCard + '</div>' +
       '      </div>' +
-
-      '      <div style="background:var(--secondary-bg);border:1px solid var(--border-color);border-radius:7px;padding:12px 14px;">' +
-      '        <div style="display:flex;align-items:center;gap:5px;margin-bottom:8px;">' +
-      '          <i class="fas fa-server" style="font-size:10px;color:var(--success);width:14px;"></i>' +
-      '          <span style="font-size:9px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">Server</span>' +
+      '      <div class="form-section">' +
+      '        <h3><i class="fas fa-server"></i> Server</h3>' +
+      '        <div class="form-group">' +
+      '          <label>URL</label>' +
+      '          <input type="url" id="syncServerUrl" class="form-control" placeholder="http://localhost:3456" value="' + serverUrl + '">' +
       '        </div>' +
-      '        <div style="display:flex;gap:8px;">' +
-      '          <div style="flex:2;">' +
-      '            <label style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:3px;">URL</label>' +
-      '            <input type="url" id="syncServerUrl" class="form-control" placeholder="http://localhost:3456" value="' + serverUrl + '" style="width:100%;box-sizing:border-box;">' +
-      '          </div>' +
-      '          <div style="flex:1;">' +
-      '            <label style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:3px;">Label</label>' +
-      '            <input type="text" id="syncServerLabel" class="form-control" placeholder="optional" value="' + serverLabel + '" style="width:100%;box-sizing:border-box;">' +
-      '          </div>' +
+      '        <div class="form-group">' +
+      '          <label>Label</label>' +
+      '          <input type="text" id="syncServerLabel" class="form-control" placeholder="optional" value="' + serverLabel + '">' +
       '        </div>' +
-      '        <button id="syncTestBtn" style="width:100%;margin-top:8px;padding:6px;border:1px dashed var(--border-color);background:transparent;color:var(--text-muted);border-radius:5px;cursor:pointer;font-size:0.72rem;"><i class="fas fa-plug"></i> Test Connection</button>' +
-      '        <div id="syncServerStatus" style="font-size:0.7rem;color:var(--text-muted);margin-top:5px;min-height:14px;"></div>' +
-      '        <div id="syncServerInfo" style="display:none;margin-top:7px;padding:7px 9px;border-radius:5px;background:rgba(0,0,0,0.15);font-size:0.7rem;line-height:1.7;"></div>' +
+      '        <button id="syncTestBtn" class="btn glass-btn pzls-full-btn"><i class="fas fa-plug"></i> Test Connection</button>' +
+      '        <div id="syncServerStatus" class="pzls-status"></div>' +
+      '        <div id="syncServerInfo" class="pzls-info-box"></div>' +
       '      </div>' +
       '    </div>' +
-
-      '    <div style="display:flex;gap:6px;justify-content:flex-end;padding:0 16px 14px 16px;">' +
-      '      <button id="syncCancelBtn" style="padding:7px 14px;border:1px solid var(--border-color);background:transparent;color:var(--text-secondary);border-radius:5px;cursor:pointer;font-size:0.75rem;"><i class="fas fa-times"></i> Cancel</button>' +
-      '      <button id="syncSaveBtn" style="padding:7px 14px;border:none;background:var(--btn-primary-bg);color:#111;border-radius:5px;cursor:pointer;font-size:0.75rem;font-weight:600;"><i class="fas fa-save"></i> Save & Close</button>' +
-      '    </div>' +
-
+      '  </div>' +
+      '  <div class="form-actions">' +
+      '    <button id="syncDocsBtn" class="btn glass-btn"><i class="fas fa-book"></i> Docs</button>' +
+      '    <button id="syncCancelBtn" class="btn glass-btn">Cancel</button>' +
+      '    <button id="syncSaveBtn" class="btn btn-primary"><i class="fas fa-save"></i> Save & Close</button>' +
       '  </div>' +
       '</div>';
     document.body.appendChild(modal);
 
     function closeModal() { modal.remove(); }
 
-    document.getElementById('syncModalClose').addEventListener('click', closeModal);
     document.getElementById('syncCancelBtn').addEventListener('click', closeModal);
-    document.getElementById('syncModalBackdrop').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeModal(); });
+    document.getElementById('syncDocsBtn').addEventListener('click', () => window.open('../docs/sync.html', '_blank'));
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
     if (!currentUser) {
       setTimeout(() => {
