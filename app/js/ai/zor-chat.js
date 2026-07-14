@@ -1,8 +1,10 @@
-var __aiAbortController = null;
-var __aiProcessing = false;
+let __aiAbortController = null;
+let __aiProcessing = false;
+let __aiProcessingGuard = false;
 
 function cancelCurrentAIRequest() {
     __aiProcessing = false;
+    __aiProcessingGuard = false;
     if (window.AIQueue) {
         AIQueue.cancelAll();
     }
@@ -30,7 +32,7 @@ function addMessageToAIChat(message, sender, entityInfo) {
     let container = messageDiv;
 
     if (message && /api\s*key/i.test(message) && sender === 'ai') {
-        var link = document.createElement('a');
+        const link = document.createElement('a');
         link.href = 'https://aistudio.google.com/api-keys';
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
@@ -68,20 +70,20 @@ function addMessageToAIChat(message, sender, entityInfo) {
 }
 
 function escapeHtml(str) {
-    var d = document.createElement('div');
+    const d = document.createElement('div');
     d.appendChild(document.createTextNode(str || ''));
     return d.innerHTML;
 }
 
 function addToolCallCard(action, result) {
-    var card = document.createElement('div');
+    const card = document.createElement('div');
     card.className = 'ai-message tool';
-    var actionName = action.action || 'tool';
-    var detail = '';
+    const actionName = action.action || 'tool';
+    let detail = '';
     if (action.data && action.data.name) detail = action.data.name;
     else if (action.title) detail = action.title;
-    var success = result && result.success !== false;
-    var label = escapeHtml(actionName);
+    const success = result && result.success !== false;
+    let label = escapeHtml(actionName);
     if (detail) label += ' \u2014 ' + escapeHtml(detail);
     label += '  ' + (success ? '\u2713' : '\u2717');
     card.textContent = label;
@@ -89,7 +91,7 @@ function addToolCallCard(action, result) {
         card.classList.add('tool-failed');
         card.style.borderColor = '#ff6b6b';
         card.style.cursor = 'pointer';
-        var errMsg = result && result.message ? result.message : 'Action failed.';
+        const errMsg = result && result.message ? result.message : 'Action failed.';
         card.title = errMsg;
         card.addEventListener('click', function () {
             if (typeof showModal === 'function') {
@@ -113,11 +115,9 @@ function addToolCallCard(action, result) {
 }
 
 function saveCurrentChat() {
-    console.log('saveCurrentChat called, aiChatHistory:', aiChatHistory);
     if (aiChatHistory.length === 0) return;
 
     const existingChats = JSON.parse(localStorage.getItem('chatHistory') || '[]');
-    console.log('Existing chats:', existingChats);
 
     const firstUserMsg = aiChatHistory.find(m => m.role === 'user')?.content || 'New Chat';
     const newChat = {
@@ -130,15 +130,10 @@ function saveCurrentChat() {
         titleGenerated: false
     };
 
-    console.log('Saving new chat:', newChat);
-    console.log('JSON string:', JSON.stringify(newChat));
     existingChats.push(newChat);
 
-    const finalJson = JSON.stringify(existingChats);
-    console.log('Final JSON to save:', finalJson);
-
     try {
-        localStorage.setItem('chatHistory', finalJson);
+        localStorage.setItem('chatHistory', JSON.stringify(existingChats));
     } catch (e) {
         console.error('Error saving chat:', e);
     }
@@ -369,7 +364,6 @@ function generate54PeopleCommand() {
         const humanNames = actions.map(action => action.data.name);
 
         for (let i = 0; i < actions.length; i++) {
-
             const familyCount = Math.min(Math.floor(Math.random() * 3) + 1, actions.length - 1);
             const familyNames = [];
 
@@ -397,7 +391,215 @@ function generate54PeopleCommand() {
     }
 }
 
+const ZOR_TOOLS = [
+    { name: 'add_human', parameters: { type: 'object', properties: { name: { type: 'string' }, gender: { type: 'string' }, birthDate: { type: 'string' }, credit: { type: 'integer' }, threatLevel: { type: 'string', enum: ['None', 'Low', 'Medium', 'High', 'Critical'] }, tags: { type: 'array', items: { type: 'string' } }, workplace: { type: 'string' }, extraNotes: { type: 'string' } }, required: ['name'] } },
+    { name: 'modify_human', parameters: { type: 'object', properties: { id: { type: 'string' }, data: { type: 'object', properties: { name: { type: 'string' }, credit: { type: 'integer' }, threatLevel: { type: 'string' }, tags: { type: 'array', items: { type: 'string' } }, extraNotes: { type: 'string' } } } }, required: ['id', 'data'] } },
+    { name: 'delete_human', parameters: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } },
+    { name: 'add_other', parameters: { type: 'object', properties: { name: { type: 'string' }, note: { type: 'string' } }, required: ['name'] } },
+    { name: 'modify_other', parameters: { type: 'object', properties: { id: { type: 'string' }, data: { type: 'object', properties: { name: { type: 'string' }, note: { type: 'string' } } } }, required: ['id', 'data'] } },
+    { name: 'delete_other', parameters: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } },
+    { name: 'list_humans', parameters: { type: 'object', properties: {} } },
+    { name: 'list_others', parameters: { type: 'object', properties: {} } },
+    { name: 'count_entries', parameters: { type: 'object', properties: {} } },
+    { name: 'search', parameters: { type: 'object', properties: { q: { type: 'string' } }, required: ['q'] } },
+    { name: 'get', parameters: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } },
+    { name: 'list', parameters: { type: 'object', properties: {} } },
+    { name: 'stats', parameters: { type: 'object', properties: {} } },
+    { name: 'add_tag', parameters: { type: 'object', properties: { tag: { type: 'string' } }, required: ['tag'] } },
+    { name: 'assign_tag', parameters: { type: 'object', properties: { id: { type: 'string' }, tag: { type: 'string' } }, required: ['id', 'tag'] } },
+    { name: 'remove_tag', parameters: { type: 'object', properties: { id: { type: 'string' }, tag: { type: 'string' } }, required: ['id', 'tag'] } },
+    { name: 'create_case', parameters: { type: 'object', properties: { title: { type: 'string' }, description: { type: 'string' } }, required: ['title'] } },
+    { name: 'add_case_note', parameters: { type: 'object', properties: { title: { type: 'string' }, note: { type: 'string' } }, required: ['title', 'note'] } },
+    { name: 'close_case', parameters: { type: 'object', properties: { title: { type: 'string' } }, required: ['title'] } },
+    { name: 'add_entity_to_case', parameters: { type: 'object', properties: { case_title: { type: 'string' }, entity_name: { type: 'string' } }, required: ['case_title', 'entity_name'] } },
+    { name: 'list_karline_actions', parameters: { type: 'object', properties: {} } },
+    { name: 'create_karline_action', parameters: { type: 'object', properties: { title: { type: 'string' }, type: { type: 'string', enum: ['static', 'dynamic'] }, date: { type: 'string' }, endDate: { type: 'string' }, goal: { type: 'string' }, description: { type: 'string' }, status: { type: 'string', enum: ['draft', 'active', 'completed', 'cancelled'] } }, required: ['title'] } },
+    { name: 'update_karline_action', parameters: { type: 'object', properties: { id: { type: 'integer' }, data: { type: 'object', properties: { title: { type: 'string' }, type: { type: 'string' }, date: { type: 'string' }, endDate: { type: 'string' }, goal: { type: 'string' }, description: { type: 'string' }, status: { type: 'string' } } } }, required: ['id', 'data'] } },
+    { name: 'delete_karline_action', parameters: { type: 'object', properties: { id: { type: 'integer' } }, required: ['id'] } },
+    { name: 'ask_user', parameters: { type: 'object', properties: { question: { type: 'string' }, options: { type: 'array', items: { type: 'string' } } }, required: ['question', 'options'] } }
+];
+
+function executeTool(name, args) {
+    const db = pazatorData;
+    function findHuman(id) {
+        return db.humans.findIndex(h => h.id === id);
+    }
+    function findOther(id) {
+        return db.others.findIndex(o => o.id === id);
+    }
+    switch (name) {
+        case 'add_human': {
+            const h = { id: generatePersonId(args.name, args.birthDate) };
+            Object.keys(args).forEach(k => { h[k] = args[k]; });
+            db.humans.push(h);
+            markDataChanged(); renderObjectCanvas();
+            return { success: true, message: 'Added human: ' + h.name, entityInfo: { id: h.id, type: 'human', name: h.name } };
+        }
+        case 'modify_human': {
+            const mi = findHuman(args.id);
+            if (mi === -1) return { success: false, message: 'Human not found: ' + args.id };
+            Object.keys(args.data || {}).forEach(k => { if (k in db.humans[mi]) db.humans[mi][k] = args.data[k]; });
+            markDataChanged(); renderObjectCanvas();
+            return { success: true, message: 'Modified human: ' + db.humans[mi].name, entityInfo: { id: db.humans[mi].id, type: 'human', name: db.humans[mi].name } };
+        }
+        case 'delete_human': {
+            const di = findHuman(args.id);
+            if (di === -1) return { success: false, message: 'Human not found: ' + args.id };
+            const dn = db.humans[di].name; db.humans.splice(di, 1);
+            markDataChanged(); renderObjectCanvas();
+            return { success: true, message: 'Deleted human: ' + dn };
+        }
+        case 'add_other': {
+            const o = { id: Date.now().toString() + Math.random().toString(36).substr(2, 9), name: args.name, note: args.note || '' };
+            db.others.push(o);
+            markDataChanged(); renderObjectCanvas();
+            return { success: true, message: 'Added other: ' + o.name, entityInfo: { id: o.id, type: 'other', name: o.name } };
+        }
+        case 'modify_other': {
+            const moi = findOther(args.id);
+            if (moi === -1) return { success: false, message: 'Other not found: ' + args.id };
+            if (args.data) { if (args.data.name !== undefined) db.others[moi].name = args.data.name; if (args.data.note !== undefined) db.others[moi].note = args.data.note; }
+            markDataChanged(); renderObjectCanvas();
+            return { success: true, message: 'Modified other: ' + db.others[moi].name };
+        }
+        case 'delete_other': {
+            const doi = findOther(args.id);
+            if (doi === -1) return { success: false, message: 'Other not found: ' + args.id };
+            const don = db.others[doi].name; db.others.splice(doi, 1);
+            markDataChanged(); renderObjectCanvas();
+            return { success: true, message: 'Deleted other: ' + don };
+        }
+        case 'list_humans':
+            return { success: true, message: JSON.stringify(db.humans.map(h => ({ id: h.id, name: h.name, threatLevel: h.threatLevel || 'None', credit: h.credit, tags: h.tags || [] }))) };
+        case 'list_others':
+            return { success: true, message: JSON.stringify(db.others.map(o => ({ id: o.id, name: o.name, note: o.note }))) };
+        case 'count_entries':
+            return { success: true, message: JSON.stringify({ humans: db.humans.length, others: db.others.length }) };
+        case 'search': {
+            const q = (args.q || '').toLowerCase();
+            const r = [];
+            db.humans.forEach(h => { if ((h.name + ' ' + (h.extraNotes || '') + ' ' + (h.tags || []).join(' ')).toLowerCase().indexOf(q) !== -1) r.push({ type: 'human', id: h.id, name: h.name }); });
+            db.others.forEach(o => { if ((o.name + ' ' + (o.note || '')).toLowerCase().indexOf(q) !== -1) r.push({ type: 'other', id: o.id, name: o.name }); });
+            return { success: true, message: JSON.stringify(r) };
+        }
+        case 'get': {
+            const ge = db.humans.find(h => h.id === args.id) || db.others.find(o => o.id === args.id);
+            return ge ? { success: true, message: JSON.stringify(ge) } : { success: false, message: 'Not found: ' + args.id };
+        }
+        case 'list':
+            return { success: true, message: JSON.stringify(db.humans.map(h => ({ id: h.id, name: h.name, threatLevel: h.threatLevel || 'None', credit: h.credit }))) };
+        case 'stats': {
+            const high = db.humans.filter(h => h.threatLevel === 'High' || h.threatLevel === 'Critical').length;
+            const total = db.humans.reduce((s, h) => s + (h.credit || 0), 0);
+            return { success: true, message: JSON.stringify({ totalHumans: db.humans.length, totalOthers: db.others.length, totalCases: (cases || []).length, totalTags: (tags || []).length, highRiskCount: high, averageCredit: db.humans.length ? (total / db.humans.length).toFixed(1) : 0 }) };
+        }
+        case 'add_tag':
+            if (!args.tag) return { success: false, message: 'Tag name required' };
+            if (tags.indexOf(args.tag) !== -1) return { success: true, message: 'Tag "' + args.tag + '" already exists' };
+            tags.push(args.tag); markDataChanged(); renderTags();
+            return { success: true, message: 'Added tag: ' + args.tag };
+        case 'assign_tag': {
+            const ati = findHuman(args.id);
+            if (ati === -1) return { success: false, message: 'Human not found' };
+            if (!db.humans[ati].tags) db.humans[ati].tags = [];
+            if (db.humans[ati].tags.indexOf(args.tag) !== -1) return { success: true, message: args.tag + ' already assigned' };
+            db.humans[ati].tags.push(args.tag);
+            if (tags.indexOf(args.tag) === -1) { tags.push(args.tag); renderTags(); }
+            markDataChanged(); renderObjectCanvas();
+            return { success: true, message: 'Assigned tag "' + args.tag + '" to ' + db.humans[ati].name };
+        }
+        case 'remove_tag': {
+            const rti = findHuman(args.id);
+            if (rti === -1) return { success: false, message: 'Human not found' };
+            if (!db.humans[rti].tags || db.humans[rti].tags.indexOf(args.tag) === -1) return { success: false, message: 'Tag not found on human' };
+            db.humans[rti].tags = db.humans[rti].tags.filter(t => t !== args.tag);
+            markDataChanged(); renderObjectCanvas();
+            return { success: true, message: 'Removed tag "' + args.tag + '" from ' + db.humans[rti].name };
+        }
+        case 'create_case': {
+            const nc = { id: 'case_' + Date.now(), title: args.title || 'Untitled', description: args.description || '', status: 'open', entities: [], timeline: [{ type: 'note', content: '<strong>Case created</strong>', timestamp: Date.now() }], createdAt: Date.now() };
+            cases.push(nc); saveCases(); renderCasesList(); selectCase(nc.id);
+            return { success: true, message: 'Created case: "' + nc.title + '"' };
+        }
+        case 'add_case_note': {
+            const cn = (cases || []).find(c => c.title.toLowerCase() === (args.title || '').toLowerCase());
+            if (!cn) return { success: false, message: 'Case not found' };
+            cn.timeline.push({ type: 'note', content: '<strong>Note</strong>: ' + args.note, timestamp: Date.now() });
+            saveCases();
+            return { success: true, message: 'Note added to "' + cn.title + '"' };
+        }
+        case 'close_case': {
+            const cc = (cases || []).find(c => c.title.toLowerCase() === (args.title || '').toLowerCase());
+            if (!cc) return { success: false, message: 'Case not found' };
+            cc.status = 'closed'; cc.timeline.push({ type: 'status-changed', content: '<strong>Case closed</strong>', timestamp: Date.now() });
+            saveCases(); renderCasesList();
+            return { success: true, message: 'Closed case: "' + cc.title + '"' };
+        }
+        case 'add_entity_to_case': {
+            const ec = (cases || []).find(c => c.title.toLowerCase() === (args.case_title || '').toLowerCase());
+            if (!ec) return { success: false, message: 'Case not found' };
+            const ee = db.humans.find(h => h.name.toLowerCase() === (args.entity_name || '').toLowerCase()) || db.others.find(o => o.name.toLowerCase() === (args.entity_name || '').toLowerCase());
+            if (!ee) return { success: false, message: 'Entity not found' };
+            if (ec.entities.indexOf(ee.id) !== -1) return { success: true, message: ee.name + ' already in case' };
+            ec.entities.push(ee.id); ec.timeline.push({ type: 'entity-added', content: '<strong>Entity added</strong>: ' + ee.name, timestamp: Date.now() });
+            saveCases();
+            return { success: true, message: 'Added ' + ee.name + ' to case' };
+        }
+        case 'list_karline_actions': {
+            const ka = window.pazatorKarline;
+            if (!ka) return { success: false, message: 'Karline module not loaded' };
+            return { success: true, message: JSON.stringify(ka.getActions()) };
+        }
+        case 'create_karline_action': {
+            const ka = window.pazatorKarline;
+            if (!ka) return { success: false, message: 'Karline module not loaded' };
+            if (!args.title) return { success: false, message: 'Title required' };
+            const created = ka.createAction(args);
+            return { success: true, message: JSON.stringify({ id: created.id, title: created.title }) };
+        }
+        case 'update_karline_action': {
+            const ka = window.pazatorKarline;
+            if (!ka) return { success: false, message: 'Karline module not loaded' };
+            const kid = parseInt(args.id, 10);
+            if (isNaN(kid)) return { success: false, message: 'Invalid ID' };
+            ka.updateAction(kid, args.data || {});
+            return { success: true, message: 'Updated Karline action #' + kid };
+        }
+        case 'delete_karline_action': {
+            const ka = window.pazatorKarline;
+            if (!ka) return { success: false, message: 'Karline module not loaded' };
+            const kd = parseInt(args.id, 10);
+            if (isNaN(kd)) return { success: false, message: 'Invalid ID' };
+            ka.deleteAction(kd);
+            return { success: true, message: 'Deleted Karline action #' + kd };
+        }
+        case 'ask_user':
+            return null;
+        default:
+            return { success: false, message: 'Unknown tool: ' + name };
+    }
+}
+
+function formatToolResult(name, raw) {
+    if (raw === null) return 'Waiting for user answer...';
+    try {
+        const p = JSON.parse(raw.message);
+        if (name === 'list_humans' && Array.isArray(p)) return 'Listed ' + p.length + ' humans.';
+        if (name === 'list_others' && Array.isArray(p)) return 'Listed ' + p.length + ' others.';
+        if (name === 'search' && Array.isArray(p)) return 'Found ' + p.length + ' results.';
+        if (name === 'list_karline_actions' && Array.isArray(p)) return 'Listed ' + p.length + ' Karline actions.';
+        if (name === 'stats') return 'Stats loaded.';
+        if (name === 'count_entries') return p.humans + ' humans, ' + p.others + ' others.';
+    } catch (e) { }
+    if (name.indexOf('add_') === 0 || name.indexOf('modify_') === 0 || name.indexOf('delete_') === 0) return 'Done.';
+    if (name === 'create_case' || name === 'create_karline_action') return 'Created.';
+    if (name === 'add_tag' || name === 'assign_tag' || name === 'remove_tag') return raw.message;
+    return raw.message;
+}
+
 async function processAICommand(command) {
+    if (__aiProcessingGuard) return;
+    __aiProcessingGuard = true;
     __aiAbortController = null;
     try {
         command = command.trim();
@@ -416,110 +618,69 @@ async function processAICommand(command) {
         showAiTypingIndicator();
 
         try {
-
             const adminContext = getAdminContext();
-            var dataSummary = window.pazatorStore ? window.pazatorStore.getAICompatData() : {
+            let dataSummary = window.pazatorStore ? window.pazatorStore.getAICompatData() : {
                 totalHumans: pazatorData.humans.length,
                 totalEntities: pazatorData.others.length,
                 tagCount: tags.length,
                 casesCount: cases.length
             };
-            var topRisky = dataSummary.topRiskyPeople || [];
-            var topRiskyStr = topRisky.length > 0 ? topRisky.map(function (p) {
-                return '  - ' + p.name + ' (Threat: ' + p.threatLevel + ', Credit: ' + p.credit + ')';
-            }).join('\n') : '  None';
 
-            var dataStr = '';
+            let dataStr = '';
             if (pazatorData.humans.length < 50) {
-                dataStr = 'ALL HUMANS:\n' + JSON.stringify(pazatorData.humans.map(function (h) { return { id: h.id, name: h.name, gender: h.gender, threatLevel: h.threatLevel || 'None', credit: h.credit, tags: h.tags || [] }; })) + '\n\n';
-                dataStr += 'ALL OTHERS:\n' + JSON.stringify(pazatorData.others.map(function (o) { return { id: o.id, name: o.name }; })) + '\n\n';
+                dataStr = 'ALL HUMANS:\n' + JSON.stringify(pazatorData.humans.map(h => ({ id: h.id, name: h.name, gender: h.gender, threatLevel: h.threatLevel || 'None', credit: h.credit, tags: h.tags || [] }))) + '\n\n';
+                dataStr += 'ALL OTHERS:\n' + JSON.stringify(pazatorData.others.map(o => ({ id: o.id, name: o.name }))) + '\n\n';
                 dataStr += 'TAGS: ' + JSON.stringify(tags || []) + '\n';
             }
 
-            var systemPrompt = 'Act as Zor (Model: PZZ1), a grounded, blunt, mildly skeptical peer in "Pazator: SARPARAST" No emojis, no fluff, no "I\'m here to help". Be direct.\n\n' +
-'CURRENT DATABASE:\n' +
-(dataStr || 
-  'Humans: ' + pazatorData.humans.length + ' | Others: ' + pazatorData.others.length + ' | Cases: ' + (cases ? cases.length : 0) + ' | Tags: ' + (tags ? tags.length : 0) + '\n' +
-  'High-risk: ' + (dataSummary.highRiskCount || 0) + ' | Avg credit: ' + (dataSummary.averageCredit || 0) + '\n') +
-'\n' +
-'SCHEMA:\n' +
-'Human: name, gender, birthDate, workplace, credit(0-370), socialClass, maritalStatus, nationality, threatLevel(None/Low/Medium/High/Critical), tags, friends, family, extraNotes.\n' +
-'Other: name, note.\n' +
-'\n' +
-'You operate in turns. Each turn you can:\n' +
-'  - Output a JSON action object or an ARRAY of actions\n' +
-'  - Output natural text to converse\n' +
-'  - Output {"action": "end", "data": {"response": "..."}} when done\n' +
-'\n' +
-'JSON ACTIONS (single or in an array):\n' +
-'{"action": "add_human", "data": {name, gender, birthDate, credit, threatLevel, tags, ...}}\n' +
-'{"action": "modify_human", "id": "...", "data": {field: value}}\n' +
-'{"action": "delete_human", "id": "..."}\n' +
-'{"action": "add_other", "data": {name, note}}\n' +
-'{"action": "modify_other", "id": "...", "data": {...}}\n' +
-'{"action": "delete_other", "id": "..."}\n' +
-'{"action": "list_humans"}\n' +
-'{"action": "list_others"}\n' +
-'{"action": "count_entries"}\n' +
-'{"action": "search", "with": {"q": "search term"}} — search all entities by name/tag/field\n' +
-'{"action": "get", "with": {"id": "entity ID"}} — get full details of one person\n' +
-'{"action": "list"} — list all people (name, threat, credit)\n' +
-'{"action": "stats"} — database statistics\n' +
-'{"action": "add_tag", "tag": "name"}\n' +
-'{"action": "assign_tag", "id": "...", "tag": "name"}\n' +
-'{"action": "remove_tag", "id": "...", "tag": "name"}\n' +
-'{"action": "create_case", "title": "...", "description": "..."}\n' +
-'{"action": "add_case_note", "title": "...", "note": "..."}\n' +
-'{"action": "close_case", "title": "..."}\n' +
-'{"action": "add_entity_to_case", "case_title": "...", "entity_name": "..."}\n' +
-'{"action": "run_javascript", "data": {code: "..."}}\n' +
-'\n' +
-'Examples:\n' +
-'  Single: {"action": "list_humans"}\n' +
-'  Array: [{"action": "add_human", "data": {name: "John"}}, {"action": "add_human", "data": {name: "Jane"}}]\n' +
-'\n' +
-'Rules:\n' +
-'  - Use real IDs from list_humans/list_others, never fake IDs\n' +
-'  - If data is in the CURRENT DATABASE section above, use it directly without listing first\n' +
-'  - Use {"action": "end", "data": {"response": "..."}} to finish\n' +
-'\n' +
-(adminContext ? 'ADMIN CONTEXT:\n' + adminContext + '\n\n' : '') +
-'Previous conversation:\n' +
-aiChatHistory.map(function (m) { return m.role + ': ' + m.content; }).join('\n');
+            const systemPrompt = 'Act as Zor (Model: PZZ2), a grounded, blunt, mildly skeptical peer in "Pazator: SARPARAST" No emojis, no fluff, no "I\'m here to help". Be direct.\n\n' +
+                'CURRENT DATABASE:\n' +
+                (dataStr ||
+                    'Humans: ' + pazatorData.humans.length + ' | Others: ' + pazatorData.others.length + ' | Cases: ' + (cases ? cases.length : 0) + ' | Tags: ' + (tags ? tags.length : 0) + '\n' +
+                    'High-risk: ' + (dataSummary.highRiskCount || 0) + ' | Avg credit: ' + (dataSummary.averageCredit || 0) + '\n') +
+                '\n' +
+                'SCHEMA:\n' +
+                'Human: name, gender, birthDate, workplace, credit(0-370), socialClass, maritalStatus, nationality, threatLevel(None/Low/Medium/High/Critical), tags, friends, family, extraNotes.\n' +
+                'Other: name, note.\n' +
+                '\n' +
+                'You have tools available. Use them to interact with the database. When given a task, first explain your plan briefly, then execute tools. If a tool fails, comment on it. When all steps are done, summarize what you did. Use the ask_user tool if you need a decision.\n' +
+                '\n' +
+                (adminContext ? 'ADMIN CONTEXT:\n' + adminContext + '\n\n' : '') +
+                'Previous conversation:\n' +
+                aiChatHistory.map(m => m.role + ': ' + m.content).join('\n');
 
-            var messages = [
+            const messages = [
                 { role: "system", content: systemPrompt }
             ];
 
-            for (var hi = 0; hi < aiChatHistory.length; hi++) {
-                var hMsg = aiChatHistory[hi];
-                messages.push({ role: hMsg.role === 'user' ? 'user' : 'model', content: hMsg.content });
+            for (let hi = 0; hi < aiChatHistory.length; hi++) {
+                const hMsg = aiChatHistory[hi];
+                if (hMsg.role === 'assistant' || hMsg.role === 'model') messages.push({ role: "model", content: hMsg.content });
+                else messages.push({ role: "user", content: hMsg.content });
             }
             messages.push({ role: "user", content: command });
 
-            var MAX_LOOPS = 15;
-            var loopCount = 0;
-            var agentDone = false;
-            var textTurnCount = 0;
-            var agentDebug = typeof getAgentDebug === 'function' ? getAgentDebug() : false;
+            const MAX_LOOPS = 15;
+            let loopCount = 0;
+            const agentDebug = typeof getAgentDebug === 'function' ? getAgentDebug() : false;
 
-            while (loopCount < MAX_LOOPS && !agentDone) {
+            while (loopCount < MAX_LOOPS) {
                 loopCount++;
 
                 if (agentDebug) {
                     console.group('Agent Loop, Turn ' + loopCount);
-                    console.log('Messages sent to API:', JSON.parse(JSON.stringify(messages)));
+                    console.log('Messages:', JSON.parse(JSON.stringify(messages)));
                 }
 
-                var aiResponse;
+                let aiResponse;
                 try {
                     if (window.AIQueue) {
                         aiResponse = await AIQueue.enqueue(function (signal) {
-                            return geminiChat(messages, signal);
+                            return window.pazatorAI.chatWithTools(messages, ZOR_TOOLS, signal);
                         });
                     } else {
                         __aiAbortController = new AbortController();
-                        aiResponse = await geminiChat(messages, __aiAbortController.signal);
+                        aiResponse = await window.pazatorAI.chatWithTools(messages, ZOR_TOOLS, __aiAbortController.signal);
                     }
                 } catch (e) {
                     if (e.name === 'AbortError') {
@@ -532,89 +693,76 @@ aiChatHistory.map(function (m) { return m.role + ': ' + m.content; }).join('\n')
                     break;
                 }
 
-                var responseText = aiResponse.content ? aiResponse.content : aiResponse;
+                const responseText = aiResponse.content || '';
+                const functionCalls = aiResponse.functionCalls || [];
+
                 if (agentDebug) {
-                    console.log('API response:', responseText);
+                    console.log('Response text:', responseText);
+                    console.log('Function calls:', functionCalls);
                 }
 
-                var parsed = extractJSONFromResponse(responseText);
-
-                if (parsed) {
-
-                    if (parsed.action === "end") {
-                        agentDone = true;
-                        var finalText = parsed.data && parsed.data.response ? parsed.data.response : "Done.";
-                        hideAiTypingIndicator();
-                        addMessageToAIChat(finalText, 'ai');
-                        if (agentDebug) console.groupEnd();
-                        break;
-                    }
-
-                    messages.push({ role: "model", content: responseText });
-
-                    var actions = Array.isArray(parsed) ? parsed : [parsed];
-                    var results = [];
-                    var hasInvalid = false;
-
-                    for (var ai = 0; ai < actions.length; ai++) {
-                        var action = actions[ai];
-                        if (!action || !action.action) {
-                            hasInvalid = true;
-                            continue;
-                        }
-                        var actionResult = await handleAIAction(action, true);
-                        results.push(actionResult);
-                        addToolCallCard(action, actionResult);
-                    }
-
-                    if (hasInvalid) {
-                        messages.push({
-                            role: "user",
-                            content: "Your last JSON object was missing the required \"action\" field. Every turn you MUST output {\"action\": \"...\"}. Examples: {\"action\": \"list_humans\"}, {\"action\": \"add_human\", \"data\": {\"name\": \"John\"}}. Use {\"action\": \"end\", \"data\": {\"response\": \"...\"}} to finish."
-                        });
-                        continue;
-                    }
-
-                    var resultMessages = [];
-                    for (var ri = 0; ri < results.length; ri++) {
-                        if (results[ri] && results[ri].message) {
-                            resultMessages.push(results[ri].message);
-                        }
-                    }
-                    var dbState = pazatorData.humans.length + ' humans, ' + pazatorData.others.length + ' others, ' + (cases ? cases.length : 0) + ' cases';
-                    messages.push({
-                        role: "user",
-                        content: "Tool result: " + (resultMessages.length > 0 ? resultMessages.join(' | ') : 'Action executed.') + ' | DB now: ' + dbState
-                    });
-
-                    if (agentDebug) console.groupEnd();
-
-                    var toolDelay = typeof getToolDelay === 'function' ? getToolDelay() : 0;
-                    if (toolDelay > 0) {
-                        await new Promise(function (r) { setTimeout(r, toolDelay); });
-                    }
-
-                    textTurnCount = 0;
-                    showAiTypingIndicator();
-                } else {
-
-                    if (textTurnCount < 1) {
-                        textTurnCount++;
-                        addMessageToAIChat(responseText, 'ai');
-                        messages.push({ role: "model", content: responseText });
-                        if (agentDebug) console.groupEnd();
-                        showAiTypingIndicator();
-                        continue;
-                    }
-
-                    agentDone = true;
-                    hideAiTypingIndicator();
+                if (responseText.trim()) {
                     addMessageToAIChat(responseText, 'ai');
-                    if (agentDebug) console.groupEnd();
                 }
+
+                if (functionCalls.length === 0) {
+                    if (agentDebug) console.groupEnd();
+                    break;
+                }
+
+                const modelContent = { role: "model", content: responseText };
+                messages.push(modelContent);
+
+                const toolDelay = typeof getToolDelay === 'function' ? getToolDelay() : 0;
+
+                for (let fi = 0; fi < functionCalls.length; fi++) {
+                    const fc = functionCalls[fi];
+                    addToolCallCard({ action: fc.name, data: fc.args }, { success: true });
+
+                    if (fc.name === 'ask_user') {
+                        const answer = await new Promise(function (resolve) {
+                            if (typeof showModal === 'function') {
+                                const opts = fc.args.options || ['Yes', 'No'];
+                                const btns = opts.map(o => ({
+                                    text: o, primary: o === opts[0], onClick: function () { hideModal(); resolve(o); }
+                                }));
+                                showModal({
+                                    title: 'Zor asks:',
+                                    type: 'question',
+                                    html: '<div style="font-size:0.9rem;color:#ddd;">' + escapeHtml(fc.args.question || '') + '</div>',
+                                    buttons: btns
+                                });
+                            } else {
+                                resolve(prompt(fc.args.question || '') || '');
+                            }
+                        });
+                        messages.push({
+                            role: "function",
+                            name: "ask_user",
+                            response: { answer: answer }
+                        });
+                    } else {
+                        const rawResult = executeTool(fc.name, fc.args);
+                        const formatted = formatToolResult(fc.name, rawResult);
+                        addMessageToAIChat('[' + fc.name + '] ' + formatted, 'tool');
+
+                        if (toolDelay > 0) {
+                            await new Promise(r => setTimeout(r, toolDelay));
+                        }
+
+                        messages.push({
+                            role: "function",
+                            name: fc.name,
+                            response: { result: rawResult ? rawResult.message : 'error' }
+                        });
+                    }
+                }
+
+                showAiTypingIndicator();
+                if (agentDebug) console.groupEnd();
             }
 
-            if (loopCount >= MAX_LOOPS && !agentDone) {
+            if (loopCount >= MAX_LOOPS) {
                 hideAiTypingIndicator();
                 addMessageToAIChat("Zor reached the maximum number of actions for one request.", 'ai');
                 if (agentDebug) console.groupEnd();
@@ -639,130 +787,29 @@ aiChatHistory.map(function (m) { return m.role + ': ' + m.content; }).join('\n')
         hideAiTypingIndicator();
         __aiAbortController = null;
         __aiProcessing = false;
+        __aiProcessingGuard = false;
         requestAnimationFrame(() => {
             setAiSendLoading(false);
             aiInput.value = '';
-
             aiInput.focus();
         });
     }
 }
 
-function extractJSONFromResponse(responseText) {
-
-    try {
-        return JSON.parse(responseText);
-    } catch (e) {
-
-    }
-
-    const jsonArrayMatches = responseText.match(/\[[\s\S]*?\]/g);
-    if (jsonArrayMatches && jsonArrayMatches.length > 1) {
-        try {
-
-            let combinedArray = [];
-            for (const match of jsonArrayMatches) {
-                const parsedArray = JSON.parse(match);
-                if (Array.isArray(parsedArray)) {
-                    combinedArray = combinedArray.concat(parsedArray);
-                } else {
-                    combinedArray.push(parsedArray);
-                }
-            }
-            return combinedArray;
-        } catch (e) {
-
-        }
-    }
-
-    const arrayMatch = responseText.match(/\[[\s\S]*\]/);
-    if (arrayMatch) {
-        try {
-            return JSON.parse(arrayMatch[0]);
-        } catch (e) {
-
-        }
-    }
-
-    const objectMatch = responseText.match(/\{[\s\S]*\}/);
-    if (objectMatch) {
-        try {
-            var parsedObj = JSON.parse(objectMatch[0]);
-            if (parsedObj && (parsedObj.action || parsedObj.use)) {
-                return parsedObj;
-            }
-        } catch (e) {
-
-        }
-    }
-
-    const jsonObjects = [];
-    let braceCount = 0;
-    let currentObject = '';
-    let inString = false;
-    let escapeNext = false;
-
-    for (let i = 0; i < responseText.length; i++) {
-        const char = responseText[i];
-
-        if (escapeNext) {
-            escapeNext = false;
-        } else if (char === '\\') {
-            escapeNext = true;
-        } else if (char === '"' && !escapeNext) {
-            inString = !inString;
-        }
-
-        if (!inString) {
-            if (char === '{') {
-                if (braceCount === 0) {
-                    currentObject = '';
-                }
-                braceCount++;
-            } else if (char === '}') {
-                braceCount--;
-                if (braceCount === 0 && currentObject) {
-                    currentObject += char;
-                    try {
-                        const obj = JSON.parse(currentObject);
-                        if (obj.action) {
-                            jsonObjects.push(obj);
-                        }
-                    } catch (e) {
-
-                    }
-                    currentObject = '';
-                    continue;
-                }
-            }
-        }
-
-        if (braceCount > 0) {
-            currentObject += char;
-        }
-    }
-
-    if (jsonObjects.length > 0) {
-        return jsonObjects.length === 1 ? jsonObjects[0] : jsonObjects;
-    }
-
-    return null;
-}
-
 async function handleBatchActions(actions) {
     try {
         let completedActions = 0;
-        let totalActions = actions.length;
+        const totalActions = actions.length;
         let batchResponse = "I've completed the following actions:\n";
         let hasErrors = false;
-        let entityInfos = [];
+        const entityInfos = [];
 
         const addHumanActions = actions.filter(action => action.action === "add_human");
         const otherActions = actions.filter(action => action.action !== "add_human");
 
         for (const action of addHumanActions) {
             try {
-                const result = await handleAIAction(action, true);
+                const result = executeTool(action.action, action.data || {});
                 if (result.success) {
                     batchResponse += `- ${result.message}\n`;
                     if (result.entityInfo) entityInfos.push(result.entityInfo);
@@ -784,7 +831,10 @@ async function handleBatchActions(actions) {
 
         for (const action of otherActions) {
             try {
-                const result = await handleAIAction(action, true);
+                const toolName = action.action;
+                const toolArgs = action.data || {};
+                if (action.id) toolArgs.id = action.id;
+                const result = executeTool(toolName, toolArgs);
                 if (result.success) {
                     batchResponse += `- ${result.message}\n`;
                     if (result.entityInfo) entityInfos.push(result.entityInfo);
@@ -844,491 +894,30 @@ async function handleBatchActions(actions) {
 function createFamilyConnections() {
     try {
         if (pazatorData.humans.length < 5) return;
-
         for (let i = 0; i < pazatorData.humans.length; i++) {
             const person = pazatorData.humans[i];
-
             if (person.family && person.family.length > 0) continue;
-
             const familyCount = Math.min(Math.floor(Math.random() * 3) + 1, pazatorData.humans.length - 1);
             const familyIds = [];
-
             const availablePeople = pazatorData.humans.filter((p, idx) => idx !== i);
             for (let j = 0; j < familyCount && availablePeople.length > 0; j++) {
                 const randomIndex = Math.floor(Math.random() * availablePeople.length);
                 const familyMember = availablePeople.splice(randomIndex, 1)[0];
                 familyIds.push(familyMember.id);
             }
-
             const personIndex = pazatorData.humans.findIndex(p => p.id === person.id);
             if (personIndex !== -1) {
                 pazatorData.humans[personIndex].family = familyIds;
             }
         }
-
         saveData();
         renderObjectCanvas();
     } catch (error) {
         console.error('Error in createFamilyConnections:', error);
-        addMessageToAIChat("Sorry, I encountered an error creating family connections. Please try again.", 'ai');
     }
-}
-
-async function handleAIAction(action, isBatch = false) {
-    let response = "Action completed.";
-    let shouldRespond = !isBatch;
-    let success = true;
-    let entityInfo = null;
-
-    switch (action.action) {
-        case "add_human":
-            try {
-                const newHuman = {
-                    id: generatePersonId(action.data?.name, action.data?.birthDate),
-                    ...action.data
-                };
-                pazatorData.humans.push(newHuman);
-                markDataChanged();
-                renderObjectCanvas();
-                response = `Added human: ${newHuman.name}`;
-                entityInfo = { id: newHuman.id, type: 'human', name: newHuman.name };
-            } catch (e) {
-                response = `Failed to add human: ${e.message}`;
-                success = false;
-            }
-            break;
-
-        case "add_other":
-            try {
-                const newOther = {
-                    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-                    ...action.data
-                };
-                pazatorData.others.push(newOther);
-                markDataChanged();
-                renderObjectCanvas();
-                response = `Added other: ${newOther.name}`;
-                entityInfo = { id: newOther.id, type: 'other', name: newOther.name };
-            } catch (e) {
-                response = `Failed to add other: ${e.message}`;
-                success = false;
-            }
-            break;
-
-        case "delete_human":
-            const humanIndex = window.pazatorStore ? pazatorStore.findHumanIndexById(action.id) : pazatorData.humans.findIndex(h => h.id === action.id);
-            if (humanIndex !== -1) {
-                const deletedName = pazatorData.humans[humanIndex].name;
-                pazatorData.humans.splice(humanIndex, 1);
-                markDataChanged();
-                renderObjectCanvas();
-                response = `Deleted human: ${deletedName}`;
-            } else {
-                response = "Couldn't find that human entry to delete.";
-                success = false;
-            }
-            break;
-
-        case "delete_other":
-            const otherIndex = pazatorData.others.findIndex(o => o.id === action.id);
-            if (otherIndex !== -1) {
-                const deletedName = pazatorData.others[otherIndex].name;
-                pazatorData.others.splice(otherIndex, 1);
-                markDataChanged();
-                renderObjectCanvas();
-                response = `Deleted other: ${deletedName}`;
-            } else {
-                response = "Couldn't find that other entry to delete.";
-                success = false;
-            }
-            break;
-
-        case "modify_human":
-            const modHumanIndex = window.pazatorStore ? pazatorStore.findHumanIndexById(action.id) : pazatorData.humans.findIndex(h => h.id === action.id);
-            if (modHumanIndex !== -1) {
-
-                if (action.data.family && Array.isArray(action.data.family)) {
-
-                    const familyIds = action.data.family.map(name => {
-                        const familyMember = pazatorData.humans.find(h => h.name === name);
-                        return familyMember ? familyMember.id : null;
-                    }).filter(id => id !== null);
-
-                    action.data.family = familyIds;
-                }
-
-                pazatorData.humans[modHumanIndex] = {
-                    ...pazatorData.humans[modHumanIndex],
-                    ...action.data
-                };
-                markDataChanged();
-                renderObjectCanvas();
-                response = `Modified human: ${pazatorData.humans[modHumanIndex].name}`;
-                entityInfo = { id: pazatorData.humans[modHumanIndex].id, type: 'human', name: pazatorData.humans[modHumanIndex].name };
-            } else {
-
-                const nameMatch = action.id.match(/temp_id_(\d+)/);
-                if (nameMatch) {
-                    const personIndex = parseInt(nameMatch[1]) - 1;
-                    if (personIndex < pazatorData.humans.length) {
-
-                        if (action.data.family && Array.isArray(action.data.family)) {
-                            const familyIds = action.data.family.map(name => {
-                                const familyMember = pazatorData.humans.find(h => h.name === name);
-                                return familyMember ? familyMember.id : null;
-                            }).filter(id => id !== null);
-
-                            action.data.family = familyIds;
-                        }
-
-                        pazatorData.humans[personIndex] = {
-                            ...pazatorData.humans[personIndex],
-                            ...action.data
-                        };
-                        markDataChanged();
-                        renderObjectCanvas();
-                        response = `Modified human: ${pazatorData.humans[personIndex].name}`;
-                        entityInfo = { id: pazatorData.humans[personIndex].id, type: 'human', name: pazatorData.humans[personIndex].name };
-                    } else {
-                        response = "Couldn't find that human entry to modify.";
-                        success = false;
-                    }
-                } else {
-                    response = "Couldn't find that human entry to modify.";
-                    success = false;
-                }
-            }
-            break;
-
-        case "modify_other":
-            const modOtherIndex = pazatorData.others.findIndex(o => o.id === action.id);
-            if (modOtherIndex !== -1) {
-                pazatorData.others[modOtherIndex] = {
-                    ...pazatorData.others[modOtherIndex],
-                    ...action.data
-                };
-                markDataChanged();
-                renderObjectCanvas();
-                response = `Modified other: ${pazatorData.others[modOtherIndex].name}`;
-                entityInfo = { id: pazatorData.others[modOtherIndex].id, type: 'other', name: pazatorData.others[modOtherIndex].name };
-            } else {
-                response = "Couldn't find that other entry to modify.";
-                success = false;
-            }
-            break;
-
-        case "list_humans":
-            const humanNames = pazatorData.humans.map(h => h.name).join(', ');
-            response = `Here are your human entries: ${humanNames || 'None'}`;
-            break;
-
-        case "list_others":
-            const otherNames = pazatorData.others.map(o => o.name).join(', ');
-            response = `Here are your other entries: ${otherNames || 'None'}`;
-            break;
-
-        case "count_entries":
-            const humanCount = pazatorData.humans.length;
-            const otherCount = pazatorData.others.length;
-            response = `You have ${humanCount} human entries and ${otherCount} other entries, for a total of ${humanCount + otherCount} entries.`;
-            break;
-
-        case "add_tag":
-            if (action.tag && !tags.includes(action.tag)) {
-                tags.push(action.tag);
-                markDataChanged();
-                renderTags();
-                response = `I've added the tag '${action.tag}' to the tag list.`;
-            } else if (tags.includes(action.tag)) {
-                response = `The tag '${action.tag}' already exists.`;
-            } else {
-                response = `Invalid tag name.`;
-                success = false;
-            }
-            break;
-
-        case "assign_tag":
-            const humanToTag = window.pazatorStore ? pazatorStore.findHumanIndexById(action.id) : pazatorData.humans.findIndex(h => h.id === action.id);
-            if (humanToTag !== -1) {
-                if (!pazatorData.humans[humanToTag].tags) {
-                    pazatorData.humans[humanToTag].tags = [];
-                }
-                if (!pazatorData.humans[humanToTag].tags.includes(action.tag)) {
-                    pazatorData.humans[humanToTag].tags.push(action.tag);
-                    markDataChanged();
-                    renderObjectCanvas();
-                    response = `I've assigned the tag '${action.tag}' to ${pazatorData.humans[humanToTag].name}.`;
-                } else {
-                    response = `${pazatorData.humans[humanToTag].name} already has the tag '${action.tag}'.`;
-                }
-            } else {
-                response = "Couldn't find that human entry to assign a tag to.";
-                success = false;
-            }
-            break;
-
-        case "remove_tag":
-            const humanToRemoveTag = window.pazatorStore ? pazatorStore.findHumanIndexById(action.id) : pazatorData.humans.findIndex(h => h.id === action.id);
-            if (humanToRemoveTag !== -1) {
-                if (pazatorData.humans[humanToRemoveTag].tags && pazatorData.humans[humanToRemoveTag].tags.includes(action.tag)) {
-                    pazatorData.humans[humanToRemoveTag].tags = pazatorData.humans[humanToRemoveTag].tags.filter(t => t !== action.tag);
-                    markDataChanged();
-                    renderObjectCanvas();
-                    response = `I've removed the tag '${action.tag}' from ${pazatorData.humans[humanToRemoveTag].name}.`;
-                } else {
-                    response = `${pazatorData.humans[humanToRemoveTag].name} doesn't have the tag '${action.tag}'.`;
-                }
-            } else {
-                response = "Couldn't find that human entry to remove a tag from.";
-                success = false;
-            }
-            break;
-
-        case "add_object":
-            try {
-                var objType = (action.data?.type || '').trim();
-                var objName = (action.data?.name || '').trim();
-                if (!objType || !objName) {
-                    response = "Both type and name are required for add_object.";
-                    success = false;
-                } else if (!window.pazatorObjects) {
-                    response = "Object system not available.";
-                    success = false;
-                } else {
-                    var validTypes = pazatorObjects.getTypes();
-                    if (validTypes.indexOf(objType) === -1) {
-                        response = "Invalid type '" + objType + "'. Valid types: " + validTypes.join(', ');
-                        success = false;
-                    } else {
-                        var objId = pazatorObjects.getOrCreate(objType, objName);
-                        var createdObj = pazatorObjects.getById(objId);
-                        response = "Object '" + objName + "' (" + objType + ") is ready." + (createdObj ? " Usage count: " + createdObj.usageCount : "");
-                    }
-                }
-            } catch (e) {
-                response = "Failed to add object: " + e.message;
-                success = false;
-            }
-            break;
-
-        case "create_case":
-            try {
-                const newCase = {
-                    id: 'case_' + Date.now(),
-                    title: action.title || 'Untitled Case',
-                    description: action.description || '',
-                    status: action.status || 'open',
-                    entities: [],
-                    timeline: [{
-                        type: 'note',
-                        content: '<strong>Case created</strong>',
-                        timestamp: Date.now()
-                    }],
-                    createdAt: Date.now()
-                };
-                cases.push(newCase);
-                saveCases();
-                renderCasesList();
-                selectCase(newCase.id);
-                response = `Created case: "${newCase.title}"`;
-            } catch (e) {
-                response = `Failed to create case: ${e.message}`;
-                success = false;
-            }
-            break;
-
-        case "edit_case":
-            try {
-                const caseData = cases.find(c => c.id === action.id || c.title.toLowerCase() === action.title?.toLowerCase());
-                if (caseData) {
-                    if (action.title) caseData.title = action.title;
-                    if (action.description !== undefined) caseData.description = action.description;
-                    if (action.status) caseData.status = action.status;
-                    caseData.timeline.push({
-                        type: 'note',
-                        content: `<strong>Case edited</strong>`,
-                        timestamp: Date.now()
-                    });
-                    saveCases();
-                    renderCasesList();
-                    if (selectedCaseId === caseData.id) selectCase(caseData.id);
-                    response = `Updated case: "${caseData.title}"`;
-                } else {
-                    response = "Couldn't find that case.";
-                    success = false;
-                }
-            } catch (e) {
-                response = `Failed to edit case: ${e.message}`;
-                success = false;
-            }
-            break;
-
-        case "add_case_note":
-            try {
-                const caseData = cases.find(c => c.id === action.id || c.title.toLowerCase() === action.title?.toLowerCase());
-                if (caseData) {
-                    caseData.timeline.push({
-                        type: 'note',
-                        content: `<strong>Note</strong>: ${action.note}`,
-                        timestamp: Date.now()
-                    });
-                    saveCases();
-                    if (selectedCaseId === caseData.id) selectCase(caseData.id);
-                    response = `Added note to case "${caseData.title}": "${action.note}"`;
-                } else {
-                    response = "Couldn't find that case.";
-                    success = false;
-                }
-            } catch (e) {
-                response = `Failed to add note: ${e.message}`;
-                success = false;
-            }
-            break;
-
-        case "close_case":
-            try {
-                const caseData = cases.find(c => c.id === action.id || c.title.toLowerCase() === action.title?.toLowerCase());
-                if (caseData) {
-                    caseData.status = 'closed';
-                    caseData.timeline.push({
-                        type: 'status-changed',
-                        content: '<strong>Case closed</strong>',
-                        timestamp: Date.now()
-                    });
-                    saveCases();
-                    renderCasesList();
-                    response = `Closed case: "${caseData.title}"`;
-                } else {
-                    response = "Couldn't find that case.";
-                    success = false;
-                }
-            } catch (e) {
-                response = `Failed to close case: ${e.message}`;
-                success = false;
-            }
-            break;
-
-        case "add_entity_to_case":
-            try {
-                const caseData = cases.find(c => c.id === action.case_id || c.title.toLowerCase() === action.case_title?.toLowerCase());
-                if (caseData) {
-                    const entity = pazatorData.humans.find(h => h.id === action.entity_id || h.name.toLowerCase() === action.entity_name?.toLowerCase())
-                        || pazatorData.others.find(o => o.id === action.entity_id || o.name.toLowerCase() === action.entity_name?.toLowerCase());
-                    if (entity && !caseData.entities.includes(entity.id)) {
-                        caseData.entities.push(entity.id);
-                        caseData.timeline.push({
-                            type: 'entity-added',
-                            content: `<strong>Entity added</strong>: ${entity.name}`,
-                            timestamp: Date.now()
-                        });
-                        saveCases();
-                        if (selectedCaseId === caseData.id) selectCase(caseData.id);
-                        response = `Added ${entity.name} to case "${caseData.title}"`;
-                    } else if (!entity) {
-                        response = "Couldn't find that entity.";
-                        success = false;
-                    } else {
-                        response = `${entity.name} is already in this case.`;
-                    }
-                } else {
-                    response = "Couldn't find that case.";
-                    success = false;
-                }
-            } catch (e) {
-                response = `Failed to add entity to case: ${e.message}`;
-                success = false;
-            }
-            break;
-
-        case "run_javascript":
-            try {
-                var jsCode = action.data?.code || action.code || '';
-                var jsTitle = action.data?.title || action.title || 'JavaScript Action';
-                var jsDesc = action.data?.description || action.description || '';
-                if (!jsCode) {
-                    response = "No JavaScript code provided.";
-                    success = false;
-                } else if (typeof showModal !== 'function') {
-                    response = "Cannot show confirmation dialog.";
-                    success = false;
-                } else {
-                    var confirmed = await new Promise(function (resolve) {
-                        showModal({
-                            title: 'Run JavaScript',
-                            type: 'warning',
-                            html: '<div style="font-size:0.85rem;">' +
-                                '<div style="margin-bottom:8px;"><strong>Title:</strong> ' + escapeHtml(jsTitle) + '</div>' +
-                                (jsDesc ? '<div style="margin-bottom:8px;color:#aaa;"><strong>Description:</strong> ' + escapeHtml(jsDesc) + '</div>' : '') +
-                                '<div style="margin-bottom:6px;font-size:0.75rem;color:#888;">Code to execute:</div>' +
-                                '<pre style="background:rgba(0,0,0,0.4);padding:10px;border-radius:6px;font-size:0.75rem;font-family:monospace;max-height:300px;overflow:auto;white-space:pre-wrap;word-break:break-word;color:#ddd;">' + escapeHtml(jsCode) + '</pre>' +
-                                '</div>',
-                            buttons: [
-                                { text: 'Cancel', primary: false, onClick: function () { hideModal(); resolve(false); } },
-                                { text: 'Run', primary: true, danger: true, onClick: function () { hideModal(); resolve(true); } }
-                            ]
-                        });
-                    });
-                    if (confirmed) {
-                        try {
-                            var result = new Function(jsCode)();
-                            if (result && typeof result.then === 'function') {
-                                result = await result;
-                            }
-                            response = 'JavaScript executed successfully' + (result !== undefined ? ': ' + JSON.stringify(result) : '.');
-                        } catch (e) {
-                            response = 'JavaScript error: ' + e.message;
-                            success = false;
-                        }
-                    } else {
-                        response = 'JavaScript execution cancelled.';
-                        success = false;
-                    }
-                }
-            } catch (e) {
-                response = 'Failed to run JavaScript: ' + e.message;
-                success = false;
-            }
-            break;
-
-        case "search":
-        case "get":
-        case "list":
-        case "stats":
-            try {
-                var toolResult = ZorTools.run(action.action, action.with || {});
-                if (toolResult.error) {
-                    response = "Tool error: " + toolResult.error;
-                    success = false;
-                } else {
-                    response = action.action + " returned: " + JSON.stringify(toolResult);
-                }
-            } catch (e) {
-                response = "Tool error: " + e.message;
-                success = false;
-            }
-            break;
-
-        default:
-            if (action.action && action.action !== '?') {
-                response = "Unknown action: \"" + action.action + "\". Valid actions: add_human, add_other, modify_human, modify_other, delete_human, delete_other, list_humans, list_others, count_entries, add_tag, assign_tag, remove_tag, add_object, create_case, edit_case, add_case_note, close_case, add_entity_to_case, run_javascript, end.";
-            } else {
-                response = "Your JSON object is missing the required \"action\" field. Every turn you MUST output a JSON object with an \"action\" key. Examples: {\"action\": \"list_humans\"}, {\"action\": \"add_human\", \"data\": {\"name\": \"...\"}}, {\"action\": \"end\", \"data\": {\"response\": \"Done.\"}}.";
-            }
-            success = false;
-            shouldRespond = true;
-    }
-
-    if (isBatch) {
-        return { success, message: response, entityInfo };
-    } else if (shouldRespond) {
-        addMessageToAIChat(response, 'ai', entityInfo);
-    }
-
-    return { success, message: response, entityInfo };
 }
 
 newDataBtn.addEventListener('click', () => {
-
     document.getElementById('humanModalTitle').textContent = 'Create Human Entry';
     document.getElementById('otherModalTitle').textContent = 'Create Job / Company Entry';
 
@@ -1353,13 +942,12 @@ newDataBtn.addEventListener('click', () => {
     typeModal.style.zIndex = '1000';
 });
 
-// ── Windowed mode toggle ──────────────────────────────────────────
-var _windowedActive = false;
-var _dragState = null;
+let _windowedActive = false;
+let _dragState = null;
 
 function toggleWindowedMode() {
     _windowedActive = !_windowedActive;
-    var btn = document.getElementById('windowToggleBtn');
+    const btn = document.getElementById('windowToggleBtn');
     if (_windowedActive) {
         aiChatModal.classList.add('windowed');
         aiChatModal.style.top = '60px';
@@ -1379,11 +967,10 @@ function toggleWindowedMode() {
     }
 }
 
-// ── Drag logic ────────────────────────────────────────────────────
 function _dragStart(e) {
     if (!aiChatModal.classList.contains('windowed')) return;
     if (e.target.closest('.header-right')) return;
-    var rect = aiChatModal.getBoundingClientRect();
+    const rect = aiChatModal.getBoundingClientRect();
     _dragState = {
         offsetX: (e.clientX || e.touches[0].clientX) - rect.left,
         offsetY: (e.clientY || e.touches[0].clientY) - rect.top
@@ -1396,8 +983,8 @@ function _dragStart(e) {
 
 function _dragMove(e) {
     if (!_dragState) return;
-    var cx = e.clientX || (e.touches && e.touches[0].clientX);
-    var cy = e.clientY || (e.touches && e.touches[0].clientY);
+    const cx = e.clientX || (e.touches && e.touches[0].clientX);
+    const cy = e.clientY || (e.touches && e.touches[0].clientY);
     if (cx == null) return;
     aiChatModal.style.left = (cx - _dragState.offsetX) + 'px';
     aiChatModal.style.top = (cy - _dragState.offsetY) + 'px';
@@ -1413,20 +1000,19 @@ function _dragEnd() {
     document.removeEventListener('touchend', _dragEnd);
 }
 
-// ── Init ──────────────────────────────────────────────────────────
-var _windowToggleBtn = document.getElementById('windowToggleBtn');
+const _windowToggleBtn = document.getElementById('windowToggleBtn');
 if (_windowToggleBtn) _windowToggleBtn.addEventListener('click', toggleWindowedMode);
 
-var _selectBtn = document.getElementById('zorSelectBtn');
+const _selectBtn = document.getElementById('zorSelectBtn');
 if (_selectBtn) _selectBtn.addEventListener('click', toggleSelectMode);
-var _selectActive = false;
-var _selectOverlay = null;
-var _selectTooltip = null;
-var _lastHighlighted = null;
+let _selectActive = false;
+let _selectOverlay = null;
+let _selectTooltip = null;
+let _lastHighlighted = null;
 
 function toggleSelectMode() {
     _selectActive = !_selectActive;
-    var btn = document.getElementById('zorSelectBtn');
+    const btn = document.getElementById('zorSelectBtn');
     if (_selectActive) {
         btn.classList.add('active');
         btn.style.borderColor = '#4d9de0';
@@ -1447,7 +1033,7 @@ function toggleSelectMode() {
 
 function _selectOnHover(e) {
     if (!_selectActive) return;
-    var el = e.target;
+    let el = e.target;
     if (el.closest('.pz-select-tooltip') || el.closest('.ai-chat-modal')) return;
     if (_lastHighlighted) _lastHighlighted.classList.remove('pz-select-highlight');
     _lastHighlighted = el;
@@ -1456,7 +1042,7 @@ function _selectOnHover(e) {
 
 function _selectOnClick(e) {
     if (!_selectActive) return;
-    var el = e.target;
+    const el = e.target;
     if (el.closest('.pz-select-tooltip') || el.closest('.ai-chat-modal') || el.closest('.header-right')) {
         e.preventDefault();
         e.stopPropagation();
@@ -1466,9 +1052,9 @@ function _selectOnClick(e) {
     e.stopPropagation();
     _selectActive = false;
     _selectCleanup();
-    var info = _captureElementInfo(el);
+    const info = _captureElementInfo(el);
     addMessageToAIChat('(Selected element fed to Zor for context)', 'system');
-    var msg = '**Element selected:**\n```json\n' + JSON.stringify(info, null, 2) + '\n```\n\nThis element is now the active selection. Use the tool `get_element_info` with selector `' + info.selector + '` to interact with it.';
+    const msg = '**Element selected:**\n```json\n' + JSON.stringify(info, null, 2) + '\n```\n\nThis element is now the active selection. Use the tool `get_element_info` with selector `' + info.selector + '` to interact with it.';
     addMessageToAIChat(msg, 'ai');
     if (window.aiInput) { aiInput.focus(); }
 }
@@ -1487,7 +1073,7 @@ function _selectCleanup() {
     document.removeEventListener('mouseover', _selectOnHover, true);
     document.removeEventListener('click', _selectOnClick, true);
     document.removeEventListener('keydown', _selectOnKeydown);
-    var btn = document.getElementById('zorSelectBtn');
+    const btn = document.getElementById('zorSelectBtn');
     if (btn) {
         btn.classList.remove('active');
         btn.style.borderColor = '';
@@ -1497,22 +1083,22 @@ function _selectCleanup() {
 }
 
 function _captureElementInfo(el) {
-    var rect = el.getBoundingClientRect();
-    var tag = el.tagName.toLowerCase();
-    var id = el.id || '';
-    var classes = Array.from(el.classList).filter(function (c) { return c.indexOf('pz-') !== 0; });
-    var text = (el.textContent || '').trim().substring(0, 500);
-    var value = '';
+    const rect = el.getBoundingClientRect();
+    const tag = el.tagName.toLowerCase();
+    const id = el.id || '';
+    const classes = Array.from(el.classList).filter(c => c.indexOf('pz-') !== 0);
+    const text = (el.textContent || '').trim().substring(0, 500);
+    let value = '';
     if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
         value = el.value || '';
         if (el.type === 'password') value = '*****';
     }
-    var attrs = {};
-    Array.from(el.attributes).forEach(function (a) {
+    const attrs = {};
+    Array.from(el.attributes).forEach(a => {
         if (a.name !== 'style' && a.name.indexOf('on') !== 0) attrs[a.name] = a.value;
     });
-    var selector = _buildSelector(el);
-    var html = el.outerHTML.substring(0, 2000);
+    const selector = _buildSelector(el);
+    const html = el.outerHTML.substring(0, 2000);
     return {
         tag: tag,
         id: id || undefined,
@@ -1529,15 +1115,15 @@ function _captureElementInfo(el) {
 
 function _buildSelector(el) {
     if (el.id) return '#' + CSS.escape(el.id);
-    var path = [];
-    var cur = el;
+    const path = [];
+    let cur = el;
     while (cur && cur !== document.body && cur !== document.documentElement) {
-        var tag = cur.tagName.toLowerCase();
+        let tag = cur.tagName.toLowerCase();
         if (cur.id) { path.unshift('#' + CSS.escape(cur.id)); break; }
-        var parent = cur.parentElement;
+        const parent = cur.parentElement;
         if (parent) {
-            var siblings = Array.from(parent.children).filter(function (s) { return s.tagName === cur.tagName; });
-            var idx = siblings.indexOf(cur) + 1;
+            const siblings = Array.from(parent.children).filter(s => s.tagName === cur.tagName);
+            const idx = siblings.indexOf(cur) + 1;
             tag += ':nth-child(' + (Array.from(parent.children).indexOf(cur) + 1) + ')';
         }
         path.unshift(tag);
@@ -1546,7 +1132,7 @@ function _buildSelector(el) {
     return path.join(' > ');
 }
 
-var _headerEl = aiChatModal && aiChatModal.querySelector('.ai-chat-header');
+const _headerEl = aiChatModal && aiChatModal.querySelector('.ai-chat-header');
 if (_headerEl) {
     _headerEl.addEventListener('mousedown', _dragStart);
     _headerEl.addEventListener('touchstart', _dragStart, { passive: true });

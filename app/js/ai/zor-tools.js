@@ -156,12 +156,9 @@ async function wipeAllData() {
 
     var preserveKeys = ['pazator_ai_provider', 'pazator_ai_gemini_api_key', 'pazator_ai_gemini_model', 'pazator_ai_deepseek_api_key', 'pazator_ai_deepseek_model', 'pz_passwordEnabled', 'pz_passwordHash', 'skipIntro', 'noBlur', 'classificationState', 'adminProvidedContext'];
 
-    pazatorData.humans = [];
-    pazatorData.others = [];
-    pazatorData.cases = [];
-    pazatorData.chats = [];
-    pazatorData.relationships = [];
-    pazatorData.timeline = [];
+    pazatorData.humans.splice(0, pazatorData.humans.length);
+    pazatorData.others.splice(0, pazatorData.others.length);
+    pazatorData.cases.splice(0, pazatorData.cases.length);
     if (Array.isArray(tags)) tags.length = 0;
     if (Array.isArray(cases)) cases.length = 0;
 

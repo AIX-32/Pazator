@@ -59,63 +59,13 @@
                 };
                 request.onsuccess = function (e) {
                     db = e.target.result;
-                    if (!db.objectStoreNames.contains('kv')) {
-                        resolve(db);
-                        return;
-                    }
-                    migrateFromOldDB().then(function () {
-                        resolve(db);
-                    }).catch(function () {
-                        resolve(db);
-                    });
+                    resolve(db);
                 };
                 request.onerror = function (e) { reject(e.target.error); };
                 request.onblocked = function () { reject(new Error('IndexedDB blocked')); };
             } catch (err) {
                 reject(err);
             }
-        });
-    }
-
-    function migrateFromOldDB() {
-        return new Promise(function (resolve, reject) {
-            try {
-                var tx = db.transaction('kv', 'readonly');
-                var store = tx.objectStore('kv');
-                var req = store.get('pazatorData');
-                req.onsuccess = function (e) {
-                    var raw = e.target.result;
-                    if (!raw) { resolve(); return; }
-                    try {
-                        var data = typeof raw === 'string' ? JSON.parse(raw) : raw;
-                        if (data && data.pazatorData) {
-                            if (Array.isArray(data.pazatorData.humans)) {
-                                data.pazatorData.humans.forEach(function (h) {
-                                    if (h && h.id) engine.put('humans', h).catch(function () { });
-                                });
-                            }
-                            if (Array.isArray(data.pazatorData.others)) {
-                                data.pazatorData.others.forEach(function (o) {
-                                    if (o && o.id) engine.put('others', o).catch(function () { });
-                                });
-                            }
-                            if (Array.isArray(data.tags)) {
-                                engine.put('tags', { id: '_tags', list: data.tags }).catch(function () { });
-                            }
-                            if (Array.isArray(data.cases)) {
-                                data.cases.forEach(function (c) {
-                                    if (c && c.id) engine.put('cases', c).catch(function () { });
-                                });
-                            }
-                        }
-                        var delTx = db.transaction('kv', 'readwrite');
-                        delTx.objectStore('kv').delete('pazatorData');
-                        delTx.oncomplete = function () { resolve(); };
-                        delTx.onerror = function () { resolve(); };
-                    } catch (parseErr) { resolve(); }
-                };
-                req.onerror = function () { resolve(); };
-            } catch (e) { resolve(); }
         });
     }
 

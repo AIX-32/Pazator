@@ -55,29 +55,7 @@ function saveData(immediate = false) {
     try {
         updatePersistenceIndicator('syncing', 'Saving data...');
 
-        const dataToSave = {
-            pazatorData: pazatorData,
-            tags: tags,
-            cases: cases,
-            lastSaved: new Date().toISOString(),
-            version: '2.0'
-        };
-
-        var saveFn = window.pazatorDB
-            ? window.pazatorDB.setItem.bind(window.pazatorDB)
-            : function (k, v) { try { localStorage.setItem(k, v); } catch (e) { /* localStorage may be full or unavailable */ } };
-
-        saveFn('pazatorData_backup', localStorage.getItem('pazatorData')).catch(function () { });
-        saveFn('pazatorData', JSON.stringify(dataToSave)).catch(function (e) {
-            console.error('pazatorDB save failed', e);
-        });
-
         if (window.pazatorStore) {
-            pazatorStore.getData().humans = pazatorData.humans;
-            pazatorStore.getData().others = pazatorData.others;
-            pazatorStore.getData().tags = tags;
-            pazatorStore.getData().cases = cases;
-            pazatorStore.rebuildIndexes();
             pazatorStore.syncToEngine().catch(function (err) {
                 console.warn('Background engine sync failed:', err);
             });
@@ -98,20 +76,9 @@ function saveData(immediate = false) {
             Tastur.emit('data_added', { count: totalItems });
         }
 
-
     } catch (error) {
         console.error(' Error saving data:', error);
         updatePersistenceIndicator('offline', 'Save Failed');
-
-        try {
-            const backup = localStorage.getItem('pazatorData_backup');
-            if (backup) {
-                localStorage.setItem('pazatorData', backup);
-                console.log(' Restored data from backup');
-            }
-        } catch (restoreError) {
-            console.error(' Could not restore from backup:', restoreError);
-        }
     }
 }
 
@@ -122,10 +89,6 @@ function markDataChanged() {
     syncAllObjectsFromHumans();
 
     if (window.pazatorStore) {
-        pazatorStore.getData().humans = pazatorData.humans;
-        pazatorStore.getData().others = pazatorData.others;
-        pazatorStore.getData().tags = tags;
-        pazatorStore.getData().cases = cases;
         pazatorStore.rebuildIndexes();
         pazatorStore.emit('data_changed', { store: 'humans', action: 'mark_changed' });
     }
@@ -158,15 +121,14 @@ function manualRefresh() {
     console.log(' Manual refresh triggered');
     updatePersistenceIndicator('syncing', 'Refreshing...');
 
-    try {
-        loadData();
+    loadData().then(function () {
         renderTags();
-        updatePersistenceIndicator('online', `Refreshed (${pazatorData.humans.length + pazatorData.others.length} items)`);
+        updatePersistenceIndicator('online', 'Refreshed (' + (pazatorData.humans.length + pazatorData.others.length) + ' items)');
         console.log(' Manual refresh completed');
-    } catch (error) {
+    }).catch(function (error) {
         console.error(' Manual refresh failed:', error);
         updatePersistenceIndicator('offline', 'Refresh Failed');
-    }
+    });
 }
 
 function startAutoSave() {
@@ -277,87 +239,69 @@ function normalizeLoadedData() {
 function loadData() {
     var loadIndicator = document.getElementById('dataLoadIndicator');
     if (loadIndicator) loadIndicator.style.display = 'flex';
-    try {
 
-        var storedData = localStorage.getItem('pazatorData');
-        if (window.pazatorDB) {
-            window.pazatorDB.getItem('pazatorData').then(function (dbData) {
-                if (dbData) storedData = dbData;
-            }).catch(function () { });
-        }
+    var loadPromise = window.pazatorStore
+        ? pazatorStore.loadFromEngine()
+        : Promise.resolve();
 
-        if (storedData) {
-            const parsedData = JSON.parse(storedData);
-
-            if (parsedData && typeof parsedData === 'object') {
-                pazatorData = {
-                    humans: Array.isArray(parsedData.pazatorData?.humans) ? parsedData.pazatorData.humans : [],
-                    others: Array.isArray(parsedData.pazatorData?.others) ? parsedData.pazatorData.others : []
-                };
-                tags = Array.isArray(parsedData.tags) ? parsedData.tags : [];
-                cases = Array.isArray(parsedData.cases) ? parsedData.cases : [];
-            } else {
-                throw new Error('Invalid data structure');
-            }
+    return loadPromise.then(function () {
+        if (window.pazatorStore) {
+            var d = pazatorStore._data;
+            pazatorData.humans = d.humans || [];
+            pazatorData.others = d.others || [];
+            tags = d.tags || [];
+            cases = d.cases || [];
         } else {
-            pazatorData = { humans: [], others: [] };
-            tags = [];
-            saveData(true);
-        }
-    } catch (error) {
-        console.error('Error loading data:', error);
-
-        try {
-            const backupData = localStorage.getItem('pazatorData_backup');
-            if (backupData) {
-                const parsedBackup = JSON.parse(backupData);
-                pazatorData = parsedBackup.pazatorData || { humans: [], others: [] };
-                tags = parsedBackup.tags || [];
-                cases = parsedBackup.cases || [];
-            } else {
-                pazatorData = { humans: [], others: [] };
-                tags = [];
-                cases = [];
-            }
-        } catch (backupError) {
-            pazatorData = { humans: [], others: [] };
+            pazatorData.humans = [];
+            pazatorData.others = [];
             tags = [];
             cases = [];
         }
-    }
 
-    window.pazatorData = pazatorData;
-    updatePersonIdSequenceFromData();
-    normalizeLoadedData();
+        window.pazatorData = pazatorData;
+        updatePersonIdSequenceFromData();
+        normalizeLoadedData();
 
-    if (window.pazatorStore) {
-        pazatorStore.getData().humans = pazatorData.humans;
-        pazatorStore.getData().others = pazatorData.others;
-        pazatorStore.getData().tags = tags;
-        pazatorStore.getData().cases = cases;
-        pazatorStore.rebuildIndexes();
-    }
+        if (window.pazatorRelationships) {
+            var migrated = window.pazatorRelationships.migrateFromLegacy(pazatorData.humans);
+            if (migrated > 0) console.log('Migrated ' + migrated + ' legacy relationships');
+        }
 
-    if (window.pazatorRelationships) {
-        var migrated = window.pazatorRelationships.migrateFromLegacy(pazatorData.humans);
-        if (migrated > 0) console.log('Migrated ' + migrated + ' legacy relationships');
-    }
+        syncAllObjectsFromHumans();
 
-    syncAllObjectsFromHumans();
+        renderObjectCanvas();
+        updateCreditStats();
+        updateHeaderStats();
 
-    renderObjectCanvas();
-    updateCreditStats();
-    updateHeaderStats();
+        buildFacetIndex();
 
-    buildFacetIndex();
+        if (pazatorData.humans.length === 0 && pazatorData.others.length === 0) {
+            saveData(true);
+        }
 
-    const totalItems = pazatorData.humans.length + pazatorData.others.length;
-    updatePersistenceIndicator('online', `Loaded (${totalItems} items)`);
-    if (loadIndicator) {
-        loadIndicator.style.display = 'none';
-        setTimeout(function () { loadIndicator.style.display = 'none'; }, 500);
-    }
-    showFloatingNotification(`Loaded ${totalItems} items`, 'success');
+        const totalItems = pazatorData.humans.length + pazatorData.others.length;
+        updatePersistenceIndicator('online', 'Loaded (' + totalItems + ' items)');
+        if (loadIndicator) {
+            loadIndicator.style.display = 'none';
+            setTimeout(function () { loadIndicator.style.display = 'none'; }, 500);
+        }
+        showFloatingNotification('Loaded ' + totalItems + ' items', 'success');
+    }).catch(function (error) {
+        console.error('Error loading data:', error);
+        var store = window.pazatorStore ? window.pazatorStore._data : null;
+        pazatorData.humans = store ? store.humans || [] : [];
+        pazatorData.others = store ? store.others || [] : [];
+        tags = store ? store.tags || [] : [];
+        cases = store ? store.cases || [] : [];
+        window.pazatorData = pazatorData;
+
+        const totalItems = 0;
+        updatePersistenceIndicator('offline', 'Load Failed');
+        if (loadIndicator) {
+            loadIndicator.style.display = 'none';
+        }
+        showFloatingNotification('Failed to load data', 'error');
+    });
 }
 function renderObjectCanvas() {
     var webContent = document.getElementById('webContent');

@@ -299,57 +299,76 @@ function showNewCaseModal() {
     ];
 
     const modal = document.createElement('div');
-    modal.className = 'modal case-modal';
+    modal.className = 'clean-modal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;animation:cleanModalFadeIn 0.2s ease;';
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 520px;">
-            <div class="modal-header">
-                <h2>New Case</h2>
+        <div class="clean-modal-backdrop" onclick="this.closest('.clean-modal').remove()"></div>
+        <div class="pipeline-builder-content" style="min-width:540px;max-width:580px;">
+            <div class="rule-modal-header">
+                <span class="rule-modal-header-icon"><i class="fas fa-folder"></i></span>
+                <span class="rule-modal-header-title">New Case</span>
+                <button class="rule-modal-close" onclick="this.closest('.clean-modal').remove()"><i class="fas fa-times"></i></button>
             </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>Case Title</label>
-                    <input type="text" id="caseTitleInput" class="form-control" placeholder="Operation name...">
+            <div class="pipeline-builder-body">
+                <div class="pipeline-builder-name">
+                    <input type="text" id="caseTitleInput" class="pipeline-builder-name-input" placeholder="Case title..." autofocus>
                 </div>
-                <div class="form-group">
-                    <label>Description</label>
-                    <textarea id="caseDescInput" class="form-control" rows="3" placeholder="What is this case about?"></textarea>
+                <div class="pipeline-editor-section-title"><i class="fas fa-align-left"></i> Description</div>
+                <div style="padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid #252525;border-radius:10px;margin-bottom:14px;">
+                    <textarea id="caseDescInput" style="width:100%;border:none;background:transparent;color:var(--text-muted);font-size:0.85rem;font-family:var(--font-body);resize:none;outline:none;" rows="2" placeholder="What is this case about?"></textarea>
                 </div>
-                <div class="form-group">
-                    <label>Status</label>
-                    <select id="caseStatusInput" class="form-control">
-                        <option value="open">Open</option>
-                        <option value="in-progress">In Progress</option>
-                        <option value="closed">Closed</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Link Entities <span style="color: #666; font-weight: normal; font-size: 0.8rem;">(optional)</span></label>
-                    <div class="case-form-entity-picker">
-                        ${allEntities.length > 0 ? allEntities.map(e => `
-                            <label class="case-form-entity-item">
-                                <input type="checkbox" class="case-entity-checkbox" value="${e.id}" data-type="${e.type}">
-                                <i class="fas ${e.type === 'human' ? 'fa-user' : 'fa-building'}" style="color: ${e.type === 'human' ? '#818cf8' : '#34d399'};"></i>
-                                <span>${escapeHtml(e.name)}</span>
-                            </label>
-                        `).join('') : '<p style="color: #666; font-size: 0.85rem;">No entities in database yet</p>'}
+                <div class="pipeline-editor-section-title"><i class="fas fa-tag"></i> Status</div>
+                <div style="display:flex;gap:6px;margin-bottom:14px;">
+                    <div class="pipeline-target-card selected" data-status="open" style="flex:1;">
+                        <i class="fas fa-folder-open"></i>
+                        <div class="pipeline-target-card-name">Open</div>
+                    </div>
+                    <div class="pipeline-target-card" data-status="in-progress" style="flex:1;">
+                        <i class="fas fa-spinner"></i>
+                        <div class="pipeline-target-card-name">In Progress</div>
+                    </div>
+                    <div class="pipeline-target-card" data-status="closed" style="flex:1;">
+                        <i class="fas fa-check-circle"></i>
+                        <div class="pipeline-target-card-name">Closed</div>
                     </div>
                 </div>
+                <div class="pipeline-editor-section-title"><i class="fas fa-link"></i> Link Entities <span style="font-weight:400;color:var(--text-muted);font-size:0.55rem;">optional</span></div>
+                <div style="display:flex;flex-direction:column;gap:4px;max-height:180px;overflow-y:auto;">
+                    ${allEntities.length > 0 ? allEntities.map(e => `
+                        <label style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(255,255,255,0.02);border:1px solid #252525;border-radius:7px;cursor:pointer;font-size:0.75rem;color:var(--text-primary);transition:border-color 0.15s;">
+                            <input type="checkbox" class="case-entity-checkbox" value="${e.id}" data-type="${e.type}" style="accent-color:var(--info);">
+                            <i class="fas ${e.type === 'human' ? 'fa-user' : 'fa-building'}" style="color:${e.type === 'human' ? '#818cf8' : '#34d399'};font-size:0.65rem;width:14px;"></i>
+                            <span>${escapeHtml(e.name)}</span>
+                        </label>
+                    `).join('') : '<div class="pipeline-empty"><i class="fas fa-users"></i>No entities in database yet</div>'}
+                </div>
             </div>
-            <div class="form-actions">
-                <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
-                <button class="btn btn-primary" onclick="createNewCase()">Create Case</button>
+            <div class="pipeline-builder-footer">
+                <button class="rule-modal-btn" onclick="this.closest('.clean-modal').remove()">Cancel</button>
+                <button class="rule-modal-btn-primary" onclick="createNewCase()"><i class="fas fa-plus"></i> Create Case</button>
             </div>
         </div>
     `;
     document.body.appendChild(modal);
+    modal.style.display = 'flex';
     modal.classList.add('active');
     document.getElementById('caseTitleInput').focus();
+
+    // Wire status card selection
+    modal.querySelectorAll('.pipeline-target-card').forEach(card => {
+        card.addEventListener('click', function () {
+            modal.querySelectorAll('.pipeline-target-card').forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+        });
+    });
 }
 
 function createNewCase() {
     const title = document.getElementById('caseTitleInput').value.trim();
     const description = document.getElementById('caseDescInput').value.trim();
-    const status = document.getElementById('caseStatusInput').value;
+    const modal = document.getElementById('caseTitleInput')?.closest('.clean-modal');
+    const selectedCard = modal ? modal.querySelector('.pipeline-target-card.selected') : null;
+    const status = selectedCard ? selectedCard.getAttribute('data-status') : 'open';
 
     if (!title) {
         showFloatingNotification('Case title is required', 'error');
@@ -385,7 +404,7 @@ function createNewCase() {
     cases.push(newCase);
     saveCases();
 
-    document.querySelector('.case-modal')?.remove();
+    if (modal) modal.remove();
 
     renderCasesList();
     selectCase(newCase.id);

@@ -9,21 +9,18 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.css">
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="js/data/db.js"></script>
     <script src="js/data/engine.js"></script>
     <script src="js/core/store.js"></script>
     <script src="js/core/plugins.js"></script>
     <script src="js/core/files.js"></script>
     <script src="js/plugins/server-search.js"></script>
     <script>
-      // Server Search plugin is default-off
-      setTimeout(function () {
-        if (window.pazatorPlugins && window.pazatorPlugins.isEnabled('pazator-server-search')) {
-          window.pazatorPlugins.disable('pazator-server-search');
-        }
-      }, 0);
+        // Server Search plugin is default-off
+        setTimeout(function () {
+            if (window.pazatorPlugins && window.pazatorPlugins.isEnabled('pazator-server-search')) {
+                window.pazatorPlugins.disable('pazator-server-search');
+            }
+        }, 0);
     </script>
     <script src="js/apps/objects.js"></script>
     <script src="js/features/relationships.js"></script>
@@ -64,7 +61,7 @@
             object-fit: cover;
         }
 
-        
+
         #updateModal {
             position: fixed;
             top: 0;
@@ -342,7 +339,8 @@
                         Dashboard</button>
                     <button class="menu-dropdown-item" onclick="switchTab('threats')"><i class="fas fa-shield-alt"></i>
                         Intelligence Center</button>
-                    <button class="menu-dropdown-item" onclick="switchTab('explorer')"><i class="fas fa-project-diagram"></i>
+                    <button class="menu-dropdown-item" onclick="switchTab('explorer')"><i
+                            class="fas fa-project-diagram"></i>
                         Explorer</button>
                     <div class="menu-separator"></div>
                     <button class="menu-dropdown-item" onclick="switchTab('tracker')"><i
@@ -380,10 +378,11 @@
                     <button class="menu-dropdown-item" onclick="switchTab('api')"><i class="fas fa-code"></i> API
                         Console</button>
                     <div class="menu-separator"></div>
-                    <button class="menu-dropdown-item" onclick="document.getElementById('karlineTrigger')?.click()"><i class="fas fa-calendar-days"></i>
+                    <button class="menu-dropdown-item" onclick="document.getElementById('karlineTrigger')?.click()"><i
+                            class="fas fa-calendar-days"></i>
                         Karline</button>
                     <button class="menu-dropdown-item" onclick="openOrCreateTab('plugins')"><i
-                             class="fas fa-puzzle-piece"></i> Plugins</button>
+                            class="fas fa-puzzle-piece"></i> Plugins</button>
                 </div>
             </div>
             <div class="menu-item" data-menu="system">
@@ -391,18 +390,25 @@
                 <div class="menu-dropdown">
                     <button class="menu-dropdown-item" onclick="document.getElementById('settingsOption')?.click()"><i
                             class="fas fa-cog"></i> Settings</button>
-                    <button class="menu-dropdown-item" onclick="window.pazatorClassification?.showBulkClassifyModal()"><i
+                    <button class="menu-dropdown-item"
+                        onclick="window.pazatorClassification?.showBulkClassifyModal()"><i
                             class="fas fa-shield-alt"></i> Classify Recent</button>
                     <div class="menu-separator"></div>
                     <button class="menu-dropdown-item" onclick="document.getElementById('syncConfigOption')?.click()"><i
-                             class="fas fa-plug"></i> PZLS</button>
+                            class="fas fa-plug"></i> PZLS</button>
                     <button class="menu-dropdown-item" onclick="window.pazatorSync?.push()"><i
-                            class="fas fa-upload"></i> Push</button>
+                             class="fas fa-upload"></i> Push</button>
                     <button class="menu-dropdown-item" onclick="window.pazatorSync?.pull()"><i
-                            class="fas fa-download"></i> Pull</button>
+                             class="fas fa-download"></i> Pull</button>
+                    <button class="menu-dropdown-item" onclick="window.pazatorSync?.pullIncremental()"><i
+                             class="fas fa-sync-alt"></i> Incremental Pull</button>
+                    <button class="menu-dropdown-item" onclick="window.pazatorSync?.flushOfflineQueue()"><i
+                             class="fas fa-clock"></i> Flush Queue</button>
+                    <button class="menu-dropdown-item" onclick="showConflictResolver()"><i
+                             class="fas fa-gavel"></i> Resolve Conflicts</button>
                     <div class="menu-separator"></div>
                     <button class="menu-dropdown-item" onclick="document.getElementById('snappyOption')?.click()"><i
-                             class="fas fa-camera"></i> Snappy</button>
+                            class="fas fa-camera"></i> Snappy</button>
                 </div>
             </div>
             <div class="menu-item" data-menu="help">
@@ -419,7 +425,8 @@
                     <div class="menu-separator"></div>
                     <button class="menu-dropdown-item" onclick="seedPlaceholderData()"><i class="fas fa-database"></i>
                         Placeholder Data</button>
-                    <button class="menu-dropdown-item" onclick="wipeAllData()" style="color:#ff6b6b;"><i class="fas fa-trash"></i>
+                    <button class="menu-dropdown-item" onclick="wipeAllData()" style="color:#ff6b6b;"><i
+                            class="fas fa-trash"></i>
                         Wipe All Data</button>
                 </div>
             </div>
@@ -449,7 +456,7 @@
                     </div>
                 </div>
                 <div class="logo-dropdown-divider"></div>
-                <div class="logo-dropdown-item" id="aboutOption"> 
+                <div class="logo-dropdown-item" id="aboutOption">
                     <i class="fas fa-circle-info"></i>
                     <span>About</span>
                 </div>
@@ -597,7 +604,8 @@
                         </div>
                         <div style="display:flex;align-items:center;gap:10px;padding:8px 0;">
                             <div style="flex:1;min-width:0;">
-                                <div style="font-size:0.82rem;color:#ccc;font-weight:500;" id="sidebarProfileName">Analyst</div>
+                                <div style="font-size:0.82rem;color:#ccc;font-weight:500;" id="sidebarProfileName">
+                                    Analyst</div>
                                 <div style="font-size:0.65rem;color:#555;" id="sidebarProfileRole">Active User</div>
                                 <div style="font-size:0.6rem;color:#444;margin-top:1px;" id="sidebarProfileLast"></div>
                             </div>
@@ -611,11 +619,13 @@
                         </div>
                         <div class="ai-config-group">
                             <select id="aiProviderSelect" class="ai-config-select"></select>
-                            <input type="password" id="aiApiKeyInput" class="ai-config-input"
-                                placeholder="API Key">
+                            <input type="password" id="aiApiKeyInput" class="ai-config-input" placeholder="API Key">
                             <div style="display:flex;gap:4px;overflow:hidden;">
-                                <select id="aiModelSelect" class="ai-config-select" style="flex:1;min-width:0;"></select>
-                                <button id="fetchModelsBtn" class="btn glass-btn" style="padding:4px 8px;font-size:0.7rem;flex-shrink:0;" title="Fetch models from API">⟳</button>
+                                <select id="aiModelSelect" class="ai-config-select"
+                                    style="flex:1;min-width:0;"></select>
+                                <button id="fetchModelsBtn" class="btn glass-btn"
+                                    style="padding:4px 8px;font-size:0.7rem;flex-shrink:0;"
+                                    title="Fetch models from API">⟳</button>
                             </div>
                             <div id="aiStatus" class="gemini-status">No API key configured</div>
                         </div>
@@ -878,7 +888,8 @@
                                 <span class="intel-action-trigger"><i class="fas fa-play"></i> Run</span>
                             </button>
                             <button class="intel-action-card" id="intelConnectionsBtn">
-                                <div class="intel-action-icon intel-icon-connection"><i class="fas fa-project-diagram"></i></div>
+                                <div class="intel-action-icon intel-icon-connection"><i
+                                        class="fas fa-project-diagram"></i></div>
                                 <div class="intel-action-body">
                                     <h3>Hidden Connections</h3>
                                     <p id="intelConnectionsSummary">0 found</p>
@@ -894,7 +905,8 @@
                                 <span class="intel-action-trigger"><i class="fas fa-search"></i> Discover</span>
                             </button>
                             <button class="intel-action-card" id="refreshCreditsBtn">
-                                <div class="intel-action-icon intel-icon-risk"><i class="fas fa-exclamation-triangle"></i></div>
+                                <div class="intel-action-icon intel-icon-risk"><i
+                                        class="fas fa-exclamation-triangle"></i></div>
                                 <div class="intel-action-body">
                                     <h3>Risk Assessment</h3>
                                     <p id="intelRiskSummary">0 high, 0 med, 0 low</p>
@@ -942,7 +954,8 @@
                                 </div>
                             </div>
                             <div class="intel-metric-card">
-                                <div class="intel-metric-icon icon-danger"><i class="fas fa-exclamation-circle"></i></div>
+                                <div class="intel-metric-icon icon-danger"><i class="fas fa-exclamation-circle"></i>
+                                </div>
                                 <div class="intel-metric-data">
                                     <span class="intel-metric-value" id="metricHighRisk">0</span>
                                     <span class="intel-metric-label">High Risk</span>
@@ -951,8 +964,10 @@
                         </div>
 
                         <div class="intel-tools-row">
-                            <div class="intel-tool-item" id="intelRefreshRiskBtn"><i class="fas fa-chart-pie"></i> Risk Distribution</div>
-                            <div class="intel-tool-item" id="showStatisticsBtn"><i class="fas fa-chart-pie"></i> Statistics</div>
+                            <div class="intel-tool-item" id="intelRefreshRiskBtn"><i class="fas fa-chart-pie"></i> Risk
+                                Distribution</div>
+                            <div class="intel-tool-item" id="showStatisticsBtn"><i class="fas fa-chart-pie"></i>
+                                Statistics</div>
                         </div>
 
                         <div class="intel-results" id="intelResults">
@@ -1228,7 +1243,7 @@
             </div>
         </div>
 
-        
+
         <div class="tab-content" id="ontology-tab">
             <div class="workspace">
                 <div class="main-panel">
@@ -1238,7 +1253,7 @@
             </div>
         </div>
 
-        
+
         <div class="tab-content" id="pipelines-tab">
             <div class="workspace">
                 <div class="main-panel">
@@ -1270,19 +1285,54 @@
                     </div>
                     <div class="sidebar-section sidebar-mini">
                         <div class="sidebar-section-header">
-                            <i class="fas fa-database"></i>
-                            <h3>Sources</h3>
+                            <i class="fas fa-chart-simple"></i>
+                            <h3>Overview</h3>
                         </div>
-                        <div style="padding:8px 12px;font-size:11px;color:var(--text-muted);line-height:1.6;">
-                            CSV · JSON · SQL · REST<br>
-                            Connect and ingest data from any source with transform pipelines.
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;padding:6px 12px;">
+                            <span style="background:rgba(129,140,248,0.15);color:#818cf8;padding:3px 9px;border-radius:5px;font-size:0.7rem;font-weight:600;"><span id="pipeCount">0</span> Pipelines</span>
+                            <span style="background:rgba(52,211,153,0.15);color:#34d399;padding:3px 9px;border-radius:5px;font-size:0.7rem;font-weight:600;"><span id="pipeRunCount">0</span> Runs</span>
+                            <span style="background:rgba(251,191,36,0.15);color:#fbbf24;padding:3px 9px;border-radius:5px;font-size:0.7rem;font-weight:600;"><span id="pipeSchedCount">0</span> Schedules</span>
+                        </div>
+                        <div id="pipeLastRun" style="padding:4px 12px 8px;font-size:0.6rem;color:var(--text-muted);"></div>
+                    </div>
+                    <div class="sidebar-section sidebar-mini">
+                        <div class="sidebar-section-header">
+                            <i class="fas fa-sliders"></i>
+                            <h3>Transforms</h3>
+                        </div>
+                        <div style="padding:6px 12px 8px;display:flex;flex-direction:column;gap:3px;">
+                            <div style="display:flex;align-items:center;gap:6px;font-size:0.65rem;color:var(--text-muted);">
+                                <span style="width:18px;height:18px;border-radius:4px;background:rgba(107,207,127,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-filter" style="font-size:0.45rem;color:var(--success);"></i></span>
+                                <span style="font-weight:500;">Filter</span>
+                                <span style="margin-left:auto;opacity:0.5;">Keep matching rows</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:6px;font-size:0.65rem;color:var(--text-muted);">
+                                <span style="width:18px;height:18px;border-radius:4px;background:rgba(107,207,127,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-code-branch" style="font-size:0.45rem;color:var(--success);"></i></span>
+                                <span style="font-weight:500;">Map</span>
+                                <span style="margin-left:auto;opacity:0.5;">Rename fields</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:6px;font-size:0.65rem;color:var(--text-muted);">
+                                <span style="width:18px;height:18px;border-radius:4px;background:rgba(107,207,127,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-sort" style="font-size:0.45rem;color:var(--success);"></i></span>
+                                <span style="font-weight:500;">Sort</span>
+                                <span style="margin-left:auto;opacity:0.5;">Order by field</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:6px;font-size:0.65rem;color:var(--text-muted);">
+                                <span style="width:18px;height:18px;border-radius:4px;background:rgba(107,207,127,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-scissors" style="font-size:0.45rem;color:var(--success);"></i></span>
+                                <span style="font-weight:500;">Limit</span>
+                                <span style="margin-left:auto;opacity:0.5;">Cap row count</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:6px;font-size:0.65rem;color:var(--text-muted);">
+                                <span style="width:18px;height:18px;border-radius:4px;background:rgba(107,207,127,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-clone" style="font-size:0.45rem;color:var(--success);"></i></span>
+                                <span style="font-weight:500;">Dedup</span>
+                                <span style="margin-left:auto;opacity:0.5;">Remove duplicates</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        
+
         <div class="tab-content" id="alerts-tab">
             <div class="workspace">
                 <div class="main-panel">
@@ -1334,7 +1384,7 @@
             </div>
         </div>
 
-        
+
         <div class="tab-content" id="api-tab">
             <div class="workspace">
                 <div class="main-panel">
@@ -1384,7 +1434,7 @@
             </div>
         </div>
 
-        
+
         <div class="tab-content" id="workflow-tab">
             <div class="workspace">
                 <div class="main-panel">
@@ -1421,19 +1471,21 @@
             </div>
         </div>
 
-        
+
         <div class="tab-content" id="reports-tab">
             <div class="workspace">
                 <div class="main-panel">
                     <div class="canvas-header">
                         <div class="reports-subnav">
-                            <button class="reports-subnav-btn active" data-view="builder" onclick="switchReportsView('builder')">
+                            <button class="reports-subnav-btn active" data-view="builder"
+                                onclick="switchReportsView('builder')">
                                 <i class="fas fa-pen"></i> Report Builder
                             </button>
                             <button class="reports-subnav-btn" data-view="saved" onclick="switchReportsView('saved')">
                                 <i class="fas fa-folder-open"></i> Saved Reports
                             </button>
-                            <button class="reports-subnav-btn" data-view="logbook" onclick="switchReportsView('logbook')">
+                            <button class="reports-subnav-btn" data-view="logbook"
+                                onclick="switchReportsView('logbook')">
                                 <i class="fas fa-journal-whills"></i> Logbook
                             </button>
                         </div>
@@ -1442,8 +1494,8 @@
                         style="flex:1;display:flex;flex-direction:column;"></div>
                     <div id="savedReportsContent" class="web-container"
                         style="flex:1;display:none;flex-direction:column;"></div>
-                    <div id="logbookContent" class="web-container"
-                        style="flex:1;display:none;flex-direction:column;"></div>
+                    <div id="logbookContent" class="web-container" style="flex:1;display:none;flex-direction:column;">
+                    </div>
                 </div>
                 <div class="side-panel">
                     <div class="sidebar-section sidebar-mini">
@@ -1452,7 +1504,9 @@
                             <h3>About</h3>
                         </div>
                         <div style="padding:8px 12px;font-size:11px;color:var(--text-muted);line-height:1.6;">
-                            Build report templates with drag-and-drop widgets, or browse saved TIDE intelligence reports. This tab is ideal for compiling findings and generating intelligence summaries to print or export or use outside of Pazator.
+                            Build report templates with drag-and-drop widgets, or browse saved TIDE intelligence
+                            reports. This tab is ideal for compiling findings and generating intelligence summaries to
+                            print or export or use outside of Pazator.
                         </div>
                     </div>
                 </div>
@@ -1471,7 +1525,8 @@
                             <h3>Add Entity</h3>
                         </div>
                         <div class="explorer-search-wrap">
-                            <input type="text" class="explorer-search" id="explorerSearch" placeholder="Search entities..." autocomplete="off" spellcheck="false">
+                            <input type="text" class="explorer-search" id="explorerSearch"
+                                placeholder="Search entities..." autocomplete="off" spellcheck="false">
                             <div class="explorer-search-results" id="explorerSearchResults"></div>
                         </div>
                     </div>
@@ -1480,10 +1535,14 @@
                             <i class="fas fa-sliders-h"></i>
                             <h3>Controls</h3>
                         </div>
-                        <button class="sidebar-action-item" id="explorerLoadAllBtn"><i class="fas fa-database"></i> Load All</button>
-                        <button class="sidebar-action-item" id="explorerResetBtn"><i class="fas fa-home"></i> Reset View</button>
-                        <button class="sidebar-action-item" id="explorerPathBtn"><i class="fas fa-route"></i> Find Path</button>
-                        <button class="sidebar-action-item" id="explorerClearBtn" style="color:#ff6b6b;"><i class="fas fa-eraser"></i> Clear Graph</button>
+                        <button class="sidebar-action-item" id="explorerLoadAllBtn"><i class="fas fa-database"></i> Load
+                            All</button>
+                        <button class="sidebar-action-item" id="explorerResetBtn"><i class="fas fa-home"></i> Reset
+                            View</button>
+                        <button class="sidebar-action-item" id="explorerPathBtn"><i class="fas fa-route"></i> Find
+                            Path</button>
+                        <button class="sidebar-action-item" id="explorerClearBtn" style="color:#ff6b6b;"><i
+                                class="fas fa-eraser"></i> Clear Graph</button>
                     </div>
                     <div class="sidebar-section sidebar-mini">
                         <div class="sidebar-section-header">
@@ -1491,8 +1550,12 @@
                             <h3>Stats</h3>
                         </div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                            <span style="background:rgba(129,140,248,0.15);color:#818cf8;padding:3px 10px;border-radius:5px;font-size:0.75rem;font-weight:600;"><span id="explorerNodeCount">0</span> nodes</span>
-                            <span style="background:rgba(52,211,153,0.15);color:#34d399;padding:3px 10px;border-radius:5px;font-size:0.75rem;font-weight:600;"><span id="explorerEdgeCount">0</span> edges</span>
+                            <span
+                                style="background:rgba(129,140,248,0.15);color:#818cf8;padding:3px 10px;border-radius:5px;font-size:0.75rem;font-weight:600;"><span
+                                    id="explorerNodeCount">0</span> nodes</span>
+                            <span
+                                style="background:rgba(52,211,153,0.15);color:#34d399;padding:3px 10px;border-radius:5px;font-size:0.75rem;font-weight:600;"><span
+                                    id="explorerEdgeCount">0</span> edges</span>
                         </div>
                     </div>
                     <div class="sidebar-section sidebar-mini" id="explorerInfo">
@@ -1509,14 +1572,20 @@
                                 <div class="explorer-info-meta" id="explorerInfoMeta">—</div>
                             </div>
                             <div class="explorer-info-details" style="margin:8px 0;">
-                                <div class="eid-row"><span class="eid-label">Threat</span><span class="eid-value" id="explorerInfoThreat">—</span></div>
-                                <div class="eid-row"><span class="eid-label">Credit</span><span class="eid-value" id="explorerInfoCredit">—</span></div>
-                                <div class="eid-row"><span class="eid-label">Connections</span><span class="eid-value" id="explorerInfoConnections">—</span></div>
+                                <div class="eid-row"><span class="eid-label">Threat</span><span class="eid-value"
+                                        id="explorerInfoThreat">—</span></div>
+                                <div class="eid-row"><span class="eid-label">Credit</span><span class="eid-value"
+                                        id="explorerInfoCredit">—</span></div>
+                                <div class="eid-row"><span class="eid-label">Connections</span><span class="eid-value"
+                                        id="explorerInfoConnections">—</span></div>
                             </div>
                             <div style="display:flex;flex-direction:column;gap:4px;">
-                                <button class="btn btn-primary btn-sm" id="explorerInfoExpand"><i class="fas fa-expand"></i> Expand</button>
-                                <button class="btn btn-sm" id="explorerInfoOpen"><i class="fas fa-external-link-alt"></i> Details</button>
-                                <button class="btn btn-sm" id="explorerInfoRemove" style="color:#ff6b6b;"><i class="fas fa-times"></i> Remove</button>
+                                <button class="btn btn-primary btn-sm" id="explorerInfoExpand"><i
+                                        class="fas fa-expand"></i> Expand</button>
+                                <button class="btn btn-sm" id="explorerInfoOpen"><i
+                                        class="fas fa-external-link-alt"></i> Details</button>
+                                <button class="btn btn-sm" id="explorerInfoRemove" style="color:#ff6b6b;"><i
+                                        class="fas fa-times"></i> Remove</button>
                             </div>
                         </div>
                     </div>
@@ -1529,7 +1598,8 @@
                 <div class="main-panel">
                     <div class="canvas-header">
                         <h1><i class="fas fa-puzzle-piece"></i> Plugin Manager</h1>
-                        <p class="canvas-version" style="font-size:0.8rem;color:#666;">Extend Pazator with community and custom modules</p>
+                        <p class="canvas-version" style="font-size:0.8rem;color:#666;">Extend Pazator with community and
+                            custom modules</p>
                     </div>
                     <div class="plugins-grid" id="pluginsContainer">
                         <div class="plugins-empty">
@@ -1544,20 +1614,28 @@
                             <i class="fas fa-search"></i>
                             <h3>Search</h3>
                         </div>
-                        <input type="text" id="pluginsSearch" class="tag-input" placeholder="Search plugins..." oninput="window.pazatorPlugins?.renderManager('pluginsContainer')">
+                        <input type="text" id="pluginsSearch" class="tag-input" placeholder="Search plugins..."
+                            oninput="window.pazatorPlugins?.renderManager('pluginsContainer')">
                     </div>
                     <div class="sidebar-section sidebar-mini">
                         <div class="sidebar-section-header">
                             <i class="fas fa-download"></i>
                             <h3>Install</h3>
                         </div>
-                        <button class="sidebar-action-item" id="pluginsInstallBtn" onclick="togglePluginInstall()"><i class="fas fa-plus"></i> Install from URL</button>
+                        <button class="sidebar-action-item" id="pluginsInstallBtn" onclick="togglePluginInstall()"><i
+                                class="fas fa-plus"></i> Install from URL</button>
                         <div id="pluginsInstallArea" style="display:none;margin-top:8px;">
-                            <input type="text" id="pluginsInstallUrl" class="tag-input" placeholder="https://example.com/plugin.js" spellcheck="false" style="margin-bottom:6px;">
-                            <button class="sidebar-apply-btn" onclick="installPluginFromUrl()" style="width:100%;"><i class="fas fa-download"></i> Load</button>
-                            <div style="margin:8px 0;text-align:center;font-size:0.7rem;color:#555;">— or paste code —</div>
-                            <textarea id="pluginsInstallCode" class="tag-input" placeholder="// plugin code..." spellcheck="false" rows="3" style="margin-bottom:6px;resize:vertical;"></textarea>
-                            <button class="sidebar-apply-btn" onclick="installPluginFromCode()" style="width:100%;"><i class="fas fa-play"></i> Run</button>
+                            <input type="text" id="pluginsInstallUrl" class="tag-input"
+                                placeholder="https://example.com/plugin.js" spellcheck="false"
+                                style="margin-bottom:6px;">
+                            <button class="sidebar-apply-btn" onclick="installPluginFromUrl()" style="width:100%;"><i
+                                    class="fas fa-download"></i> Load</button>
+                            <div style="margin:8px 0;text-align:center;font-size:0.7rem;color:#555;">— or paste code —
+                            </div>
+                            <textarea id="pluginsInstallCode" class="tag-input" placeholder="// plugin code..."
+                                spellcheck="false" rows="3" style="margin-bottom:6px;resize:vertical;"></textarea>
+                            <button class="sidebar-apply-btn" onclick="installPluginFromCode()" style="width:100%;"><i
+                                    class="fas fa-play"></i> Run</button>
                             <div id="pluginsInstallStatus" style="margin-top:6px;font-size:0.7rem;color:#555;"></div>
                         </div>
                     </div>
@@ -1572,23 +1650,32 @@
                         <h1><i class="fas fa-calendar-days"></i> Karline</h1>
                         <p class="canvas-version" style="font-size:0.8rem;color:#666;">Operational planning timeline</p>
                     </div>
-                    <div id="karlineToolbar" style="display:flex;gap:6px;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,0.06);align-items:center;flex-shrink:0;flex-wrap:wrap;">
-                        <button class="btn btn-primary" id="karlineNewBtn" style="padding:6px 14px;font-size:0.8rem;"><i class="fas fa-plus"></i> New Action</button>
+                    <div id="karlineToolbar"
+                        style="display:flex;gap:6px;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,0.06);align-items:center;flex-shrink:0;flex-wrap:wrap;">
+                        <button class="btn btn-primary" id="karlineNewBtn" style="padding:6px 14px;font-size:0.8rem;"><i
+                                class="fas fa-plus"></i> New Action</button>
                         <div style="display:flex;align-items:center;gap:4px;margin-left:8px;">
-                            <button class="btn glass-btn" id="karlinePrevBtn" style="padding:4px 8px;font-size:0.75rem;"><i class="fas fa-chevron-left"></i></button>
-                            <span id="karlineRange" style="font-size:0.75rem;color:var(--text-muted);min-width:140px;text-align:center;display:inline-block;"></span>
-                            <button class="btn glass-btn" id="karlineNextBtn" style="padding:4px 8px;font-size:0.75rem;"><i class="fas fa-chevron-right"></i></button>
-                            <button class="btn glass-btn" id="karlineTodayBtn" style="padding:4px 8px;font-size:0.7rem;">Today</button>
+                            <button class="btn glass-btn" id="karlinePrevBtn"
+                                style="padding:4px 8px;font-size:0.75rem;"><i class="fas fa-chevron-left"></i></button>
+                            <span id="karlineRange"
+                                style="font-size:0.75rem;color:var(--text-muted);min-width:140px;text-align:center;display:inline-block;"></span>
+                            <button class="btn glass-btn" id="karlineNextBtn"
+                                style="padding:4px 8px;font-size:0.75rem;"><i class="fas fa-chevron-right"></i></button>
+                            <button class="btn glass-btn" id="karlineTodayBtn"
+                                style="padding:4px 8px;font-size:0.7rem;">Today</button>
                         </div>
                         <span style="flex:1;"></span>
-                        <label style="font-size:0.75rem;color:var(--text-muted);display:flex;align-items:center;gap:4px;">
+                        <label
+                            style="font-size:0.75rem;color:var(--text-muted);display:flex;align-items:center;gap:4px;">
                             <input type="checkbox" id="karlineShowStatic" checked> Static
                         </label>
-                        <label style="font-size:0.75rem;color:var(--text-muted);display:flex;align-items:center;gap:4px;">
+                        <label
+                            style="font-size:0.75rem;color:var(--text-muted);display:flex;align-items:center;gap:4px;">
                             <input type="checkbox" id="karlineShowDynamic" checked> Dynamic
                         </label>
                         <span style="width:1px;height:18px;background:rgba(255,255,255,0.08);margin:0 4px;"></span>
-                        <select id="karlineStatusFilter" style="font-size:0.7rem;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:var(--text);padding:2px 6px;">
+                        <select id="karlineStatusFilter"
+                            style="font-size:0.7rem;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:var(--text);padding:2px 6px;">
                             <option value="all">All statuses</option>
                             <option value="draft">Draft</option>
                             <option value="active">Active</option>
@@ -1596,17 +1683,24 @@
                             <option value="cancelled">Cancelled</option>
                         </select>
                     </div>
-                    <div id="karlineTimelineWrap" style="flex:1;overflow:hidden;position:relative;display:flex;flex-direction:column;">
+                    <div id="karlineTimelineWrap"
+                        style="flex:1;overflow:hidden;position:relative;display:flex;flex-direction:column;">
                         <div id="karlineTimeline" style="flex:1;overflow:auto;padding:8px 0 0;">
                             <div style="min-height:100%;display:flex;flex-direction:column;">
                                 <div id="karlineDayColumns" style="display:flex;flex:1;gap:1px;padding:0 8px;"></div>
-                                <div id="karlineDaysRow" style="display:flex;position:sticky;bottom:0;background:var(--bg);border-top:1px solid rgba(255,255,255,0.08);margin-top:4px;padding:0 8px;"></div>
+                                <div id="karlineDaysRow"
+                                    style="display:flex;position:sticky;bottom:0;background:var(--bg);border-top:1px solid rgba(255,255,255,0.08);margin-top:4px;padding:0 8px;">
+                                </div>
                             </div>
                         </div>
-                        <div id="karlineEmpty" style="display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;color:var(--text-muted);background:var(--bg);">
-                            <i class="fas fa-calendar-days" style="font-size:2.5rem;margin-bottom:12px;opacity:0.4;"></i>
+                        <div id="karlineEmpty"
+                            style="display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;color:var(--text-muted);background:var(--bg);">
+                            <i class="fas fa-calendar-days"
+                                style="font-size:2.5rem;margin-bottom:12px;opacity:0.4;"></i>
                             <p>No actions yet.</p>
-                            <button class="btn btn-primary" style="margin-top:8px;padding:6px 16px;font-size:0.85rem;" onclick="window.pazatorKarline?.showNewActionModal()"><i class="fas fa-plus"></i> Create one</button>
+                            <button class="btn btn-primary" style="margin-top:8px;padding:6px 16px;font-size:0.85rem;"
+                                onclick="window.pazatorKarline?.showNewActionModal()"><i class="fas fa-plus"></i> Create
+                                one</button>
                         </div>
                     </div>
                 </div>
@@ -1617,7 +1711,8 @@
                             <h3>All Actions</h3>
                         </div>
                         <div class="sidebar-section-body" style="padding:4px 8px;">
-                            <input type="text" id="karlineSearch" class="tag-input" placeholder="Search actions..." style="font-size:0.78rem;">
+                            <input type="text" id="karlineSearch" class="tag-input" placeholder="Search actions..."
+                                style="font-size:0.78rem;">
                         </div>
                     </div>
                     <div class="sidebar-section sidebar-mini" style="flex:1;min-height:0;">
@@ -1625,14 +1720,17 @@
                             <i class="fas fa-tasks"></i>
                             <h3>Action List</h3>
                         </div>
-                        <div id="karlineActionList" class="sidebar-section-body" style="flex:1;overflow-y:auto;padding:4px 8px;display:flex;flex-direction:column;gap:4px;"></div>
+                        <div id="karlineActionList" class="sidebar-section-body"
+                            style="flex:1;overflow-y:auto;padding:4px 8px;display:flex;flex-direction:column;gap:4px;">
+                        </div>
                     </div>
                     <div class="sidebar-section sidebar-mini" style="flex-shrink:0;">
                         <div class="sidebar-section-header">
                             <i class="fas fa-clock"></i>
                             <h3>Stats</h3>
                         </div>
-                        <div id="karlineStats" class="sidebar-section-body" style="font-size:0.75rem;color:var(--text-muted);padding:8px;"></div>
+                        <div id="karlineStats" class="sidebar-section-body"
+                            style="font-size:0.75rem;color:var(--text-muted);padding:8px;"></div>
                     </div>
                 </div>
             </div>
@@ -1668,7 +1766,9 @@
                                 tracker
                                 profile to a Pazator person</label>
                             <div style="display: flex; gap: 8px;">
-                                <div id="trackerHumanSlot" style="flex:1;display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:5px;border:1px solid rgba(255,255,255,0.08);background:rgba(0,0,0,0.3);cursor:pointer;min-height:34px;box-sizing:border-box;font-size:0.78rem;color:#444;" onclick="openTrackerHumanPicker()">Select person...</div>
+                                <div id="trackerHumanSlot"
+                                    style="flex:1;display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:5px;border:1px solid rgba(255,255,255,0.08);background:rgba(0,0,0,0.3);cursor:pointer;min-height:34px;box-sizing:border-box;font-size:0.78rem;color:#444;"
+                                    onclick="openTrackerHumanPicker()">Select person...</div>
                                 <button class="btn btn-primary" id="trackerConnectBtn"
                                     style="padding: 8px 12px; font-size: 0.8rem;">Show</button>
                             </div>
@@ -2092,7 +2192,8 @@
                             <i class="fas fa-upload"></i>
                         </div>
                         <p class="data-dropzone-title">Drop CSV here</p>
-                        <p class="data-dropzone-hint">or <a class="data-dropzone-browse" id="dataFileBrowseBtn">choose a file</a></p>
+                        <p class="data-dropzone-hint">or <a class="data-dropzone-browse" id="dataFileBrowseBtn">choose a
+                                file</a></p>
                         <input type="file" id="dataFile" accept=".csv" hidden>
                         <div id="dataUploadFileInfo" class="data-dropzone-file" style="display:none;">
                             <i class="fas fa-file-csv"></i>
@@ -2148,43 +2249,72 @@
                         <div class="data-precise-group">
                             <div class="data-precise-group-label"><i class="fas fa-user"></i> People Fields</div>
                             <div class="data-precise-table">
-                                <div class="data-precise-row"><code class="data-precise-col req">Name</code><span class="data-precise-col">Full name of the person</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col">Birth Date</code><span class="data-precise-col">Format: YYYY-MM-DD</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col">Gender</code><span class="data-precise-col">e.g. Male, Female, Non-binary</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col">Marital Status</code><span class="data-precise-col">e.g. Single, Married, Divorced</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col">Workplace</code><span class="data-precise-col">Company or organization name</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col">Nationality</code><span class="data-precise-col">Country of citizenship</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col">Country of Origin</code><span class="data-precise-col">Country of birth</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col">Immigration Status</code><span class="data-precise-col">e.g. Citizen, Resident, Visa</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col">Languages</code><span class="data-precise-col">Comma-separated languages</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col">Ethnicity</code><span class="data-precise-col">Ethnic background</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col">Religion</code><span class="data-precise-col">Religious affiliation</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col">Political Views</code><span class="data-precise-col">Political alignment</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col">Credit Score</code><span class="data-precise-col">Numeric credit score</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col">Social Class</code><span class="data-precise-col">e.g. Lower, Middle, Upper</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col">Income Level</code><span class="data-precise-col">Income bracket</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col">Education Level</code><span class="data-precise-col">e.g. High School, Bachelor, PhD</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col">Threat Level</code><span class="data-precise-col">e.g. Low, Medium, High</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col">Notes</code><span class="data-precise-col">Additional information</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col">Tags</code><span class="data-precise-col">Comma-separated tags</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col">Friends</code><span class="data-precise-col">Comma-separated names or PZI IDs</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col">Family</code><span class="data-precise-col">Comma-separated names or PZI IDs</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col req">Name</code><span
+                                        class="data-precise-col">Full name of the person</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Birth Date</code><span
+                                        class="data-precise-col">Format: YYYY-MM-DD</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Gender</code><span
+                                        class="data-precise-col">e.g. Male, Female, Non-binary</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Marital Status</code><span
+                                        class="data-precise-col">e.g. Single, Married, Divorced</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Workplace</code><span
+                                        class="data-precise-col">Company or organization name</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Nationality</code><span
+                                        class="data-precise-col">Country of citizenship</span></div>
+                                <div class="data-precise-row"><code
+                                        class="data-precise-col">Country of Origin</code><span
+                                        class="data-precise-col">Country of birth</span></div>
+                                <div class="data-precise-row"><code
+                                        class="data-precise-col">Immigration Status</code><span
+                                        class="data-precise-col">e.g. Citizen, Resident, Visa</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Languages</code><span
+                                        class="data-precise-col">Comma-separated languages</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Ethnicity</code><span
+                                        class="data-precise-col">Ethnic background</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Religion</code><span
+                                        class="data-precise-col">Religious affiliation</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Political Views</code><span
+                                        class="data-precise-col">Political alignment</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Credit Score</code><span
+                                        class="data-precise-col">Numeric credit score</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Social Class</code><span
+                                        class="data-precise-col">e.g. Lower, Middle, Upper</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Income Level</code><span
+                                        class="data-precise-col">Income bracket</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Education Level</code><span
+                                        class="data-precise-col">e.g. High School, Bachelor, PhD</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Threat Level</code><span
+                                        class="data-precise-col">e.g. Low, Medium, High</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Notes</code><span
+                                        class="data-precise-col">Additional information</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Tags</code><span
+                                        class="data-precise-col">Comma-separated tags</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Friends</code><span
+                                        class="data-precise-col">Comma-separated names or PZI IDs</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Family</code><span
+                                        class="data-precise-col">Comma-separated names or PZI IDs</span></div>
                             </div>
                         </div>
                         <div class="data-precise-group">
-                            <div class="data-precise-group-label"><i class="fas fa-building"></i> Company / Organization Fields</div>
+                            <div class="data-precise-group-label"><i class="fas fa-building"></i> Company / Organization
+                                Fields</div>
                             <div class="data-precise-table">
-                                <div class="data-precise-row"><code class="data-precise-col req">Name</code><span class="data-precise-col">Company or organization name</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col req">Type</code><span class="data-precise-col">e.g. Company, Organization, Government</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col">Notes</code><span class="data-precise-col">Additional information</span></div>
-                                <div class="data-precise-row"><code class="data-precise-col">Tags</code><span class="data-precise-col">Comma-separated tags</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col req">Name</code><span
+                                        class="data-precise-col">Company or organization name</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col req">Type</code><span
+                                        class="data-precise-col">e.g. Company, Organization, Government</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Notes</code><span
+                                        class="data-precise-col">Additional information</span></div>
+                                <div class="data-precise-row"><code class="data-precise-col">Tags</code><span
+                                        class="data-precise-col">Comma-separated tags</span></div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <p class="data-schemas-note">
-                    <i class="fas fa-info-circle"></i> First row must be headers. Data is auto-categorized by the presence of a <code>Type</code> column.
+                    <i class="fas fa-info-circle"></i> First row must be headers. Data is auto-categorized by the
+                    presence of a <code>Type</code> column.
                 </p>
             </div>
             <div class="form-actions">
@@ -2196,7 +2326,8 @@
                         <i class="fas fa-caret-down"></i>
                     </button>
                     <div class="btn-dropdown-menu" id="uploadDropdownMenu">
-                        <div class="btn-dropdown-item" data-action="upload"><i class="fas fa-upload"></i> Upload Data</div>
+                        <div class="btn-dropdown-item" data-action="upload"><i class="fas fa-upload"></i> Upload Data
+                        </div>
                         <div class="btn-dropdown-item" data-action="test"><i class="fas fa-flask"></i> Test</div>
                     </div>
                 </div>
@@ -2251,53 +2382,79 @@
         <button class="close">&times;</button>
         <div class="modal-content" style="max-width: 1100px;">
             <div class="modal-header" style="border-bottom: 2px solid #333;">
-                <h2 style="font-weight:300;letter-spacing:1px;text-transform:uppercase;font-size:1rem;">Select Context</h2>
+                <h2 style="font-weight:300;letter-spacing:1px;text-transform:uppercase;font-size:1rem;">Select Context
+                </h2>
                 <span style="font-size:0.75rem;color:#666;margin-left:12px;">choose what to feed the AI</span>
             </div>
             <div class="modal-body">
                 <div style="display: flex; flex-direction: column; gap: 12px;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                        <div class="ctx-section" style="border:1px solid #3a3a3a;border-radius:6px;background:rgba(25,25,25,0.6);">
-                            <div style="padding:8px 12px;border-bottom:1px solid #333;font-size:0.75rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#999;"><span style="display:inline-block;width:4px;height:4px;background:#666;border-radius:50%;margin-right:6px;vertical-align:middle;"></span>People</div>
+                        <div class="ctx-section"
+                            style="border:1px solid #3a3a3a;border-radius:6px;background:rgba(25,25,25,0.6);">
+                            <div
+                                style="padding:8px 12px;border-bottom:1px solid #333;font-size:0.75rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#999;">
+                                <span
+                                    style="display:inline-block;width:4px;height:4px;background:#666;border-radius:50%;margin-right:6px;vertical-align:middle;"></span>People
+                            </div>
                             <div id="contextPeople" style="max-height:240px;overflow-y:auto;padding:6px 8px;">
                                 <p style="color: #666; text-align: center; font-size:0.8rem;">Loading people...</p>
                             </div>
                         </div>
-                        <div class="ctx-section" style="border:1px solid #3a3a3a;border-radius:6px;background:rgba(25,25,25,0.6);">
-                            <div style="padding:8px 12px;border-bottom:1px solid #333;font-size:0.75rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#999;"><span style="display:inline-block;width:4px;height:4px;background:#666;border-radius:50%;margin-right:6px;vertical-align:middle;"></span>Chats</div>
+                        <div class="ctx-section"
+                            style="border:1px solid #3a3a3a;border-radius:6px;background:rgba(25,25,25,0.6);">
+                            <div
+                                style="padding:8px 12px;border-bottom:1px solid #333;font-size:0.75rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#999;">
+                                <span
+                                    style="display:inline-block;width:4px;height:4px;background:#666;border-radius:50%;margin-right:6px;vertical-align:middle;"></span>Chats
+                            </div>
                             <div id="contextChats" style="max-height:240px;overflow-y:auto;padding:6px 8px;">
                                 <p style="color: #666; text-align: center; font-size:0.8rem;">Loading chats...</p>
                             </div>
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px;">
-                        <div class="ctx-section" style="border:1px solid #3a3a3a;border-radius:6px;background:rgba(25,25,25,0.6);">
-                            <div style="padding:6px 10px;border-bottom:1px solid #333;font-size:0.7rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#777;">Intel</div>
+                        <div class="ctx-section"
+                            style="border:1px solid #3a3a3a;border-radius:6px;background:rgba(25,25,25,0.6);">
+                            <div
+                                style="padding:6px 10px;border-bottom:1px solid #333;font-size:0.7rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#777;">
+                                Intel</div>
                             <div id="contextIntel" style="max-height:200px;overflow-y:auto;padding:4px 6px;">
                                 <p style="color: #666; text-align: center; font-size:0.75rem;">Loading...</p>
                             </div>
                         </div>
-                        <div class="ctx-section" style="border:1px solid #3a3a3a;border-radius:6px;background:rgba(25,25,25,0.6);">
-                            <div style="padding:6px 10px;border-bottom:1px solid #333;font-size:0.7rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#777;">Logbook</div>
+                        <div class="ctx-section"
+                            style="border:1px solid #3a3a3a;border-radius:6px;background:rgba(25,25,25,0.6);">
+                            <div
+                                style="padding:6px 10px;border-bottom:1px solid #333;font-size:0.7rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#777;">
+                                Logbook</div>
                             <div id="contextLogbook" style="max-height:200px;overflow-y:auto;padding:4px 6px;">
                                 <p style="color: #666; text-align: center; font-size:0.75rem;">Loading...</p>
                             </div>
                         </div>
-                        <div class="ctx-section" style="border:1px solid #3a3a3a;border-radius:6px;background:rgba(25,25,25,0.6);">
-                            <div style="padding:6px 10px;border-bottom:1px solid #333;font-size:0.7rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#777;">Cases</div>
+                        <div class="ctx-section"
+                            style="border:1px solid #3a3a3a;border-radius:6px;background:rgba(25,25,25,0.6);">
+                            <div
+                                style="padding:6px 10px;border-bottom:1px solid #333;font-size:0.7rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#777;">
+                                Cases</div>
                             <div id="contextCases" style="max-height:200px;overflow-y:auto;padding:4px 6px;">
                                 <p style="color: #666; text-align: center; font-size:0.75rem;">Loading...</p>
                             </div>
                         </div>
-                        <div class="ctx-section" style="border:1px solid #3a3a3a;border-radius:6px;background:rgba(25,25,25,0.6);">
-                            <div style="padding:6px 10px;border-bottom:1px solid #333;font-size:0.7rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#777;">Entities</div>
+                        <div class="ctx-section"
+                            style="border:1px solid #3a3a3a;border-radius:6px;background:rgba(25,25,25,0.6);">
+                            <div
+                                style="padding:6px 10px;border-bottom:1px solid #333;font-size:0.7rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#777;">
+                                Entities</div>
                             <div id="contextEntities" style="max-height:200px;overflow-y:auto;padding:4px 6px;">
                                 <p style="color: #666; text-align: center; font-size:0.75rem;">Loading...</p>
                             </div>
                         </div>
                     </div>
-                    <div class="ctx-section" style="border:1px solid #3a3a3a;border-radius:6px;background:rgba(25,25,25,0.6);">
-                        <div style="padding:6px 10px;border-bottom:1px solid #333;font-size:0.7rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#777;">Reports</div>
+                    <div class="ctx-section"
+                        style="border:1px solid #3a3a3a;border-radius:6px;background:rgba(25,25,25,0.6);">
+                        <div
+                            style="padding:6px 10px;border-bottom:1px solid #333;font-size:0.7rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#777;">
+                            Reports</div>
                         <div id="contextReports" style="max-height:150px;overflow-y:auto;padding:4px 6px;">
                             <p style="color: #666; text-align: center; font-size:0.75rem;">Loading...</p>
                         </div>
@@ -2305,9 +2462,12 @@
                 </div>
 
                 <div style="margin-top:16px;border-top:1px solid #2a2a2a;padding-top:12px;">
-                    <div style="font-size:0.7rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#666;margin-bottom:6px;">Notes</div>
+                    <div
+                        style="font-size:0.7rem;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#666;margin-bottom:6px;">
+                        Notes</div>
                     <textarea id="contextNotes" class="form-control" rows="2"
-                        placeholder="Additional context for the selected items..." style="background:rgba(20,20,20,0.6);border-color:#3a3a3a;color:#ccc;font-size:0.8rem;"></textarea>
+                        placeholder="Additional context for the selected items..."
+                        style="background:rgba(20,20,20,0.6);border-color:#3a3a3a;color:#ccc;font-size:0.8rem;"></textarea>
                 </div>
             </div>
             <div class="form-actions" style="border-top:1px solid #2a2a2a;padding-top:12px;margin-top:0;">
@@ -2317,7 +2477,7 @@
         </div>
     </div>
 
-    
+
 
     <div id="neofetchOverlay" class="about-overlay" aria-hidden="true">
         <div class="neofetch-card" id="neofetchCard" role="dialog" aria-modal="true">
@@ -2326,11 +2486,16 @@
                     <img src="../logo.png" alt="logo" id="neofetchLogoImg">
                 </div>
                 <div class="neofetch-data">
-                    <div class="neofetch-line"><span class="neofetch-key">Sys</span><span class="neofetch-val">Pazator SARPARAST</span></div>
-                    <div class="neofetch-line"><span class="neofetch-key">Ver</span><span class="neofetch-val" id="neofetchAppVer">—</span></div>
-                    <div class="neofetch-line"><span class="neofetch-key">Build</span><span class="neofetch-val" id="neofetchBuild">—</span></div>
-                    <div class="neofetch-line"><span class="neofetch-key">Entities</span><span class="neofetch-val" id="neofetchEntities">—</span></div>
-                    <div class="neofetch-line"><span class="neofetch-key">Uptime</span><span class="neofetch-val" id="neofetchUptime">—</span></div>
+                    <div class="neofetch-line"><span class="neofetch-key">Sys</span><span class="neofetch-val">Pazator
+                            SARPARAST</span></div>
+                    <div class="neofetch-line"><span class="neofetch-key">Ver</span><span class="neofetch-val"
+                            id="neofetchAppVer">—</span></div>
+                    <div class="neofetch-line"><span class="neofetch-key">Build</span><span class="neofetch-val"
+                            id="neofetchBuild">—</span></div>
+                    <div class="neofetch-line"><span class="neofetch-key">Entities</span><span class="neofetch-val"
+                            id="neofetchEntities">—</span></div>
+                    <div class="neofetch-line"><span class="neofetch-key">Uptime</span><span class="neofetch-val"
+                            id="neofetchUptime">—</span></div>
                 </div>
             </div>
             <button class="neofetch-close" id="closeNeofetchBtn">&times;</button>
@@ -2536,11 +2701,10 @@
                 </div>
             </div>
             <div class="detail-actions">
-                <button id="exportPdfBtn" class="btn-action" >
+                <button id="exportPdfBtn" class="btn-action">
                     <i class="fas fa-file-pdf"></i> Export PDF
                 </button>
-                <button id="openInExplorerBtn" class="btn-action"
-                    style=" display:none;">
+                <button id="openInExplorerBtn" class="btn-action" style=" display:none;">
                     <i class="fas fa-cube"></i> Explore
                 </button>
                 <button id="classifyEntryBtn" class="btn-action">
@@ -2586,7 +2750,7 @@
         </div>
     </div>
 
-    
+
     <div id="tideMonitorModal" class="tide-monitor-modal">
         <div class="tide-monitor-content">
             <div class="tide-monitor-header">
@@ -2644,7 +2808,7 @@
         </div>
     </div>
 
-    
+
     <div id="creditEvalModal" class="credit-eval-modal">
         <div class="credit-eval-content">
             <div class="credit-eval-header">
@@ -2694,7 +2858,7 @@
         </div>
     </div>
 
-    
+
     <div id="cleanModal" class="clean-modal">
         <div class="clean-modal-backdrop"></div>
         <div class="clean-modal-content">
@@ -2707,18 +2871,92 @@
         </div>
     </div>
 
+    <div id="pipelineBuilder" class="clean-modal">
+        <div class="clean-modal-backdrop" onclick="pazatorPipelines.closeBuilder()"></div>
+        <div class="pipeline-builder-content">
+            <div class="rule-modal-header">
+                <span class="rule-modal-header-icon"><i class="fas fa-code-branch"></i></span>
+                <span class="rule-modal-header-title">Pipeline Builder</span>
+                <button class="rule-modal-close" onclick="pazatorPipelines.closeBuilder()"><i
+                        class="fas fa-times"></i></button>
+            </div>
+            <div class="pipeline-builder-body">
+                <div class="pipeline-builder-name">
+                    <input type="text" id="pbName" class="pipeline-builder-name-input"
+                        placeholder="Name your pipeline..." autofocus>
+                </div>
+                <div class="pipeline-flow" id="pbFlow">
+                    <div class="pipeline-flow-node" data-section="connector">
+                        <div class="pipeline-flow-icon"><i class="fas fa-database"></i></div>
+                        <div class="pipeline-flow-label">Source</div>
+                        <div class="pipeline-flow-sub" id="pbFlowSource">Pick a source</div>
+                    </div>
+                    <div class="pipeline-flow-arrow"><i class="fas fa-arrow-right"></i></div>
+                    <div class="pipeline-flow-node" data-section="transforms">
+                        <div class="pipeline-flow-icon"><i class="fas fa-filter"></i></div>
+                        <div class="pipeline-flow-label">Transforms</div>
+                        <div class="pipeline-flow-sub" id="pbFlowTransforms">None</div>
+                    </div>
+                    <div class="pipeline-flow-arrow"><i class="fas fa-arrow-right"></i></div>
+                    <div class="pipeline-flow-node" data-section="target">
+                        <div class="pipeline-flow-icon"><i class="fas fa-upload"></i></div>
+                        <div class="pipeline-flow-label">Target</div>
+                        <div class="pipeline-flow-sub" id="pbFlowTarget">Select store</div>
+                    </div>
+                </div>
+                <div class="pipeline-editor" id="pbEditor"></div>
+            </div>
+            <div class="pipeline-builder-footer">
+                <button class="rule-modal-btn" onclick="pazatorPipelines.closeBuilder()">Cancel</button>
+                <button class="rule-modal-btn-primary" id="pbCreateBtn"><i class="fas fa-play"></i> Create & Run</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="schedulerModal" class="clean-modal">
+        <div class="clean-modal-backdrop" onclick="pazatorPipelines.closeScheduler()"></div>
+        <div class="pipeline-builder-content" style="min-width:520px;">
+            <div class="rule-modal-header">
+                <span class="rule-modal-header-icon"><i class="fas fa-clock"></i></span>
+                <span class="rule-modal-header-title">Pipeline Scheduler</span>
+                <button class="rule-modal-close" onclick="pazatorPipelines.closeScheduler()"><i
+                        class="fas fa-times"></i></button>
+            </div>
+            <div class="pipeline-builder-body">
+                <div class="pipeline-editor-section-title"><i class="fas fa-plus-circle"></i> New Schedule</div>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;padding:12px 14px;background:rgba(255,255,255,0.02);border:1px solid #252525;border-radius:10px;">
+                    <select id="schedPipeSelect" style="flex:2;padding:7px 10px;border-radius:6px;border:1px solid #252525;background:rgba(0,0,0,0.25);color:#ccc;font-size:0.8rem;font-family:inherit;outline:none;">
+                        <option value="">Select a pipeline...</option>
+                    </select>
+                    <div style="display:flex;align-items:center;gap:4px;">
+                        <input type="number" id="schedInterval" value="60" min="1" style="width:56px;padding:7px 8px;border-radius:6px;border:1px solid #252525;background:rgba(0,0,0,0.25);color:#ccc;font-size:0.8rem;text-align:center;outline:none;">
+                        <span style="font-size:0.65rem;color:var(--text-muted);">min</span>
+                    </div>
+                    <button class="rule-modal-btn-primary" id="addSchedBtn" style="padding:7px 14px;font-size:0.7rem;border:2.5px solid #fff;"><i class="fas fa-plus"></i> Add</button>
+                </div>
+                <div class="pipeline-editor-section-title"><i class="fas fa-list"></i> Active Schedules</div>
+                <div id="schedList" style="display:flex;flex-direction:column;gap:4px;"></div>
+            </div>
+            <div class="pipeline-builder-footer">
+                <button class="rule-modal-btn" onclick="pazatorPipelines.closeScheduler()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <div id="alertRuleModal" class="clean-modal">
         <div class="clean-modal-backdrop" onclick="pazatorAlerts.cancelModal()"></div>
         <div class="clean-modal-content" style="max-width:540px;padding:0;overflow:hidden;">
             <div class="rule-modal-header">
                 <span class="rule-modal-header-icon"><i class="fas fa-bell"></i></span>
                 <span class="rule-modal-header-title">New Alert Rule</span>
-                <button class="rule-modal-close" onclick="pazatorAlerts.cancelModal()"><i class="fas fa-times"></i></button>
+                <button class="rule-modal-close" onclick="pazatorAlerts.cancelModal()"><i
+                        class="fas fa-times"></i></button>
             </div>
             <div class="rule-modal-body">
                 <div class="rule-field-group">
                     <div class="rule-field-label">Rule name</div>
-                    <input type="text" id="ruleName" class="rule-field-input" placeholder="e.g. High Risk Entity Detected" autofocus>
+                    <input type="text" id="ruleName" class="rule-field-input"
+                        placeholder="e.g. High Risk Entity Detected" autofocus>
                 </div>
                 <div class="rule-divider"></div>
                 <div class="rule-row">
@@ -2743,7 +2981,8 @@
                 <div class="rule-divider"></div>
                 <div class="rule-field-group">
                     <div class="rule-field-label">Alert message</div>
-                    <input type="text" id="ruleDesc" class="rule-field-input" placeholder="Message to show when triggered">
+                    <input type="text" id="ruleDesc" class="rule-field-input"
+                        placeholder="Message to show when triggered">
                 </div>
                 <div class="rule-divider"></div>
                 <div class="rule-field-group">
@@ -2764,25 +3003,28 @@
                             <option value="eq">=</option>
                             <option value="neq">≠</option>
                         </select>
-                        <input type="number" id="ruleValue" class="rule-field-input" value="0" style="width:72px;flex-shrink:0;text-align:center;">
+                        <input type="number" id="ruleValue" class="rule-field-input" value="0"
+                            style="width:72px;flex-shrink:0;text-align:center;">
                     </div>
                 </div>
             </div>
             <div class="rule-modal-footer">
-                <button class="rule-modal-btn" onclick="pazatorAlerts.cancelModal()"><i class="fas fa-times"></i> Cancel</button>
-                <button class="rule-modal-btn rule-modal-btn-primary" id="createRuleBtn"><i class="fas fa-bell"></i> Create Rule</button>
+                <button class="rule-modal-btn" onclick="pazatorAlerts.cancelModal()"><i class="fas fa-times"></i>
+                    Cancel</button>
+                <button class="rule-modal-btn rule-modal-btn-primary" id="createRuleBtn"><i class="fas fa-bell"></i>
+                    Create Rule</button>
             </div>
         </div>
     </div>
 
-    
+
     <div id="toastContainer" class="toast-container"></div>
 
-    
+
     <div id="settingsModal" class="modal settings-modal">
         <div class="settings-modal-wrap">
             <div class="settings-sidebar">
-                <div class="settings-sidebar-title"><i class="fas fa-cog"></i> Settings</div>
+                <div class="settings-sidebar-title">Settings</div>
                 <button class="settings-tab active" data-tab="general"><i class="fas fa-sliders-h"></i> General</button>
                 <button class="settings-tab" data-tab="ai"><i class="fas fa-microchip"></i> AI</button>
                 <button class="settings-tab" data-tab="security"><i class="fas fa-shield-alt"></i> Security</button>
@@ -2827,7 +3069,8 @@
                             <input type="number" id="toolDelayInput" min="0" max="10000" step="100"
                                 style="width:80px;padding:6px 8px;background:#1a1a1a;border:1px solid #444;border-radius:4px;color:#fff;font-size:0.8rem;text-align:center;">
                         </label>
-                        <p class="settings-desc">Milliseconds to wait between each tool call in the agent loop (0 = off)</p>
+                        <p class="settings-desc">Milliseconds to wait between each tool call in the agent loop (0 = off)
+                        </p>
                     </div>
                     <div class="settings-group">
                         <label class="settings-toggle">
@@ -2847,7 +3090,8 @@
                                     style="width:56px;padding:4px 6px;background:#1a1a1a;border:1px solid #444;border-radius:4px;color:#fff;font-size:0.8rem;text-align:center;">
                             </span>
                         </label>
-                        <p class="settings-desc">Controls randomness in AI responses (0 = deterministic, 2 = very creative)</p>
+                        <p class="settings-desc">Controls randomness in AI responses (0 = deterministic, 2 = very
+                            creative)</p>
                     </div>
                     <div class="settings-group">
                         <label style="display:flex;align-items:center;justify-content:space-between;">
@@ -2898,8 +3142,10 @@
                         </label>
                         <p class="settings-desc" style="color:#ff6b6b;">
                             <i class="fas fa-exclamation-triangle"></i>
-                            <strong>Not truly secure.</strong> The password is stored in your browser's localStorage — it's
-                            a simple client-side lock that stops casual snooping. Anyone with access to your computer can
+                            <strong>Not truly secure.</strong> The password is stored in your browser's localStorage —
+                            it's
+                            a simple client-side lock that stops casual snooping. Anyone with access to your computer
+                            can
                             bypass it by clearing site data or inspecting the source. Do not rely on this for sensitive
                             data.
                         </p>
@@ -2920,13 +3166,38 @@
                             <div id="passwordStatus" style="font-size:0.75rem;margin-top:4px;color:#aaa;"></div>
                         </div>
                     </div>
+                    <div class="settings-group" style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;">
+                        <label class="settings-toggle">
+                            <span>E2E Encryption</span>
+                            <input type="checkbox" id="encryptionToggle" onchange="toggleEncryption(this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <p class="settings-desc">
+                            <i class="fas fa-shield-alt"></i>
+                            Encrypt all data with AES-256-GCM before sending to PZLS. Data is decrypted on pull.
+                            Requires a sync passphrase set below.
+                        </p>
+                        <div id="encryptionArea" style="display:none;margin-top:8px;padding:8px;background:rgba(0,0,0,0.2);border-radius:6px;">
+                            <input type="password" id="encryptionPassphrase" placeholder="Encryption passphrase (min 8 chars)"
+                                style="width:100%;padding:8px 10px;background:#1a1a1a;border:1px solid #444;border-radius:4px;color:#fff;font-size:0.85rem;margin-bottom:6px;box-sizing:border-box;">
+                            <input type="password" id="encryptionConfirm" placeholder="Confirm passphrase"
+                                style="width:100%;padding:8px 10px;background:#1a1a1a;border:1px solid #444;border-radius:4px;color:#fff;font-size:0.85rem;margin-bottom:6px;box-sizing:border-box;">
+                            <div style="display:flex;gap:6px;">
+                                <button id="encryptionSaveBtn" class="btn btn-primary"
+                                    style="flex:1;padding:8px;font-size:0.8rem;" onclick="saveEncryptionKey()">Set Passphrase</button>
+                                <button id="encryptionRemoveBtn" class="btn btn-secondary"
+                                    style="flex:1;padding:8px;font-size:0.8rem;display:none;"
+                                    onclick="removeEncryption()">Remove</button>
+                            </div>
+                            <div id="encryptionStatus" style="font-size:0.75rem;margin-top:4px;color:#aaa;"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <button class="settings-close" onclick="closeSettingsModal()"><i class="fas fa-times"></i></button>
         </div>
     </div>
 
-    
+
     <div id="passwordOverlay" class="password-overlay" style="display:none;">
         <div class="password-overlay-content">
             <div class="password-overlay-label">Protected</div>
@@ -3002,6 +3273,8 @@
     </script>
 
 
+    <script async src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script async src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -3012,9 +3285,9 @@
     <script src="js/ai/tide.js"></script>
     <script src="js/ai/tide-ui.js"></script>
     <script src="js/ai/agents.js"></script>
-    
 
-    
+
+
     <script src="js/core/globals.js"></script>
     <script src="js/core/modal.js"></script>
     <script src="js/chat/chat-system.js"></script>
@@ -3025,7 +3298,7 @@
     <script src="js/apps/object-explorer.js"></script>
     <script src="js/ui/table.js"></script>
 
-    
+
     <script src="js/features/detail.js"></script>
     <script src="js/ai/zor-chat.js"></script>
     <script src="js/features/uploads.js"></script>
@@ -3044,7 +3317,7 @@
     <script src="js/tracker/tracker.js"></script>
     <script src="js/core/main.js"></script>
 
-    
+
     <script src="js/ai/context.js"></script>
     <script>
         (function () {
@@ -3078,7 +3351,7 @@
             }
         })();
 
-        
+
         function closeUpdateModal() {
             const updateModal = document.getElementById('updateModal');
             updateModal.classList.add('hidden');

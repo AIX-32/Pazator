@@ -975,10 +975,11 @@ async function deleteCurrentEntry() {
     const confirmed = await showConfirm(`Are you sure you want to delete "${data.name}"?`, 'Confirm Deletion', 'warning');
     if (confirmed) {
         if (data.type === 'human') {
-            pazatorData.humans = pazatorData.humans.filter(h => h.id !== data.id);
-            if (window.pazatorStore) pazatorStore.rebuildIndexes();
+            var hi = pazatorData.humans.findIndex(function (h) { return h.id === data.id; });
+            if (hi !== -1) pazatorData.humans.splice(hi, 1);
         } else {
-            pazatorData.others = pazatorData.others.filter(o => o.id !== data.id);
+            var oi = pazatorData.others.findIndex(function (o) { return o.id === data.id; });
+            if (oi !== -1) pazatorData.others.splice(oi, 1);
         }
 
         saveData();

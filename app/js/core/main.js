@@ -16,8 +16,7 @@
 //   init.js          - Final DOMContentLoaded hooks
 //
 // js/data/           - Data layer
-//   db.js            - IndexedDB v1 (pazator_db)
-//   engine.js        - IndexedDB v2 (pazator_engine)
+//   engine.js        - IndexedDB v2 (pazator_engine, single DB, no legacy v1)
 //   facets.js        - Faceted search (pazator_facets)
 //
 // js/chat/           - Chat processing

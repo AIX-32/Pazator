@@ -196,16 +196,74 @@
     }
   }
 
+  const OFFLINE_QUEUE_KEY = 'pazator_sync_offline_queue';
+  const MERGE_CONFLICTS_KEY = 'pazator_merge_conflicts';
+  const SYNC_CURSOR_KEY = 'pazator_sync_cursor';
+
+  function getEncryptionFn() {
+    var w = window;
+    return { isEnabled: (typeof w.isEncryptionEnabled === 'function' ? w.isEncryptionEnabled : function(){return false;}),
+             encrypt: (typeof w.encryptForSync === 'function' ? w.encryptForSync : function(d){return d;}),
+             decrypt: (typeof w.decryptFromSync === 'function' ? w.decryptFromSync : function(d){return d;}) };
+  }
+
+  function loadOfflineQueue() {
+    try { return JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY)) || []; } catch(e) { return []; }
+  }
+
+  function saveOfflineQueue(queue) {
+    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+  }
+
+  function addToOfflineQueue(op) {
+    var queue = loadOfflineQueue();
+    queue.push({ ...op, queuedAt: new Date().toISOString() });
+    saveOfflineQueue(queue);
+    updateSyncUI();
+  }
+
+  function loadMergeConflicts() {
+    try { return JSON.parse(localStorage.getItem(MERGE_CONFLICTS_KEY)) || []; } catch(e) { return []; }
+  }
+
+  function saveMergeConflicts(conflicts) {
+    localStorage.setItem(MERGE_CONFLICTS_KEY, JSON.stringify(conflicts));
+  }
+
+  async function flushOfflineQueue() {
+    var queue = loadOfflineQueue();
+    if (!queue.length) return;
+    var remaining = [];
+    for (var i = 0; i < queue.length; i++) {
+      var op = queue[i];
+      try {
+        if (op.action === 'push') {
+          await pushInternal(op.data);
+        } else if (op.action === 'op') {
+          await pushOpsInternal([op.op]);
+        }
+      } catch (e) {
+        remaining.push(op);
+      }
+    }
+    saveOfflineQueue(remaining);
+    if (remaining.length === 0) {
+      window.PazatorUI && window.PazatorUI.showFloatingNotification('Offline queue flushed', 'success', 2000);
+    }
+    updateSyncUI();
+  }
+
   function collectLocalData() {
-    const data = {};
-    const stores = ['humans', 'others', 'tags', 'cases', 'chats', 'relationships'];
-    for (const store of stores) {
-      const arr = window.pazatorStore && window.pazatorStore._data ? window.pazatorStore._data[store] : [];
+    var data = {};
+    var stores = ['humans', 'others', 'tags', 'cases', 'chats', 'relationships'];
+    for (var si = 0; si < stores.length; si++) {
+      var store = stores[si];
+      var arr = window.pazatorStore && window.pazatorStore._data ? window.pazatorStore._data[store] : [];
       if (arr && arr.length > 0) {
         data[store] = {};
-        for (const item of arr) {
-          if (item && item.id) {
-            data[store][item.id] = item;
+        for (var ii = 0; ii < arr.length; ii++) {
+          if (arr[ii] && arr[ii].id) {
+            data[store][arr[ii].id] = arr[ii];
           }
         }
       }
@@ -213,34 +271,147 @@
     return data;
   }
 
+  function encryptStoreData(data) {
+    var enc = getEncryptionFn();
+    if (!enc.isEnabled()) return data;
+    var out = {};
+    for (var store in data) {
+      if (!data.hasOwnProperty(store)) continue;
+      out[store] = {};
+      for (var id in data[store]) {
+        if (!data[store].hasOwnProperty(id)) continue;
+        out[store][id] = enc.encrypt(data[store][id]);
+      }
+    }
+    return out;
+  }
+
+  function decryptStoreData(data) {
+    var enc = getEncryptionFn();
+    if (!enc.isEnabled()) return data;
+    var out = {};
+    for (var store in data) {
+      if (!data.hasOwnProperty(store)) continue;
+      out[store] = {};
+      for (var id in data[store]) {
+        if (!data[store].hasOwnProperty(id)) continue;
+        out[store][id] = enc.decrypt(data[store][id]);
+      }
+    }
+    return out;
+  }
+
+  function decryptEntity(entity) {
+    var enc = getEncryptionFn();
+    return enc.isEnabled() ? enc.decrypt(entity) : entity;
+  }
+
+  // ─── Incremental Pull (cursor-based) ──────────────────────────
+
+  async function pullIncremental() {
+    try {
+      if (!authToken) { showConfigModal(); return { success: false, error: 'Not logged in' }; }
+      var cursor = localStorage.getItem(SYNC_CURSOR_KEY) || null;
+      var totalImported = 0;
+      var more = true;
+      var page = 0;
+
+      while (more && page < 100) {
+        var path = '/api/sync/cursor?limit=500';
+        if (cursor) path += '&cursor=' + encodeURIComponent(cursor);
+        var result = await apiFetch(path);
+        if (!result.entities || !result.entities.length) break;
+
+        var imported = 0;
+        for (var ei = 0; ei < result.entities.length; ei++) {
+          var row = result.entities[ei];
+          var decrypted = decryptEntity(row.data);
+          if (!decrypted) continue;
+          if (window.pazatorStore && window.pazatorStore._data) {
+            var arr = window.pazatorStore._data[row.store];
+            if (arr) {
+              var exists = false;
+              for (var xi = 0; xi < arr.length; xi++) {
+                if (arr[xi] && arr[xi].id === row.id) { exists = true; break; }
+              }
+              if (!exists) {
+                arr.push(decrypted);
+                imported++;
+              }
+            }
+          }
+        }
+
+        totalImported += imported;
+        if (imported > 0 && window.pazatorStore && window.pazatorStore.markDirty) {
+          window.pazatorStore.markDirty('all');
+        }
+
+        cursor = result.nextCursor || null;
+        more = result.hasMore;
+        page++;
+      }
+
+      localStorage.setItem(SYNC_CURSOR_KEY, cursor || '');
+      syncState.lastSync = new Date().toISOString();
+      syncState.lastPull = new Date().toISOString();
+      saveState(syncState);
+
+      window.PazatorUI && window.PazatorUI.showFloatingNotification(
+        'Pulled: ' + totalImported + ' records',
+        totalImported > 0 ? 'success' : 'info', 3000
+      );
+      updateSyncUI();
+      return { success: true, count: totalImported };
+    } catch (e) {
+      window.PazatorUI && window.PazatorUI.showFloatingNotification('Pull failed: ' + e.message, 'error', 4000);
+      return { success: false, error: e.message };
+    }
+  }
+
+  async function pushInternal(data) {
+    var encrypted = encryptStoreData(data);
+    var result = await apiFetch('/api/sync', {
+      method: 'POST',
+      body: JSON.stringify({
+        clientVersion: syncState ? syncState.version : 0,
+        stores: encrypted
+      })
+    });
+    syncState.version = result.version;
+    syncState.lastSync = new Date().toISOString();
+    syncState.lastPush = new Date().toISOString();
+    saveState(syncState);
+    return result;
+  }
+
   async function push() {
     try {
       if (!authToken) { showConfigModal(); return { success: false, error: 'Not logged in' }; }
-      const data = collectLocalData();
+      var data = collectLocalData();
       if (Object.keys(data).length === 0) {
         window.PazatorUI && window.PazatorUI.showFloatingNotification('No data to push', 'warning', 2000);
         return { success: false, error: 'No data' };
       }
-      const result = await apiFetch('/api/sync', {
-        method: 'POST',
-        body: JSON.stringify({
-          clientVersion: syncState ? syncState.version : 0,
-          stores: data
-        })
-      });
-      syncState.version = result.version;
-      syncState.lastSync = new Date().toISOString();
-      syncState.lastPush = new Date().toISOString();
-      saveState(syncState);
-      window.PazatorUI && window.PazatorUI.showFloatingNotification(
-        `Pushed: ${result.added} added, ${result.modified} modified`,
-        result.added > 0 || result.modified > 0 ? 'success' : 'info',
-        3000
-      );
-      updateSyncUI();
-      return { success: true, result };
+      try {
+        var result = await pushInternal(data);
+        window.PazatorUI && window.PazatorUI.showFloatingNotification(
+          'Pushed: ' + result.added + ' added, ' + result.modified + ' modified',
+          result.added > 0 || result.modified > 0 ? 'success' : 'info', 3000
+        );
+        updateSyncUI();
+        return { success: true, result: result };
+      } catch (e) {
+        // Offline — queue it
+        addToOfflineQueue({ action: 'push', data: data });
+        window.PazatorUI && window.PazatorUI.showFloatingNotification(
+          'Server unreachable — queued for later (' + e.message + ')', 'warning', 4000
+        );
+        updateSyncUI();
+        return { success: false, offline: true, error: e.message };
+      }
     } catch (e) {
-      window.PazatorUI && window.PazatorUI.showFloatingNotification(`Push failed: ${e.message}`, 'error', 4000);
+      window.PazatorUI && window.PazatorUI.showFloatingNotification('Push failed: ' + e.message, 'error', 4000);
       return { success: false, error: e.message };
     }
   }
@@ -248,27 +419,29 @@
   async function pull() {
     try {
       if (!authToken) { showConfigModal(); return { success: false, error: 'Not logged in' }; }
-      const result = await apiFetch('/api/sync');
+      var result = await apiFetch('/api/sync');
       if (!result.data || Object.keys(result.data).length === 0) {
         window.PazatorUI && window.PazatorUI.showFloatingNotification('Server has no data', 'info', 2000);
         return { success: true, count: 0 };
       }
-      let totalImported = 0;
-      const stores = ['humans', 'others', 'tags', 'cases', 'chats', 'relationships'];
-      for (const store of stores) {
-        if (result.data[store]) {
-          const items = Object.values(result.data[store]);
+      var decrypted = decryptStoreData(result.data);
+      var totalImported = 0;
+      var stores = ['humans', 'others', 'tags', 'cases', 'chats', 'relationships'];
+      for (var si = 0; si < stores.length; si++) {
+        var s = stores[si];
+        if (decrypted[s]) {
+          var items = Object.values(decrypted[s]);
           if (items.length > 0 && window.pazatorStore && window.pazatorStore._data) {
-            const existing = window.pazatorStore._data[store] || [];
-            const existingIds = new Set(existing.map(e => e.id));
-            for (const item of items) {
-              if (!existingIds.has(item.id)) {
-                existing.push(item);
+            var existing = window.pazatorStore._data[s] || [];
+            var existingIds = new Set(existing.map(function(e) { return e.id; }));
+            for (var ii = 0; ii < items.length; ii++) {
+              if (!existingIds.has(items[ii].id)) {
+                existing.push(items[ii]);
                 totalImported++;
               }
             }
             if (totalImported > 0 && window.pazatorStore.markDirty) {
-              window.pazatorStore.markDirty(store);
+              window.pazatorStore.markDirty(s);
             }
           }
         }
@@ -278,16 +451,145 @@
       syncState.lastPull = new Date().toISOString();
       saveState(syncState);
       window.PazatorUI && window.PazatorUI.showFloatingNotification(
-        `Pulled: ${totalImported} new records imported`,
-        totalImported > 0 ? 'success' : 'info',
-        3000
+        'Pulled: ' + totalImported + ' new records',
+        totalImported > 0 ? 'success' : 'info', 3000
       );
       updateSyncUI();
       return { success: true, count: totalImported };
     } catch (e) {
-      window.PazatorUI && window.PazatorUI.showFloatingNotification(`Pull failed: ${e.message}`, 'error', 4000);
+      window.PazatorUI && window.PazatorUI.showFloatingNotification('Pull failed: ' + e.message, 'error', 4000);
       return { success: false, error: e.message };
     }
+  }
+
+  async function pushOpsInternal(ops) {
+    var enc = getEncryptionFn();
+    if (enc.isEnabled()) {
+      ops = ops.map(function(op) {
+        if (op.data) op.data = enc.encrypt(op.data);
+        return op;
+      });
+    }
+    var result = await apiFetch('/api/sync/ops', {
+      method: 'POST',
+      body: JSON.stringify({ operations: ops })
+    });
+    // Check for conflicts
+    var conflicts = [];
+    if (result.results) {
+      for (var ri = 0; ri < result.results.length; ri++) {
+        if (result.results[ri].conflict) {
+          var c = result.results[ri];
+          conflicts.push({
+            entity_id: c.entity_id,
+            serverVersion: c.serverVersion,
+            serverData: enc.isEnabled() ? enc.decrypt(c.serverData) : c.serverData,
+            clientData: ops[ri] ? ops[ri].data || null : null,
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+    }
+    if (conflicts.length > 0) {
+      var existing = loadMergeConflicts();
+      saveMergeConflicts(existing.concat(conflicts));
+      showMergeConflictsNotification(conflicts);
+    }
+    return result;
+  }
+
+  function showMergeConflictsNotification(conflicts) {
+    var names = conflicts.map(function(c) { return c.entity_id.slice(0, 8); }).join(', ');
+    window.PazatorUI && window.PazatorUI.showFloatingNotification(
+      conflicts.length + ' merge conflict(s): ' + names + '. Resolve in PZLS menu.', 'warning', 6000
+    );
+    updateSyncUI();
+  }
+
+  // ─── Merge Conflict Resolution ─────────────────────────────────
+
+  function getConflicts() {
+    return loadMergeConflicts();
+  }
+
+  function dismissConflict(entityId) {
+    var conflicts = loadMergeConflicts();
+    saveMergeConflicts(conflicts.filter(function(c) { return c.entity_id !== entityId; }));
+    updateSyncUI();
+  }
+
+  function resolveConflict(entityId, resolution) {
+    var conflicts = loadMergeConflicts();
+    var idx = -1;
+    for (var i = 0; i < conflicts.length; i++) {
+      if (conflicts[i].entity_id === entityId) { idx = i; break; }
+    }
+    if (idx === -1) return;
+    conflicts.splice(idx, 1);
+    saveMergeConflicts(conflicts);
+    updateSyncUI();
+  }
+
+  async function aiAutoSolveConflict(conflict) {
+    if (!window.pazatorAI) {
+      window.PazatorUI && window.PazatorUI.showFloatingNotification('AI system not available', 'error', 3000);
+      return null;
+    }
+    try {
+      var prompt = 'You are a merge conflict resolution assistant. Two versions of the same entity conflict:\n\n' +
+        'SERVER VERSION:\n' + JSON.stringify(conflict.serverData, null, 2) + '\n\n' +
+        'CLIENT VERSION:\n' + JSON.stringify(conflict.clientData, null, 2) + '\n\n' +
+        'Merge them into a single coherent version. Preserve all unique fields. For conflicting fields, prefer the most recently modified value or merge intelligently. Return ONLY the merged JSON object.';
+      var result = await window.pazatorAI.chat('', [{ role: 'user', content: prompt }]);
+      var text = result;
+      if (result && result.candidates && result.candidates[0]) text = result.candidates[0].content.parts[0].text;
+      // Try to extract JSON from the response
+      var jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        var merged = JSON.parse(jsonMatch[0]);
+        return merged;
+      }
+      return null;
+    } catch (e) {
+      console.error('AI auto-solve failed:', e);
+      return null;
+    }
+  }
+
+  async function autoSolveAllConflicts() {
+    var conflicts = loadMergeConflicts();
+    if (!conflicts.length) {
+      window.PazatorUI && window.PazatorUI.showFloatingNotification('No conflicts to resolve', 'info', 2000);
+      return;
+    }
+    var storeNames = ['humans', 'others', 'tags', 'cases', 'chats', 'relationships'];
+    var solved = 0;
+    var failed = 0;
+    for (var i = 0; i < conflicts.length; i++) {
+      var merged = await aiAutoSolveConflict(conflicts[i]);
+      if (merged && merged.id) {
+        for (var si = 0; si < storeNames.length; si++) {
+          var arr = window.pazatorStore && window.pazatorStore._data ? window.pazatorStore._data[storeNames[si]] : null;
+          if (arr) {
+            for (var xi = 0; xi < arr.length; xi++) {
+              if (arr[xi] && arr[xi].id === conflicts[i].entity_id) {
+                Object.assign(arr[xi], merged);
+                break;
+              }
+            }
+          }
+        }
+        resolveConflict(conflicts[i].entity_id, 'ai_merged');
+        solved++;
+      } else {
+        failed++;
+      }
+    }
+    if (window.pazatorStore && window.pazatorStore.markDirty) window.pazatorStore.markDirty('all');
+    window.PazatorUI && window.PazatorUI.showFloatingNotification(
+      'AI auto-solve: ' + solved + ' merged, ' + failed + ' failed', failed > 0 ? 'warning' : 'success', 4000
+    );
+    updateSyncUI();
   }
 
   async function getChanges() {
@@ -471,54 +773,64 @@
     }, 30000);
   }
 
+  function getConflictCount() { var c = loadMergeConflicts(); return c ? c.length : 0; }
+  function getOfflineQueueCount() { var q = loadOfflineQueue(); return q ? q.length : 0; }
+
   function updateSyncUI() {
     loadConfig();
     loadState();
     loadAuthToken();
-    const dot = document.getElementById('syncStatusDot');
-    const label = document.getElementById('syncStatusLabel');
-    const meta = document.getElementById('syncStatusMeta');
+    var dot = document.getElementById('syncStatusDot');
+    var label = document.getElementById('syncStatusLabel');
+    var meta = document.getElementById('syncStatusMeta');
     if (!label) return;
 
+    var conflicts = getConflictCount();
+    var queued = getOfflineQueueCount();
+
+    var extra = '';
+    if (conflicts > 0) extra += ' \u26A0 ' + conflicts + ' conflict(s)';
+    if (queued > 0) extra += ' \u23F3 ' + queued + ' queued';
+
     if (currentUser && serverConnected === false) {
-      const srv = syncConfig ? (syncConfig.label || syncConfig.url.replace(/^https?:\/\//, '').split('/')[0]) : '';
+      var srv = syncConfig ? (syncConfig.label || syncConfig.url.replace(/^https?:\/\//, '').split('/')[0]) : '';
       if (dot) dot.style.background = '#ff9800';
-      label.textContent = `${currentUser.username}@${srv}`;
+      label.textContent = currentUser.username + '@' + srv;
       label.style.color = '#aaa';
-      if (meta) meta.textContent = 'disconnected';
+      if (meta) meta.textContent = 'disconnected' + extra;
       scheduleRetry();
     } else if (currentUser && serverConnected === true) {
-      const srv = syncConfig ? (syncConfig.label || syncConfig.url.replace(/^https?:\/\//, '').split('/')[0]) : '';
-      const lastSync = syncState.lastSync ? new Date(syncState.lastSync).toLocaleString() : 'Never';
+      var srv2 = syncConfig ? (syncConfig.label || syncConfig.url.replace(/^https?:\/\//, '').split('/')[0]) : '';
+      var lastSync = syncState.lastSync ? new Date(syncState.lastSync).toLocaleString() : 'Never';
       if (dot) dot.style.background = '#4caf50';
-      label.textContent = `${currentUser.username}@${srv}`;
+      label.textContent = currentUser.username + '@' + srv2;
       label.style.color = '#fff';
-      if (meta) meta.textContent = `last sync: ${lastSync}`;
+      if (meta) meta.textContent = 'last sync: ' + lastSync + extra;
     } else if (currentUser && serverConnected === undefined) {
-      const srv = syncConfig ? (syncConfig.label || syncConfig.url.replace(/^https?:\/\//, '').split('/')[0]) : '';
+      var srv3 = syncConfig ? (syncConfig.label || syncConfig.url.replace(/^https?:\/\//, '').split('/')[0]) : '';
       if (dot) dot.style.background = '#ff9800';
-      label.textContent = `${currentUser.username}@${srv}`;
+      label.textContent = currentUser.username + '@' + srv3;
       label.style.color = '#aaa';
-      if (meta) meta.textContent = 'verifying...';
+      if (meta) meta.textContent = 'verifying...' + extra;
     } else if (authToken && !window.__pazatorSyncVerifying) {
       if (dot) dot.style.background = '#ff9800';
       label.textContent = 'Session loading...';
       label.style.color = '#aaa';
-      if (meta) meta.textContent = 'Verifying...';
+      if (meta) meta.textContent = 'Verifying...' + extra;
       window.__pazatorSyncVerifying = true;
-      fetchCurrentUser().finally(() => { window.__pazatorSyncVerifying = false; });
+      fetchCurrentUser().finally(function() { window.__pazatorSyncVerifying = false; });
     } else if (authToken && window.__pazatorSyncVerifying) {
     } else if (syncConfig) {
-      const srv = syncConfig.label || syncConfig.url.replace(/^https?:\/\//, '').split('/')[0];
+      var srv4 = syncConfig.label || syncConfig.url.replace(/^https?:\/\//, '').split('/')[0];
       if (dot) dot.style.background = '#ff9800';
-      label.textContent = srv;
+      label.textContent = srv4;
       label.style.color = '#aaa';
-      if (meta) meta.textContent = 'not logged in';
+      if (meta) meta.textContent = 'not logged in' + extra;
     } else {
       if (dot) dot.style.background = '#555';
       label.textContent = 'Not configured';
       label.style.color = '#777';
-      if (meta) meta.textContent = '';
+      if (meta) meta.textContent = extra;
     }
   }
 
@@ -553,6 +865,51 @@
     updateSyncUI();
   }
 
+  // ─── Conflict Resolver UI ──────────────────────────────────────────
+
+  window.showConflictResolver = function() {
+    var conflicts = loadMergeConflicts();
+    var existing = document.getElementById('conflictResolverModal');
+    if (existing) existing.remove();
+
+    var conflictRows = conflicts.length === 0
+      ? '<div style="text-align:center;padding:30px;color:#666;font-size:0.8rem;">No conflicts to resolve</div>'
+      : conflicts.map(function(c, idx) {
+          return '<div style="border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:12px;margin-bottom:8px;background:rgba(0,0,0,0.2);">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+            '<span style="font-size:0.75rem;color:#ff9800;"><i class="fas fa-exclamation-triangle"></i> ' + c.entity_id.slice(0, 16) + '..</span>' +
+            '<div style="display:flex;gap:6px;">' +
+            '<button class="btn btn-sm btn-primary" onclick="window.pazatorSync.autoSolveConflict(' + idx + ')"><i class="fas fa-magic"></i> AI Solve</button>' +
+            '<button class="btn btn-sm btn-secondary" onclick="window.pazatorSync.dismissConflict(\'' + c.entity_id + '\');showConflictResolver();"><i class="fas fa-times"></i> Dismiss</button>' +
+            '</div></div>' +
+            '<div style="font-size:0.6rem;color:#888;margin-bottom:4px;">Server v' + c.serverVersion + '</div>' +
+            '<pre style="font-size:0.6rem;color:#aaa;max-height:80px;overflow-y:auto;background:rgba(0,0,0,0.3);padding:6px;border-radius:4px;margin:0;">' + JSON.stringify(c.serverData, null, 1).slice(0, 300) + '</pre>' +
+            '</div>';
+        }).join('');
+
+    var modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.id = 'conflictResolverModal';
+    modal.innerHTML =
+      '<div class="modal-content" style="max-width:600px;">' +
+      '  <div class="modal-header">' +
+      '    <h2><i class="fas fa-gavel"></i> Merge Conflicts</h2>' +
+      '  </div>' +
+      '  <div class="modal-body">' +
+      '    <div style="margin-bottom:12px;font-size:0.7rem;color:#888;">Conflicts happen when two users edit the same entity. AI can merge them, or you can dismiss individual conflicts.' +
+      (conflicts.length > 0 ? ' <strong style="color:#ff9800;">' + conflicts.length + ' pending</strong>' : '') +
+      '    </div>' +
+      '    <div id="conflictList">' + conflictRows + '</div>' +
+      '  </div>' +
+      '  <div class="form-actions">' +
+      (conflicts.length > 0 ? '<button class="btn btn-primary" onclick="window.pazatorSync.autoSolveAllConflicts();this.closest(\'.modal\').remove();"><i class="fas fa-magic"></i> AI Auto-Solve All</button>' : '') +
+      '    <button class="btn glass-btn" onclick="this.closest(\'.modal\').remove()">Close</button>' +
+      '  </div>' +
+      '</div>';
+    document.body.appendChild(modal);
+    modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+  };
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initSync);
   } else {
@@ -560,19 +917,53 @@
   }
 
   window.pazatorSync = {
-    push,
-    pull,
-    getChanges,
-    getStatus,
-    showConfigModal,
-    updateSyncUI,
+    push: push,
+    pull: pull,
+    pullIncremental: pullIncremental,
+    flushOfflineQueue: flushOfflineQueue,
+    getChanges: getChanges,
+    getStatus: getStatus,
+    showConfigModal: showConfigModal,
+    updateSyncUI: updateSyncUI,
     getConfig: loadConfig,
     getState: loadState,
-    login,
-    register,
-    logout,
-    getCurrentUser: () => currentUser,
-    getAuthToken: () => authToken,
-    getServerConnected: () => serverConnected
+    login: login,
+    register: register,
+    logout: logout,
+    getCurrentUser: function() { return currentUser; },
+    getAuthToken: function() { return authToken; },
+    getServerConnected: function() { return serverConnected; },
+    getConflicts: function() { return loadMergeConflicts(); },
+    dismissConflict: dismissConflict,
+    resolveConflict: resolveConflict,
+    autoSolveConflict: async function(idx) {
+      var conflicts = loadMergeConflicts();
+      if (idx < 0 || idx >= conflicts.length) return;
+      var merged = await aiAutoSolveConflict(conflicts[idx]);
+      if (merged && merged.id) {
+        var storeNames = ['humans', 'others', 'tags', 'cases', 'chats', 'relationships'];
+        for (var si = 0; si < storeNames.length; si++) {
+          var arr = window.pazatorStore && window.pazatorStore._data ? window.pazatorStore._data[storeNames[si]] : null;
+          if (arr) {
+            for (var xi = 0; xi < arr.length; xi++) {
+              if (arr[xi] && arr[xi].id === conflicts[idx].entity_id) {
+                Object.assign(arr[xi], merged);
+                break;
+              }
+            }
+          }
+        }
+        resolveConflict(conflicts[idx].entity_id, 'ai_merged');
+        if (window.pazatorStore && window.pazatorStore.markDirty) window.pazatorStore.markDirty('all');
+        window.PazatorUI && window.PazatorUI.showFloatingNotification('Conflict resolved by AI', 'success', 3000);
+      } else {
+        window.PazatorUI && window.PazatorUI.showFloatingNotification('AI could not resolve this conflict', 'error', 3000);
+      }
+      showConflictResolver();
+    },
+    autoSolveAllConflicts: autoSolveAllConflicts,
+    getOfflineQueue: loadOfflineQueue,
+    getConflictCount: getConflictCount,
+    getOfflineQueueCount: getOfflineQueueCount
   };
 })();

@@ -485,98 +485,24 @@
     }
 
     function showNewRule() {
-        var modal = document.getElementById('cleanModal');
-        if (!modal) return;
-        var title = document.getElementById('modalTitle');
-        var body = document.getElementById('modalBody');
-        var footer = document.getElementById('modalActions');
-        var icon = document.getElementById('modalIcon');
-        if (!title || !body || !footer) return;
-
-        title.textContent = 'New Alert Rule';
-        if (icon) {
-            icon.className = 'clean-modal-icon warning';
-            icon.innerHTML = '<i class="fas fa-bell"></i>';
-        }
-
-        body.innerHTML =
-            '<div style="display:flex;flex-direction:column;gap:12px;">' +
-
-            '  <div style="background:rgba(0,0,0,0.15);border:1px solid var(--border-color);border-radius:8px;padding:14px 16px;">' +
-            '    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">' +
-            '      <span style="width:24px;height:24px;border-radius:5px;background:linear-gradient(145deg,#ffd93d,#e6c235);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-tag" style="font-size:11px;color:#000;"></i></span>' +
-            '      <span style="font-size:11px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">Details</span>' +
-            '    </div>' +
-            '    <div style="display:flex;gap:10px;">' +
-            '      <div style="flex:2;">' +
-            '        <label style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Rule Name</label>' +
-            '        <input type="text" id="ruleName" class="form-control" placeholder="e.g. High Risk Entity Detected" style="margin-top:3px;" autofocus>' +
-            '      </div>' +
-            '      <div style="flex:1;">' +
-            '        <label style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Severity</label>' +
-            '        <select id="ruleSeverity" class="form-control" style="margin-top:3px;">' +
-            '          <option value="info">Info</option>' +
-            '          <option value="warning">Warning</option>' +
-            '          <option value="critical">Critical</option>' +
-            '        </select>' +
-            '      </div>' +
-            '    </div>' +
-            '    <div style="margin-top:8px;">' +
-            '      <label style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Alert Message</label>' +
-            '      <input type="text" id="ruleDesc" class="form-control" placeholder="Message to show when triggered" style="margin-top:3px;">' +
-            '    </div>' +
-            '  </div>' +
-
-            '  <div style="background:rgba(0,0,0,0.15);border:1px solid var(--border-color);border-radius:8px;padding:14px 16px;">' +
-            '    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">' +
-            '      <span style="width:24px;height:24px;border-radius:5px;background:linear-gradient(145deg,#4d9de0,#3a7fc4);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-filter" style="font-size:11px;color:#fff;"></i></span>' +
-            '      <span style="font-size:11px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">Threshold Condition</span>' +
-            '    </div>' +
-            '    <div style="display:flex;gap:8px;align-items:center;">' +
-            '      <select id="ruleField" class="form-control" style="flex:1;">' +
-            '        <option value="humans">Humans Count</option>' +
-            '        <option value="others">Others Count</option>' +
-            '        <option value="cases">Cases Count</option>' +
-            '        <option value="chats">Chats Count</option>' +
-            '        <option value="relationships">Relationships Count</option>' +
-            '      </select>' +
-            '      <select id="ruleOperator" class="form-control" style="width:64px;">' +
-            '        <option value="gt">&gt;</option>' +
-            '        <option value="gte">&gt;=</option>' +
-            '        <option value="lt">&lt;</option>' +
-            '        <option value="lte">&lt;=</option>' +
-            '        <option value="eq">=</option>' +
-            '        <option value="neq">≠</option>' +
-            '      </select>' +
-            '      <input type="number" id="ruleValue" class="form-control" value="0" style="width:72px;">' +
-            '    </div>' +
-            '  </div>' +
-
-            '  <div style="background:rgba(0,0,0,0.15);border:1px solid var(--border-color);border-radius:8px;padding:14px 16px;">' +
-            '    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">' +
-            '      <span style="width:24px;height:24px;border-radius:5px;background:linear-gradient(145deg,#6bcf7f,#4a9e5c);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-bullhorn" style="font-size:11px;color:#fff;"></i></span>' +
-            '      <span style="font-size:11px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">Delivery</span>' +
-            '    </div>' +
-            '    <div>' +
-            '      <label style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Channel</label>' +
-            '      <select id="ruleChannel" class="form-control" style="margin-top:3px;">' +
-            '        <option value="notification">In-App Notification</option>' +
-            '        <option value="websocket">WebSocket</option>' +
-            '        <option value="webhook">Webhook</option>' +
-            '        <option value="all">All Channels</option>' +
-            '      </select>' +
-            '    </div>' +
-            '  </div>' +
-            '</div>';
-
-        footer.innerHTML =
-            '<button class="clean-modal-btn" onclick="pazatorAlerts.cancelModal()"><i class="fas fa-times"></i> Cancel</button>' +
-            '<button class="clean-modal-btn-primary" id="createRuleBtn"><i class="fas fa-bell"></i> Create Rule</button>';
+        var modal = document.getElementById('alertRuleModal');
 
         modal.classList.add('active');
-        modal.classList.add('wide');
 
-        document.getElementById('createRuleBtn').addEventListener('click', function () {
+        document.getElementById('ruleName').value = '';
+        document.getElementById('ruleDesc').value = '';
+        document.getElementById('ruleField').value = 'humans';
+        document.getElementById('ruleOperator').value = 'gt';
+        document.getElementById('ruleValue').value = '0';
+        document.getElementById('ruleSeverity').value = 'warning';
+        document.getElementById('ruleChannel').value = 'notification';
+
+        document.getElementById('ruleName').focus();
+
+        var btn = document.getElementById('createRuleBtn');
+        var clone = btn.cloneNode(true);
+        btn.parentNode.replaceChild(clone, btn);
+        clone.addEventListener('click', function () {
             var name = document.getElementById('ruleName').value || 'Unnamed Rule';
             var desc = document.getElementById('ruleDesc').value || '';
             var field = document.getElementById('ruleField').value;
@@ -660,8 +586,11 @@
     }
 
     function cancelModal() {
-        var modal = document.getElementById('cleanModal');
-        if (modal) modal.classList.remove('active');
+        var modals = ['cleanModal', 'alertRuleModal'];
+        modals.forEach(function (id) {
+            var m = document.getElementById(id);
+            if (m) m.classList.remove('active');
+        });
     }
 
     window.pazatorAlerts = {

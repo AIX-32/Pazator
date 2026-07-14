@@ -4,8 +4,6 @@
     var DB_NAME = 'PazatorDB';
     var STORE_NAME = 'kv';
     var DB_VERSION = 1;
-    var MIGRATED_KEY = '_pazator_db_migrated';
-
     var db = null;
     var initPromise = null;
 
@@ -104,29 +102,6 @@
         });
     }
 
-    function migrateLocalStorageToDB() {
-        if (!db) return Promise.resolve();
-        if (cache.has(MIGRATED_KEY)) return Promise.resolve();
-
-        var entries = Array.from(cache.entries());
-        if (entries.length === 0) return Promise.resolve();
-
-        return new Promise(function (resolve, reject) {
-            try {
-                var tx = db.transaction(STORE_NAME, 'readwrite');
-                var store = tx.objectStore(STORE_NAME);
-                for (var j = 0; j < entries.length; j++) {
-                    var entry = entries[j];
-                    if (entry[0] === MIGRATED_KEY) continue;
-                    store.put(entry[1], entry[0]);
-                }
-                store.put('true', MIGRATED_KEY);
-                tx.oncomplete = function () { resolve(); };
-                tx.onerror = function (e) { reject(e.target.error); };
-            } catch (err) { reject(err); }
-        });
-    }
-
     window.pazatorDB = {
         init: function () {
             if (initPromise) return initPromise;
@@ -139,13 +114,11 @@
                 return openDB().then(function (database) {
                     db = database;
                     return loadCacheFromDB();
-                }).then(function () {
-                    return migrateLocalStorageToDB();
                 }).catch(function (err) {
-                    console.warn('PazatorDB: IndexedDB init failed, using localStorage:', err);
+                    console.warn('PazatorDB: IndexedDB init failed:', err);
                 });
             } catch (err) {
-                console.warn('PazatorDB: Init error, using localStorage:', err);
+                console.warn('PazatorDB: Init error:', err);
                 return Promise.resolve();
             }
         },

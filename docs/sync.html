@@ -209,14 +209,16 @@ npx electron-rebuild  # rebuild native SQLite for Electron</pre>
         <h2>Account System</h2>
         <p>
           Bearer token auth. Rate-limited on login/register (10 attempts/min by default). Disabled accounts can't log in.
+          Users can set an email and display name on registration or later via profile update.
         </p>
 
         <div class="tbl">
-          <div class="tbl-item"><span class="key">POST /api/auth/register</span><span class="val">Create account &mdash; <code class="code">{username, password}</code></span></div>
+          <div class="tbl-item"><span class="key">POST /api/auth/register</span><span class="val">Create account &mdash; <code class="code">{username, password, email?, displayName?}</code></span></div>
           <div class="tbl-item"><span class="key">POST /api/auth/login</span><span class="val">Login &mdash; <code class="code">{username, password}</code> &rarr; <code class="code">{token, user}</code></span></div>
           <div class="tbl-item"><span class="key">POST /api/auth/logout</span><span class="val">Invalidate session</span></div>
-          <div class="tbl-item"><span class="key">GET /api/auth/me</span><span class="val">Current user info</span></div>
+          <div class="tbl-item"><span class="key">GET /api/auth/me</span><span class="val">Current user info (email, displayName included)</span></div>
           <div class="tbl-item"><span class="key">POST /api/auth/change-password</span><span class="val">Change password &mdash; <code class="code">{currentPassword, newPassword}</code></span></div>
+          <div class="tbl-item"><span class="key">POST /api/auth/update-profile</span><span class="val">Update email/displayName &mdash; <code class="code">{email?, displayName?}</code></span></div>
           <div class="tbl-item"><span class="key">GET /api/auth/sessions</span><span class="val">List your active sessions</span></div>
           <div class="tbl-item"><span class="key">DELETE /api/auth/sessions/:token</span><span class="val">Kill one of your sessions</span></div>
         </div>
@@ -226,15 +228,26 @@ npx electron-rebuild  # rebuild native SQLite for Electron</pre>
         <h2>Data Sync</h2>
         <p>All entities live in a shared SQLite database. Stores: humans, others, tags, cases, chats, relationships.</p>
 
+        <h3>Full Sync</h3>
         <div class="tbl">
           <div class="tbl-item"><span class="key">GET /api/sync</span><span class="val">Pull all data</span></div>
           <div class="tbl-item"><span class="key">POST /api/sync</span><span class="val">Push data &mdash; <code class="code">{clientVersion, stores}</code></span></div>
           <div class="tbl-item"><span class="key">GET /api/sync/ops?since=N&limit=500</span><span class="val">Operation log (paginated)</span></div>
-          <div class="tbl-item"><span class="key">POST /api/sync/ops</span><span class="val">Push operations individually</span></div>
+          <div class="tbl-item"><span class="key">POST /api/sync/ops</span><span class="val">Push operations individually with conflict detection</span></div>
           <div class="tbl-item"><span class="key">GET /api/sync/changes?since=N</span><span class="val">Changes since version</span></div>
           <div class="tbl-item"><span class="key">GET /api/sync/status</span><span class="val">Server health + account stats</span></div>
           <div class="tbl-item"><span class="key">GET /api/sync/stores</span><span class="val">Record counts per store</span></div>
         </div>
+
+        <h3>Incremental Sync (cursor-based)</h3>
+        <p>For large datasets, use cursor-based pagination instead of full pulls. Each response includes a <code class="code">nextCursor</code> token (base64-encoded composite cursor over <code class="code">(store, id)</code>).</p>
+        <div class="tbl">
+          <div class="tbl-item"><span class="key">GET /api/sync/cursor?cursor=&limit=500&store=</span><span class="val">Paginated entity pull &mdash; returns <code class="code">{entities, nextCursor, hasMore, latestSeq}</code></span></div>
+        </div>
+
+        <h3>Conflict Detection</h3>
+        <p>When pushing via <code class="code">POST /api/sync/ops</code>, each operation carries an <code class="code">expectedVersion</code>. If the server's version differs, it returns <code class="code">{conflict: true, serverVersion, serverData}</code> instead of overwriting. The client can then merge or prompt the user.</p>
+        <p>Conflict resolver UI is available in Pazator via <strong>System &rarr; Resolve Conflicts</strong> — view server vs client versions, dismiss individual conflicts, or use AI auto-solve to merge them intelligently.</p>
 
         <h3>Push format</h3>
         <pre>{
@@ -248,6 +261,14 @@ npx electron-rebuild  # rebuild native SQLite for Electron</pre>
     "relationships": {}
   }
 }</pre>
+
+        <h2>E2E Encryption</h2>
+        <p>Pazator supports client-side E2E encryption. When enabled in Settings &rarr; Security &rarr; <strong>E2E Encryption</strong>, all data is encrypted with AES-256-GCM before leaving the browser. The server stores it encrypted and decrypts on pull. The encryption key is derived from a user-chosen passphrase and stored locally.</p>
+        <div class="tbl">
+          <div class="tbl-item"><span class="key">POST /api/sync/encryption-key</span><span class="val">Register an encryption key (scrypt-derived from passphrase)</span></div>
+          <div class="tbl-item"><span class="key">GET /api/sync/encryption-status</span><span class="val">Check if encryption key is set for your account</span></div>
+        </div>
+        <p>Server-side encryption (AES-256-GCM) also applies automatically to classified entities (confidential+) using the server's <code class="code">encryption.key</code> file.</p>
 
         <h2>Search</h2>
         <div class="tbl">
@@ -276,7 +297,8 @@ npx electron-rebuild  # rebuild native SQLite for Electron</pre>
           <div class="tbl-item"><span class="key">GET /api/admin/export</span><span class="val">Full DB dump (JSON)</span></div>
           <div class="tbl-item"><span class="key">POST /api/admin/import</span><span class="val">Restore from dump</span></div>
           <div class="tbl-item"><span class="key">GET /api/admin/users</span><span class="val">List all users</span></div>
-          <div class="tbl-item"><span class="key">PATCH /api/admin/users/:id</span><span class="val">Enable/disable user &mdash; <code class="code">{disabled: true}</code></span></div>
+          <div class="tbl-item"><span class="key">PATCH /api/admin/users/:id</span><span class="val">Update user &mdash; <code class="code">{disabled, role, email, displayName}</code></span></div>
+          <div class="tbl-item"><span class="key">POST /api/admin/users/:id/reset-password</span><span class="val">Admin password reset — terminates all sessions</span></div>
           <div class="tbl-item"><span class="key">DELETE /api/admin/users/:id</span><span class="val">Delete user and their data</span></div>
           <div class="tbl-item"><span class="key">GET /api/admin/users/:id/sessions</span><span class="val">List a user's sessions</span></div>
           <div class="tbl-item"><span class="key">DELETE /api/admin/sessions/:token</span><span class="val">Force-kill any session</span></div>
@@ -291,7 +313,7 @@ npx electron-rebuild  # rebuild native SQLite for Electron</pre>
         </p>
         <ul>
           <li><strong>Dashboard</strong> &mdash; stats grid, store breakdown bar chart, recent operations feed (live via WebSocket), connected clients</li>
-          <li><strong>Users</strong> &mdash; user list with status, last active, enable/disable, forced admins config</li>
+          <li><strong>Users</strong> &mdash; user list with email, display name, status, last active, enable/disable, password reset, role change, forced admins config</li>
           <li><strong>Data</strong> &mdash; browse all entities with live search, click to view JSON</li>
           <li><strong>Changelog</strong> &mdash; paginated operation log with colored action pills</li>
           <li><strong>Sessions</strong> &mdash; view and kill your own login sessions</li>
@@ -325,7 +347,16 @@ npx electron-rebuild  # rebuild native SQLite for Electron</pre>
           <li><strong style="color:#666;">Grey</strong> &mdash; not configured</li>
         </ul>
         <p>
-          System &rarr; <strong>PZLS</strong> to configure. Click <strong>Push</strong>/<strong>Pull</strong> to transfer data.
+          System &rarr; <strong>PZLS</strong> to configure. Available actions:
+        </p>
+        <ul>
+          <li><strong>Push</strong> &mdash; upload local data to server (queued if offline)</li>
+          <li><strong>Pull</strong> &mdash; download all server data</li>
+          <li><strong>Incremental Pull</strong> &mdash; cursor-based paginated download (avoids timeouts on large datasets)</li>
+          <li><strong>Flush Queue</strong> &mdash; retry any queued offline operations</li>
+          <li><strong>Resolve Conflicts</strong> &mdash; view and resolve merge conflicts, with AI auto-solve</li>
+        </ul>
+        <p>
           Admin users see System &rarr; <strong>Admin Panel</strong> for audit log, user management, stores breakdown, server config, sessions, and export/import.
         </p>
 

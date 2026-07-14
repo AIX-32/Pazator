@@ -23,7 +23,13 @@
     for (var i = 0; i < messages.length; i++) {
       var m = messages[i];
       if (m.role === 'assistant') {
-        out.push({ role: 'assistant', content: m.content });
+        out.push({ role: 'assistant', content: m.content || '' });
+      } else if (m.role === 'model') {
+        out.push({ role: 'assistant', content: m.content || '' });
+      } else if (m.role === 'function') {
+        out.push({ role: 'tool', tool_call_id: m.tool_call_id || m.name, content: JSON.stringify(m.response) });
+      } else if (m.role === 'tool') {
+        out.push({ role: 'tool', tool_call_id: m.tool_call_id, content: m.content });
       } else {
         out.push({ role: m.role, content: m.content });
       }
@@ -63,6 +69,56 @@
       text = data.choices[0].message.content || '';
     }
     return { content: text };
+  }
+
+  async function chatWithTools(messages, tools, signal) {
+    var apiKey = getApiKey();
+    var model = getModel();
+    if (!apiKey) throw new Error('DeepSeek API key not configured.');
+
+    var response = await fetch(BASE_URL + '/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: buildMessages(messages),
+        tools: tools,
+        tool_choice: 'auto',
+        stream: false
+      }),
+      signal: signal || undefined
+    });
+
+    if (!response.ok) {
+      var errorText;
+      try { var errorJson = await response.json(); errorText = errorJson.error && errorJson.error.message ? errorJson.error.message : JSON.stringify(errorJson); }
+      catch (e) { errorText = await response.text(); }
+      throw new Error('DeepSeek API error (' + response.status + '): ' + errorText);
+    }
+
+    var data = await response.json();
+    var text = '';
+    var functionCalls = [];
+    if (data.choices && data.choices[0] && data.choices[0].message) {
+      var msg = data.choices[0].message;
+      text = msg.content || '';
+      if (msg.tool_calls) {
+        for (var ti = 0; ti < msg.tool_calls.length; ti++) {
+          var tc = msg.tool_calls[ti];
+          if (tc.type === 'function') {
+            try {
+              functionCalls.push({ name: tc.function.name, args: JSON.parse(tc.function.arguments) });
+            } catch (e) {
+              functionCalls.push({ name: tc.function.name, args: {} });
+            }
+          }
+        }
+      }
+    }
+    return { content: text, functionCalls: functionCalls };
   }
 
   async function streamChat(messages, onChunk, signal) {
@@ -132,6 +188,7 @@
     defaultModel: DEFAULT_MODEL,
     chat: chat,
     streamChat: streamChat,
+    chatWithTools: chatWithTools,
     getApiKey: getApiKey,
     setApiKey: setApiKey,
     getModel: getModel,

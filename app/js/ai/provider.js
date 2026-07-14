@@ -42,6 +42,18 @@
       });
     },
 
+    chatWithTools: function (messages, tools, signal) {
+      var impl = _impl();
+      if (!impl.chatWithTools) throw new Error('Provider "' + _current + '" does not support tool calling.');
+      return impl.chatWithTools(messages, tools, signal);
+    },
+
+    fetchModelsFromAPI: function (apiKey) {
+      var impl = _impl();
+      if (!impl.fetchModelsFromAPI) return Promise.reject(new Error('Provider "' + _current + '" does not support fetching models.'));
+      return impl.fetchModelsFromAPI(apiKey);
+    },
+
     getApiKey: function () {
       var impl = _impl();
       return impl.getApiKey ? impl.getApiKey() : '';

@@ -331,6 +331,7 @@
             transform: translateX(-24px);
             transition: clip-path 1s var(--snap), transform 1s var(--snap);
         }
+
         .reveal-right.vis {
             clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
             transform: translateX(0);
@@ -341,6 +342,7 @@
             transform: translateX(24px);
             transition: clip-path 1s var(--snap), transform 1s var(--snap);
         }
+
         .reveal-left.vis {
             clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
             transform: translateX(0);
@@ -351,6 +353,7 @@
             transform: translateY(20px);
             transition: clip-path 0.9s var(--snap), transform 0.9s var(--snap);
         }
+
         .reveal-up.vis {
             clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
             transform: translateY(0);
@@ -361,6 +364,7 @@
             transform: scale(0.95);
             transition: opacity 0.8s var(--snap), transform 0.8s var(--snap);
         }
+
         .reveal-scale.vis {
             opacity: 1;
             transform: scale(1);
@@ -428,7 +432,9 @@
         }
 
         @keyframes stripeUp {
-            to { transform: translateY(-50%); }
+            to {
+                transform: translateY(-50%);
+            }
         }
 
         .hero-left {
@@ -1746,9 +1752,11 @@
         .pb-row-1 {
             transform: translateX(-36px) translateY(4px);
         }
+
         .pb-row-2 {
             transform: translateX(34px) translateY(2px);
         }
+
         .pb-row-3 {
             transform: translateX(24px) translateY(1px);
         }
@@ -1871,15 +1879,19 @@
         body.rtl .pb-row-1 {
             transform: translateX(36px) translateY(4px);
         }
+
         body.rtl .pb-row-2 {
             transform: translateX(-34px) translateY(2px);
         }
+
         body.rtl .pb-row-3 {
             transform: translateX(-24px) translateY(1px);
         }
+
         body.rtl .pb-card-desc {
             font-family: 'Vazir', 'DM Mono', monospace;
         }
+
         body.rtl .pb-card-title,
         body.rtl .pb-label {
             font-family: 'Vazir', 'Anton', sans-serif;
@@ -1889,10 +1901,12 @@
             .pb-section {
                 padding: 60px 24px;
             }
+
             .pb-card {
                 width: 100% !important;
                 height: 140px !important;
             }
+
             .pb-row {
                 transform: none !important;
                 margin-top: 0 !important;
@@ -2027,7 +2041,8 @@
                     <div class="hero-right">
                         <div>
                             <div class="hr-label">// PLATFORM</div>
-                            <p class="hr-desc">Mass data infrastructure engineered to identify anomalies, assess risk, and
+                            <p class="hr-desc">Mass data infrastructure engineered to identify anomalies, assess risk,
+                                and
                                 deliver actionable intelligence before disruption occurs.</p>
                         </div>
                         <div>
@@ -2361,7 +2376,8 @@
     </section>
 
     <section class="statement">
-        <div class="st-left reveal-right" style="transition-delay:0.1s">Data doesn't wait.<br><em>Neither<br>should you.</em></div>
+        <div class="st-left reveal-right" style="transition-delay:0.1s">Data doesn't wait.<br><em>Neither<br>should
+                you.</em></div>
         <div class="st-right reveal-left" style="transition-delay:0.3s">
             <p class="st-body">Pazator is built for operators who need answers before questions form. Our systems
                 process mass data at the edge of what's possible, surfacing the signal in the noise with zero compromise
@@ -2405,10 +2421,10 @@
         }, 55);
 
         // -- LOAD VERSION --
-        fetch('./version.json').then(r=>r.json()).then(v=>{
-            const el=document.getElementById('spVersion');
-            if(el) el.textContent=v.app;
-        }).catch(()=>{});
+        fetch('./version.json').then(r => r.json()).then(v => {
+            const el = document.getElementById('spVersion');
+            if (el) el.textContent = v.app;
+        }).catch(() => { });
 
         // -- HORIZONTAL SCROLL PIN --
         const track = document.getElementById('scrollTrack');

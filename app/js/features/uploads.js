@@ -1014,13 +1014,22 @@ function ensureDataPersistence() {
     if (storedData) {
         const parsedData = JSON.parse(storedData);
         if (parsedData.pazatorData) {
-            pazatorData.humans = [...(pazatorData.humans || []), ...(parsedData.pazatorData.humans || []).filter(h =>
-                !pazatorData.humans.some(existing => existing.id === h.id)
-            )];
-            pazatorData.others = [...(pazatorData.others || []), ...(parsedData.pazatorData.others || []).filter(o =>
-                !pazatorData.others.some(existing => existing.id === o.id)
-            )];
-            tags = [...new Set([...tags, ...(parsedData.tags || [])])];
+            var newHumans = (parsedData.pazatorData.humans || []).filter(function (h) {
+                return !pazatorData.humans.some(function (existing) { return existing.id === h.id; });
+            });
+            for (var hi = 0; hi < newHumans.length; hi++) pazatorData.humans.push(newHumans[hi]);
+
+            var newOthers = (parsedData.pazatorData.others || []).filter(function (o) {
+                return !pazatorData.others.some(function (existing) { return existing.id === o.id; });
+            });
+            for (var oi = 0; oi < newOthers.length; oi++) pazatorData.others.push(newOthers[oi]);
+
+            var mergedTags = {};
+            for (var ti = 0; ti < tags.length; ti++) mergedTags[tags[ti]] = true;
+            for (var ti = 0; ti < (parsedData.tags || []).length; ti++) mergedTags[parsedData.tags[ti]] = true;
+            var allTags = Object.keys(mergedTags);
+            tags.splice(0, tags.length);
+            for (var ti = 0; ti < allTags.length; ti++) tags.push(allTags[ti]);
         }
     }
     saveData();

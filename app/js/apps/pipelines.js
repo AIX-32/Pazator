@@ -369,6 +369,289 @@
         renderPipelineManager('pipelineTabContent');
     }
 
+    var builderState = null;
+
+    function closeBuilder() {
+        var modal = document.getElementById('pipelineBuilder');
+        if (modal) modal.classList.remove('active');
+        builderState = null;
+    }
+
+    function showNewPipeline() {
+        var modal = document.getElementById('pipelineBuilder');
+        if (!modal) return;
+        builderState = {
+            name: '',
+            connectorType: null,
+            connectorConfig: {},
+            transforms: [],
+            targetStore: 'humans',
+            activeSection: 'connector'
+        };
+        document.getElementById('pbName').value = '';
+        updateFlowBar();
+        renderBuilderEditor();
+        modal.classList.add('active');
+
+        document.getElementById('pbCreateBtn').onclick = function () {
+            var name = document.getElementById('pbName').value || 'Unnamed Pipeline';
+            if (!builderState.connectorType) {
+                PazatorUI.showFloatingNotification('Select a data source type', 'warning');
+                return;
+            }
+            var pipe = addPipeline({
+                name: name,
+                connector: { type: builderState.connectorType, config: builderState.connectorConfig },
+                transforms: builderState.transforms,
+                targetStore: builderState.targetStore
+            });
+            modal.classList.remove('active');
+            PazatorUI.showFloatingNotification('Pipeline "' + name + '" created', 'success');
+            renderPipelineManager('pipelineTabContent');
+            runPipeline(pipe.id).then(function () {
+                renderPipelineManager('pipelineTabContent');
+                PazatorUI.showFloatingNotification('Pipeline run completed', 'success');
+            }).catch(function (err) {
+                renderPipelineManager('pipelineTabContent');
+                PazatorUI.showFloatingNotification('Pipeline error: ' + err.message, 'error');
+            });
+            builderState = null;
+        };
+
+        document.querySelectorAll('.pipeline-flow-node').forEach(function (node) {
+            node.onclick = function () {
+                builderState.activeSection = node.getAttribute('data-section');
+                updateFlowBar();
+                renderBuilderEditor();
+            };
+        });
+    }
+
+    function updateFlowBar() {
+        var flowNodes = document.querySelectorAll('.pipeline-flow-node');
+        flowNodes.forEach(function (n) { n.classList.remove('active'); });
+        var active = document.querySelector('.pipeline-flow-node[data-section="' + builderState.activeSection + '"]');
+        if (active) active.classList.add('active');
+
+        var sourceEl = document.getElementById('pbFlowSource');
+        var transEl = document.getElementById('pbFlowTransforms');
+        var targetEl = document.getElementById('pbFlowTarget');
+
+        if (builderState.connectorType) {
+            var ct = CONNECTOR_TYPES[builderState.connectorType];
+            sourceEl.textContent = ct ? ct.label : builderState.connectorType;
+        } else {
+            sourceEl.textContent = 'Pick a source';
+        }
+
+        var tCount = builderState.transforms.length;
+        transEl.textContent = tCount === 0 ? 'None' : tCount + ' step' + (tCount > 1 ? 's' : '');
+
+        var targetLabels = { humans: 'Humans', others: 'Others', chats: 'Chats' };
+        targetEl.textContent = targetLabels[builderState.targetStore] || builderState.targetStore;
+    }
+
+    function renderBuilderEditor() {
+        var editor = document.getElementById('pbEditor');
+        if (!editor) return;
+        var section = builderState.activeSection;
+        if (section === 'connector') renderConnectorSection(editor);
+        else if (section === 'transforms') renderTransformsSection(editor);
+        else if (section === 'target') renderTargetSection(editor);
+    }
+
+    function renderConnectorSection(editor) {
+        var types = getConnectorTypes();
+        var cards = types.map(function (ct) {
+            var sel = builderState.connectorType === ct.key ? ' selected' : '';
+            return '<div class="pipeline-conn-card' + sel + '" data-type="' + ct.key + '">' +
+                '  <div class="pipeline-conn-card-icon"><i class="fas ' + ct.icon + '"></i></div>' +
+                '  <div class="pipeline-conn-card-info">' +
+                '    <div class="pipeline-conn-card-name">' + ct.label + '</div>' +
+                '    <div class="pipeline-conn-card-fields">' + ct.fields.join(', ') + '</div>' +
+                '  </div>' +
+                '  <div class="pipeline-conn-card-check"><i class="fas fa-check-circle"></i></div>' +
+                '</div>';
+        }).join('');
+
+        var configHtml = '';
+        if (builderState.connectorType) {
+            configHtml = renderConnectorConfig(builderState.connectorType);
+        }
+
+        editor.innerHTML =
+            '<div class="pipeline-editor-section-title"><i class="fas fa-database"></i> Data Source</div>' +
+            '<div class="pipeline-conn-grid">' + cards + '</div>' +
+            '<div id="pbConnConfig" class="pipeline-conn-config" style="' + (configHtml ? '' : 'display:none;') + '">' +
+            '  <div class="pipeline-conn-config-label">Connector Settings</div>' +
+            '  <div class="pipeline-conn-config-fields" id="pbConnConfigFields">' + configHtml + '</div>' +
+            '</div>';
+
+        editor.querySelectorAll('.pipeline-conn-card').forEach(function (card) {
+            card.addEventListener('click', function () {
+                editor.querySelectorAll('.pipeline-conn-card').forEach(function (c) {
+                    c.classList.remove('selected');
+                });
+                card.classList.add('selected');
+                builderState.connectorType = card.getAttribute('data-type');
+                builderState.connectorConfig = {};
+                var cfgEl = document.getElementById('pbConnConfig');
+                var fieldsEl = document.getElementById('pbConnConfigFields');
+                if (cfgEl && fieldsEl) {
+                    fieldsEl.innerHTML = renderConnectorConfig(builderState.connectorType);
+                    cfgEl.style.display = 'block';
+                }
+                updateFlowBar();
+            });
+        });
+
+        // Wire up config field changes
+        wireConnectorConfig();
+    }
+
+    function renderConnectorConfig(type) {
+        var fields = CONNECTOR_TYPES[type] ? CONNECTOR_TYPES[type].fields : [];
+        var html = '';
+        for (var i = 0; i < fields.length; i++) {
+            var f = fields[i];
+            var placeholder = f === 'url' ? 'https://example.com/data.csv' :
+                f === 'delimiter' ? ',' :
+                f === 'hasHeader' ? '' :
+                f === 'jsonPath' ? 'results.items' :
+                f === 'connectionString' ? 'mysql://user:pass@host/db' :
+                f === 'query' ? 'SELECT * FROM table' :
+                f === 'method' ? 'GET' :
+                f === 'headers' ? '{"Authorization": "Bearer ..."}' :
+                f === 'body' ? '{"key": "value"}' : '';
+            if (f === 'hasHeader') {
+                html += '<div class="pipeline-conn-config-field"><label><input type="checkbox" data-field="hasHeader" checked style="accent-color:var(--info);margin-right:6px;"> Has Header Row</label></div>';
+            } else if (f === 'method') {
+                html += '<div class="pipeline-conn-config-field"><label>Method</label><select data-field="method">' +
+                    '<option value="GET">GET</option><option value="POST">POST</option><option value="PUT">PUT</option></select></div>';
+            } else {
+                var label = f.charAt(0).toUpperCase() + f.slice(1).replace(/([A-Z])/g, ' $1');
+                html += '<div class="pipeline-conn-config-field"><label>' + label + '</label><input type="text" data-field="' + f + '" placeholder="' + placeholder + '"></div>';
+            }
+        }
+        return html;
+    }
+
+    function wireConnectorConfig() {
+        var container = document.getElementById('pbConnConfigFields');
+        if (!container) return;
+        container.querySelectorAll('input, select').forEach(function (el) {
+            el.addEventListener('change', collectConnectorConfig);
+            el.addEventListener('input', collectConnectorConfig);
+        });
+    }
+
+    function collectConnectorConfig() {
+        if (!builderState) return;
+        var fields = CONNECTOR_TYPES[builderState.connectorType] ? CONNECTOR_TYPES[builderState.connectorType].fields : [];
+        var cfg = {};
+        var container = document.getElementById('pbConnConfigFields');
+        if (!container) return;
+        for (var i = 0; i < fields.length; i++) {
+            var el = container.querySelector('[data-field="' + fields[i] + '"]');
+            if (el) {
+                cfg[fields[i]] = el.type === 'checkbox' ? el.checked : el.value;
+            }
+        }
+        builderState.connectorConfig = cfg;
+    }
+
+    function renderTransformsSection(editor) {
+        var html = '<div class="pipeline-editor-section-title"><i class="fas fa-filter"></i> Transform Steps</div>';
+        html += '<div class="pipeline-transform-list" id="pbTransformList">';
+
+        if (builderState.transforms.length === 0) {
+            html += '<div class="pipeline-empty"><i class="fas fa-code-branch"></i>No transform steps yet.<br>Data will pass through as-is.</div>';
+        } else {
+            for (var i = 0; i < builderState.transforms.length; i++) {
+                var t = builderState.transforms[i];
+                var tt = TRANSFORM_TYPES[t.type];
+                var desc = t.type === 'filter' ? (t.config && t.config.field ? t.config.field + ' contains ' + (t.config.value || '') : 'configure...') :
+                    t.type === 'map' ? (t.config && t.config.mappings ? Object.keys(t.config.mappings).length + ' fields' : 'configure...') :
+                    t.type === 'sort' ? (t.config && t.config.field ? 'by ' + t.config.field + ' ' + (t.config.direction || 'asc') : 'configure...') :
+                    t.type === 'limit' ? (t.config && t.config.count ? 'top ' + t.config.count : 'configure...') :
+                    t.type === 'dedup' ? (t.config && t.config.field ? 'by ' + t.config.field : 'configure...') : 'configure...';
+                html += '<div class="pipeline-transform-item">' +
+                    '  <div class="pipeline-transform-item-icon"><i class="fas ' + (tt ? tt.icon : 'fa-cog') + '"></i></div>' +
+                    '  <div class="pipeline-transform-item-name">' + (tt ? tt.label : t.type) + '</div>' +
+                    '  <div class="pipeline-transform-item-desc">' + desc + '</div>' +
+                    '  <button class="pipeline-transform-item-remove" data-idx="' + i + '"><i class="fas fa-times"></i></button>' +
+                    '</div>';
+            }
+        }
+
+        html += '</div>';
+
+        // Add transform button
+        html += '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">';
+        for (var key in TRANSFORM_TYPES) {
+            html += '<div class="pipeline-transform-add" data-type="' + key + '" style="display:inline-flex;padding:6px 10px;font-size:0.65rem;">' +
+                '<i class="fas ' + TRANSFORM_TYPES[key].icon + '" style="font-size:0.55rem;"></i> ' + TRANSFORM_TYPES[key].label + '</div>';
+        }
+        html += '</div>';
+
+        editor.innerHTML = html;
+
+        // Wire remove buttons
+        editor.querySelectorAll('.pipeline-transform-item-remove').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var idx = parseInt(btn.getAttribute('data-idx'), 10);
+                builderState.transforms.splice(idx, 1);
+                renderTransformsSection(editor);
+                updateFlowBar();
+            });
+        });
+
+        // Wire add buttons
+        editor.querySelectorAll('.pipeline-transform-add').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var type = btn.getAttribute('data-type');
+                var defaultConfig = {};
+                if (type === 'filter') defaultConfig = { field: '', value: '' };
+                else if (type === 'map') defaultConfig = { mappings: {} };
+                else if (type === 'sort') defaultConfig = { field: '', direction: 'asc' };
+                else if (type === 'limit') defaultConfig = { count: 100 };
+                else if (type === 'dedup') defaultConfig = { field: '' };
+                builderState.transforms.push({ type: type, config: defaultConfig });
+                renderTransformsSection(editor);
+                updateFlowBar();
+            });
+        });
+    }
+
+    function renderTargetSection(editor) {
+        var stores = [
+            { key: 'humans', icon: 'fa-user', label: 'Humans', desc: 'Person entities' },
+            { key: 'others', icon: 'fa-building', label: 'Others', desc: 'Orgs, locations, events' },
+            { key: 'chats', icon: 'fa-comments', label: 'Chats', desc: 'Message archives' }
+        ];
+        var cards = stores.map(function (s) {
+            var sel = builderState.targetStore === s.key ? ' selected' : '';
+            return '<div class="pipeline-target-card' + sel + '" data-store="' + s.key + '">' +
+                '  <i class="fas ' + s.icon + '"></i>' +
+                '  <div class="pipeline-target-card-name">' + s.label + '</div>' +
+                '  <div class="pipeline-target-card-desc">' + s.desc + '</div>' +
+                '</div>';
+        }).join('');
+
+        editor.innerHTML =
+            '<div class="pipeline-editor-section-title"><i class="fas fa-upload"></i> Target Store</div>' +
+            '<div class="pipeline-target-grid">' + cards + '</div>';
+
+        editor.querySelectorAll('.pipeline-target-card').forEach(function (card) {
+            card.addEventListener('click', function () {
+                editor.querySelectorAll('.pipeline-target-card').forEach(function (c) { c.classList.remove('selected'); });
+                card.classList.add('selected');
+                builderState.targetStore = card.getAttribute('data-store');
+                updateFlowBar();
+            });
+        });
+    }
+
     var listeners = {};
     function on(event, handler) {
         if (!listeners[event]) listeners[event] = [];
@@ -395,10 +678,28 @@
         startAllSchedulers();
     }
 
+    function updateSidebarStats() {
+        var pipes = getAllPipelines();
+        var pipeEl = document.getElementById('pipeCount');
+        var runEl = document.getElementById('pipeRunCount');
+        var schedEl = document.getElementById('pipeSchedCount');
+        var lastRunEl = document.getElementById('pipeLastRun');
+        if (pipeEl) pipeEl.textContent = pipes.length;
+        if (runEl) runEl.textContent = runHistory.length;
+        if (schedEl) schedEl.textContent = schedules.length;
+        if (lastRunEl) {
+            var latest = runHistory.length > 0 ? runHistory[0] : null;
+            lastRunEl.textContent = latest
+                ? 'Last run: ' + (latest.pipelineName || 'Unknown') + ' — ' + latest.status + (latest.finishedAt ? ' at ' + new Date(latest.finishedAt).toLocaleTimeString() : '')
+                : '';
+        }
+    }
+
     function renderPipelineManager(containerId) {
         var container = document.getElementById(containerId);
         if (!container) return;
 
+        updateSidebarStats();
         var pipes = getAllPipelines();
         var pipeCards = pipes.map(function (p) {
             var lastRun = null;
@@ -471,200 +772,60 @@
         return '<div style="max-height:240px;overflow-y:auto;">' + html + '</div>';
     }
 
-    function showNewPipeline() {
-        var modal = document.getElementById('cleanModal');
-        if (!modal) return;
-        var title = document.getElementById('modalTitle');
-        var body = document.getElementById('modalBody');
-        var footer = document.getElementById('modalActions');
-        if (!title || !body || !footer) return;
 
-        title.textContent = 'New Data Pipeline';
-        var connTypes = getConnectorTypes();
-        var connCards = connTypes.map(function (ct) {
-            return '<button class="pipe-conn-btn" data-type="' + ct.key + '" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card-bg);border:1px solid var(--border-color);border-radius:7px;color:var(--text-primary);cursor:pointer;text-align:left;font-family:var(--font-body);font-size:12px;">' +
-                '  <span style="width:30px;height:30px;border-radius:6px;background:rgba(77,157,224,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas ' + ct.icon + '" style="color:var(--info);font-size:12px;"></i></span>' +
-                '  <div style="flex:1;min-width:0;">' +
-                '    <div style="font-weight:500;font-size:12px;">' + ct.label + '</div>' +
-                '    <div style="font-size:9px;color:var(--text-muted);margin-top:1px;">' + ct.fields.join(', ') + '</div>' +
-                '  </div>' +
-                '  <i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:8px;"></i>' +
-                '</button>';
-        }).join('');
 
-        body.innerHTML =
-            '<div style="display:flex;flex-direction:column;gap:10px;">' +
-            '  <div style="display:flex;gap:10px;">' +
-            '    <div style="flex:2;">' +
-            '      <label style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Pipeline Name</label>' +
-            '      <input type="text" id="newPipeName" class="form-control" placeholder="e.g. Import Citizens CSV" style="margin-top:3px;" autofocus>' +
-            '    </div>' +
-            '    <div style="flex:1;">' +
-            '      <label style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Target Store</label>' +
-            '      <select id="newPipeTarget" class="form-control" style="margin-top:3px;">' +
-            '        <option value="humans">Humans</option>' +
-            '        <option value="others">Others</option>' +
-            '        <option value="chats">Chats</option>' +
-            '      </select>' +
-            '    </div>' +
-            '  </div>' +
-            '  <div>' +
-            '    <label style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Data Source</label>' +
-            '    <div id="pipeConnectorList" style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:3px;">' + connCards + '</div>' +
-            '  </div>' +
-            '  <div id="pipeConnectorConfig" style="display:none;"></div>' +
-            '</div>';
-
-        footer.innerHTML =
-            '<button class="btn btn-secondary" onclick="pazatorPipelines.cancelModal()" style="padding:8px 20px;">Cancel</button>' +
-            '<button class="btn btn-primary" id="createPipeBtn" style="padding:8px 20px;"><i class="fas fa-play"></i> Create & Run</button>';
-
-        modal.classList.add('active');
-        modal.classList.add('wide');
-
-        var selectedType = null;
-        document.querySelectorAll('.pipe-conn-btn').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                document.querySelectorAll('.pipe-conn-btn').forEach(function (b) {
-                    b.style.borderColor = 'var(--border-color)';
-                    b.style.background = 'var(--card-bg)';
-                });
-                btn.style.borderColor = 'var(--info)';
-                btn.style.background = 'rgba(77,157,224,0.08)';
-                selectedType = btn.getAttribute('data-type');
-                showConnectorConfig(selectedType);
-            });
-        });
-
-        document.getElementById('createPipeBtn').addEventListener('click', function () {
-            var name = document.getElementById('newPipeName').value || 'Unnamed';
-            var target = document.getElementById('newPipeTarget').value;
-            if (!selectedType) { PazatorUI.showFloatingNotification('Select a data source type', 'warning'); return; }
-            var connConfig = collectConnectorConfig(selectedType);
-            var pipe = addPipeline({
-                name: name,
-                connector: { type: selectedType, config: connConfig },
-                transforms: [],
-                targetStore: target
-            });
-            modal.classList.remove('active');
-            PazatorUI.showFloatingNotification('Pipeline "' + name + '" created', 'success');
-            renderPipelineManager('pipelineTabContent');
-            runPipeline(pipe.id).then(function () {
-                renderPipelineManager('pipelineTabContent');
-                PazatorUI.showFloatingNotification('Pipeline run completed: ' + pipe.outputCount + ' records', 'success');
-            }).catch(function (err) {
-                renderPipelineManager('pipelineTabContent');
-                PazatorUI.showFloatingNotification('Pipeline error: ' + err.message, 'error');
-            });
-        });
-    }
-
-    function showConnectorConfig(type) {
-        var el = document.getElementById('pipeConnectorConfig');
-        if (!el) return;
-        var fields = CONNECTOR_TYPES[type] ? CONNECTOR_TYPES[type].fields : [];
-        var html = '<div style="display:flex;flex-direction:column;gap:10px;padding:16px;background:rgba(0,0,0,0.15);border-radius:7px;border:1px solid var(--border-color);">';
-        html += '<label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Connector Settings</label>';
-        for (var i = 0; i < fields.length; i++) {
-            var placeholder = fields[i] === 'url' ? 'https://example.com/data.csv' :
-                fields[i] === 'delimiter' ? ',' :
-                fields[i] === 'hasHeader' ? '' :
-                fields[i] === 'jsonPath' ? 'results.items' :
-                fields[i] === 'connectionString' ? 'mysql://user:pass@host/db' :
-                fields[i] === 'query' ? 'SELECT * FROM table' :
-                fields[i] === 'method' ? 'GET' :
-                fields[i] === 'headers' ? '{"Authorization": "Bearer ..."}' :
-                fields[i] === 'body' ? '{"key": "value"}' : '';
-            if (fields[i] === 'hasHeader') {
-                html += '<label style="font-size:12px;display:flex;align-items:center;gap:8px;"><input type="checkbox" id="connCfg_hasHeader" checked style="accent-color:var(--info);"> Has Header Row</label>';
-            } else if (fields[i] === 'method') {
-                html += '<select id="connCfg_' + fields[i] + '" class="form-control" style="font-size:12px;padding:6px 10px;">' +
-                    '<option value="GET">GET</option><option value="POST">POST</option><option value="PUT">PUT</option>' +
-                    '</select>';
-            } else {
-                html += '<input type="text" id="connCfg_' + fields[i] + '" class="form-control" placeholder="' + placeholder + '" style="font-size:12px;padding:6px 10px;">';
-            }
-        }
-        html += '</div>';
-        el.innerHTML = html;
-        el.style.display = 'block';
-    }
-
-    function collectConnectorConfig(type) {
-        var fields = CONNECTOR_TYPES[type] ? CONNECTOR_TYPES[type].fields : [];
-        var cfg = {};
-        for (var i = 0; i < fields.length; i++) {
-            var el = document.getElementById('connCfg_' + fields[i]);
-            if (el) {
-                cfg[fields[i]] = el.type === 'checkbox' ? el.checked : el.value;
-            }
-        }
-        return cfg;
+    function closeScheduler() {
+        var modal = document.getElementById('schedulerModal');
+        if (modal) modal.classList.remove('active');
     }
 
     function showScheduler() {
-        var modal = document.getElementById('cleanModal');
+        var modal = document.getElementById('schedulerModal');
         if (!modal) return;
-        var title = document.getElementById('modalTitle');
-        var body = document.getElementById('modalBody');
-        var footer = document.getElementById('modalActions');
-        if (!title || !body || !footer) return;
-
-        title.textContent = 'Pipeline Scheduler';
         var pipes = getAllPipelines();
         var scheds = getSchedules();
-        var pipeOpts = '<option value="">Select a pipeline...</option>';
-        for (var i = 0; i < pipes.length; i++) {
-            pipeOpts += '<option value="' + pipes[i].id + '">' + pipes[i].name + '</option>';
-        }
-        var schedHtml = '';
-        if (scheds.length === 0) {
-            schedHtml = '<div style="text-align:center;padding:32px;color:var(--text-muted);font-size:12px;"><i class="fas fa-clock" style="font-size:1.5rem;display:block;margin-bottom:8px;opacity:0.3;"></i>No schedules yet</div>';
-        } else {
-            for (var i = 0; i < scheds.length; i++) {
-                var s = scheds[i];
-                var pipe = getPipeline(s.pipelineId);
-                schedHtml += '<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;">' +
-                    '<span style="width:8px;height:8px;border-radius:50%;background:' + (s.enabled ? 'var(--success)' : 'var(--text-muted)') + ';flex-shrink:0;"></span>' +
-                    '<span style="flex:1;color:var(--text-primary);">' + (pipe ? pipe.name : 'Unknown') + '</span>' +
-                    '<span style="color:var(--text-muted);font-size:11px;">Every <strong>' + (s.interval / 60000) + '</strong> min</span>' +
-                    '<span style="color:var(--text-muted);font-size:10px;">' + (s.lastRun ? new Date(s.lastRun).toLocaleString() : 'Never') + '</span>' +
-                    '<button class="btn btn-secondary" onclick="pazatorPipelines.removeSchedule(\'' + s.id + '\');pazatorPipelines.showScheduler();" style="padding:4px 8px;font-size:10px;"><i class="fas fa-times"></i></button>' +
-                    '</div>';
+        var select = document.getElementById('schedPipeSelect');
+        if (select) {
+            var opts = '<option value="">Select a pipeline...</option>';
+            for (var i = 0; i < pipes.length; i++) {
+                opts += '<option value="' + pipes[i].id + '">' + pipes[i].name + '</option>';
             }
+            select.innerHTML = opts;
         }
-        body.innerHTML =
-            '<div style="display:flex;flex-direction:column;gap:16px;">' +
-            '  <div style="background:rgba(0,0,0,0.15);border-radius:7px;padding:16px;border:1px solid var(--border-color);">' +
-            '    <h3 style="font-size:13px;margin-bottom:12px;color:var(--text-secondary);">New Schedule</h3>' +
-            '    <div style="display:flex;gap:10px;flex-wrap:wrap;">' +
-            '      <select id="schedPipeSelect" class="form-control" style="flex:2;min-width:160px;font-size:12px;">' + pipeOpts + '</select>' +
-            '      <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:100px;">' +
-            '        <input type="number" id="schedInterval" class="form-control" value="60" min="1" style="width:60px;font-size:12px;text-align:center;">' +
-            '        <span style="font-size:11px;color:var(--text-muted);">minutes</span>' +
-            '      </div>' +
-            '      <button class="btn btn-primary" id="addSchedBtn" style="padding:8px 16px;font-size:12px;white-space:nowrap;"><i class="fas fa-plus"></i> Add</button>' +
-            '    </div>' +
-            '  </div>' +
-            '  <div>' +
-            '    <h3 style="font-size:13px;margin-bottom:8px;color:var(--text-secondary);">Active Schedules</h3>' +
-            '    <div id="schedList">' + schedHtml + '</div>' +
-            '  </div>' +
-            '</div>';
-
-        footer.innerHTML = '<button class="btn btn-secondary" onclick="pazatorPipelines.cancelModal()" style="padding:8px 20px;">Close</button>';
+        renderSchedList();
         modal.classList.add('active');
-        modal.classList.add('wide');
-
-        document.getElementById('addSchedBtn').addEventListener('click', function () {
+        document.getElementById('addSchedBtn').onclick = function () {
             var pid = document.getElementById('schedPipeSelect').value;
             var interval = parseInt(document.getElementById('schedInterval').value, 10) * 60000;
             if (!pid || !interval) { PazatorUI.showFloatingNotification('Select a pipeline and interval', 'warning'); return; }
             addSchedule({ pipelineId: pid, interval: interval });
             PazatorUI.showFloatingNotification('Schedule added', 'success');
-            showScheduler();
-        });
+            renderSchedList();
+            updateSidebarStats();
+        };
+    }
+
+    function renderSchedList() {
+        var scheds = getSchedules();
+        var el = document.getElementById('schedList');
+        if (!el) return;
+        if (scheds.length === 0) {
+            el.innerHTML = '<div class="pipeline-empty"><i class="fas fa-clock"></i>No schedules yet.<br>Add one above to run pipelines automatically.</div>';
+            return;
+        }
+        var html = '';
+        for (var i = 0; i < scheds.length; i++) {
+            var s = scheds[i];
+            var pipe = getPipeline(s.pipelineId);
+            html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(255,255,255,0.02);border:1px solid #252525;border-radius:8px;font-size:0.75rem;">' +
+                '<span style="width:7px;height:7px;border-radius:50%;background:' + (s.enabled ? 'var(--success)' : 'var(--text-muted)') + ';flex-shrink:0;"></span>' +
+                '<span style="flex:1;color:var(--text-primary);font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (pipe ? pipe.name : 'Unknown') + '</span>' +
+                '<span style="color:var(--text-muted);font-size:0.6rem;">Every <strong>' + (s.interval / 60000) + '</strong> min</span>' +
+                '<span style="color:var(--text-muted);font-size:0.55rem;white-space:nowrap;">' + (s.lastRun ? new Date(s.lastRun).toLocaleString() : 'Never') + '</span>' +
+                '<button onclick="pazatorPipelines.removeSchedule(\'' + s.id + '\');pazatorPipelines.renderSchedList();pazatorPipelines.updateSidebarStats();" style="width:20px;height:20px;border-radius:4px;background:transparent;border:none;color:#555;cursor:pointer;font-size:0.55rem;display:flex;align-items:center;justify-content:center;"><i class="fas fa-times"></i></button>' +
+                '</div>';
+        }
+        el.innerHTML = html;
     }
 
     function cancelModal() {
@@ -689,7 +850,11 @@
         renderPipelineManager: renderPipelineManager,
         renderRunHistory: renderRunHistory,
         showNewPipeline: showNewPipeline,
+        closeBuilder: closeBuilder,
         showScheduler: showScheduler,
+        closeScheduler: closeScheduler,
+        renderSchedList: renderSchedList,
+        updateSidebarStats: updateSidebarStats,
         cancelModal: cancelModal,
         on: on
     };

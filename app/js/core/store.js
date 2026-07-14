@@ -19,6 +19,7 @@
         tags: [],
         cases: ['caseStatuses'],
         chats: [],
+        relationships: ['totalObjects'],
     };
 
     function isFn(fn) {
@@ -31,7 +32,7 @@
     }
 
     function safeArray(arr) {
-        return arr || [];
+        return Array.isArray(arr) ? arr.filter(item => item != null) : [];
     }
 
     function replaceArrayContents(target, source) {
@@ -211,8 +212,19 @@
             listeners.get(event).add(handler);
             return () => {
                 const set = listeners.get(event);
-                if (set) set.delete(handler);
+                if (set) {
+                    set.delete(handler);
+                    if (set.size === 0) listeners.delete(event);
+                }
             };
+        },
+
+        clearListeners(event) {
+            if (event) {
+                listeners.delete(event);
+            } else {
+                listeners.clear();
+            }
         },
 
         emit(event, payload) {
@@ -232,11 +244,13 @@
             try {
                 fn();
             } catch (e) {
-                batchDepth = 0;
-                const notifications = pendingNotifications.slice();
-                pendingNotifications.length = 0;
-                for (const n of notifications) {
-                    store.emit(n.event, n.payload);
+                batchDepth--;
+                if (batchDepth === 0) {
+                    const notifications = pendingNotifications.slice();
+                    pendingNotifications.length = 0;
+                    for (const n of notifications) {
+                        store.emit(n.event, n.payload);
+                    }
                 }
                 throw e;
             } finally {
@@ -387,11 +401,20 @@
         },
 
         findHumans(predicate) {
-            const results = [];
-            for (const h of store._data.humans || []) {
-                if (predicate(h)) results.push(h);
+            if (typeof predicate !== 'function') {
+                console.warn('findHumans called with non-function predicate');
+                return [];
             }
-            return results;
+            try {
+                const results = [];
+                for (const h of store._data.humans || []) {
+                    if (predicate(h)) results.push(h);
+                }
+                return results;
+            } catch (e) {
+                console.error('Error in findHumans predicate', e);
+                return [];
+            }
         },
 
         findHumanIndex(predicate) {
@@ -421,7 +444,10 @@
                 const rels = window.pazatorRelationships.toJSON();
                 if (rels.length) p.push(eng.putMany('relationships', rels));
             }
-            return Promise.all(p).catch(e => console.error('[Store] syncToEngine error', e));
+            return Promise.all(p).catch(e => {
+                console.error('[Store] syncToEngine error', e);
+                throw e;
+            });
         },
 
         loadFromEngine() {
@@ -514,8 +540,8 @@
         },
 
         getHumansPage(page, pageSize, filter) {
-            page = Math.max(1, page);
-            pageSize = Math.min(100, Math.max(1, pageSize));
+            page = Math.max(1, parseInt(page) || 1);
+            pageSize = Math.min(100, Math.max(1, parseInt(pageSize) || 20));
             let humans = store._data.humans;
             if (filter) humans = humans.filter(filter);
             const start = (page - 1) * pageSize;
@@ -529,6 +555,12 @@
                 hasNext: end < humans.length,
                 hasPrev: page > 1
             };
+        },
+
+        sanitizeHTML(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
         },
 
         getChatsPage(page, pageSize) {
@@ -547,7 +579,7 @@
                     participants: chat.participants,
                     timestamp: chat.timestamp,
                     messageCount: (chat.parsed && chat.parsed.messageCount) || (chat.content && chat.content.split(' ').length) || 0,
-                    preview: chat.content ? chat.content.substring(0, 150) + '...' : '(empty)',
+                    preview: chat.content ? store.sanitizeHTML(chat.content.substring(0, 150)) + '...' : '(empty)',
                     hasContext: !!chat.context
                 });
             }
@@ -653,12 +685,7 @@
         if (eng && isFn(eng.kvGet)) {
             return eng.kvGet(key);
         }
-        try {
-            const val = localStorage.getItem(key);
-            return Promise.resolve(val ? JSON.parse(val) : null);
-        } catch (e) {
-            return Promise.resolve(null);
-        }
+        return Promise.resolve(null);
     };
 
     store.kvSet = function (key, value) {
@@ -666,12 +693,7 @@
         if (eng && isFn(eng.kvSet)) {
             return eng.kvSet(key, value);
         }
-        try {
-            localStorage.setItem(key, JSON.stringify(value));
-            return Promise.resolve();
-        } catch (e) {
-            return Promise.resolve();
-        }
+        return Promise.resolve();
     };
 
     store.kvDelete = function (key) {
@@ -679,44 +701,15 @@
         if (eng && isFn(eng.kvDelete)) {
             return eng.kvDelete(key);
         }
-        try {
-            localStorage.removeItem(key);
-            return Promise.resolve();
-        } catch (e) {
-            return Promise.resolve();
-        }
-    };
-
-    store.migrateToIDB = function () {
-        const eng = getEngine();
-        if (!eng || !isFn(eng.kvSet)) return Promise.resolve(0);
-        const keys = Object.keys(localStorage);
-        let migrated = 0;
-        let chain = Promise.resolve();
-        for (let i = 0; i < keys.length; i++) {
-            const key = keys[i];
-            if (key.startsWith('pazator_') || key === 'pazatorData' || key === 'pazatorData_backup') {
-                chain = chain.then(() => {
-                    try {
-                        const val = localStorage.getItem(key);
-                        if (val) {
-                            let parsed;
-                            try { parsed = JSON.parse(val); } catch (e) { parsed = val; }
-                            return eng.kvSet(key, parsed).then(() => {
-                                migrated++;
-                            }).catch(e => {
-                                console.error('[Store] migrateToIDB key ' + key + ' error', e);
-                            });
-                        }
-                    } catch (e) { console.error('[Store] migrateToIDB error', e); }
-                });
-            }
-        }
-        return chain.then(() => migrated);
+        return Promise.resolve();
     };
 
     // Flush unsaved changes before the page unloads
     window.addEventListener('beforeunload', function () {
+        if (saveTimeout) {
+            clearTimeout(saveTimeout);
+            saveTimeout = null;
+        }
         if (dirtyStores.size > 0) {
             store.flushDirty();
         }

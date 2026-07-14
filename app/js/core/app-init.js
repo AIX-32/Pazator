@@ -283,15 +283,10 @@ function setupLogoDropdownListeners() {
     }
 }
 
-console.log(' Checking localStorage availability...');
-if (typeof (Storage) !== "undefined") {
-    console.log(' localStorage is available');
-} else {
-    console.error(' localStorage is not available');
-}
+// Entity data now uses IndexedDB exclusively. localStorage is only used
+// for minor config/cache (sync token, plugin states, etc).
 
-try {
-    loadData();
+loadData().then(function () {
     console.log(' Data loading completed');
 
     renderTags();
@@ -309,27 +304,21 @@ try {
         console.log(' Workflow engine initialized');
     }
 
-    if (pazatorData.humans.length === 0 && pazatorData.others.length === 0) {
-        saveData(true);
-        console.log(' Initial data saved');
-    }
-
     loadVersions();
     console.log(' Versions loaded');
 
     updateSidebarProfile();
-    console.log(' Pazator app fully initialized with enhanced data persistence');
-    console.log(` Current data: ${pazatorData.humans.length} humans, ${pazatorData.others.length} others`);
-
-} catch (initError) {
+    console.log(' Pazator app fully initialized');
+    console.log(' Current data: ' + pazatorData.humans.length + ' humans, ' + pazatorData.others.length + ' others');
+}).catch(function (initError) {
     console.error(' Fatal initialization error:', initError);
     pazatorData = { humans: [], others: [] };
     window.pazatorData = pazatorData;
     tags = [];
     renderObjectCanvas();
     renderTags();
-    console.log('️ Using fallback initialization');
-}
+    console.log(' Using fallback initialization');
+});
 
 function loadVersions() {
     fetch('../version.json')

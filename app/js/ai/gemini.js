@@ -78,6 +78,80 @@
     return { content: text };
   }
 
+  async function chatWithTools(messages, tools, signal) {
+    var apiKey = getApiKey();
+    var model = getModel();
+    if (!apiKey) throw new Error('Gemini API key not configured.');
+
+    var systemInstruction = '';
+    var contents = [];
+    for (var i = 0; i < messages.length; i++) {
+      var msg = messages[i];
+      if (msg.role === 'system') {
+        systemInstruction += msg.content + '\n';
+      } else if (msg.role === 'model') {
+        continue;
+      } else if (msg.role === 'function') {
+        contents.push({ role: 'function', parts: [{ functionResponse: { name: msg.name, response: msg.response } }] });
+      } else if (msg.role === 'assistant') {
+        contents.push({ role: 'model', parts: [{ text: msg.content }] });
+      } else {
+        contents.push({ role: 'user', parts: [{ text: msg.content }] });
+      }
+    }
+
+    var requestBody = {
+      contents: contents,
+      tools: [{ functionDeclarations: tools }],
+      toolConfig: { functionCallingConfig: { mode: 'AUTO' } },
+      generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+    };
+    if (systemInstruction.trim()) {
+      requestBody.systemInstruction = { parts: [{ text: systemInstruction.trim() }] };
+    }
+
+    var response = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+        body: JSON.stringify(requestBody),
+        signal: signal || undefined
+      }
+    );
+
+    if (!response.ok) {
+      var errorText;
+      try { var errorJson = await response.json(); errorText = errorJson.error && errorJson.error.message ? errorJson.error.message : JSON.stringify(errorJson); }
+      catch (e) { errorText = await response.text(); }
+      throw new Error('Gemini API error (' + response.status + '): ' + errorText);
+    }
+
+    var data = await response.json();
+    var text = '';
+    var functionCalls = [];
+    if (data.candidates && data.candidates[0] && data.candidates[0].content &&
+        data.candidates[0].content.parts) {
+      for (var pi = 0; pi < data.candidates[0].content.parts.length; pi++) {
+        var part = data.candidates[0].content.parts[pi];
+        if (part.text) text += part.text;
+        if (part.functionCall) functionCalls.push({ name: part.functionCall.name, args: part.functionCall.args });
+      }
+    }
+    return { content: text, functionCalls: functionCalls };
+  }
+
+  async function fetchModelsFromAPI(apiKey) {
+    if (!apiKey) throw new Error('API key required.');
+    var response = await fetch('https://generativelanguage.googleapis.com/v1beta/models?key=' + apiKey);
+    if (!response.ok) throw new Error('Failed to fetch models: ' + response.status);
+    var data = await response.json();
+    return (data.models || []).filter(function (m) { return m.supportedGenerationMethods && m.supportedGenerationMethods.indexOf('generateContent') !== -1; }).map(function (m) {
+      var id = m.name.replace('models/', '');
+      return { id: id, name: m.displayName || id };
+    });
+  }
+
   async function streamChat(messages, onChunk, signal) {
     var apiKey = getApiKey();
     var model = getModel();
@@ -156,6 +230,8 @@
     defaultModel: DEFAULT_MODEL,
     chat: chat,
     streamChat: streamChat,
+    chatWithTools: chatWithTools,
+    fetchModelsFromAPI: fetchModelsFromAPI,
     getApiKey: getApiKey,
     setApiKey: setApiKey,
     getModel: getModel,
