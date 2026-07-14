@@ -145,7 +145,9 @@ async function refreshPersonCredits() {
 
     if (refreshCreditsBtn) {
         refreshCreditsBtn.disabled = true;
-        refreshCreditsBtn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Evaluating...';
+        refreshCreditsBtn.classList.add('loading');
+        var trigger = refreshCreditsBtn.querySelector('.intel-action-trigger');
+        if (trigger) trigger.innerHTML = '<div class="loader" style="--size:14px;display:inline-block;vertical-align:middle;margin-right:4px;"></div> Evaluating...';
     }
 
     var tide = window.TIDE_INSTANCE;
@@ -207,7 +209,9 @@ async function refreshPersonCredits() {
 
     if (refreshCreditsBtn) {
         refreshCreditsBtn.disabled = false;
-        refreshCreditsBtn.innerHTML = '<i class="fas fa-sync"></i> Refresh Credits';
+        refreshCreditsBtn.classList.remove('loading');
+        var trigger = refreshCreditsBtn.querySelector('.intel-action-trigger');
+        if (trigger) trigger.innerHTML = '<i class="fas fa-sync"></i> Refresh';
     }
 }
 

@@ -7,7 +7,9 @@ aiSuggestTagsBtn?.addEventListener('click', async () => {
     }
 
     aiSuggestTagsBtn.disabled = true;
-    aiSuggestTagsBtn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Analyzing...';
+    aiSuggestTagsBtn.classList.add('loading');
+    var trigger = aiSuggestTagsBtn.querySelector('.intel-action-trigger');
+    if (trigger) trigger.innerHTML = '<div class="loader" style="--size:14px;display:inline-block;vertical-align:middle;margin-right:4px;"></div> Analyzing...';
 
     try {
         const humansData = pazatorData.humans.map(h => ({
@@ -69,7 +71,9 @@ Make tags:
         showAlert('Failed to get AI suggestions. Please try again.', 'Error', 'error');
     } finally {
         aiSuggestTagsBtn.disabled = false;
-        aiSuggestTagsBtn.innerHTML = '<i class="fas fa-robot"></i> AI Suggest Tags';
+        aiSuggestTagsBtn.classList.remove('loading');
+        var trigger = aiSuggestTagsBtn.querySelector('.intel-action-trigger');
+        if (trigger) trigger.innerHTML = '<i class="fas fa-magic"></i> Suggest';
     }
 });
 

@@ -340,12 +340,13 @@
                 <div class="menu-dropdown">
                     <button class="menu-dropdown-item" onclick="switchTab('dashboard')"><i class="fas fa-home"></i>
                         Dashboard</button>
-                    <button class="menu-dropdown-item" onclick="switchTab('analysis')"><i class="fas fa-chart-line"></i>
-                        Analysis</button>
                     <button class="menu-dropdown-item" onclick="switchTab('threats')"><i class="fas fa-shield-alt"></i>
-                        Threats</button>
+                        Intelligence Center</button>
                     <button class="menu-dropdown-item" onclick="switchTab('explorer')"><i class="fas fa-project-diagram"></i>
                         Explorer</button>
+                    <div class="menu-separator"></div>
+                    <button class="menu-dropdown-item" onclick="switchTab('tracker')"><i
+                            class="fas fa-location-crosshairs"></i> Tracker</button>
                 </div>
             </div>
             <div class="menu-item" data-menu="data">
@@ -353,16 +354,18 @@
                 <div class="menu-dropdown">
                     <button class="menu-dropdown-item" onclick="switchTab('search')"><i class="fas fa-search"></i>
                         Search</button>
-                    <button class="menu-dropdown-item" onclick="switchTab('chat-control')"><i
-                            class="fas fa-comments"></i> Chat Control</button>
                     <button class="menu-dropdown-item" onclick="switchTab('cases')"><i class="fas fa-folder-open"></i>
                         Cases</button>
                     <button class="menu-dropdown-item" onclick="switchTab('ontology')"><i class="fas fa-sitemap"></i>
                         Ontology</button>
                     <button class="menu-dropdown-item" onclick="switchTab('pipelines')"><i class="fas fa-database"></i>
                         Pipelines</button>
-                    <button class="menu-dropdown-item" onclick="switchTab('tracker')"><i
-                            class="fas fa-location-crosshairs"></i> Tracker</button>
+                    <div class="menu-separator"></div>
+                    <button class="menu-dropdown-item" onclick="switchTab('chat-control')"><i
+                            class="fas fa-comments"></i> Chat Control</button>
+                    <div class="menu-separator"></div>
+                    <button class="menu-dropdown-item" onclick="document.getElementById('exportCsvOption')?.click()"><i
+                            class="fas fa-file-export"></i> Export CSV</button>
                 </div>
             </div>
             <div class="menu-item" data-menu="tools">
@@ -370,12 +373,17 @@
                 <div class="menu-dropdown">
                     <button class="menu-dropdown-item" onclick="switchTab('alerts')"><i class="fas fa-bell"></i>
                         Alerts</button>
-                    <button class="menu-dropdown-item" onclick="switchTab('api')"><i class="fas fa-code"></i> API
-                        Console</button>
                     <button class="menu-dropdown-item" onclick="switchTab('workflow')"><i
                             class="fas fa-diagram-project"></i> Workflow</button>
                     <button class="menu-dropdown-item" onclick="switchTab('reports')"><i class="fas fa-chart-bar"></i>
                         Reports</button>
+                    <button class="menu-dropdown-item" onclick="switchTab('api')"><i class="fas fa-code"></i> API
+                        Console</button>
+                    <div class="menu-separator"></div>
+                    <button class="menu-dropdown-item" onclick="document.getElementById('karlineTrigger')?.click()"><i class="fas fa-calendar-days"></i>
+                        Karline</button>
+                    <button class="menu-dropdown-item" onclick="openOrCreateTab('plugins')"><i
+                             class="fas fa-puzzle-piece"></i> Plugins</button>
                 </div>
             </div>
             <div class="menu-item" data-menu="system">
@@ -385,8 +393,6 @@
                             class="fas fa-cog"></i> Settings</button>
                     <button class="menu-dropdown-item" onclick="window.pazatorClassification?.showBulkClassifyModal()"><i
                             class="fas fa-shield-alt"></i> Classify Recent</button>
-                    <button class="menu-dropdown-item" onclick="document.getElementById('exportCsvOption')?.click()"><i
-                            class="fas fa-file-export"></i> Export CSV</button>
                     <div class="menu-separator"></div>
                     <button class="menu-dropdown-item" onclick="document.getElementById('syncConfigOption')?.click()"><i
                              class="fas fa-plug"></i> PZLS</button>
@@ -397,9 +403,6 @@
                     <div class="menu-separator"></div>
                     <button class="menu-dropdown-item" onclick="document.getElementById('snappyOption')?.click()"><i
                              class="fas fa-camera"></i> Snappy</button>
-                    <button class="menu-dropdown-item" onclick="openOrCreateTab('plugins')"><i
-                             class="fas fa-puzzle-piece"></i> Plugins</button>
-
                 </div>
             </div>
             <div class="menu-item" data-menu="help">
@@ -413,11 +416,11 @@
                     <button class="menu-dropdown-item"
                         onclick="window.open('https://discord.gg/74c9RBYD4R', '_blank')"><i class="fab fa-discord"></i>
                         Discord</button>
+                    <div class="menu-separator"></div>
                     <button class="menu-dropdown-item" onclick="seedPlaceholderData()"><i class="fas fa-database"></i>
                         Placeholder Data</button>
                     <button class="menu-dropdown-item" onclick="wipeAllData()" style="color:#ff6b6b;"><i class="fas fa-trash"></i>
                         Wipe All Data</button>
-
                 </div>
             </div>
         </div>
@@ -460,6 +463,7 @@
                 <div id="exportCsvOption" style="display:none;"></div>
                 <div id="walkthroughOption" style="display:none;"></div>
                 <div id="snappyOption" style="display:none;"></div>
+                <div id="karlineTrigger" style="display:none;"></div>
             </div>
         </div>
     </div>
@@ -609,7 +613,10 @@
                             <select id="aiProviderSelect" class="ai-config-select"></select>
                             <input type="password" id="aiApiKeyInput" class="ai-config-input"
                                 placeholder="API Key">
-                            <select id="aiModelSelect" class="ai-config-select"></select>
+                            <div style="display:flex;gap:4px;overflow:hidden;">
+                                <select id="aiModelSelect" class="ai-config-select" style="flex:1;min-width:0;"></select>
+                                <button id="fetchModelsBtn" class="btn glass-btn" style="padding:4px 8px;font-size:0.7rem;flex-shrink:0;" title="Fetch models from API">⟳</button>
+                            </div>
                             <div id="aiStatus" class="gemini-status">No API key configured</div>
                         </div>
                     </div>
@@ -621,127 +628,7 @@
 
 
 
-        <div class="tab-content" id="analysis-tab">
-            <div class="workspace">
-                <div class="main-panel">
-                    <div class="analysis-header">
-                        <div>
-                            <h2>Data Analysis Hub</h2>
-                            <div class="analysis-header-stats">
-                                <span><i class="fas fa-users"></i> <span id="analysisHumanCount">0</span> people</span>
-                                <span><i class="fas fa-chart-bar"></i> <span id="analysisCreditAvg">0</span> avg
-                                    credit</span>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div class="analysis-content">
-                        <div class="analysis-action-grid">
-                            <div class="analysis-action-card analysis-primary">
-                                <div class="analysis-action-icon">
-                                    <i class="fas fa-project-diagram"></i>
-                                </div>
-                                <div class="analysis-action-info">
-                                    <h3>Network Analysis</h3>
-                                    <p>Map relationships between entities.</p>
-                                </div>
-                                <button id="findConnectionsBtn" class="btn btn-primary">
-                                    <i class="fas fa-search"></i> Discover Links
-                                </button>
-                            </div>
-
-                            <div class="analysis-action-card">
-                                <div class="analysis-action-icon analysis-icon-warning">
-                                    <i class="fas fa-exclamation-triangle"></i>
-                                </div>
-                                <div class="analysis-action-info">
-                                    <h3>Risk Assessment</h3>
-                                    <p id="analysisRiskSummary">0 high, 0 med, 0 low</p>
-                                </div>
-                                <button id="refreshCreditsBtn" class="btn glass-btn btn-full">
-                                    <i class="fas fa-sync"></i> Refresh
-                                </button>
-                            </div>
-
-                            <div class="analysis-action-card">
-                                <div class="analysis-action-icon analysis-icon-info">
-                                    <i class="fas fa-sort-amount-down"></i>
-                                </div>
-                                <div class="analysis-action-info">
-                                    <h3>Credit Ranking</h3>
-                                    <p>Sort by risk score</p>
-                                </div>
-                                <button id="sortByCreditBtn" class="btn glass-btn btn-full">
-                                    <i class="fas fa-list"></i> Sort List
-                                </button>
-                            </div>
-
-                            <div class="analysis-action-card">
-                                <div class="analysis-action-icon analysis-icon-purple">
-                                    <i class="fas fa-robot"></i>
-                                </div>
-                                <div class="analysis-action-info">
-                                    <h3>AI Suggestions</h3>
-                                    <p>Get tag recommendations</p>
-                                </div>
-                                <button id="aiSuggestTagsBtn" class="btn glass-btn btn-full">
-                                    <i class="fas fa-magic"></i> Suggest Tags
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="analysis-metrics-grid">
-                            <div class="analysis-metric-card">
-                                <div class="analysis-metric-icon icon-success">
-                                    <i class="fas fa-users"></i>
-                                </div>
-                                <div class="analysis-metric-data">
-                                    <span class="analysis-metric-value" id="metricHumans">0</span>
-                                    <span class="analysis-metric-label">Total People</span>
-                                </div>
-                            </div>
-                            <div class="analysis-metric-card">
-                                <div class="analysis-metric-icon icon-info">
-                                    <i class="fas fa-building"></i>
-                                </div>
-                                <div class="analysis-metric-data">
-                                    <span class="analysis-metric-value" id="metricEntities">0</span>
-                                    <span class="analysis-metric-label">Entities</span>
-                                </div>
-                            </div>
-                            <div class="analysis-metric-card">
-                                <div class="analysis-metric-icon icon-warning">
-                                    <i class="fas fa-tags"></i>
-                                </div>
-                                <div class="analysis-metric-data">
-                                    <span class="analysis-metric-value" id="metricTags">0</span>
-                                    <span class="analysis-metric-label">Tags</span>
-                                </div>
-                            </div>
-                            <div class="analysis-metric-card">
-                                <div class="analysis-metric-icon icon-danger">
-                                    <i class="fas fa-exclamation-circle"></i>
-                                </div>
-                                <div class="analysis-metric-data">
-                                    <span class="analysis-metric-value" id="metricHighRisk">0</span>
-                                    <span class="analysis-metric-label">High Risk</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="analysis-tools-section">
-                            <h3><i class="fas fa-tools"></i> Quick Tools</h3>
-                            <div class="analysis-tools-grid">
-                                <div class="analysis-tool-item" id="showStatisticsBtn">
-                                    <i class="fas fa-chart-pie"></i>
-                                    <span>Statistics</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <div class="tab-content" id="chat-control-tab">
             <div class="workspace">
@@ -976,57 +863,96 @@
                         <div class="intel-header-stats">
                             <span><i class="fas fa-users"></i> <span id="intelHumanCount">0</span> people</span>
                             <span><i class="fas fa-building"></i> <span id="intelOtherCount">0</span> entities</span>
+                            <span><i class="fas fa-chart-line"></i> <span id="intelCreditAvg">0</span> avg credit</span>
                         </div>
                     </div>
 
                     <div class="intel-content">
-                        <div class="intel-action-bar">
-                            <div class="intel-action-item intel-action-primary">
-                                <div class="intel-action-top">
-                                    <div class="intel-action-icon">
-                                        <i class="fas fa-brain"></i>
-                                    </div>
-                                    <div class="intel-action-info">
-                                        <h3>AI Analysis</h3>
-                                        <p>Full intelligence scan using TIDE</p>
-                                    </div>
+                        <div class="intel-action-grid">
+                            <button class="intel-action-card intel-action-primary" id="intelAnalyzeBtn">
+                                <div class="intel-action-icon"><i class="fas fa-brain"></i></div>
+                                <div class="intel-action-body">
+                                    <h3>Deep Scan (TIDE)</h3>
+                                    <p>Full intelligence scan using TIDE engine</p>
                                 </div>
-                                <button id="intelAnalyzeBtn" class="btn btn-primary">
-                                    <i class="fas fa-play"></i>
-                                    Run Analysis
-                                </button>
-                            </div>
-                            <div class="intel-action-item">
-                                <div class="intel-action-top">
-                                    <div class="intel-action-icon intel-icon-risk">
-                                        <i class="fas fa-chart-pie"></i>
-                                    </div>
-                                    <div class="intel-action-info">
-                                        <h3>Risk Distribution</h3>
-                                        <p id="intelRiskSummary">0% high, 0% med, 0% low</p>
-                                    </div>
+                                <span class="intel-action-trigger"><i class="fas fa-play"></i> Run</span>
+                            </button>
+                            <button class="intel-action-card" id="intelConnectionsBtn">
+                                <div class="intel-action-icon intel-icon-connection"><i class="fas fa-project-diagram"></i></div>
+                                <div class="intel-action-body">
+                                    <h3>Hidden Connections</h3>
+                                    <p id="intelConnectionsSummary">0 found</p>
                                 </div>
-                                <button id="intelRefreshRiskBtn" class="btn glass-btn btn-full">
-                                    <i class="fas fa-sync"></i>
-                                    Refresh
-                                </button>
-                            </div>
-                            <div class="intel-action-item">
-                                <div class="intel-action-top">
-                                    <div class="intel-action-icon intel-icon-connection">
-                                        <i class="fas fa-project-diagram"></i>
-                                    </div>
-                                    <div class="intel-action-info">
-                                        <h3>Hidden Connections</h3>
-                                        <p id="intelConnectionsSummary">0 found</p>
-                                    </div>
+                                <span class="intel-action-trigger"><i class="fas fa-search"></i> Find</span>
+                            </button>
+                            <button class="intel-action-card" id="findConnectionsBtn">
+                                <div class="intel-action-icon"><i class="fas fa-project-diagram"></i></div>
+                                <div class="intel-action-body">
+                                    <h3>Network Analysis</h3>
+                                    <p>Map relationships between entities</p>
                                 </div>
-                                <button id="intelConnectionsBtn" class="btn glass-btn btn-full">
-                                    <i class="fas fa-search"></i>
-                                    Find
-                                </button>
-                            </div>
+                                <span class="intel-action-trigger"><i class="fas fa-search"></i> Discover</span>
+                            </button>
+                            <button class="intel-action-card" id="refreshCreditsBtn">
+                                <div class="intel-action-icon intel-icon-risk"><i class="fas fa-exclamation-triangle"></i></div>
+                                <div class="intel-action-body">
+                                    <h3>Risk Assessment</h3>
+                                    <p id="intelRiskSummary">0 high, 0 med, 0 low</p>
+                                </div>
+                                <span class="intel-action-trigger"><i class="fas fa-sync"></i> Refresh</span>
+                            </button>
+                            <button class="intel-action-card" id="sortByCreditBtn">
+                                <div class="intel-action-icon"><i class="fas fa-sort-amount-down"></i></div>
+                                <div class="intel-action-body">
+                                    <h3>Credit Ranking</h3>
+                                    <p>Sort entities by risk score</p>
+                                </div>
+                                <span class="intel-action-trigger"><i class="fas fa-list"></i> Sort</span>
+                            </button>
+                            <button class="intel-action-card" id="aiSuggestTagsBtn">
+                                <div class="intel-action-icon intel-icon-purple"><i class="fas fa-robot"></i></div>
+                                <div class="intel-action-body">
+                                    <h3>AI Suggestions</h3>
+                                    <p>Get intelligent tag recommendations</p>
+                                </div>
+                                <span class="intel-action-trigger"><i class="fas fa-magic"></i> Suggest</span>
+                            </button>
+                        </div>
 
+                        <div class="intel-metrics-grid">
+                            <div class="intel-metric-card">
+                                <div class="intel-metric-icon icon-success"><i class="fas fa-users"></i></div>
+                                <div class="intel-metric-data">
+                                    <span class="intel-metric-value" id="metricHumans">0</span>
+                                    <span class="intel-metric-label">Total People</span>
+                                </div>
+                            </div>
+                            <div class="intel-metric-card">
+                                <div class="intel-metric-icon icon-info"><i class="fas fa-building"></i></div>
+                                <div class="intel-metric-data">
+                                    <span class="intel-metric-value" id="metricEntities">0</span>
+                                    <span class="intel-metric-label">Entities</span>
+                                </div>
+                            </div>
+                            <div class="intel-metric-card">
+                                <div class="intel-metric-icon icon-warning"><i class="fas fa-tags"></i></div>
+                                <div class="intel-metric-data">
+                                    <span class="intel-metric-value" id="metricTags">0</span>
+                                    <span class="intel-metric-label">Tags</span>
+                                </div>
+                            </div>
+                            <div class="intel-metric-card">
+                                <div class="intel-metric-icon icon-danger"><i class="fas fa-exclamation-circle"></i></div>
+                                <div class="intel-metric-data">
+                                    <span class="intel-metric-value" id="metricHighRisk">0</span>
+                                    <span class="intel-metric-label">High Risk</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="intel-tools-row">
+                            <div class="intel-tool-item" id="intelRefreshRiskBtn"><i class="fas fa-chart-pie"></i> Risk Distribution</div>
+                            <div class="intel-tool-item" id="showStatisticsBtn"><i class="fas fa-chart-pie"></i> Statistics</div>
                         </div>
 
                         <div class="intel-results" id="intelResults">
@@ -1041,7 +967,7 @@
                                         <option value="positive">Positive</option>
                                         <option value="info">Info</option>
                                     </select>
-                                    <span id="intelResultsCount" class="intel-results-badge">6 findings</span>
+                                    <span id="intelResultsCount" class="intel-results-badge">0 findings</span>
                                     <button id="intelClearResults" class="intel-filter-btn">
                                         <i class="fas fa-trash"></i>
                                     </button>
@@ -1051,7 +977,7 @@
                                 <div class="empty-state">
                                     <i class="fas fa-search"></i>
                                     <p>No analysis results yet</p>
-                                    <small>Run AI Analysis to generate findings</small>
+                                    <small>Run TIDE scan or use the tools above to generate findings</small>
                                 </div>
                             </div>
                         </div>
@@ -1060,7 +986,7 @@
 
                 <div class="side-panel">
                     <div class="sidebar-section sidebar-mini">
-                        <h3>Quick Stats</h3>
+                        <h3><i class="fas fa-chart-simple"></i> Quick Stats</h3>
                         <div class="intel-quick-stats">
                             <div class="intel-quick-stat">
                                 <span class="intel-quick-stat-label">Last Analysis</span>
@@ -1071,14 +997,18 @@
                                 <span class="intel-quick-stat-value stat-yellow" id="intelFindingsCount">0</span>
                             </div>
                             <div class="intel-quick-stat">
-                                <span class="intel-quick-stat-label">Connections Found</span>
+                                <span class="intel-quick-stat-label">Connections</span>
                                 <span class="intel-quick-stat-value" id="intelConnectionsCount">0</span>
+                            </div>
+                            <div class="intel-quick-stat">
+                                <span class="intel-quick-stat-label">Avg Credit</span>
+                                <span class="intel-quick-stat-value" id="sidebarCreditAvg">0</span>
                             </div>
                         </div>
                     </div>
 
                     <div class="sidebar-section sidebar-mini">
-                        <h3>Context Sources</h3>
+                        <h3><i class="fas fa-sliders-h"></i> Context Sources</h3>
                         <div class="intel-context-sources">
                             <label class="intel-context-item">
                                 <input type="checkbox" id="intelCtxHumans" checked>
@@ -1100,7 +1030,7 @@
                     </div>
 
                     <div class="sidebar-section sidebar-mini">
-                        <h3>Analysis Mode</h3>
+                        <h3><i class="fas fa-gauge-high"></i> Analysis Mode</h3>
                         <select id="intelMode" class="form-control">
                             <option value="comprehensive">Comprehensive</option>
                             <option value="quick">Quick scan</option>
@@ -1630,6 +1560,79 @@
                             <button class="sidebar-apply-btn" onclick="installPluginFromCode()" style="width:100%;"><i class="fas fa-play"></i> Run</button>
                             <div id="pluginsInstallStatus" style="margin-top:6px;font-size:0.7rem;color:#555;"></div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="karline-tab">
+            <div class="workspace">
+                <div class="main-panel" style="display:flex;flex-direction:column;overflow:hidden;">
+                    <div class="canvas-header">
+                        <h1><i class="fas fa-calendar-days"></i> Karline</h1>
+                        <p class="canvas-version" style="font-size:0.8rem;color:#666;">Operational planning timeline</p>
+                    </div>
+                    <div id="karlineToolbar" style="display:flex;gap:6px;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,0.06);align-items:center;flex-shrink:0;flex-wrap:wrap;">
+                        <button class="btn btn-primary" id="karlineNewBtn" style="padding:6px 14px;font-size:0.8rem;"><i class="fas fa-plus"></i> New Action</button>
+                        <div style="display:flex;align-items:center;gap:4px;margin-left:8px;">
+                            <button class="btn glass-btn" id="karlinePrevBtn" style="padding:4px 8px;font-size:0.75rem;"><i class="fas fa-chevron-left"></i></button>
+                            <span id="karlineRange" style="font-size:0.75rem;color:var(--text-muted);min-width:140px;text-align:center;display:inline-block;"></span>
+                            <button class="btn glass-btn" id="karlineNextBtn" style="padding:4px 8px;font-size:0.75rem;"><i class="fas fa-chevron-right"></i></button>
+                            <button class="btn glass-btn" id="karlineTodayBtn" style="padding:4px 8px;font-size:0.7rem;">Today</button>
+                        </div>
+                        <span style="flex:1;"></span>
+                        <label style="font-size:0.75rem;color:var(--text-muted);display:flex;align-items:center;gap:4px;">
+                            <input type="checkbox" id="karlineShowStatic" checked> Static
+                        </label>
+                        <label style="font-size:0.75rem;color:var(--text-muted);display:flex;align-items:center;gap:4px;">
+                            <input type="checkbox" id="karlineShowDynamic" checked> Dynamic
+                        </label>
+                        <span style="width:1px;height:18px;background:rgba(255,255,255,0.08);margin:0 4px;"></span>
+                        <select id="karlineStatusFilter" style="font-size:0.7rem;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:var(--text);padding:2px 6px;">
+                            <option value="all">All statuses</option>
+                            <option value="draft">Draft</option>
+                            <option value="active">Active</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div id="karlineTimelineWrap" style="flex:1;overflow:hidden;position:relative;display:flex;flex-direction:column;">
+                        <div id="karlineTimeline" style="flex:1;overflow:auto;padding:8px 0 0;">
+                            <div style="min-height:100%;display:flex;flex-direction:column;">
+                                <div id="karlineDayColumns" style="display:flex;flex:1;gap:1px;padding:0 8px;"></div>
+                                <div id="karlineDaysRow" style="display:flex;position:sticky;bottom:0;background:var(--bg);border-top:1px solid rgba(255,255,255,0.08);margin-top:4px;padding:0 8px;"></div>
+                            </div>
+                        </div>
+                        <div id="karlineEmpty" style="display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;color:var(--text-muted);background:var(--bg);">
+                            <i class="fas fa-calendar-days" style="font-size:2.5rem;margin-bottom:12px;opacity:0.4;"></i>
+                            <p>No actions yet.</p>
+                            <button class="btn btn-primary" style="margin-top:8px;padding:6px 16px;font-size:0.85rem;" onclick="window.pazatorKarline?.showNewActionModal()"><i class="fas fa-plus"></i> Create one</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="side-panel" style="display:flex;flex-direction:column;gap:0;">
+                    <div class="sidebar-section sidebar-mini" style="flex-shrink:0;">
+                        <div class="sidebar-section-header">
+                            <i class="fas fa-list"></i>
+                            <h3>All Actions</h3>
+                        </div>
+                        <div class="sidebar-section-body" style="padding:4px 8px;">
+                            <input type="text" id="karlineSearch" class="tag-input" placeholder="Search actions..." style="font-size:0.78rem;">
+                        </div>
+                    </div>
+                    <div class="sidebar-section sidebar-mini" style="flex:1;min-height:0;">
+                        <div class="sidebar-section-header">
+                            <i class="fas fa-tasks"></i>
+                            <h3>Action List</h3>
+                        </div>
+                        <div id="karlineActionList" class="sidebar-section-body" style="flex:1;overflow-y:auto;padding:4px 8px;display:flex;flex-direction:column;gap:4px;"></div>
+                    </div>
+                    <div class="sidebar-section sidebar-mini" style="flex-shrink:0;">
+                        <div class="sidebar-section-header">
+                            <i class="fas fa-clock"></i>
+                            <h3>Stats</h3>
+                        </div>
+                        <div id="karlineStats" class="sidebar-section-body" style="font-size:0.75rem;color:var(--text-muted);padding:8px;"></div>
                     </div>
                 </div>
             </div>
@@ -2704,7 +2707,73 @@
         </div>
     </div>
 
-
+    <div id="alertRuleModal" class="clean-modal">
+        <div class="clean-modal-backdrop" onclick="pazatorAlerts.cancelModal()"></div>
+        <div class="clean-modal-content" style="max-width:540px;padding:0;overflow:hidden;">
+            <div class="rule-modal-header">
+                <span class="rule-modal-header-icon"><i class="fas fa-bell"></i></span>
+                <span class="rule-modal-header-title">New Alert Rule</span>
+                <button class="rule-modal-close" onclick="pazatorAlerts.cancelModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="rule-modal-body">
+                <div class="rule-field-group">
+                    <div class="rule-field-label">Rule name</div>
+                    <input type="text" id="ruleName" class="rule-field-input" placeholder="e.g. High Risk Entity Detected" autofocus>
+                </div>
+                <div class="rule-divider"></div>
+                <div class="rule-row">
+                    <div class="rule-field-group" style="flex:1;">
+                        <div class="rule-field-label">Severity</div>
+                        <select id="ruleSeverity" class="rule-field-select">
+                            <option value="info">Info</option>
+                            <option value="warning">Warning</option>
+                            <option value="critical">Critical</option>
+                        </select>
+                    </div>
+                    <div class="rule-field-group" style="flex:1;">
+                        <div class="rule-field-label">Channel</div>
+                        <select id="ruleChannel" class="rule-field-select">
+                            <option value="notification">In-App Notification</option>
+                            <option value="websocket">WebSocket</option>
+                            <option value="webhook">Webhook</option>
+                            <option value="all">All Channels</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="rule-divider"></div>
+                <div class="rule-field-group">
+                    <div class="rule-field-label">Alert message</div>
+                    <input type="text" id="ruleDesc" class="rule-field-input" placeholder="Message to show when triggered">
+                </div>
+                <div class="rule-divider"></div>
+                <div class="rule-field-group">
+                    <div class="rule-field-label">Condition</div>
+                    <div class="rule-condition-row">
+                        <select id="ruleField" class="rule-field-select" style="flex:1;">
+                            <option value="humans">Humans Count</option>
+                            <option value="others">Others Count</option>
+                            <option value="cases">Cases Count</option>
+                            <option value="chats">Chats Count</option>
+                            <option value="relationships">Relationships Count</option>
+                        </select>
+                        <select id="ruleOperator" class="rule-field-select" style="width:64px;flex-shrink:0;">
+                            <option value="gt">&gt;</option>
+                            <option value="gte">&gt;=</option>
+                            <option value="lt">&lt;</option>
+                            <option value="lte">&lt;=</option>
+                            <option value="eq">=</option>
+                            <option value="neq">≠</option>
+                        </select>
+                        <input type="number" id="ruleValue" class="rule-field-input" value="0" style="width:72px;flex-shrink:0;text-align:center;">
+                    </div>
+                </div>
+            </div>
+            <div class="rule-modal-footer">
+                <button class="rule-modal-btn" onclick="pazatorAlerts.cancelModal()"><i class="fas fa-times"></i> Cancel</button>
+                <button class="rule-modal-btn rule-modal-btn-primary" id="createRuleBtn"><i class="fas fa-bell"></i> Create Rule</button>
+            </div>
+        </div>
+    </div>
 
     
     <div id="toastContainer" class="toast-container"></div>
@@ -2712,16 +2781,13 @@
     
     <div id="settingsModal" class="modal settings-modal">
         <div class="settings-modal-wrap">
-            <div class="settings-tab-bar" id="settingsTabBar">
-                <button class="settings-tab active" data-tab="general">General</button>
-                <button class="settings-tab" data-tab="ai">AI</button>
-                <button class="settings-tab" data-tab="security">Security</button>
+            <div class="settings-sidebar">
+                <div class="settings-sidebar-title"><i class="fas fa-cog"></i> Settings</div>
+                <button class="settings-tab active" data-tab="general"><i class="fas fa-sliders-h"></i> General</button>
+                <button class="settings-tab" data-tab="ai"><i class="fas fa-microchip"></i> AI</button>
+                <button class="settings-tab" data-tab="security"><i class="fas fa-shield-alt"></i> Security</button>
             </div>
-            <div class="settings-modal-content">
-            <div class="settings-header">
-                <h2>Settings</h2>
-            </div>
-            <div class="settings-body">
+            <div class="settings-body-wrap">
                 <div class="settings-tab-content active" id="settingsGeneral">
                     <div class="settings-group">
                         <label class="settings-toggle">
@@ -2740,13 +2806,21 @@
                         <p class="settings-desc">Skip the intro video on next load</p>
                     </div>
                     <div class="settings-group">
+                        <label style="display:flex;align-items:center;justify-content:space-between;">
+                            <span>Results Per Page</span>
+                            <input type="number" id="resultsPerPageInput" min="10" max="500" step="10"
+                                style="width:72px;padding:6px 8px;background:#1a1a1a;border:1px solid #444;border-radius:4px;color:#fff;font-size:0.8rem;text-align:center;">
+                        </label>
+                        <p class="settings-desc">Number of items per page in tables and search results</p>
+                    </div>
+                    <div class="settings-group">
                         <button id="settingsWalkthroughBtn" class="btn btn-primary btn-full"
                             style="padding: 12px; font-size: 0.9rem;">
                             <i class="fas fa-question-circle"></i> Show Walkthrough
                         </button>
                     </div>
                 </div>
-                <div class="settings-tab-content" id="settingsAI">
+                <div class="settings-tab-content" id="settingsAi">
                     <div class="settings-group">
                         <label style="display:flex;align-items:center;justify-content:space-between;">
                             <span>Tool Call Delay</span>
@@ -2762,6 +2836,57 @@
                             <span class="toggle-slider"></span>
                         </label>
                         <p class="settings-desc">Log full API messages to console for debugging the agent loop</p>
+                    </div>
+                    <div class="settings-group">
+                        <label style="display:flex;align-items:center;justify-content:space-between;">
+                            <span>Temperature</span>
+                            <span style="display:flex;align-items:center;gap:8px;">
+                                <input type="range" id="aiTempRange" min="0" max="20" value="7"
+                                    style="width:100px;accent-color:#888;cursor:pointer;">
+                                <input type="number" id="aiTempInput" min="0" max="2" step="0.1"
+                                    style="width:56px;padding:4px 6px;background:#1a1a1a;border:1px solid #444;border-radius:4px;color:#fff;font-size:0.8rem;text-align:center;">
+                            </span>
+                        </label>
+                        <p class="settings-desc">Controls randomness in AI responses (0 = deterministic, 2 = very creative)</p>
+                    </div>
+                    <div class="settings-group">
+                        <label style="display:flex;align-items:center;justify-content:space-between;">
+                            <span>Max Output Tokens</span>
+                            <input type="number" id="aiMaxTokensInput" min="256" max="131072" step="256"
+                                style="width:80px;padding:6px 8px;background:#1a1a1a;border:1px solid #444;border-radius:4px;color:#fff;font-size:0.8rem;text-align:center;">
+                        </label>
+                        <p class="settings-desc">Maximum length of AI responses (256–131k, varies by model)</p>
+                    </div>
+                    <div class="settings-group">
+                        <label class="settings-toggle">
+                            <span>Stream Responses</span>
+                            <input type="checkbox" id="aiStreamToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <p class="settings-desc">Display AI responses token by token as they are generated</p>
+                    </div>
+                    <div class="settings-group">
+                        <label style="display:flex;align-items:center;justify-content:space-between;">
+                            <span>Max Tool Iterations</span>
+                            <input type="number" id="aiToolIterationsInput" min="1" max="20" step="1"
+                                style="width:60px;padding:6px 8px;background:#1a1a1a;border:1px solid #444;border-radius:4px;color:#fff;font-size:0.8rem;text-align:center;">
+                        </label>
+                        <p class="settings-desc">How many tool-calling rounds the agent can perform per request</p>
+                    </div>
+                    <div class="settings-group">
+                        <label class="settings-toggle">
+                            <span>Auto-Retry on Failure</span>
+                            <input type="checkbox" id="aiAutoRetryToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <p class="settings-desc">Automatically retry failed API calls</p>
+                        <div id="aiRetryCountWrap" style="display:none;margin-top:4px;">
+                            <label style="display:flex;align-items:center;justify-content:space-between;">
+                                <span style="font-size:0.85rem;color:#999;">Max Retries</span>
+                                <input type="number" id="aiRetryCountInput" min="1" max="10" step="1"
+                                    style="width:60px;padding:4px 6px;background:#1a1a1a;border:1px solid #444;border-radius:4px;color:#fff;font-size:0.8rem;text-align:center;">
+                            </label>
+                        </div>
                     </div>
                 </div>
                 <div class="settings-tab-content" id="settingsSecurity">
@@ -2797,6 +2922,7 @@
                     </div>
                 </div>
             </div>
+            <button class="settings-close" onclick="closeSettingsModal()"><i class="fas fa-times"></i></button>
         </div>
     </div>
 

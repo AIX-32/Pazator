@@ -4,22 +4,21 @@
 
 Pazator is a single‑page browser‑based intelligence analysis application (~50K lines: 34K JS, 12.8K CSS, 2.9K HTML). Dark theme, local‑first storage (IndexedDB + localStorage), AI assistant (Zor) with pluggable provider system (Gemini, DeepSeek), TIDE analysis engine, classification system, logbook, GIS overlays, MapLibre globe tracker (LCTX) with Supabase, entity relationship graph, case management, ontology designer, pipeline ETL, rule engine (alerts + workflow), in-browser API console with GraphQL, report builder, LAN sync via the PZLS Node.js server, plugin system, and D3 force-directed graph explorer.
 
-**Size:** 39 JS modules, ~80 exported functions, 15 tab views, 16 modal dialogs, 2.9K lines of HTML.
+**Size:** 39 JS modules, ~80 exported functions, 14 tab views, 16 modal dialogs, 2.9K lines of HTML.
 
 **Fonts:** Alliance No.2 (branding), Maven Pro (UI), DM Mono (code/monospace in mobile), Anton (mobile headers).
 
 ---
 
-## Tabs & UI Structure (15 Tabs)
+## Tabs & UI Structure (14 Tabs)
 
 All tabs rendered statically in `app/index.html`, shown/hidden via `switchTab()` in `js/ui/tabs.js`.
 
 | Tab ID | Label | Sidebar? | Key Contents | Loaded By |
 |--------|-------|----------|-------------|-----------|
 | `dashboard-tab` | Dashboard | Yes | `#webContainer` (entity card grid), `#virtualTableContainer`, `#skeletonGraph` (loading skeleton), `#detailSlidePanel`, quick action buttons, DB counts, tags input, AI config | Eager (default) |
-| `analysis-tab` | Analysis | No | Action grid (Network Analysis, Risk Assessment, Credit Ranking, AI Suggestions), metrics grid, Quick Tools | Lazy: `dashboard.js` (misnamed tab) |
 | `chat-control-tab` | Comms Security | Yes | Threat Detection Suite, Quick Tools, Conversation Archives with filter/source select, Danger Zone purge | Eager |
-| `threats-tab` | Intel Center | Yes | AI Analysis card, Risk Distribution, Hidden Connections, Analysis Results, Context Sources checkboxes, Analysis Mode | Eager |
+| `threats-tab` | Intel Center | Yes | **Merged from Analysis + Intel Center.** 6 action cards grid (TIDE Deep Scan, Hidden Connections, Network Analysis, Risk Assessment, Credit Ranking, AI Suggestions), metrics row (People/Entities/Tags/High Risk), quick tools, Analysis Results with filter, side panel with Quick Stats, Context Sources checkboxes, Analysis Mode | Eager (also loads dashboard module for metrics refresh) |
 | `search-tab` | Search | No | `#universalSearchInput`, type pills, field chips, results area | Eager |
 | `cases-tab` | Cases | Yes | Case detail (header, stats, description, entities, evidence, activity timeline), case file list sidebar | Eager |
 | `ontology-tab` | Ontology | No | `#ontologyTabContainer` (JS-rendered designer) | Lazy: `ontology.js` |

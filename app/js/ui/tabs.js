@@ -33,7 +33,7 @@ function updateTabBarClock() {
     tabBarTime.textContent = timeString;
     tabBarDate.textContent = dateString;
     if (tabBarStatus) {
-        const statuses = ['System operational',];
+        const statuses = ['Its running.',];
         tabBarStatus.textContent = statuses[now.getSeconds() % statuses.length];
     }
 }
@@ -116,7 +116,8 @@ function initTabs() {
             walkthroughOption: function () { return ensureLazyModule('walkthrough', 'js/apps/walkthrough.js', function () { return !!window.startPazatorWalkthrough; }); },
             snappyOption: function () { return ensureLazyModule('snappy', 'js/apps/snappy.js', function () { return !!window.pazatorSnappy; }); },
             syncConfigOption: function () { return ensureLazyModule('sync', 'js/apps/sync.js', function () { return !!window.pazatorSync; }); },
-            adminPanelOption: function () { return ensureLazyModule('admin', 'js/apps/lsad.js', function () { return !!window.pazatorAdmin; }); }
+            adminPanelOption: function () { return ensureLazyModule('admin', 'js/apps/lsad.js', function () { return !!window.pazatorAdmin; }); },
+            karlineTrigger: function () { return ensureLazyModule('karline', 'js/apps/karline.js', function () { return !!window.pazatorKarline; }); }
         };
         Object.keys(lazyTriggers).forEach(function (id) {
             var el = document.getElementById(id);
@@ -201,10 +202,11 @@ function createTab(tabId) {
     newTab.dataset.tab = tabId;
 
     let tabLabel = tabId.charAt(0).toUpperCase() + tabId.slice(1);
-    if (tabId === 'threats') tabLabel = 'Threats & Fraud';
+    if (tabId === 'threats') tabLabel = 'Intel Center';
     if (tabId === 'chat-control') tabLabel = 'Chat Security';
     if (tabId === 'tracker') tabLabel = 'LCTX';
     if (tabId === 'plugins') tabLabel = 'Plugins';
+    if (tabId === 'karline') tabLabel = 'Karline';
 
     newTab.innerHTML = `
                 ${tabLabel}
@@ -292,6 +294,16 @@ function switchTab(tabId) {
         setTimeout(initSearchTab, 50);
     } else if (tabId === 'threats') {
         updateIntelligenceCenterStats();
+        ensureLazyModule('dashboard', 'js/apps/dashboard.js', function () { return !!window.pazatorDashboard; }).then(function () {
+            if (window.pazatorDashboard) {
+                if (!window.pazatorDashboard._initialized) {
+                    window.pazatorDashboard.init();
+                    window.pazatorDashboard._initialized = true;
+                } else {
+                    window.pazatorDashboard.refresh();
+                }
+            }
+        });
     } else if (tabId === 'tracker') {
         ensureTrackerConfig(true);
         ensureTrackerTabReady();
@@ -307,17 +319,6 @@ function switchTab(tabId) {
         });
     } else if (tabId === 'cases') {
         setTimeout(initCasesTab, 50);
-    } else if (tabId === 'analysis') {
-        ensureLazyModule('dashboard', 'js/apps/dashboard.js', function () { return !!window.pazatorDashboard; }).then(function () {
-            if (window.pazatorDashboard) {
-                if (!window.pazatorDashboard._initialized) {
-                    window.pazatorDashboard.init();
-                    window.pazatorDashboard._initialized = true;
-                } else {
-                    window.pazatorDashboard.refresh();
-                }
-            }
-        });
     } else if (tabId === 'ontology') {
         ensureLazyModule('ontology', 'js/apps/ontology.js', function () { return !!window.pazatorOntologyDesigner; }).then(function () {
             if (window.pazatorOntologyDesigner) {
@@ -385,6 +386,15 @@ function switchTab(tabId) {
                 } else if (window.pazatorExplorer._initialized) {
                     window.pazatorExplorer.resetView();
                 }
+            }
+        });
+    } else if (tabId === 'karline') {
+        ensureLazyModule('karline', 'js/apps/karline.js', function () { return !!window.pazatorKarline; }).then(function () {
+            if (window.pazatorKarline && !window.pazatorKarline._initialized) {
+                window.pazatorKarline.init();
+                window.pazatorKarline._initialized = true;
+            } else if (window.pazatorKarline) {
+                window.pazatorKarline.render();
             }
         });
     } else if (tabId === 'plugins') {

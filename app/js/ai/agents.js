@@ -633,7 +633,9 @@
         var btn = document.getElementById('intelAnalyzeBtn');
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<div class="loader" style="--size:16px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Deploying...';
+            btn.classList.add('loading');
+            var trigger = btn.querySelector('.intel-action-trigger');
+            if (trigger) trigger.innerHTML = '<div class="loader" style="--size:14px;display:inline-block;vertical-align:middle;margin-right:4px;"></div> Deploying...';
         }
 
         var people = self.getPersonData();
@@ -687,7 +689,9 @@
                 self.running = false;
                 if (btn) {
                     btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-play"></i> Deploy Agents';
+                    btn.classList.remove('loading');
+                    var trigger = btn.querySelector('.intel-action-trigger');
+                    if (trigger) trigger.innerHTML = '<i class="fas fa-play"></i> Run';
                 }
                 if (closeBtn) closeBtn.style.display = 'flex';
             });

@@ -271,22 +271,24 @@ function updateIntelligenceCenterStats() {
     }
 }
 function updateAnalysisHubStats() {
-    const humanCountEl = document.getElementById('analysisHumanCount');
-    const creditAvgEl = document.getElementById('analysisCreditAvg');
+    const intelHumanCount = document.getElementById('intelHumanCount');
+    const intelCreditAvg = document.getElementById('intelCreditAvg');
+    const sidebarCreditAvg = document.getElementById('sidebarCreditAvg');
     const metricHumans = document.getElementById('metricHumans');
     const metricEntities = document.getElementById('metricEntities');
     const metricTags = document.getElementById('metricTags');
     const metricHighRisk = document.getElementById('metricHighRisk');
-    const riskSummary = document.getElementById('analysisRiskSummary');
+    const riskSummary = document.getElementById('intelRiskSummary');
 
-    if (humanCountEl) humanCountEl.textContent = pazatorData.humans.length;
+    if (intelHumanCount) intelHumanCount.textContent = pazatorData.humans.length;
     if (metricHumans) metricHumans.textContent = pazatorData.humans.length;
     if (metricEntities) metricEntities.textContent = pazatorData.others.length;
     if (metricTags) metricTags.textContent = tags.length;
 
     const totalCredit = pazatorData.humans.reduce((sum, h) => sum + (h.credit || 185), 0);
     const avgCredit = pazatorData.humans.length ? Math.round(totalCredit / pazatorData.humans.length) : 0;
-    if (creditAvgEl) creditAvgEl.textContent = avgCredit;
+    if (intelCreditAvg) intelCreditAvg.textContent = avgCredit;
+    if (sidebarCreditAvg) sidebarCreditAvg.textContent = avgCredit;
 
     const highRisk = pazatorData.humans.filter(h => (h.credit || 185) < 125).length;
     const mediumRisk = pazatorData.humans.filter(h => (h.credit || 185) >= 125 && (h.credit || 185) < 250).length;

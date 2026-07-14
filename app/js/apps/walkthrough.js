@@ -172,17 +172,10 @@
       before: function () { closeAllMenus(); }
     },
     {
-      target: '#analysis-tab',
-      title: 'Analysis Hub',
-      desc: 'Network analysis, risk assessment, credit ranking, AI tag suggestions, and key metrics.',
-      before: function () { closeAllMenus(); switchTab('analysis'); },
-      after: function () { switchTab(prevTab); }
-    },
-    {
       target: '#threats-tab',
       title: 'Intelligence Center',
-      desc: 'AI security scans, risk distribution charts, hidden connection finder, and context source toggles.',
-      before: function () { switchTab('threats'); },
+      desc: 'TIDE deep scans, network analysis, risk assessment, credit ranking, hidden connections, AI tag suggestions, and live analysis results.',
+      before: function () { closeAllMenus(); switchTab('threats'); },
       after: function () { switchTab(prevTab); }
     },
     {
