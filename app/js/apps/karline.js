@@ -134,16 +134,62 @@
             if (elapsed > 2) statusEl.textContent = 'working...';
         }, 200);
 
-        setTimeout(function () {
+        var action = actions.find(function (a) { return a.id === id; });
+        if (!action) {
             clearInterval(interval);
-            statusEl.textContent = 'Handed off to Zor.';
+            statusEl.textContent = 'Action not found';
+            statusEl.style.color = '#ff6b6b';
+            return;
+        }
+
+        if (!window.pazatorAI || !window.pazatorAI.getApiKey || !window.pazatorAI.getApiKey()) {
+            clearInterval(interval);
+            statusEl.textContent = 'No AI provider configured';
+            statusEl.style.color = '#ff6b6b';
+            notify('Set up an AI provider in Settings first', 'error');
+            return;
+        }
+
+        var messages = [
+            { role: 'system', content: 'You are Zor, an AI intelligence analysis assistant integrated with Pazator. Review the following operational action and verify its feasibility, completeness, and relevance. Respond with a JSON object: {"verified": true/false, "feedback": "..."}' },
+            { role: 'user', content: 'Verify this action:\nTitle: ' + action.title + '\nType: ' + action.type + '\nDate: ' + action.date + (action.endDate ? '\nEnd Date: ' + action.endDate : '') + '\nGoal: ' + (action.goal || 'N/A') + '\nDescription: ' + (action.description || 'N/A') + '\nStatus: ' + action.status }
+        ];
+
+        window.pazatorAI.chat(messages).then(function (result) {
+            clearInterval(interval);
+            var text = result.content || '';
+            var verified = false;
+            var feedback = '';
+            try {
+                var parsed = JSON.parse(text.replace(/```json\s*/i, '').replace(/```/g, '').trim());
+                if (parsed && typeof parsed.verified === 'boolean') verified = parsed.verified;
+                if (parsed && parsed.feedback) feedback = parsed.feedback;
+            } catch (e) {
+                verified = text.toLowerCase().indexOf('"verified": true') !== -1 || text.toLowerCase().indexOf('"verified":true') !== -1;
+            }
+            if (verified) {
+                statusEl.textContent = 'Verified by Zor' + (feedback ? ': ' + feedback.slice(0, 60) : '');
+                statusEl.style.borderColor = '#4caf50';
+                statusEl.style.color = '#4caf50';
+                updateAction(id, { zorVerified: true, status: 'verified' });
+                notify('Action verified by Zor', 'success');
+            } else {
+                statusEl.textContent = 'Verification failed' + (feedback ? ': ' + feedback.slice(0, 60) : '');
+                statusEl.style.borderColor = '#ff6b6b';
+                statusEl.style.color = '#ff6b6b';
+                notify('Zor could not verify this action', 'warning');
+            }
             timerEl.textContent = '';
             timerEl.style.display = 'none';
-            statusEl.style.borderColor = '#4caf50';
-            statusEl.style.color = '#4caf50';
-            updateAction(id, { zorVerified: true, status: 'verified' });
-            notify('Action verified by Zor', 'success');
-        }, 3000);
+        }).catch(function (err) {
+            clearInterval(interval);
+            statusEl.textContent = 'Error: ' + (err.message || 'unknown');
+            statusEl.style.borderColor = '#ff6b6b';
+            statusEl.style.color = '#ff6b6b';
+            timerEl.textContent = '';
+            timerEl.style.display = 'none';
+            notify('Failed to verify with Zor: ' + (err.message || 'unknown'), 'error');
+        });
     }
 
     // ─── PDF ──────────────────────────────────────────────────────────

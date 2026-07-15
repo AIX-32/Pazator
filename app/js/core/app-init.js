@@ -12,7 +12,7 @@ function checkAuthStatus() {
         }
     }
 
-    // Fire-and-forget; ensures greeting is updated when auth changes.
+
     updateAccountSection();
 }
 
@@ -117,7 +117,7 @@ function setupLogoDropdownListeners() {
 
         aboutOption?.addEventListener('click', (event) => {
             event.stopPropagation();
-            window.open('../docs/about_note.html', '_blank');
+            window.open('../docs/about.html', '_blank');
         });
 
         settingsOption?.addEventListener('click', (event) => {
@@ -126,7 +126,7 @@ function setupLogoDropdownListeners() {
         });
     }
 
-    // ─── Neofetch ─────────────────────────────────────────────────────
+
     const neofetchOption = document.getElementById('neofetchOption');
     const neofetchOverlay = document.getElementById('neofetchOverlay');
     const neofetchCard = document.getElementById('neofetchCard');
@@ -283,8 +283,8 @@ function setupLogoDropdownListeners() {
     }
 }
 
-// Entity data now uses IndexedDB exclusively. localStorage is only used
-// for minor config/cache (sync token, plugin states, etc).
+
+
 
 loadData().then(function () {
     console.log(' Data loading completed');
@@ -393,12 +393,12 @@ function updateSidebarProfile() {
         try {
             var raw = localStorage.getItem('pazator_user_cache');
             if (raw) user = JSON.parse(raw);
-        } catch (e) {}
+        } catch (e) { }
     }
 
     if (last) {
         var state = null;
-        try { var sr = localStorage.getItem('pazator_sync_state'); if (sr) state = JSON.parse(sr); } catch (e) {}
+        try { var sr = localStorage.getItem('pazator_sync_state'); if (sr) state = JSON.parse(sr); } catch (e) { }
         if (state) {
             var parts = [];
             if (state.lastPush) parts.push('push ' + new Date(state.lastPush).toLocaleString());

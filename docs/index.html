@@ -61,8 +61,14 @@
       font-family: 'Anton', sans-serif;
       font-size: clamp(20px, 3vw, 36px);
       letter-spacing: -0.01em;
-      margin-top: 60px; margin-bottom: 20px;
+      margin-top: 80px; margin-bottom: 24px;
     }
+    .section-label {
+      font-size: 9px; letter-spacing: 0.5em; text-transform: uppercase;
+      color: #444; margin-bottom: 20px; padding-top: 20px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .section-label:first-of-type { border-top: none; padding-top: 0; }
     .content p {
       font-size: 12px; line-height: 2;
       color: rgba(255,255,255,0.45); margin-bottom: 20px;
@@ -74,13 +80,13 @@
       color: var(--dim); margin-bottom: 20px;
     }
     .doc-grid {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
-      margin: 40px 0;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+      margin: 0 0 32px 0;
     }
     .doc-card {
       display: block; text-decoration: none;
       border: 1px solid rgba(255,255,255,0.1);
-      padding: 40px 32px;
+      padding: 32px 28px;
       transition: border-color 0.3s, background 0.3s;
     }
     .doc-card:hover {
@@ -88,23 +94,23 @@
       background: rgba(255,255,255,0.02);
     }
     .doc-card .tag {
-      font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase;
-      color: var(--dim); margin-bottom: 16px;
+      font-size: 8px; letter-spacing: 0.4em; text-transform: uppercase;
+      color: var(--dim); margin-bottom: 12px;
     }
     .doc-card .title {
       font-family: 'Anton', sans-serif;
-      font-size: clamp(28px, 4vw, 48px);
+      font-size: clamp(22px, 3vw, 36px);
       letter-spacing: -0.02em;
       color: var(--white);
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
     .doc-card .desc {
-      font-size: 11px; line-height: 1.8;
+      font-size: 10px; line-height: 1.8;
       color: rgba(255,255,255,0.4);
     }
     .doc-card .arrow {
-      display: inline-block; margin-top: 20px;
-      font-size: 9px; letter-spacing: 0.35em; text-transform: uppercase;
+      display: inline-block; margin-top: 16px;
+      font-size: 8px; letter-spacing: 0.35em; text-transform: uppercase;
       color: var(--dim); transition: color 0.3s;
     }
     .doc-card:hover .arrow { color: var(--white); }
@@ -134,132 +140,163 @@
         <div class="badge">DOCS &mdash; v0.May1526</div>
         <h1>Documentation.</h1>
         <p>
-          Guides and references for Pazator's core systems. Each page covers a specific feature
-          &mdash; how it works, how to use it, and what to expect.
+          Guides and references for Pazator's core systems, organized by category.
         </p>
 
+        <div class="section-label">Automation</div>
         <div class="doc-grid">
-          <a href="collab.html" class="doc-card">
-            <div class="tag">Access Control</div>
-            <div class="title">COLLAB</div>
-            <div class="desc">
-              Role-based access with 4 roles, audit trail for every action, entity
-              comments, and shared workspaces for grouping related data together.
-            </div>
-            <div class="arrow">Read &rarr;</div>
-          </a>
-
-          <a href="workflow.html" class="doc-card">
-            <div class="tag">Automation</div>
-            <div class="title">WORKFLOW</div>
-            <div class="desc">
-              TASTUR v2 &mdash; visual WHEN/IF/THEN rule engine with 7 triggers, 6 actions,
-              schedule-based execution, and automatic app event hooks.
-            </div>
-            <div class="arrow">Read &rarr;</div>
-          </a>
-
-          <a href="reports.html" class="doc-card">
-            <div class="tag">Reporting</div>
-            <div class="title">REPORTS</div>
-            <div class="desc">
-              Build templates with data widgets, preview live, export to PDF or CSV,
-              or schedule recurring auto-exports at any interval.
-            </div>
-            <div class="arrow">Read &rarr;</div>
-          </a>
-
-          <a href="ctxod.html" class="doc-card">
-            <div class="tag">AI Context</div>
-            <div class="title">CTXOD</div>
-            <div class="desc">
-              Context On Demand &mdash; lets Zor fetch specific data using tools instead of
-              receiving the full database summary with every message. Saves tokens and keeps
-              responses focused.
-            </div>
-            <div class="arrow">Read &rarr;</div>
-          </a>
-
           <a href="tastur.html" class="doc-card">
-            <div class="tag">Automation</div>
+            <div class="tag">Rules Engine</div>
             <div class="title">TASTUR</div>
             <div class="desc">
-              The original event-driven rule engine. Write
+              Event-driven rule engine. Write
               <code style="color:var(--white);">WHEN &hellip; IF &hellip; THEN &hellip;</code>
               rules that respond to tab switches, threat detection, searches, and more.
             </div>
             <div class="arrow">Read &rarr;</div>
           </a>
-
-          <a href="timeln.html" class="doc-card">
-            <div class="tag">Visualization</div>
-            <div class="title">TIMELN</div>
+          <a href="workflow.html" class="doc-card">
+            <div class="tag">Workflow</div>
+            <div class="title">WORKFLOW</div>
             <div class="desc">
-              Unifies every data type about an entity into a single chronological feed
-              &mdash; relationships, cases, chats, tracker, analysis, notes &mdash; in the
-              detail slide panel.
+              Visual WHEN/IF/THEN engine with 7 triggers, 6 actions, schedule-based
+              execution, and automatic app event hooks.
             </div>
             <div class="arrow">Read &rarr;</div>
           </a>
+        </div>
 
+        <div class="section-label">Data</div>
+        <div class="doc-grid">
           <a href="facets.html" class="doc-card">
             <div class="tag">Search</div>
             <div class="title">FACETS</div>
             <div class="desc">
-              Inverted index over humans + entities + relationships. Filter pills by threat
-              level, nationality, religion, tags. Real-time counts per facet. Saved searches
-              stored in localStorage.
+              Inverted index over humans + entities + relationships. Filter pills,
+              real-time counts per facet, saved searches.
             </div>
             <div class="arrow">Read &rarr;</div>
           </a>
-
-          <a href="sync.html" class="doc-card">
-            <div class="tag">Infrastructure</div>
-            <div class="title">SYNC</div>
+          <a href="ontol.html" class="doc-card">
+            <div class="tag">Data Model</div>
+            <div class="title">ONTOL</div>
             <div class="desc">
-              Deploy your own Pazator Sync Server. Account registration, token-based auth,
-              per-user data isolation, push/pull sync, and entity resolution over HTTP.
+              Ontology designer &mdash; two type systems for value attributes and
+              entity categories. Drag-reorder, hierarchy, live preview.
             </div>
             <div class="arrow">Read &rarr;</div>
           </a>
+          <a href="pipes.html" class="doc-card">
+            <div class="tag">Ingestion</div>
+            <div class="title">PIPES</div>
+            <div class="desc">
+              In-browser ETL pipelines. CSV, JSON, SQL, REST connectors with
+              filter/map/sort/dedup transforms and scheduler.
+            </div>
+            <div class="arrow">Read &rarr;</div>
+          </a>
+        </div>
 
+        <div class="section-label">Collaboration</div>
+        <div class="doc-grid">
+          <a href="collab.html" class="doc-card">
+            <div class="tag">Access Control</div>
+            <div class="title">COLLAB</div>
+            <div class="desc">
+              Role-based access with 4 roles, audit trail, entity comments, and
+              shared workspaces.
+            </div>
+            <div class="arrow">Read &rarr;</div>
+          </a>
+          <a href="collaboration.html" class="doc-card">
+            <div class="tag">Multi-User</div>
+            <div class="title">COLLABORATION</div>
+            <div class="desc">
+              Multi-user sync, real-time presence, merge conflict resolution,
+              offline queue, and AI auto-solve.
+            </div>
+            <div class="arrow">Read &rarr;</div>
+          </a>
+        </div>
+
+        <div class="section-label">AI &amp; Analysis</div>
+        <div class="doc-grid">
+          <a href="ctxod.html" class="doc-card">
+            <div class="tag">AI Context</div>
+            <div class="title">CTXOD</div>
+            <div class="desc">
+              Context On Demand &mdash; Zor fetches specific data via tools instead
+              of the full database dump. Saves tokens, keeps responses focused.
+            </div>
+            <div class="arrow">Read &rarr;</div>
+          </a>
+        </div>
+
+        <div class="section-label">Visualization &amp; Tracking</div>
+        <div class="doc-grid">
+          <a href="timeln.html" class="doc-card">
+            <div class="tag">Timeline</div>
+            <div class="title">TIMELN</div>
+            <div class="desc">
+              Unifies every data type about an entity into a single chronological
+              feed &mdash; relationships, cases, chats, tracker, analysis, notes.
+            </div>
+            <div class="arrow">Read &rarr;</div>
+          </a>
           <a href="lctx.html" class="doc-card">
             <div class="tag">Tracking</div>
             <div class="title">LCTX</div>
             <div class="desc">
               MapLibre globe tracker with Supabase. Satellite imagery, path traces,
-              person linking, reverse geocoding, spin animation, and street labels.
+              person linking, reverse geocoding.
             </div>
             <div class="arrow">Read &rarr;</div>
           </a>
+        </div>
 
-          <a href="ontol.html" class="doc-card">
-            <div class="tag">Data Model</div>
-            <div class="title">ONTOL</div>
+        <div class="section-label">Output</div>
+        <div class="doc-grid">
+          <a href="reports.html" class="doc-card">
+            <div class="tag">Reporting</div>
+            <div class="title">REPORTS</div>
             <div class="desc">
-              Ontology designer &mdash; two flexible type systems for value attributes
-              and entity categories. Define your own schema with drag-reorder, hierarchy,
-              live preview, and JSON import/export.
+              Build templates with data widgets, preview live, export to PDF or CSV,
+              or schedule recurring auto-exports.
             </div>
             <div class="arrow">Read &rarr;</div>
           </a>
-
-          <a href="pipes.html" class="doc-card">
-            <div class="tag">Data Ingestion</div>
-            <div class="title">PIPES</div>
+          <a href="karline.html" class="doc-card">
+            <div class="tag">Action Planning</div>
+            <div class="title">KARLINE</div>
             <div class="desc">
-              In-browser ETL pipelines. Four connectors (CSV, JSON, SQL, REST), five
-              transforms (filter, map, sort, limit, dedup), scheduler, and run history.
+              Timeline-based operational board. Define, track, and verify actions.
+              Link evidence entities, export PDF reports, and hand off to Zor for AI validation.
             </div>
             <div class="arrow">Read &rarr;</div>
           </a>
+        </div>
 
-          <a href="collaboration.html" class="doc-card">
-            <div class="tag">Collaboration</div>
-            <div class="title">COLLABORATION</div>
+        <div class="section-label">Infrastructure</div>
+        <div class="doc-grid">
+          <a href="sync.html" class="doc-card">
+            <div class="tag">Sync Server</div>
+            <div class="title">SYNC</div>
             <div class="desc">
-              Multi-user sync, real-time presence, role-based access, merge conflict
-              resolution, offline queue, and AI auto-solve for conflicts.
+              Deploy your own Pazator Sync Server. Account registration, auth,
+              per-user isolation, push/pull, entity resolution.
+            </div>
+            <div class="arrow">Read &rarr;</div>
+          </a>
+        </div>
+
+        <div class="section-label">Extensibility</div>
+        <div class="doc-grid">
+          <a href="plugins.html" class="doc-card">
+            <div class="tag">Plugins</div>
+            <div class="title">PLUGINS</div>
+            <div class="desc">
+              Build plugins for Pazator. API reference, lifecycle hooks, Tastur
+              events, tab/menu injection, and a minimal working example.
             </div>
             <div class="arrow">Read &rarr;</div>
           </a>
