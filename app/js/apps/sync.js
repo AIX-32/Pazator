@@ -231,8 +231,10 @@
   }
 
   async function flushOfflineQueue() {
+    if (!authToken) { window.PazatorUI && window.PazatorUI.showFloatingNotification('No PZLS connection', 'error', 2500); return; }
+    window.PazatorUI && window.PazatorUI.showFloatingNotification('Flush started…', 'info', 1500);
     var queue = loadOfflineQueue();
-    if (!queue.length) return;
+    if (!queue.length) { window.PazatorUI && window.PazatorUI.showFloatingNotification('Queue empty', 'info', 2000); return; }
     var remaining = [];
     for (var i = 0; i < queue.length; i++) {
       var op = queue[i];
@@ -309,8 +311,9 @@
   // ─── Incremental Pull (cursor-based) ──────────────────────────
 
   async function pullIncremental() {
+    if (!authToken) { window.PazatorUI && window.PazatorUI.showFloatingNotification('No PZLS connection', 'error', 2500); return { success: false, error: 'Not logged in' }; }
+    window.PazatorUI && window.PazatorUI.showFloatingNotification('Incremental pull started…', 'info', 1500);
     try {
-      if (!authToken) { showConfigModal(); return { success: false, error: 'Not logged in' }; }
       var cursor = localStorage.getItem(SYNC_CURSOR_KEY) || null;
       var totalImported = 0;
       var more = true;
@@ -925,6 +928,7 @@
     getStatus: getStatus,
     showConfigModal: showConfigModal,
     updateSyncUI: updateSyncUI,
+    showConflictResolver: showConflictResolver,
     getConfig: loadConfig,
     getState: loadState,
     login: login,

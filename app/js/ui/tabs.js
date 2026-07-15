@@ -247,6 +247,13 @@ function createTab(tabId) {
 
 var _lazyModules = {};
 
+function lazySyncAction(method) {
+    if (window.pazatorSync) { return window.pazatorSync[method](); }
+    ensureLazyModule('sync', 'js/apps/sync.js', function () { return !!window.pazatorSync; }).then(function () {
+        if (window.pazatorSync) window.pazatorSync[method]();
+    });
+}
+
 function ensureLazyModule(moduleName, scriptSrc, checkFn) {
     if (_lazyModules[moduleName]) return Promise.resolve();
     _lazyModules[moduleName] = 'loading';

@@ -396,15 +396,15 @@
                     <div class="menu-separator"></div>
                     <button class="menu-dropdown-item" onclick="document.getElementById('syncConfigOption')?.click()"><i
                             class="fas fa-plug"></i> PZLS</button>
-                    <button class="menu-dropdown-item" onclick="window.pazatorSync?.push()"><i
+                    <button class="menu-dropdown-item" onclick="lazySyncAction('push')"><i
                              class="fas fa-upload"></i> Push</button>
-                    <button class="menu-dropdown-item" onclick="window.pazatorSync?.pull()"><i
+                    <button class="menu-dropdown-item" onclick="lazySyncAction('pull')"><i
                              class="fas fa-download"></i> Pull</button>
-                    <button class="menu-dropdown-item" onclick="window.pazatorSync?.pullIncremental()"><i
+                    <button class="menu-dropdown-item" onclick="lazySyncAction('pullIncremental')"><i
                              class="fas fa-sync-alt"></i> Incremental Pull</button>
-                    <button class="menu-dropdown-item" onclick="window.pazatorSync?.flushOfflineQueue()"><i
+                    <button class="menu-dropdown-item" onclick="lazySyncAction('flushOfflineQueue')"><i
                              class="fas fa-clock"></i> Flush Queue</button>
-                    <button class="menu-dropdown-item" onclick="showConflictResolver()"><i
+                    <button class="menu-dropdown-item" onclick="lazySyncAction('showConflictResolver')"><i
                              class="fas fa-gavel"></i> Resolve Conflicts</button>
                     <div class="menu-separator"></div>
                     <button class="menu-dropdown-item" onclick="document.getElementById('snappyOption')?.click()"><i
