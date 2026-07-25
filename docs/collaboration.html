@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>COLLABORATION — Merge Conflicts | Pazator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --black: #000; --white: #fff; --dim: #666; }
+    html { font-size: 16px; }
+    body { background: var(--black); color: var(--white); font-family: 'DM Mono', monospace; overflow-x: hidden; cursor: crosshair; }
+    .topbar { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; padding: 0 32px; height: 52px; border-bottom: 1px solid rgba(255,255,255,0.1); background: var(--black); }
+    .tb-left { font-size: 9px; letter-spacing: 0.5em; color: var(--dim); }
+    .tb-center { font-family: 'Anton', sans-serif; font-size: 18px; letter-spacing: 0.12em; }
+    .tb-right { display: flex; gap: 28px; }
+    .tb-right a { font-size: 9px; letter-spacing: 0.35em; color: var(--dim); text-decoration: none; text-transform: uppercase; transition: color 0.2s; }
+    .tb-right a:hover { color: var(--white); }
+    .hero { min-height: 100vh; padding-top: 52px; display: grid; grid-template-rows: auto 1fr auto; }
+    .ticker-wrap { overflow: hidden; white-space: nowrap; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .ticker-inner { display: inline-block; animation: tick 20s linear infinite; font-size: 9px; letter-spacing: 0.45em; color: var(--dim); }
+    @keyframes tick { to { transform: translateX(-50%); } }
+    .content { border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .content-inner { max-width: 800px; margin: 0 auto; padding: 80px 48px; }
+    .content h1 { font-family: 'Anton', sans-serif; font-size: clamp(48px, 8vw, 100px); line-height: 0.85; letter-spacing: -0.03em; margin-bottom: 40px; }
+    .content h2 { font-family: 'Anton', sans-serif; font-size: clamp(20px, 3vw, 36px); letter-spacing: -0.01em; margin-top: 60px; margin-bottom: 20px; }
+    .content h3 { font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--dim); margin-top: 40px; margin-bottom: 12px; }
+    .content p { font-size: 12px; line-height: 2; color: rgba(255,255,255,0.45); margin-bottom: 20px; }
+    .content code, .content .code { font-family: 'Courier New', Courier, monospace; font-size: 11px; color: var(--white); background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 3px; }
+    .content pre { font-family: 'Courier New', Courier, monospace; font-size: 11px; color: var(--white); background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 20px 24px; border-radius: 4px; overflow-x: auto; margin: 16px 0 24px; line-height: 1.7; }
+    .content ul { margin: 12px 0 20px 20px; }
+    .content li { font-size: 12px; line-height: 2; color: rgba(255,255,255,0.45); }
+    .badge { display: inline-block; border: 1px solid rgba(255,255,255,0.2); padding: 4px 12px; font-size: 8px; letter-spacing: 0.35em; color: var(--dim); margin-bottom: 20px; }
+    .tbl { display: grid; grid-template-columns: 1fr 2fr; border-top: 1px solid rgba(255,255,255,0.08); margin: 12px 0 20px; }
+    .tbl-item { display: contents; }
+    .tbl-item > * { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 11px; }
+    .tbl-item > .key { color: var(--white); font-family: 'Courier New', Courier, monospace; }
+    .tbl-item > .val { color: rgba(255,255,255,0.45); }
+    hr { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 40px 0; }
+    footer { padding: 40px 48px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 9px; letter-spacing: 0.3em; color: var(--dim); }
+    @media(max-width:700px) { .content-inner { padding: 48px 24px; } .tb-right { display: none; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="tb-left">PAZATOR DOCS</div>
+    <div class="tb-center">COLLAB</div>
+    <nav class="tb-right"><a href="index.html">Docs</a></nav>
+  </header>
+  <section class="hero">
+    <div class="content">
+      <div class="content-inner">
+        <div class="badge">COLLABORATION &mdash; v0.Jul326</div>
+        <h1>Multi-User<br>Collaboration.</h1>
+
+        <p>
+          PZLS supports multiple users working on the same data set. Each user has their own account
+          with role-based access. Changes are synced in real-time via WebSocket. When conflicts happen
+          (two users edit the same entity simultaneously), Pazator detects them and offers resolution.
+        </p>
+
+        <h2>Roles</h2>
+        <div class="tbl">
+          <div class="tbl-item"><span class="key">admin</span><span class="val">Full access. Manage users, force-kill sessions, export/import data, view audit log. First user to register is always admin.</span></div>
+          <div class="tbl-item"><span class="key">analyst</span><span class="val">Can push/pull data, upload files, use all Pazator features. Default role for new users.</span></div>
+          <div class="tbl-item"><span class="key">viewer</span><span class="val">Read-only. Can pull data but cannot push changes.</span></div>
+        </div>
+
+        <h2>Real-Time Presence</h2>
+        <p>
+          When multiple users are connected to PZLS, the LSAD dashboard shows connected clients
+          with their username and role. Operations are broadcast to all connected clients via WebSocket
+          so the recent ops list updates live.
+        </p>
+
+        <h2>Merge Conflicts</h2>
+        <p>
+          Conflicts occur when two users push changes to the same entity concurrently. PZLS uses
+          optimistic concurrency: each entity has a version counter. When pushing via
+          <code class="code">POST /api/sync/ops</code>, you include the <code class="code">version</code> you last saw.
+          If the server's version is higher, it returns a conflict instead of overwriting.
+        </p>
+
+        <h3>Conflict Flow</h3>
+        <ul>
+          <li>User A pushes entity X (version 1). Server updates to version 2.</li>
+          <li>User B pushes entity X (version 1). Server detects version mismatch → returns conflict with server's current data (version 2) and server's copy.</li>
+          <li>B's client stores the conflict locally with both versions saved.</li>
+          <li>B can resolve by: keeping server version, keeping local version, or using AI auto-solve to merge them.</li>
+        </ul>
+
+        <h3>Conflict Resolver UI</h3>
+        <p>
+          Access via <strong>System &rarr; Resolve Conflicts</strong>. Shows each conflicting entity with:
+        </p>
+        <ul>
+          <li>Entity ID and server version</li>
+          <li>Server's current data (read-only preview)</li>
+          <li><strong>AI Solve</strong> — sends both versions to Zor/Gemini/DeepSeek to produce a merged result</li>
+          <li><strong>Dismiss</strong> — removes the conflict without merging (local change is discarded on next push)</li>
+        </ul>
+        <p>
+          The <strong>AI Auto-Solve All</strong> button processes all pending conflicts at once. The AI
+          receives both versions with instructions to preserve unique fields and merge conflicting ones
+          intelligently. This requires an AI provider (Gemini or DeepSeek) to be configured.
+        </p>
+
+        <h2>Offline Queue</h2>
+        <p>
+          When the server is unreachable, push operations are queued in localStorage. The status
+          indicator shows a clock icon with the queue count. Use <strong>System &rarr; Flush Queue</strong>
+          to retry all queued operations when back online. The queue persists across page reloads.
+        </p>
+
+        <h2>Incremental Sync</h2>
+        <p>
+          For large datasets (1000+ entities), full pulls can time out. Use <strong>System &rarr; Incremental Pull</strong>
+          instead. This uses cursor-based pagination to download data in chunks of 500 entities,
+          avoiding timeouts and reducing memory pressure. The cursor is stored in localStorage and
+          resumes from where it left off.
+        </p>
+
+        <h2>E2E Encryption</h2>
+        <p>
+          All data can be encrypted with AES-256-GCM before leaving the browser. Toggle it on in
+          <strong>Settings &rarr; Security &rarr; E2E Encryption</strong>. Set a passphrase (min 8 chars).
+          Data is encrypted client-side before push and decrypted on pull. The server never sees the
+          plaintext. Without the passphrase, encrypted data on the server is unreadable.
+        </p>
+        <p>
+          <strong>Important:</strong> If you lose your passphrase, encrypted data cannot be recovered.
+          All users collaborating must use the same passphrase to read each other's data.
+        </p>
+
+        <hr>
+        <div class="badge">BEST PRACTICES</div>
+        <ul>
+          <li>Assign one person as admin to manage accounts</li>
+          <li>Use Incremental Pull for first sync on large databases</li>
+          <li>If conflicts happen frequently, coordinate editing windows</li>
+          <li>Test AI auto-solve on a few conflicts first to verify quality</li>
+          <li>Share encryption passphrases out-of-band (not through PZLS)</li>
+        </ul>
+      </div>
+    </div>
+    <footer><span>PAZATOR &mdash; MASS DATA INTELLIGENCE</span></footer>
+  </section>
+</body>
+</html>

@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pazator</title>
+    <meta name="description" content="Pazator builds mass data infrastructure for surveillance, intelligence, and operational systems." />
+    <meta name="theme-color" content="#000000" />
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:ital,wght@0,300;0,400;1,300&family=Space+Grotesk:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --black: #000;
+            --white: #fff;
+            --off: #f2f2f0;
+            --dim: #666;
+            --grain-opacity: 0.04;
+            --snap: cubic-bezier(0.51, -0.01, 0.49, 1);
+        }
+        html { font-size: 16px; scroll-behavior: smooth; }
+        body {
+            background: var(--black);
+            color: var(--white);
+            font-family: 'DM Mono', monospace;
+            overflow-x: hidden;
+            cursor: crosshair;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 9998;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+            background-size: 128px 128px;
+            opacity: var(--grain-opacity);
+            mix-blend-mode: overlay;
+        }
+
+        #loader {
+            position: fixed;
+            inset: 0;
+            z-index: 999;
+            background: var(--black);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 20px;
+            transition: opacity 0.5s;
+        }
+        #loader.out { opacity: 0; pointer-events: none; }
+        .lcount { font-family: 'Anton', sans-serif; font-size: clamp(120px, 26vw, 300px); line-height: 1; letter-spacing: -0.04em; }
+        .llabel { font-size: 9px; letter-spacing: 0.5em; color: var(--dim); }
+
+        .topbar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 32px;
+            height: 52px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            background: rgba(0,0,0,0.92);
+            backdrop-filter: blur(12px);
+        }
+        .tb-left { font-size: 9px; letter-spacing: 0.5em; color: var(--dim); }
+        .tb-center { font-family: 'Anton', sans-serif; font-size: 20px; letter-spacing: 0.15em; }
+        .tb-right { display: flex; gap: 28px; }
+        .tb-right a {
+            font-size: 9px; letter-spacing: 0.35em;
+            color: var(--dim); text-decoration: none;
+            text-transform: uppercase; transition: color 0.2s;
+        }
+        .tb-right a:hover { color: var(--white); }
+
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .hero-top {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 120px 32px 80px;
+            text-align: center;
+            position: relative;
+        }
+        .hero-wordmark {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(120px, 24vw, 320px);
+            line-height: 0.78;
+            letter-spacing: -0.04em;
+            overflow: hidden;
+        }
+        .wm-line {
+            display: block;
+            transform: translateY(110%);
+            transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .wm-line:nth-child(2) { transition-delay: 0.1s; }
+        .revealed .wm-line { transform: translateY(0); }
+
+        .hero-slogan {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(18px, 2.8vw, 40px);
+            font-weight: 400;
+            font-style: italic;
+            color: rgba(255,255,255,0.25);
+            letter-spacing: 0.06em;
+            margin-top: 48px;
+            max-width: 900px;
+            line-height: 1.3;
+            opacity: 0;
+            transition: opacity 1.2s 0.6s;
+        }
+        .hero-top.revealed .hero-slogan { opacity: 1; }
+
+        .ticker-wrap {
+            overflow: hidden;
+            white-space: nowrap;
+            padding: 14px 0;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .ticker-inner {
+            display: inline-block;
+            animation: tick 24s linear infinite;
+            font-size: 10px;
+            letter-spacing: 0.5em;
+            color: var(--dim);
+        }
+        @keyframes tick { to { transform: translateX(-50%); } }
+
+        .mission {
+            padding: 100px 48px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: end;
+        }
+        .mission-left {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(42px, 6vw, 90px);
+            line-height: 1.05;
+            letter-spacing: -0.02em;
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.8s, transform 0.8s;
+        }
+        .mission-left.vis { opacity: 1; transform: none; }
+        .mission-left em {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 400;
+            font-style: normal;
+            color: rgba(255,255,255,0.3);
+            font-size: 0.85em;
+            letter-spacing: 0.06em;
+        }
+        .mission-right {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.8s 0.2s, transform 0.8s 0.2s;
+        }
+        .mission-right.vis { opacity: 1; transform: none; }
+        .mission-body {
+            font-size: 13px;
+            line-height: 2;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 36px;
+        }
+
+        .projects {
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .projects-head {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            min-height: 260px;
+        }
+        .projects-head-left {
+            padding: 72px 48px;
+            border-right: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .ph-eyebrow {
+            font-size: 9px;
+            letter-spacing: 0.5em;
+            color: var(--dim);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+        .ph-eyebrow::before {
+            content: '';
+            display: block;
+            width: 24px;
+            height: 1px;
+            background: rgba(255,255,255,0.2);
+        }
+        .ph-title {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(40px, 7vw, 100px);
+            line-height: 0.88;
+            letter-spacing: -0.03em;
+        }
+        .ph-title .ph-italic {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 400;
+            font-style: italic;
+            color: rgba(255,255,255,0.25);
+            font-size: 0.65em;
+            letter-spacing: 0.02em;
+        }
+        .projects-head-right {
+            padding: 72px 48px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .ph-desc {
+            font-size: 13px;
+            line-height: 2;
+            color: rgba(255,255,255,0.4);
+            max-width: 440px;
+        }
+
+        .project-row {
+            display: grid;
+            grid-template-columns: 60px 1fr 1fr 120px;
+            align-items: stretch;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            min-height: 160px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s, transform 0.6s;
+            text-decoration: none;
+            color: var(--white);
+        }
+        .project-row.vis { opacity: 1; transform: none; }
+        .project-row:hover { background: rgba(255,255,255,0.015); }
+        .project-row:hover .pidx { background: var(--white); color: var(--black); }
+        .project-row:hover .pname { letter-spacing: 0.04em; }
+
+        .pidx {
+            border-right: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            letter-spacing: 0.3em;
+            color: var(--dim);
+            transition: background 0.3s, color 0.3s;
+        }
+        .pmain {
+            padding: 36px 44px;
+            border-right: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .pname {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(38px, 5vw, 80px);
+            letter-spacing: -0.01em;
+            transition: letter-spacing 0.4s;
+        }
+        .psub {
+            font-size: 10px;
+            letter-spacing: 0.35em;
+            color: var(--dim);
+            margin-top: 6px;
+        }
+        .pdesc {
+            padding: 36px 40px;
+            border-right: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+            line-height: 1.85;
+            color: rgba(255,255,255,0.35);
+        }
+        .pstatus {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .pill {
+            font-size: 8px;
+            letter-spacing: 0.35em;
+            padding: 6px 14px;
+            border: 1px solid rgba(255,255,255,0.15);
+            color: var(--dim);
+        }
+        .pill.live { border-color: var(--white); color: var(--white); }
+        .pill.upcoming { border-color: rgba(255,255,255,0.3); color: rgba(255,255,255,0.5); }
+        .sdot {
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: var(--dim);
+        }
+        .sdot.live { background: var(--white); animation: blink 1.8s infinite; }
+        .sdot.upcoming { background: rgba(255,255,255,0.3); }
+        @keyframes blink { 0%,100% { opacity: 1 } 50% { opacity: 0.15 } }
+
+        .cta-section {
+            padding: 100px 48px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            text-align: center;
+        }
+        .cta-title {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(48px, 8vw, 120px);
+            line-height: 0.88;
+            letter-spacing: -0.03em;
+            margin-bottom: 32px;
+        }
+        .cta-links {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .cta-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 10px;
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            color: var(--white);
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255,255,255,0.25);
+            padding-bottom: 8px;
+            transition: border-color 0.3s, gap 0.3s;
+        }
+        .cta-link:hover { border-color: var(--white); gap: 18px; }
+
+        footer {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+        .fl {
+            padding: 60px 48px;
+            border-right: 1px solid rgba(255,255,255,0.08);
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+        .flogo {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(64px, 10vw, 140px);
+            line-height: 0.82;
+            letter-spacing: -0.03em;
+            color: rgba(255,255,255,0.05);
+            transition: color 0.8s;
+            cursor: default;
+            user-select: none;
+        }
+        .flogo:hover { color: rgba(255,255,255,0.12); }
+        .fcopy {
+            margin-top: 44px;
+            font-size: 9px;
+            letter-spacing: 0.3em;
+            color: var(--dim);
+        }
+        .fr {
+            padding: 60px 48px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .fnav {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .fnav a {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(24px, 3.5vw, 48px);
+            letter-spacing: -0.01em;
+            color: rgba(255,255,255,0.12);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .fnav a:hover { color: var(--white); }
+        .fstatus {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 9px;
+            letter-spacing: 0.35em;
+            color: var(--dim);
+        }
+        .fdot { width: 5px; height: 5px; border-radius: 50%; background: var(--white); animation: blink 2s infinite; }
+
+        @media(max-width:860px) {
+            .topbar .tb-right { display: none; }
+            .hero-top { padding: 100px 24px 60px; }
+            .mission { grid-template-columns: 1fr; gap: 36px; padding: 60px 24px; }
+            .projects-head { grid-template-columns: 1fr; }
+            .projects-head-left { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); }
+            .project-row { grid-template-columns: 44px 1fr; }
+            .pdesc, .pstatus { display: none; }
+            .cta-section { padding: 60px 24px; }
+            footer { grid-template-columns: 1fr; }
+            .fl { border-right: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="loader">
+    <div class="lcount" id="lc">0</div>
+    <div class="llabel">PAZATOR - LOADING</div>
+</div>
+
+<header class="topbar">
+    <div class="tb-left">BUILDING INFRASTRUCTURE</div>
+    <div class="tb-center">PAZATOR</div>
+    <nav class="tb-right">
+        <a href="https://discord.gg/74c9RBYD4R" target="_blank">Discord</a>
+        <a href="./docs/">Docs</a>
+    </nav>
+</header>
+
+<section class="hero">
+    <div class="hero-top">
+        <div class="hero-wordmark" id="wm">
+            <span class="wm-line" id="wmLine1">PAZA</span>
+            <span class="wm-line" id="wmLine2">TOR.</span>
+        </div>
+        <div class="hero-slogan" id="slogan">"Heaven is his, and the world is ours to end."</div>
+    </div>
+    <div class="ticker-wrap">
+        <span class="ticker-inner">PAZATOR · MASS DATA INFRASTRUCTURE · SARPARAST · KOREH · SURVEILLANCE SYSTEMS · INTELLIGENCE PLATFORMS · OPERATIONAL TECHNOLOGY · PAZATOR · MASS DATA INFRASTRUCTURE · SARPARAST · KOREH · SURVEILLANCE SYSTEMS · INTELLIGENCE PLATFORMS · OPERATIONAL TECHNOLOGY ·</span>
+    </div>
+</section>
+
+<section class="mission" id="mission">
+    <div class="mission-left st-left">Build the infrastructure.<br><em>The rest follows.</em></div>
+    <div class="mission-right st-right">
+        <p class="mission-body">Pazator builds mass data infrastructure for surveillance, intelligence, and operational systems. We build tools that process thousands of data points, find hidden connections, and give operators the power to act before threats materialize. Every project is a brick in the same wall. Total operational awareness.</p>
+    </div>
+</section>
+
+<section class="projects">
+    <div class="projects-head">
+        <div class="projects-head-left">
+            <div class="ph-eyebrow">PROJECTS</div>
+            <div class="ph-title">OUR<br>WORK<span class="ph-italic">.</span></div>
+        </div>
+        <div class="projects-head-right">
+            <p class="ph-desc">Every Pazator project is a weapon in the same arsenal. From mass data containers to operational platforms. Built for speed, scale, and signal.</p>
+        </div>
+    </div>
+
+    <a href="https://github.com/aix-32/sarparast" target="_blank" class="project-row" style="transition-delay:0.1s">
+        <div class="pidx">01</div>
+        <div class="pmain">
+            <div class="pname">SARPARAST</div>
+            <div class="psub">MASS DATA CONTAINER</div>
+        </div>
+        <div class="pdesc">Client-side mass data container with built-in AI prediction, faceted search, ETL pipelines, globe tracking, graph analysis, and a plugin ecosystem.</div>
+        <div class="pstatus">
+            <div class="pill live">LIVE</div>
+            <div class="sdot live"></div>
+        </div>
+    </a>
+
+    <a class="project-row" style="transition-delay:0.2s; cursor:default;">
+        <div class="pidx">02</div>
+        <div class="pmain">
+            <div class="pname">KOREH</div>
+            <div class="psub">OPERATIONAL PLATFORM</div>
+        </div>
+        <div class="pdesc">The next generation of operational technology. A unified platform for data fusion, real-time collaboration, and enterprise-scale intelligence operations.</div>
+        <div class="pstatus">
+            <div class="pill upcoming">UPCOMING</div>
+            <div class="sdot upcoming"></div>
+        </div>
+    </a>
+
+    <a class="project-row" style="transition-delay:0.3s; cursor:default;">
+        <div class="pidx">03</div>
+        <div class="pmain">
+            <div class="pname">ZOR P1-27</div>
+            <div class="psub">PERSON EDITION</div>
+        </div>
+        <div class="pdesc">The closest a machine can get to a person. A vision, not a product. Something that started and won't stop.</div>
+        <div class="pstatus">
+            <div class="pill upcoming">SEED</div>
+            <div class="sdot upcoming"></div>
+        </div>
+    </a>
+</section>
+
+<section class="cta-section">
+    <div class="cta-title">WATCH<br>THE SKY.</div>
+    <div class="cta-links">
+        <a href="https://aix-32.github.io/sarparast/" class="cta-link"><span>Launch Sarparast</span><span class="a">→</span></a>
+        <a href="./docs/" class="cta-link"><span>Documentation</span><span class="a">→</span></a>
+        <a href="https://discord.gg/74c9RBYD4R" target="_blank" class="cta-link"><span>Join Discord</span><span class="a">↗</span></a>
+    </div>
+</section>
+
+<footer>
+    <div class="fl">
+        <div class="flogo">PAZA<br>TOR</div>
+        <div class="fcopy">A SOLO PROJECT BY AIX.</div>
+    </div>
+    <div class="fr">
+        <nav class="fnav">
+            <a href="https://aix-32.github.io/sarparast/">Sarparast</a>
+            <a href="./docs/">Docs</a>
+            <a href="https://discord.gg/74c9RBYD4R" target="_blank">Discord</a>
+        </nav>
+        <div class="fstatus">
+            <div class="fdot"></div>Pazator is building.
+        </div>
+    </div>
+</footer>
+
+<script>
+    const lc = document.getElementById('lc');
+    const loader = document.getElementById('loader');
+    let n = 0;
+    const iv = setInterval(() => {
+        n += Math.ceil(Math.random() * 16);
+        if (n >= 100) {
+            n = 100; clearInterval(iv);
+            lc.textContent = n;
+            setTimeout(() => {
+                loader.classList.add('out');
+                setTimeout(() => loader.style.display = 'none', 500);
+                document.querySelector('.hero-top').classList.add('revealed');
+            }, 280);
+        } else { lc.textContent = n; }
+    }, 55);
+
+    const obs = new IntersectionObserver(entries => {
+        entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('vis'); });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.st-left, .st-right, .project-row').forEach(el => obs.observe(el));
+</script>
+
+</body>
+</html>

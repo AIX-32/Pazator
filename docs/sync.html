@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYNC — Server Setup | Pazator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --black: #000; --white: #fff; --dim: #666; }
+    html { font-size: 16px; }
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: 'DM Mono', monospace;
+      overflow-x: hidden;
+      cursor: crosshair;
+    }
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 32px; height: 52px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      background: var(--black);
+    }
+    .tb-left { font-size: 9px; letter-spacing: 0.5em; color: var(--dim); }
+    .tb-center { font-family: 'Anton', sans-serif; font-size: 18px; letter-spacing: 0.12em; }
+    .tb-right { display: flex; gap: 28px; }
+    .tb-right a {
+      font-size: 9px; letter-spacing: 0.35em; color: var(--dim);
+      text-decoration: none; text-transform: uppercase; transition: color 0.2s;
+    }
+    .tb-right a:hover { color: var(--white); }
+    .hero {
+      min-height: 100vh; padding-top: 52px;
+      display: grid; grid-template-rows: auto 1fr auto;
+    }
+    .ticker-wrap {
+      overflow: hidden; white-space: nowrap; padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .ticker-inner {
+      display: inline-block;
+      animation: tick 20s linear infinite;
+      font-size: 9px; letter-spacing: 0.45em; color: var(--dim);
+    }
+    @keyframes tick { to { transform: translateX(-50%); } }
+    .content { border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .content-inner {
+      max-width: 800px; margin: 0 auto; padding: 80px 48px;
+    }
+    .content h1 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(48px, 8vw, 100px);
+      line-height: 0.85; letter-spacing: -0.03em;
+      margin-bottom: 40px;
+    }
+    .content h2 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(20px, 3vw, 36px);
+      letter-spacing: -0.01em;
+      margin-top: 60px; margin-bottom: 20px;
+    }
+    .content h3 {
+      font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--dim); margin-top: 40px; margin-bottom: 12px;
+    }
+    .content p {
+      font-size: 12px; line-height: 2;
+      color: rgba(255,255,255,0.45); margin-bottom: 20px;
+    }
+    .content code, .content .code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px; color: var(--white);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 2px 8px; border-radius: 3px;
+    }
+    .content pre {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px; color: var(--white);
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 20px 24px; border-radius: 4px;
+      overflow-x: auto; margin: 16px 0 24px; line-height: 1.7;
+    }
+    .content ul { margin: 12px 0 20px 20px; }
+    .content li {
+      font-size: 12px; line-height: 2;
+      color: rgba(255,255,255,0.45);
+    }
+    .content .label {
+      font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase;
+      color: var(--dim); margin-bottom: 16px;
+    }
+    .badge {
+      display: inline-block;
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 4px 12px; font-size: 8px; letter-spacing: 0.35em;
+      color: var(--dim); margin-bottom: 20px;
+    }
+    .tbl {
+      display: grid; grid-template-columns: 1fr 2fr;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      margin: 12px 0 20px;
+    }
+    .tbl-item { display: contents; }
+    .tbl-item > * {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 11px;
+    }
+    .tbl-item > .key {
+      color: var(--white);
+      font-family: 'Courier New', Courier, monospace;
+    }
+    .tbl-item > .val {
+      color: rgba(255,255,255,0.45);
+    }
+    .step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px; border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.2);
+      font-size: 10px; color: var(--dim); margin-right: 10px; flex-shrink: 0;
+    }
+    .step {
+      display: flex; align-items: flex-start; gap: 8px;
+      margin-bottom: 16px;
+    }
+    .step-body { flex: 1; }
+    .step-body p { margin-bottom: 4px; }
+    hr { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 40px 0; }
+    footer {
+      padding: 40px 48px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      font-size: 9px; letter-spacing: 0.3em; color: var(--dim);
+    }
+    @media(max-width:700px) {
+      .content-inner { padding: 48px 24px; }
+      .tb-right { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="tb-left">PAZATOR DOCS</div>
+    <div class="tb-center">SYNC</div>
+    <nav class="tb-right"><a href="index.html">Docs</a></nav>
+  </header>
+
+  <section class="hero">
+    <div class="content">
+      <div class="content-inner">
+        <div class="badge">INFRASTRUCTURE &mdash; v0.Jul326</div>
+        <h1>PZLS<br>Server.</h1>
+
+        <p>
+          <strong>PZLS</strong> is the sync server. <strong>LSAD</strong> (Local Sync Admin Dashboard) is its built-in admin panel, wrapped as an Electron desktop app.
+          <strong>Sarparast</strong> is the main Pazator app that connects to PZLS.
+        </p>
+
+        <h2>Quick Start</h2>
+
+        <div class="step">
+          <span class="step-num">1</span>
+          <div class="step-body">
+            <p>Install dependencies.</p>
+            <pre>cd PZLS
+npm install
+npx electron-rebuild  # rebuild native SQLite for Electron</pre>
+          </div>
+        </div>
+
+        <div class="step">
+          <span class="step-num">2</span>
+          <div class="step-body">
+            <p>Start the server.</p>
+            <pre>npm start</pre>
+            <p>Runs on <code class="code">http://localhost:3456</code>. Set <code class="code">PORT</code> to change it:</p>
+            <pre>PORT=8080 npm start</pre>
+          </div>
+        </div>
+
+        <div class="step">
+          <span class="step-num">3</span>
+          <div class="step-body">
+            <p>Launch the desktop app (LSAD).</p>
+            <pre>npm run desktop</pre>
+            <p>Opens the admin panel in a native Electron window. Or just open <code class="code">http://localhost:3456</code> in a browser.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <span class="step-num">4</span>
+          <div class="step-body">
+            <p>In Sarparast, click System &rarr; <strong>PZLS</strong> &rarr; enter the server URL &rarr; <strong>Test Connection</strong>. Register an account (first user is admin).</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <span class="step-num">5</span>
+          <div class="step-body">
+            <p>Push your data via System &rarr; <strong>Push</strong>. Pull to download server data.</p>
+          </div>
+        </div>
+
+        <h2>Account System</h2>
+        <p>
+          Bearer token auth. Rate-limited on login/register (10 attempts/min by default). Disabled accounts can't log in.
+          Users can set an email and display name on registration or later via profile update.
+        </p>
+
+        <div class="tbl">
+          <div class="tbl-item"><span class="key">POST /api/auth/register</span><span class="val">Create account &mdash; <code class="code">{username, password, email?, displayName?}</code></span></div>
+          <div class="tbl-item"><span class="key">POST /api/auth/login</span><span class="val">Login &mdash; <code class="code">{username, password}</code> &rarr; <code class="code">{token, user}</code></span></div>
+          <div class="tbl-item"><span class="key">POST /api/auth/logout</span><span class="val">Invalidate session</span></div>
+          <div class="tbl-item"><span class="key">GET /api/auth/me</span><span class="val">Current user info (email, displayName included)</span></div>
+          <div class="tbl-item"><span class="key">POST /api/auth/change-password</span><span class="val">Change password &mdash; <code class="code">{currentPassword, newPassword}</code></span></div>
+          <div class="tbl-item"><span class="key">POST /api/auth/update-profile</span><span class="val">Update email/displayName &mdash; <code class="code">{email?, displayName?}</code></span></div>
+          <div class="tbl-item"><span class="key">GET /api/auth/sessions</span><span class="val">List your active sessions</span></div>
+          <div class="tbl-item"><span class="key">DELETE /api/auth/sessions/:token</span><span class="val">Kill one of your sessions</span></div>
+        </div>
+
+        <p>Passwords: scrypt + random salt. Sessions expire after 24h (configurable via <code class="code">TOKEN_TTL_MS</code>).</p>
+
+        <h2>Data Sync</h2>
+        <p>All entities live in a shared SQLite database. Stores: humans, others, tags, cases, chats, relationships.</p>
+
+        <h3>Full Sync</h3>
+        <div class="tbl">
+          <div class="tbl-item"><span class="key">GET /api/sync</span><span class="val">Pull all data</span></div>
+          <div class="tbl-item"><span class="key">POST /api/sync</span><span class="val">Push data &mdash; <code class="code">{clientVersion, stores}</code></span></div>
+          <div class="tbl-item"><span class="key">GET /api/sync/ops?since=N&limit=500</span><span class="val">Operation log (paginated)</span></div>
+          <div class="tbl-item"><span class="key">POST /api/sync/ops</span><span class="val">Push operations individually with conflict detection</span></div>
+          <div class="tbl-item"><span class="key">GET /api/sync/changes?since=N</span><span class="val">Changes since version</span></div>
+          <div class="tbl-item"><span class="key">GET /api/sync/status</span><span class="val">Server health + account stats</span></div>
+          <div class="tbl-item"><span class="key">GET /api/sync/stores</span><span class="val">Record counts per store</span></div>
+        </div>
+
+        <h3>Incremental Sync (cursor-based)</h3>
+        <p>For large datasets, use cursor-based pagination instead of full pulls. Each response includes a <code class="code">nextCursor</code> token (base64-encoded composite cursor over <code class="code">(store, id)</code>).</p>
+        <div class="tbl">
+          <div class="tbl-item"><span class="key">GET /api/sync/cursor?cursor=&limit=500&store=</span><span class="val">Paginated entity pull &mdash; returns <code class="code">{entities, nextCursor, hasMore, latestSeq}</code></span></div>
+        </div>
+
+        <h3>Conflict Detection</h3>
+        <p>When pushing via <code class="code">POST /api/sync/ops</code>, each operation carries an <code class="code">expectedVersion</code>. If the server's version differs, it returns <code class="code">{conflict: true, serverVersion, serverData}</code> instead of overwriting. The client can then merge or prompt the user.</p>
+        <p>Conflict resolver UI is available in Pazator via <strong>System &rarr; Resolve Conflicts</strong> — view server vs client versions, dismiss individual conflicts, or use AI auto-solve to merge them intelligently.</p>
+
+        <h3>Push format</h3>
+        <pre>{
+  "clientVersion": 0,
+  "stores": {
+    "humans": { "id1": { "name": "..." } },
+    "others": {},
+    "tags": {},
+    "cases": {},
+    "chats": {},
+    "relationships": {}
+  }
+}</pre>
+
+        <h2>E2E Encryption</h2>
+        <p>Pazator supports client-side E2E encryption. When enabled in Settings &rarr; Security &rarr; <strong>E2E Encryption</strong>, all data is encrypted with AES-256-GCM before leaving the browser. The server stores it encrypted and decrypts on pull. The encryption key is derived from a user-chosen passphrase and stored locally.</p>
+        <div class="tbl">
+          <div class="tbl-item"><span class="key">POST /api/sync/encryption-key</span><span class="val">Register an encryption key (scrypt-derived from passphrase)</span></div>
+          <div class="tbl-item"><span class="key">GET /api/sync/encryption-status</span><span class="val">Check if encryption key is set for your account</span></div>
+        </div>
+        <p>Server-side encryption (AES-256-GCM) also applies automatically to classified entities (confidential+) using the server's <code class="code">encryption.key</code> file.</p>
+
+        <h2>Search</h2>
+        <div class="tbl">
+          <div class="tbl-item"><span class="key">GET /api/search?q=&store=&page=&perPage=</span><span class="val">Server-side search via SQL LIKE across all entity data</span></div>
+        </div>
+
+        <h2>File Storage</h2>
+        <p>Upload files (images, documents) linked to entities. 10MB max per file.</p>
+        <div class="tbl">
+          <div class="tbl-item"><span class="key">POST /api/files/upload</span><span class="val">Upload file (base64) &mdash; <code class="code">{name, mimeType, data, entityId, entityStore}</code></span></div>
+          <div class="tbl-item"><span class="key">GET /api/files/:id</span><span class="val">Download raw file</span></div>
+          <div class="tbl-item"><span class="key">GET /api/files/meta/:id</span><span class="val">File metadata (no binary)</span></div>
+          <div class="tbl-item"><span class="key">GET /api/files?entityId=&entityStore=</span><span class="val">List files for an entity</span></div>
+          <div class="tbl-item"><span class="key">DELETE /api/files/:id</span><span class="val">Delete a file (owner or admin)</span></div>
+        </div>
+
+        <h2>Other Endpoints</h2>
+        <div class="tbl">
+          <div class="tbl-item"><span class="key">GET /api/resolve?threshold=0.6</span><span class="val">Jaro-Winkler entity resolution</span></div>
+          <div class="tbl-item"><span class="key">POST /api/query</span><span class="val">Execute SQL against external DB &mdash; <code class="code">{connectionString, query}</code></span></div>
+        </div>
+
+        <h2>Admin Endpoints (admin role required)</h2>
+        <div class="tbl">
+          <div class="tbl-item"><span class="key">GET /api/admin/config</span><span class="val">Server config: node version, paths, env vars</span></div>
+          <div class="tbl-item"><span class="key">GET /api/admin/export</span><span class="val">Full DB dump (JSON)</span></div>
+          <div class="tbl-item"><span class="key">POST /api/admin/import</span><span class="val">Restore from dump</span></div>
+          <div class="tbl-item"><span class="key">GET /api/admin/users</span><span class="val">List all users</span></div>
+          <div class="tbl-item"><span class="key">PATCH /api/admin/users/:id</span><span class="val">Update user &mdash; <code class="code">{disabled, role, email, displayName}</code></span></div>
+          <div class="tbl-item"><span class="key">POST /api/admin/users/:id/reset-password</span><span class="val">Admin password reset — terminates all sessions</span></div>
+          <div class="tbl-item"><span class="key">DELETE /api/admin/users/:id</span><span class="val">Delete user and their data</span></div>
+          <div class="tbl-item"><span class="key">GET /api/admin/users/:id/sessions</span><span class="val">List a user's sessions</span></div>
+          <div class="tbl-item"><span class="key">DELETE /api/admin/sessions/:token</span><span class="val">Force-kill any session</span></div>
+          <div class="tbl-item"><span class="key">GET /api/admin/ops?since=N&limit=200</span><span class="val">Audit log (paginated)</span></div>
+          <div class="tbl-item"><span class="key">GET /api/admin/admins</span><span class="val">List forced admin usernames</span></div>
+          <div class="tbl-item"><span class="key">POST /api/admin/admins</span><span class="val">Set forced admin list</span></div>
+        </div>
+
+        <h2>LSAD — Admin Panel</h2>
+        <p>
+          The built-in admin panel (LSAD) is served at <code class="code">/</code> on the PZLS server. It includes:
+        </p>
+        <ul>
+          <li><strong>Dashboard</strong> &mdash; stats grid, store breakdown bar chart, recent operations feed (live via WebSocket), connected clients</li>
+          <li><strong>Users</strong> &mdash; user list with email, display name, status, last active, enable/disable, password reset, role change, forced admins config</li>
+          <li><strong>Data</strong> &mdash; browse all entities with live search, click to view JSON</li>
+          <li><strong>Changelog</strong> &mdash; paginated operation log with colored action pills</li>
+          <li><strong>Sessions</strong> &mdash; view and kill your own login sessions</li>
+          <li><strong>Config</strong> &mdash; runtime info, paths, environment variables</li>
+          <li><strong>API Test</strong> &mdash; test any endpoint</li>
+        </ul>
+        <p>Launch via <code class="code">npm run desktop</code> (Electron) or open <code class="code">http://localhost:3456</code> in a browser.</p>
+
+        <h2>Architecture</h2>
+        <p>
+          SQLite via <code class="code">better-sqlite3</code>. Single shared <code class="code">entities</code> table.
+          Encryption-at-rest for classified entities (AES-256-GCM). Op log for audit trail.
+        </p>
+
+        <pre>PZLS/
+  server.js              # Express server + WebSocket
+  db.js                  # SQLite schema + queries
+  electron.js            # Electron main process
+  package.json
+  data/
+    pazator.db           # SQLite database
+    encryption.key       # Auto-generated AES key</pre>
+
+        <h2>From Sarparast</h2>
+        <p>
+          The logo menu shows connection status:
+        </p>
+        <ul>
+          <li><strong style="color:#4caf50;">Green</strong> &mdash; logged in and connected</li>
+          <li><strong style="color:#ff9800;">Orange</strong> &mdash; connected but not logged in</li>
+          <li><strong style="color:#666;">Grey</strong> &mdash; not configured</li>
+        </ul>
+        <p>
+          System &rarr; <strong>PZLS</strong> to configure. Available actions:
+        </p>
+        <ul>
+          <li><strong>Push</strong> &mdash; upload local data to server (queued if offline)</li>
+          <li><strong>Pull</strong> &mdash; download all server data</li>
+          <li><strong>Incremental Pull</strong> &mdash; cursor-based paginated download (avoids timeouts on large datasets)</li>
+          <li><strong>Flush Queue</strong> &mdash; retry any queued offline operations</li>
+          <li><strong>Resolve Conflicts</strong> &mdash; view and resolve merge conflicts, with AI auto-solve</li>
+        </ul>
+        <p>
+          Admin users see System &rarr; <strong>Admin Panel</strong> for audit log, user management, stores breakdown, server config, sessions, and export/import.
+        </p>
+
+        <hr>
+
+        <div class="label">Naming</div>
+        <p>
+          <strong>PZLS</strong> = the sync server itself (Node.js + Express + SQLite + WebSocket).<br>
+          <strong>LSAD</strong> = the admin panel UI (Electron app and/or browser).<br>
+          <strong>Sarparast</strong> = the main Pazator app (50K-line SPA).<br>
+        </p>
+      </div>
+    </div>
+
+    <footer>
+      <span>PAZATOR &mdash; MASS DATA INTELLIGENCE</span>
+    </footer>
+  </section>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>COLLAB — Collaboration & Permissions | Pazator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --black: #000; --white: #fff; --dim: #666; }
+    html { font-size: 16px; }
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: 'DM Mono', monospace;
+      overflow-x: hidden;
+      cursor: crosshair;
+    }
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 32px; height: 52px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      background: var(--black);
+    }
+    .tb-left { font-size: 9px; letter-spacing: 0.5em; color: var(--dim); }
+    .tb-center { font-family: 'Anton', sans-serif; font-size: 18px; letter-spacing: 0.12em; }
+    .tb-right { display: flex; gap: 28px; }
+    .tb-right a {
+      font-size: 9px; letter-spacing: 0.35em; color: var(--dim);
+      text-decoration: none; text-transform: uppercase; transition: color 0.2s;
+    }
+    .tb-right a:hover { color: var(--white); }
+    .hero {
+      min-height: 100vh; padding-top: 52px;
+      display: grid; grid-template-rows: auto 1fr auto;
+    }
+    .ticker-wrap {
+      overflow: hidden; white-space: nowrap; padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .ticker-inner {
+      display: inline-block;
+      animation: tick 20s linear infinite;
+      font-size: 9px; letter-spacing: 0.45em; color: var(--dim);
+    }
+    @keyframes tick { to { transform: translateX(-50%); } }
+    .content { border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .content-inner {
+      max-width: 800px; margin: 0 auto; padding: 80px 48px;
+    }
+    .content h1 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(48px, 8vw, 100px);
+      line-height: 0.85; letter-spacing: -0.03em;
+      margin-bottom: 40px;
+    }
+    .content h2 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(20px, 3vw, 36px);
+      letter-spacing: -0.01em;
+      margin-top: 60px; margin-bottom: 20px;
+    }
+    .content h3 {
+      font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--dim); margin-top: 40px; margin-bottom: 12px;
+    }
+    .content p {
+      font-size: 12px; line-height: 2;
+      color: rgba(255,255,255,0.45); margin-bottom: 20px;
+    }
+    .content code, .content .code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px; color: var(--white);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 2px 8px; border-radius: 3px;
+    }
+    .content pre {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px; color: var(--white);
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 20px 24px; border-radius: 4px;
+      overflow-x: auto; margin: 16px 0 24px; line-height: 1.7;
+    }
+    .content ul { margin: 12px 0 20px 20px; }
+    .content li {
+      font-size: 12px; line-height: 2;
+      color: rgba(255,255,255,0.45);
+    }
+    .content .label {
+      font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase;
+      color: var(--dim); margin-bottom: 16px;
+    }
+    .badge {
+      display: inline-block;
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 4px 12px; font-size: 8px; letter-spacing: 0.35em;
+      color: var(--dim); margin-bottom: 20px;
+    }
+    .tbl {
+      display: grid; grid-template-columns: 1fr 2fr;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      margin: 12px 0 20px;
+    }
+    .tbl-item { display: contents; }
+    .tbl-item > * {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 11px;
+    }
+    .tbl-item > .key {
+      color: var(--white);
+      font-family: 'Courier New', Courier, monospace;
+    }
+    .tbl-item > .val {
+      color: rgba(255,255,255,0.45);
+    }
+    hr { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 40px 0; }
+    footer {
+      padding: 40px 48px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      font-size: 9px; letter-spacing: 0.3em; color: var(--dim);
+    }
+    @media(max-width:700px) {
+      .content-inner { padding: 48px 24px; }
+      .tb-right { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="tb-left">PAZATOR DOCS</div>
+    <div class="tb-center">COLLAB</div>
+
+  </header>
+
+  <section class="hero">
+    <div class="content">
+      <div class="content-inner">
+        <div class="badge">FEATURE &mdash; v0.May2626</div>
+        <h1>COLLAB<br>Access &amp; Audit.</h1>
+
+        <h3>What it is</h3>
+        <p>
+          Collaboration &amp; Permissions brings multi-user awareness to Pazator. It provides
+          role-based access control (RBAC) with four roles, an audit trail of all user actions,
+          entity-level commenting, and shared workspaces for organizing data.
+        </p>
+
+        <h2>Roles &amp; Permissions</h2>
+        <p>
+          Four built-in roles control what a user can do. Everyone starts as the default
+          <code class="code">admin</code> user. Switch between users from the Collaboration tab
+          to test different permission levels.
+        </p>
+
+        <div class="tbl">
+          <div class="tbl-item"><span class="key">admin</span><span class="val">Full access — view, search, create, edit, delete, export, comment, manage users</span></div>
+          <div class="tbl-item"><span class="key">editor</span><span class="val">Read/write — view, search, create, edit, delete, export, comment</span></div>
+          <div class="tbl-item"><span class="key">analyst</span><span class="val">Read + light write — view, search, export, comment</span></div>
+          <div class="tbl-item"><span class="key">viewer</span><span class="val">Read-only — view, search</span></div>
+        </div>
+
+        <h2>Audit Trail</h2>
+        <p>
+          Every meaningful action is logged: user switches, data changes, comments, workspace
+          operations. The audit log stores up to 5,000 recent entries and can be viewed or
+          cleared from the Collaboration tab. Each entry records the timestamp, user, action,
+          and details payload.
+        </p>
+
+        <pre>Example audit entry:
+2026-05-27 14:32:01  admin  user_created  {"name": "Jane", "role": "analyst"}
+2026-05-27 14:33:15  Jane   comment_added {"entityType": "human", "entityId": "abc123"}</pre>
+
+        <h2>Comments</h2>
+        <p>
+          Comments can be attached to any entity (humans, companies, cases) from their detail
+          view. Each comment stores the author, timestamp, and text. All comments are visible
+          to every user and appear in a chronological feed on the Collaboration tab.
+        </p>
+
+        <h2>Workspaces</h2>
+        <p>
+          Workspaces are named groups that collect entities together. A workspace tracks which
+          humans, companies, and cases belong to it. Currently local-only — workspaces persist
+          to localStorage and can be created, renamed, or deleted from the Collaboration tab.
+          Future versions will support server-side shared workspaces.
+        </p>
+
+        <h2>Usage</h2>
+        <p>
+          Open the <strong>Collaboration</strong> tab from the top menu bar. The main panel
+          shows a user switcher, action buttons (Manage Users, Audit Log), and three sub-panels:
+          Workspaces, Comments, and Role Permissions. Switch the active user to immediately
+          see how the app behaves under a different role.
+        </p>
+
+        <hr>
+
+        <div class="label">Source</div>
+        <p>
+          <code class="code">app/pazator_collab.js</code> &mdash; IIFE module, loaded after
+          the core app scripts. Exposes <code class="code">window.pazatorCollab</code>.
+        </p>
+      </div>
+    </div>
+
+    <footer>
+      <span>PAZATOR &mdash; MASS DATA INTELLIGENCE</span>
+    </footer>
+  </section>
+</body>
+</html>

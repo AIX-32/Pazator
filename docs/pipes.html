@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PIPES — ETL Pipelines | Pazator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --black: #000; --white: #fff; --dim: #666; }
+    html { font-size: 16px; }
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: 'DM Mono', monospace;
+      overflow-x: hidden;
+      cursor: crosshair;
+    }
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 32px; height: 52px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      background: var(--black);
+    }
+    .tb-left { font-size: 9px; letter-spacing: 0.5em; color: var(--dim); }
+    .tb-center { font-family: 'Anton', sans-serif; font-size: 18px; letter-spacing: 0.12em; }
+    .tb-right { display: flex; gap: 28px; }
+    .tb-right a {
+      font-size: 9px; letter-spacing: 0.35em; color: var(--dim);
+      text-decoration: none; text-transform: uppercase; transition: color 0.2s;
+    }
+    .tb-right a:hover { color: var(--white); }
+    .hero {
+      min-height: 100vh; padding-top: 52px;
+      display: grid; grid-template-rows: auto 1fr auto;
+    }
+    .ticker-wrap {
+      overflow: hidden; white-space: nowrap; padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .ticker-inner {
+      display: inline-block;
+      animation: tick 20s linear infinite;
+      font-size: 9px; letter-spacing: 0.45em; color: var(--dim);
+    }
+    @keyframes tick { to { transform: translateX(-50%); } }
+    .content { border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .content-inner {
+      max-width: 800px; margin: 0 auto; padding: 80px 48px;
+    }
+    .content h1 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(48px, 8vw, 100px);
+      line-height: 0.85; letter-spacing: -0.03em;
+      margin-bottom: 40px;
+    }
+    .content h2 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(20px, 3vw, 36px);
+      letter-spacing: -0.01em;
+      margin-top: 60px; margin-bottom: 20px;
+    }
+    .content h3 {
+      font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--dim); margin-top: 40px; margin-bottom: 12px;
+    }
+    .content p {
+      font-size: 12px; line-height: 2;
+      color: rgba(255,255,255,0.45); margin-bottom: 20px;
+    }
+    .content code, .content .code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px; color: var(--white);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 2px 8px; border-radius: 3px;
+    }
+    .content pre {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px; color: var(--white);
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 20px 24px; border-radius: 4px;
+      overflow-x: auto; margin: 16px 0 24px; line-height: 1.7;
+    }
+    .content ul { margin: 12px 0 20px 20px; }
+    .content li {
+      font-size: 12px; line-height: 2;
+      color: rgba(255,255,255,0.45);
+    }
+    .content .label {
+      font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase;
+      color: var(--dim); margin-bottom: 16px;
+    }
+    .badge {
+      display: inline-block;
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 4px 12px; font-size: 8px; letter-spacing: 0.35em;
+      color: var(--dim); margin-bottom: 20px;
+    }
+    .color-dot {
+      display: inline-block;
+      width: 8px; height: 8px; border-radius: 50%;
+      margin-right: 6px; vertical-align: middle;
+    }
+    hr { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 40px 0; }
+    footer {
+      padding: 40px 48px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      font-size: 9px; letter-spacing: 0.3em; color: var(--dim);
+    }
+    @media(max-width:700px) {
+      .content-inner { padding: 48px 24px; }
+      .tb-right { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="tb-left">PAZATOR DOCS</div>
+    <div class="tb-center">PIPES</div>
+
+  </header>
+
+  <section class="hero">
+    <div class="content">
+      <div class="content-inner">
+        <div class="badge">FEATURE &mdash; v0.May1526</div>
+        <h1>ETL<br>Pipelines.</h1>
+
+        <h3>Why it exists</h3>
+        <p>
+          Manual data entry doesn't scale. Pipelines let you pull data from external sources, transform
+          it to match Pazator's entity model, and ingest it directly into the store. The whole thing
+          runs in-browser &mdash; connectors fetch URLs client-side, transforms run in JavaScript, and
+          the result goes straight into <code>pazatorStore._data</code>.
+        </p>
+
+        <h2>Pipeline Structure</h2>
+        <pre>
+{
+  id:           "pipe_1717000000_abc12",
+  name:         "Import bank records",
+  connector:    { type: "csv", config: { url: "...", delimiter: ",", hasHeader: true } },
+  transforms:   [ { type: "map", config: { mappings: { "full_name": "name", ... } } } ],
+  targetStore:  "others",
+  createdAt:    "2025-06-01T...",
+  updatedAt:    "2025-06-01T..."
+}</pre>
+
+        <h2>Connectors (4)</h2>
+        <p>Every pipeline starts with one connector that defines how to fetch raw data.</p>
+        <ul>
+          <li><strong>CSV</strong> &mdash; Fetches a URL, splits by newline and delimiter. If <code>hasHeader</code> is true (default), the first row becomes object keys. Otherwise each row becomes <code>{ value: "..." }</code>.</li>
+          <li><strong>JSON</strong> &mdash; Fetches a URL, parses JSON, navigates a dot-separated <code>jsonPath</code> (e.g. <code>data.results</code>) to reach the array. If the path resolves to a single object, it's wrapped in an array.</li>
+          <li><strong>SQL</strong> &mdash; POSTs a <code>{ connectionString, query }</code> to a PZLS sync server at <code>/api/query</code>. Expects <code>{ success: true, rows: [...] }</code>. The sync server URL defaults to <code>http://localhost:3456</code> and is read from <code>pazator_sync_config</code>.</li>
+          <li><strong>REST API</strong> &mdash; Generic HTTP fetch with configurable method, headers, and body. Expects a JSON response &mdash; array is used directly, single object is wrapped.</li>
+        </ul>
+
+        <h2>Transforms (5)</h2>
+        <p>Transforms are applied sequentially, each receiving the output of the previous one.</p>
+
+        <ul>
+          <li><strong>Filter</strong> &mdash; Case-insensitive substring match on a field. Keeps rows where <code>item[field]</code> contains <code>value</code>.</li>
+          <li><strong>Map Fields</strong> &mdash; Renames/remaps fields. Only mapped keys survive &mdash; any field not in the mapping is dropped. Example: <code>{ "full_name": "name", "age_years": "age" }</code>.</li>
+          <li><strong>Sort</strong> &mdash; Ascending or descending sort on a field. Uses <code>localeCompare</code> for strings.</li>
+          <li><strong>Limit</strong> &mdash; Keeps the first N records. Simple <code>slice(0, count)</code>.</li>
+          <li><strong>Deduplicate</strong> &mdash; Case-insensitive dedup on a field. Keeps the first occurrence, drops subsequent matches.</li>
+        </ul>
+
+        <h2>Execution Flow</h2>
+        <pre>
+runPipeline(id)
+  → fetchFromConnector(connector)     // returns array of objects
+  → applyTransforms(data, transforms) // sequential transform pipeline
+  → ingestToStore(result, targetStore) // pushes into pazatorStore._data[store]</pre>
+        <p>
+          Each run creates a history record with status (<code>running</code>, <code>completed</code>,
+          <code>error</code>), input/output counts, and timestamps. The history is capped at 200 entries
+          and stored in <code>localStorage.pazator_pipeline_runs</code>. The UI shows the most recent 50.
+        </p>
+
+        <h2>Target Stores</h2>
+        <p>
+          Processed records are pushed directly into <code>pazatorStore._data[targetStore]</code>.
+          Three options: <code>humans</code>, <code>others</code>, or <code>chats</code>. Records
+          without an <code>id</code> field get one auto-generated (<code>&lt;store&gt;_&lt;timestamp&gt;_&lt;index&gt;</code>).
+        </p>
+        <p>
+          There is no dedup against existing records &mdash; repeated runs append duplicates. Make
+          sure your transforms produce clean, mergeable data.
+        </p>
+
+        <h2>Scheduler</h2>
+        <p>
+          Pipelines can be scheduled to run automatically. Schedules define a pipeline ID and an
+          interval in minutes (converted to milliseconds). The scheduler uses <code>setInterval</code>
+          internally and persists to <code>pazator_pipeline_schedules</code>. On <code>init()</code>,
+          all enabled schedules are restarted.
+        </p>
+
+        <h2>Storage</h2>
+        <p>Three localStorage keys:</p>
+        <ul>
+          <li><code>pazator_pipelines</code> &mdash; pipeline definitions</li>
+          <li><code>pazator_pipeline_runs</code> &mdash; run history (capped 200)</li>
+          <li><code>pazator_pipeline_schedules</code> &mdash; scheduler config</li>
+        </ul>
+
+        <hr>
+
+        <h2>What's Missing</h2>
+        <p>
+          No dedup across runs &mdash; every execution appends. No credential management &mdash; SQL
+          connection strings and REST API keys are stored in the pipeline config in plain text. No
+          pipeline chaining (output of one feeding into another). The SQL connector requires a PZLS
+          server to proxy the query &mdash; it doesn't connect to databases directly. CSV and JSON
+          connectors are limited to public URLs (no auth headers for CSV/JSON, only REST has headers).
+        </p>
+        <p>
+          The transform editor in the "New Pipeline" modal only configures the connector &mdash;
+          transforms are created as an empty array by default. Configuring transforms after creation
+          would need to be done programmatically or through a UI that doesn't exist yet.
+        </p>
+      </div>
+    </div>
+
+    <footer>
+      <span>PAZATOR &mdash; MASS DATA INTELLIGENCE</span>
+    </footer>
+  </section>
+</body>
+</html>
