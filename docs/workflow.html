@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WORKFLOW — TASTUR v2 | Pazator</title>
+  <title>WORKFLOW — TASTUR v3 | Pazator</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
@@ -136,81 +136,271 @@
   <header class="topbar">
     <div class="tb-left">PAZATOR DOCS</div>
     <div class="tb-center">WORKFLOW</div>
-
   </header>
 
   <section class="hero">
     <div class="content">
       <div class="content-inner">
-        <div class="badge">FEATURE &mdash; v0.May2626</div>
-        <h1>WORKFLOW<br>TASTUR v2.</h1>
+        <div class="badge">FEATURE &mdash; v3 &middot; 13 TRIGGERS &middot; 18 ACTIONS &middot; 19 OPERATORS</div>
+        <h1>TASTUR v3<br>WORKFLOW.</h1>
 
-        <h3>What it is</h3>
+        <h3>Overview</h3>
         <p>
-          TASTUR v2 is the next-generation workflow engine for Pazator. It replaces the original
-          TASTUR system with a visual rule builder, more triggers and actions, schedule-based
-          execution, and automatic hooks into app events. Rules follow the
-          <code class="code">WHEN trigger IF condition THEN action</code> pattern.
+          TASTUR v3 is a complete rewrite of the Pazator workflow engine. 13 trigger types,
+          18 action types, compound conditions with AND/OR/NOT logic, template variables,
+          sub-workflows, state machines, cron scheduling, data threshold monitoring,
+          execution log with analytics, dry-run mode, import/export, versioning with rollback,
+          and a visual rule builder with inline variable autocomplete. Rules follow the
+          <code class="code">WHEN trigger IF condition THEN action</code> pattern,
+          now supporting multi-action sequences and action pipelines.
         </p>
 
-        <h2>Triggers</h2>
-        <p>Events that activate a rule. Available trigger types:</p>
+        <h2>Triggers (13)</h2>
+        <p>Events that activate a rule. Each trigger exposes specific event variables usable in conditions and action params via <code class="code">{{event.xxx}}</code>.</p>
 
         <div class="tbl">
-          <div class="tbl-item"><span class="key">tab_switch</span><span class="val">User switches to a tab. Data: <code class="code">to</code> (tab ID).</span></div>
-          <div class="tbl-item"><span class="key">data_added</span><span class="val">New data saved. Data: <code class="code">count</code>.</span></div>
-          <div class="tbl-item"><span class="key">threat_detected</span><span class="val">High-risk entries found. Data: <code class="code">count</code>.</span></div>
-          <div class="tbl-item"><span class="key">search_performed</span><span class="val">After a search. Data: <code class="code">query</code>.</span></div>
-          <div class="tbl-item"><span class="key">app_load</span><span class="val">Once on application start.</span></div>
-          <div class="tbl-item"><span class="key">data_changed</span><span class="val">Any store mutation. Data: <code class="code">store</code>, <code class="code">action</code>.</span></div>
-          <div class="tbl-item"><span class="key">schedule</span><span class="val">Time-based. Requires interval in condition (e.g. <code class="code">5m</code>, <code class="code">1h</code>).</span></div>
+          <div class="tbl-item"><span class="key">tab_switch</span><span class="val">User switches tabs. Vars: <code class="code">to</code>.</span></div>
+          <div class="tbl-item"><span class="key">data_added</span><span class="val">New data saved. Vars: <code class="code">count</code>, <code class="code">store</code>.</span></div>
+          <div class="tbl-item"><span class="key">threat_detected</span><span class="val">High-risk entries found. Vars: <code class="code">count</code>, <code class="code">threats</code>.</span></div>
+          <div class="tbl-item"><span class="key">search_performed</span><span class="val">After a search. Vars: <code class="code">query</code>, <code class="code">results</code>, <code class="code">count</code>.</span></div>
+          <div class="tbl-item"><span class="key">app_load</span><span class="val">Once on application start. Vars: <code class="code">timestamp</code>.</span></div>
+          <div class="tbl-item"><span class="key">data_changed</span><span class="val">Any store mutation. Vars: <code class="code">store</code>, <code class="code">action</code>.</span></div>
+          <div class="tbl-item"><span class="key">schedule</span><span class="val">Interval-based timer. Vars: <code class="code">ruleId</code>, <code class="code">interval</code>. Config: <code class="code">interval</code> (5m, 1h, 1d).</span></div>
+          <div class="tbl-item"><span class="key">entity_crud</span><span class="val">Entity created/updated/deleted. Vars: <code class="code">entityId</code>, <code class="code">entityType</code>, <code class="code">crudAction</code>, <code class="code">name</code>, <code class="code">credit</code>, <code class="code">threatLevel</code>, <code class="code">workplace</code>, <code class="code">nationality</code>, <code class="code">tags</code>.</span></div>
+          <div class="tbl-item"><span class="key">cron</span><span class="val">Full cron expressions (<code class="code">*/5 * * * *</code>) or <code class="code">@every 5m</code>, <code class="code">@hourly</code>, <code class="code">@daily</code>, <code class="code">@weekly</code>. Vars: <code class="code">ruleId</code>, <code class="code">expression</code>.</span></div>
+          <div class="tbl-item"><span class="key">data_threshold</span><span class="val">Aggregate metric crosses threshold. Fires only on transition. Config: <code class="code">metric</code> (totalHumans, totalObjects, highRiskCount, avgCredit, caseCount, threatCount), <code class="code">operator</code>, <code class="code">value</code>.</span></div>
+          <div class="tbl-item"><span class="key">ai_analysis</span><span class="val">AI analysis matches a regex pattern. Vars: <code class="code">pattern</code>, <code class="code">analysisType</code>, <code class="code">result</code>, <code class="code">confidence</code>, <code class="code">entityId</code>.</span></div>
+          <div class="tbl-item"><span class="key">file_upload</span><span class="val">File upload or data import. Vars: <code class="code">fileType</code>, <code class="code">fileName</code>, <code class="code">rowCount</code>, <code class="code">entityId</code>.</span></div>
+          <div class="tbl-item"><span class="key">webhook_incoming</span><span class="val">External POST to <code class="code">/workflow/trigger/{ruleId}</code>. Vars: <code class="code">body</code>, <code class="code">headers</code>, <code class="code">method</code>, <code class="code">source</code>. Config: <code class="code">secret</code>, <code class="code">bodyPattern</code>.</span></div>
         </div>
 
-        <h2>Actions</h2>
-        <p>What happens when a rule fires:</p>
+        <h2>Actions (18)</h2>
+        <p>What happens when a rule fires. Actions execute in sequence. Each action's params support template variables (<code class="code">{{event.xxx}}</code>, <code class="code">{{rule.name}}</code>).</p>
 
         <div class="tbl">
           <div class="tbl-item"><span class="key">popup</span><span class="val">Modal alert dialog. Params: <code class="code">message</code>.</span></div>
           <div class="tbl-item"><span class="key">notify</span><span class="val">Floating notification. Params: <code class="code">message</code>.</span></div>
-          <div class="tbl-item"><span class="key">toast</span><span class="val">Styled toast with type color. Params: <code class="code">message</code>, <code class="code">type</code> (info/success/warning/error).</span></div>
-          <div class="tbl-item"><span class="key">tab</span><span class="val">Switch to a specific tab. Params: <code class="code">target</code>.</span></div>
-          <div class="tbl-item"><span class="key">webhook</span><span class="val">Call external URL. Params: <code class="code">url</code>, <code class="code">method</code> (GET/POST).</span></div>
-          <div class="tbl-item"><span class="key">api_call</span><span class="val">Call Pazator internal API. Params: <code class="code">endpoint</code>, <code class="code">method</code>.</span></div>
+          <div class="tbl-item"><span class="key">toast</span><span class="val">Styled toast. Params: <code class="code">message</code>, <code class="code">type</code> (info/success/warning/error).</span></div>
+          <div class="tbl-item"><span class="key">tab</span><span class="val">Switch to a tab. Params: <code class="code">target</code>.</span></div>
+          <div class="tbl-item"><span class="key">webhook</span><span class="val">Call external URL. Params: <code class="code">url</code>, <code class="code">method</code> (GET/POST/PUT/DELETE), <code class="code">headers</code> (JSON), <code class="code">body</code>.</span></div>
+          <div class="tbl-item"><span class="key">api_call</span><span class="val">Call Pazator internal API. Params: <code class="code">endpoint</code>, <code class="code">method</code>, <code class="code">body</code>.</span></div>
+          <div class="tbl-item"><span class="key">create_entity</span><span class="val">Create person/organization. Params: <code class="code">entityType</code> (human/organization), <code class="code">name</code>, <code class="code">properties</code> (JSON).</span></div>
+          <div class="tbl-item"><span class="key">update_entity</span><span class="val">Update existing entity. Params: <code class="code">entityId</code>, <code class="code">properties</code> (JSON).</span></div>
+          <div class="tbl-item"><span class="key">delete_entity</span><span class="val">Delete an entity. Params: <code class="code">entityId</code>.</span></div>
+          <div class="tbl-item"><span class="key">add_tag</span><span class="val">Tag an entity. Params: <code class="code">entityId</code>, <code class="code">tag</code>.</span></div>
+          <div class="tbl-item"><span class="key">create_case</span><span class="val">Create a case. Params: <code class="code">title</code>, <code class="code">description</code>, <code class="code">entities</code> (comma-separated IDs), <code class="code">status</code>.</span></div>
+          <div class="tbl-item"><span class="key">add_relationship</span><span class="val">Link entities. Params: <code class="code">sourceId</code>, <code class="code">targetId</code>, <code class="code">type</code>, <code class="code">strength</code> (1-5).</span></div>
+          <div class="tbl-item"><span class="key">ai_prompt</span><span class="val">Send prompt to Zor/LLM. Params: <code class="code">prompt</code>, <code class="code">systemContext</code>, <code class="code">outputVar</code> (saves result to variable).</span></div>
+          <div class="tbl-item"><span class="key">branch</span><span class="val">Conditional IF/ELSE. Params: <code class="code">conditionExpr</code> (JSON condition), <code class="code">thenActions</code> (JSON array), <code class="code">elseActions</code>.</span></div>
+          <div class="tbl-item"><span class="key">loop</span><span class="val">ForEach over array. Params: <code class="code">sourceVar</code>, <code class="code">itemVar</code>, <code class="code">actions</code> (JSON array to repeat).</span></div>
+          <div class="tbl-item"><span class="key">wait</span><span class="val">Pause execution. Params: <code class="code">duration</code> (5s, 2m), <code class="code">waitUntil</code> (ISO date).</span></div>
+          <div class="tbl-item"><span class="key">export_report</span><span class="val">Generate and save report. Params: <code class="code">format</code> (json/csv), <code class="code">title</code>, <code class="code">query</code> (store name), <code class="code">saveKey</code>.</span></div>
+          <div class="tbl-item"><span class="key">call_workflow</span><span class="val">Execute another rule as sub-workflow. Params: <code class="code">ruleId</code>, <code class="code">params</code> (JSON).</span></div>
+          <div class="tbl-item"><span class="key">karline</span><span class="val">Create a Karline plan action. Params: <code class="code">title</code>, <code class="code">type</code> (static/dynamic), <code class="code">date</code>, <code class="code">endDate</code>, <code class="code">description</code>, <code class="code">goal</code>.</span></div>
         </div>
 
         <h2>Conditions</h2>
         <p>
-          The optional <code class="code">IF</code> clause evaluates event data. Operators:
-          <code class="code">==</code>, <code class="code">!=</code>, <code class="code">&gt;</code>,
-          <code class="code">&lt;</code>, <code class="code">&gt;=</code>, <code class="code">&lt;=</code>,
-          <code class="code">contains</code>. For schedule triggers, the condition value sets the
-          interval using shorthand: <code class="code">30s</code>, <code class="code">5m</code>,
-          <code class="code">1h</code>, <code class="code">1d</code>.
+          The optional <code class="code">IF</code> clause can be a simple condition or a compound group.
+        </p>
+
+        <h3>Simple Conditions</h3>
+        <p>Compare an event field against a value using one of 19 operators:</p>
+        <p>
+          <code class="code">==</code> &middot; <code class="code">!=</code> &middot; <code class="code">&gt;</code> &middot; <code class="code">&lt;</code> &middot; <code class="code">&gt;=</code> &middot; <code class="code">&lt;=</code> &middot; <code class="code">contains</code> &middot; <code class="code">regex</code> &middot; <code class="code">in_array</code> &middot; <code class="code">exists</code> &middot; <code class="code">null</code> &middot; <code class="code">between</code> &middot; <code class="code">starts_with</code> &middot; <code class="code">ends_with</code> &middot; <code class="code">before</code> &middot; <code class="code">after</code> &middot; <code class="code">within_last</code> &middot; <code class="code">day_of_week</code> &middot; <code class="code">business_hours</code>
+        </p>
+
+        <h3>Compound Conditions</h3>
+        <p>
+          Group multiple conditions with AND, OR, or NOT logic. The rule editor provides a visual builder for compound conditions with add/remove sub-conditions.
+        </p>
+        <pre>AND: { "logic": "and", "conditions": [
+  { "field": "count", "op": "&gt;", "value": "5" },
+  { "field": "to", "op": "==", "value": "threats" }
+]}
+OR:  { "logic": "or", "conditions": [...] }
+NOT: { "logic": "not", "conditions": [{ "field": "count", "op": "==", "value": "0" }] }</pre>
+
+        <h3>Date / Time Conditions</h3>
+        <p>
+          <code class="code">before</code> &mdash; event timestamp before a date<br>
+          <code class="code">after</code> &mdash; event timestamp after a date<br>
+          <code class="code">within_last</code> &mdash; within last N (5m, 1h, 7d)<br>
+          <code class="code">day_of_week</code> &mdash; 0 (Sunday) through 6 (Saturday)<br>
+          <code class="code">business_hours</code> &mdash; true Mon-Fri 9-5
+        </p>
+
+        <h2>Template Variables</h2>
+        <p>
+          Any action parameter or condition value can reference dynamic data using <code class="code">{{...}}</code> syntax. The action editor shows clickable variable chips for the selected trigger and auto-fills smart defaults when you switch action types. Type <code class="code">{{</code> in any param field for autocomplete.
+        </p>
+
+        <pre>{{event.to}}              — trigger event field
+{{event.count}}            — event count
+{{event.name}}             — entity name
+{{event.entityId}}         — entity ID
+{{event.threatLevel}}      — threat level
+{{rule.name}}              — rule name
+{{rule.id}}                — rule ID
+{{vars.myVar}}             — workflow variable (set by ai_prompt)
+{{action.0.result}}        — first action's result</pre>
+
+        <h2>Multi-Action Sequences</h2>
+        <p>
+          Rules can have multiple actions that execute in order. Each action's output is available
+          to subsequent actions via <code class="code">{{action.N.result}}</code>. Actions can
+          be reordered, edited, or removed from the rule editor. If an action fails, subsequent
+          actions are skipped unless <code class="code">continueOnError</code> is set.
+        </p>
+
+        <h2>Sub-Workflows</h2>
+        <p>
+          The <code class="code">call_workflow</code> action lets one rule invoke another rule by ID
+          or name. Sub-workflows inherit the parent's event context and can receive additional
+          parameters. Maximum call depth is 20 to prevent infinite loops. Each rule also has a
+          daily execution limit and optional execution timeout.
+        </p>
+
+        <h2>State Machine Mode</h2>
+        <p>
+          Rules can define states with enter/exit actions and transitions. When an event matches
+          a transition's condition, the state machine advances, executing the exit action of the
+          current state and the enter action of the target state. The rule's current state is
+          persisted across sessions.
+        </p>
+        <pre>"stateMachine": {
+  "initialState": "monitoring",
+  "states": [
+    { "name": "monitoring", "enter": [], "exit": [],
+      "transitions": [{ "target": "alerting", "condition": { "field": "count", "op": "&gt;", "value": "10" } }] },
+    { "name": "alerting", "enter": [{ "id": "popup", "params": { "message": "Threshold exceeded!" } }],
+      "transitions": [{ "target": "monitoring", "condition": { "field": "count", "op": "&lt;", "value": "5" } }] }
+  ]
+}</pre>
+
+        <h2>Scheduling</h2>
+        <p>Two schedule trigger types:</p>
+        <p>
+          <strong>Schedule</strong> &mdash; simple interval shorthand: <code class="code">30s</code>, <code class="code">5m</code>, <code class="code">1h</code>, <code class="code">1d</code>, <code class="code">7d</code>.<br>
+          <strong>Cron</strong> &mdash; full 5-field cron (<code class="code">*/5 * * * *</code>) or shortcut (<code class="code">@hourly</code>, <code class="code">@daily</code>, <code class="code">@weekly</code>, <code class="code">@every 10m</code>).
+        </p>
+
+        <h2>Data Threshold Monitoring</h2>
+        <p>
+          The <code class="code">data_threshold</code> trigger polls aggregate metrics every 30 seconds
+          and fires when a value crosses the configured threshold (only on transition, not continuously).
+          Available metrics: <code class="code">totalHumans</code>, <code class="code">totalObjects</code>,
+          <code class="code">highRiskCount</code>, <code class="code">avgCredit</code>, <code class="code">caseCount</code>,
+          <code class="code">threatCount</code>.
+        </p>
+
+        <h2>Versioning &amp; Rollback</h2>
+        <p>
+          Every rule save creates a version entry (up to 20 per rule). The rule editor's "Versions"
+          button shows the version history — click any version to rollback to that state. Version
+          snapshots are stored in localStorage under <code class="code">pazator_workflow_versions</code>.
+        </p>
+
+        <h2>Dry-Run Mode</h2>
+        <p>
+          Toggle dry-run from the view toolbar or sidebar. When active, all actions log their
+          intended execution but do not fire. Use the <strong>Test</strong> button in the rule editor
+          for a single-rule dry-run with a custom mock payload — results show which conditions
+          matched and which actions would execute.
+        </p>
+
+        <h2>Execution Log &amp; Analytics</h2>
+        <p>
+          The workflow tab has three views accessible from the toolbar:
+        </p>
+        <p>
+          <strong>Rules</strong> &mdash; Rule list with toggle, category filter, search, and
+          per-rule stats (fire count, last result).<br>
+          <strong>Log</strong> &mdash; Execution history showing rule name, status (success/error/
+          skipped/timeout), details, and timestamp. Supports batch loading for large logs.
+          Cleared via the trash button.<br>
+          <strong>Analytics</strong> &mdash; Dashboard with stat cards (total rules, fires,
+          success/error rates), trigger distribution bar chart, and 14-day daily activity chart.
+        </p>
+
+        <h2>Quick Palette</h2>
+        <p>
+          Press <code class="code">Ctrl+Shift+K</code> anywhere to open the Quick Palette.
+          Search through existing rules, built-in templates, trigger types, and action types.
+          Click a result to edit the rule or create a new one from a template.
+        </p>
+
+        <h2>Built-In Templates</h2>
+        <p>9 pre-built workflow templates available from the Quick Palette or via the New Rule form:</p>
+        <div class="tbl">
+          <div class="tbl-item"><span class="key">Notify on High Threat</span><span class="val">Popup + notification when threat detected</span></div>
+          <div class="tbl-item"><span class="key">Auto-Case on Threat</span><span class="val">Create case on threat detection</span></div>
+          <div class="tbl-item"><span class="key">Entity Create Alert</span><span class="val">Toast on new entity</span></div>
+          <div class="tbl-item"><span class="key">AI Summary on Add</span><span class="val">AI summarizes data additions</span></div>
+          <div class="tbl-item"><span class="key">Daily Backup Reminder</span><span class="val">Toast daily at configured interval</span></div>
+          <div class="tbl-item"><span class="key">Risk Threshold Alert</span><span class="val">Popup when avg credit drops below 100</span></div>
+          <div class="tbl-item"><span class="key">Webhook on Change</span><span class="val">POST webhook on any data change</span></div>
+          <div class="tbl-item"><span class="key">Tab Change Logger</span><span class="val">Export report on tab switch</span></div>
+          <div class="tbl-item"><span class="key">Weekly Cleanup</span><span class="val">Cron-based weekly maintenance</span></div>
+        </div>
+
+        <h2>Import / Export</h2>
+        <p>
+          Export all rules as JSON via the toolbar export button or sidebar button. Import
+          rules by pasting JSON — choose between <em>skip</em> (preserve existing) or
+          <em>overwrite</em> for duplicates. Imported rules are created disabled by default.
+        </p>
+
+        <h2>Plugin Integration</h2>
+        <p>
+          Plugins can register custom triggers via <code class="code">window.__workflowRegisterTrigger({id, label, icon, desc, params})</code>
+          and custom actions via <code class="code">window.__workflowRegisterAction({id, label, icon, desc, params})</code>.
+          The workflow engine also emits Tastur events: <code class="code">workflow_ready</code>,
+          <code class="code">workflow_fired</code>, <code class="code">workflow_failed</code> —
+          consumable by other components or plugins.
         </p>
 
         <h2>Examples</h2>
-        <pre>WHEN tab_switch IF to="threats" THEN popup "Security Clearance Required"
-WHEN data_changed THEN notify "Data was modified"
-WHEN schedule IF interval=5m THEN webhook http://my-server.com/ping
-WHEN threat_detected IF count > 10 THEN toast "Critical threat volume" error
-WHEN search_performed IF query=="classified" THEN popup "Search logged"</pre>
+        <pre>// Simple: notify on tab switch
+WHEN tab_switch IF to=="threats" THEN popup "Security Check"
+
+// Multi-action: create entity + tag it
+WHEN entity_crud IF crudAction=="created" THEN
+  (1) add_tag entityId="{{event.entityId}}" tag="auto-tagged"
+  (2) notify "Entity {{event.name}} tagged"
+
+// Smart data mutation
+WHEN threat_detected IF count > 0 THEN
+  (1) create_case title="Threat Batch {{event.count}}" entities="{{event.entityId}}"
+  (2) webhook url="https://hooks.example.com/alerts" method="POST"
+
+// Cron + AI + Karline
+WHEN cron IF expression="0 8 * * *" THEN
+  (1) ai_prompt prompt="Summarize current threat landscape" outputVar="summary"
+  (2) karline title="Daily Threat Brief" type="dynamic" goal="{{vars.summary}}"
+
+// Compound condition
+WHEN data_changed IF (store=="humans" AND action!="deleted") THEN notify "Human data changed"</pre>
 
         <h2>Usage</h2>
         <p>
-          Open the <strong>Workflow</strong> tab from the top menu bar. Click <strong>New Rule</strong>
-          to open the rule editor. Select a trigger, optionally set a condition, choose an action,
-          and fill its parameters. Save the rule — it activates immediately if enabled. Use the
-          toggle switch on each rule card to enable or disable it.
+          Open the <strong>Workflow</strong> tab from the top menu bar (Tools → Workflow).
+          Click <strong>New Rule</strong> to open the rule editor. Select a trigger, optionally
+          set a condition (simple or compound), add one or more actions, and fill their parameters
+          (variables chips and autocomplete help fill dynamic values). Save the rule — it activates
+          immediately if enabled. Use the toggle on each rule card to enable/disable. The sidebar
+          shows live stats, quick actions, and a reference card.
         </p>
 
         <hr>
 
         <div class="label">Source</div>
         <p>
-          <code class="code">app/pazator_workflow.js</code> &mdash; IIFE module. Automatically
-          hooks into <code class="code">switchTab()</code> and
-          <code class="code">pazatorStore.emit()</code> at app startup. Exposes
-          <code class="code">window.pazatorWorkflow</code>.
+          <code class="code">app/js/apps/workflow.js</code> &mdash; IIFE module, 1785+ lines.
+          Subscribes to Tastur events and pazatorStore events at init. Exposes
+          <code class="code">window.pazatorWorkflow</code> with full CRUD, execution engine,
+          condition evaluator, template resolver, import/export, and UI renderers.
+          Lazy-loaded by <code class="code">js/ui/tabs.js</code> on first tab visit.
         </p>
       </div>
     </div>
