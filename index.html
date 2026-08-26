@@ -1,31 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pazator</title>
-    <meta name="description" content="Pazator builds mass data infrastructure for surveillance, intelligence, and operational systems." />
+    <meta name="description"
+        content="Pazator - Mass data infrastructure for surveillance, intelligence, and operational systems." />
     <meta name="theme-color" content="#000000" />
     <link rel="icon" type="image/png" href="icon.png" />
     <link rel="apple-touch-icon" href="icon.png" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Pazator" />
     <meta property="og:title" content="Pazator" />
-    <meta property="og:description" content="Pazator builds mass data infrastructure for surveillance, intelligence, and operational systems." />
+    <meta property="og:description"
+        content="Pazator - Mass data infrastructure for surveillance, intelligence, and operational systems." />
     <meta property="og:url" content="https://aix-32.github.io/Pazator/" />
     <meta property="og:image" content="https://aix-32.github.io/Pazator/embed.png" />
     <meta property="og:image:width" content="2560" />
     <meta property="og:image:height" content="1440" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Pazator" />
-    <meta name="twitter:description" content="Pazator builds mass data infrastructure for surveillance, intelligence, and operational systems." />
+    <meta name="twitter:description"
+        content="Pazator - Mass data infrastructure for surveillance, intelligence, and operational systems." />
     <meta name="twitter:image" content="https://aix-32.github.io/Pazator/embed.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:ital,wght@0,300;0,400;1,300&family=Space+Grotesk:wght@400;500&display=swap" rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Mono:ital,wght@0,300;0,400;1,300&family=Space+Grotesk:wght@400;500&display=swap"
+        rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
-        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         :root {
             --black: #000;
             --white: #fff;
@@ -34,7 +47,12 @@
             --grain-opacity: 0.04;
             --snap: cubic-bezier(0.51, -0.01, 0.49, 1);
         }
-        html { font-size: 16px; scroll-behavior: smooth; }
+
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+        }
+
         body {
             background: var(--black);
             color: var(--white);
@@ -42,6 +60,7 @@
             overflow-x: hidden;
             cursor: crosshair;
         }
+
         body::before {
             content: '';
             position: fixed;
@@ -53,38 +72,76 @@
             background-size: 128px 128px;
             opacity: var(--grain-opacity);
         }
-        .plx { display: block; will-change: transform; }
-        @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
-        @keyframes spinR { to { transform: translate(-50%, -50%) rotate(-360deg); } }
+
+        .plx {
+            display: block;
+            will-change: transform;
+        }
+
+        @keyframes spin {
+            to {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+
+        @keyframes spinR {
+            to {
+                transform: translate(-50%, -50%) rotate(-360deg);
+            }
+        }
 
         .topbar {
             position: fixed;
-            top: 0; left: 0; right: 0;
+            top: 0;
+            left: 0;
+            right: 0;
             z-index: 100;
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 0 32px;
             height: 52px;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-            background: rgba(0,0,0,0.92);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(0, 0, 0, 0.92);
         }
-        .tb-left { font-size: 9px; letter-spacing: 0.5em; color: var(--dim); }
-        .tb-center { font-family: 'Anton', sans-serif; font-size: 20px; letter-spacing: 0.15em; }
-        .tb-right { display: flex; gap: 28px; }
+
+        .tb-left {
+            font-size: 9px;
+            letter-spacing: 0.5em;
+            color: var(--dim);
+        }
+
+        .tb-center {
+            font-family: 'Anton', sans-serif;
+            font-size: 20px;
+            letter-spacing: 0.15em;
+        }
+
+        .tb-right {
+            display: flex;
+            gap: 28px;
+        }
+
         .tb-right a {
-            font-size: 9px; letter-spacing: 0.35em;
-            color: var(--dim); text-decoration: none;
-            text-transform: uppercase; transition: color 0.2s;
+            font-size: 9px;
+            letter-spacing: 0.35em;
+            color: var(--dim);
+            text-decoration: none;
+            text-transform: uppercase;
+            transition: color 0.2s;
         }
-        .tb-right a:hover { color: var(--white); }
+
+        .tb-right a:hover {
+            color: var(--white);
+        }
 
         .hero {
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
+
         .hero-top {
             flex: 1;
             display: flex;
@@ -95,6 +152,7 @@
             text-align: center;
             position: relative;
         }
+
         .hero-wordmark {
             font-family: 'Anton', sans-serif;
             font-size: clamp(120px, 24vw, 320px);
@@ -103,20 +161,27 @@
             overflow: hidden;
             position: relative;
         }
+
         .wm-line {
             display: block;
             transform: translateY(110%);
             transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .wm-line:nth-child(2) { transition-delay: 0.1s; }
-        .revealed .wm-line { transform: translateY(0); }
+
+        .wm-line:nth-child(2) {
+            transition-delay: 0.1s;
+        }
+
+        .revealed .wm-line {
+            transform: translateY(0);
+        }
 
         .hero-slogan {
             font-family: 'Space Grotesk', sans-serif;
             font-size: clamp(18px, 2.8vw, 40px);
             font-weight: 400;
             font-style: italic;
-            color: rgba(255,255,255,0.25);
+            color: rgba(255, 255, 255, 0.25);
             letter-spacing: 0.06em;
             margin-top: 48px;
             max-width: 900px;
@@ -124,15 +189,19 @@
             opacity: 0;
             transition: opacity 1.2s 0.6s;
         }
-        .hero-top.revealed .hero-slogan { opacity: 1; }
+
+        .hero-top.revealed .hero-slogan {
+            opacity: 1;
+        }
 
         .ticker-wrap {
             overflow: hidden;
             white-space: nowrap;
             padding: 14px 0;
-            border-top: 1px solid rgba(255,255,255,0.08);
-            border-bottom: 1px solid rgba(255,255,255,0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
+
         .ticker-inner {
             display: inline-block;
             animation: tick 24s linear infinite;
@@ -140,18 +209,25 @@
             letter-spacing: 0.5em;
             color: var(--dim);
         }
-        @keyframes tick { to { transform: translateX(-50%); } }
+
+        @keyframes tick {
+            to {
+                transform: translateX(-50%);
+            }
+        }
 
         .section {
             padding: 120px 48px;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
+
         .sec-label {
             font-size: 9px;
             letter-spacing: 0.5em;
             color: var(--dim);
             margin-bottom: 48px;
         }
+
         .sec-title {
             font-family: 'Space Grotesk', sans-serif;
             font-weight: 500;
@@ -159,30 +235,46 @@
             line-height: 1.05;
             letter-spacing: -0.02em;
         }
+
         .sec-title em {
             font-family: 'Space Grotesk', sans-serif;
             font-weight: 400;
             font-style: normal;
-            color: rgba(255,255,255,0.3);
+            color: rgba(255, 255, 255, 0.3);
             font-size: 0.6em;
             letter-spacing: 0.05em;
         }
+
         .sec-italic {
             font: inherit;
             color: inherit;
         }
-        .projects-list { margin-top: 64px; }
-        .st-left, .st-right {
+
+        .projects-list {
+            margin-top: 64px;
+        }
+
+        .st-left,
+        .st-right {
             opacity: 0;
             transform: translateY(24px);
             transition: opacity 0.8s, transform 0.8s;
         }
-        .st-left.vis, .st-right.vis { opacity: 1; transform: none; }
-        .st-right { transition-delay: 0.2s; }
+
+        .st-left.vis,
+        .st-right.vis {
+            opacity: 1;
+            transform: none;
+        }
+
+        .st-right {
+            transition-delay: 0.2s;
+        }
+
         .mission-body {
             font-size: 13px;
             line-height: 2;
-            color: rgba(255,255,255,0.4);
+            color: rgba(255, 255, 255, 0.4);
             max-width: 480px;
             margin-top: 64px;
         }
@@ -191,7 +283,7 @@
             display: flex;
             align-items: baseline;
             justify-content: space-between;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             padding: 56px 0;
             text-decoration: none;
             color: var(--white);
@@ -199,7 +291,12 @@
             transform: translateY(20px);
             transition: opacity 0.6s, transform 0.6s;
         }
-        .project-row.vis { opacity: 1; transform: none; }
+
+        .project-row.vis {
+            opacity: 1;
+            transform: none;
+        }
+
         .pname {
             font-family: 'Space Grotesk', sans-serif;
             font-weight: 500;
@@ -208,8 +305,18 @@
             letter-spacing: -0.02em;
             transition: color 0.3s, transform 0.3s;
         }
-        .project-row:hover .pname { color: rgba(255,255,255,0.4); transform: translateX(12px); }
-        .pleft { display: flex; flex-direction: column; gap: 14px; }
+
+        .project-row:hover .pname {
+            color: rgba(255, 255, 255, 0.4);
+            transform: translateX(12px);
+        }
+
+        .pleft {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
         .pdesc {
             font-size: 9px;
             letter-spacing: 0.35em;
@@ -218,22 +325,26 @@
             line-height: 1.8;
             text-transform: none;
         }
+
         .pright {
             display: flex;
             flex-direction: column;
             align-items: flex-end;
             gap: 10px;
         }
+
         .psub {
             font-size: 9px;
             letter-spacing: 0.35em;
             color: var(--dim);
         }
+
         .pstat {
             font-size: 9px;
             letter-spacing: 0.35em;
-            color: rgba(255,255,255,0.5);
+            color: rgba(255, 255, 255, 0.5);
         }
+
         .pstat::before {
             content: '';
             display: inline-block;
@@ -244,13 +355,29 @@
             margin-right: 10px;
             vertical-align: 1px;
         }
-        .pstat.live { color: var(--white); animation: blink 2.5s infinite; }
-        @keyframes blink { 0%,100% { opacity: 1 } 50% { opacity: 0.35 } }
+
+        .pstat.live {
+            color: var(--white);
+            animation: blink 2.5s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.35
+            }
+        }
 
         .cta-section {
             padding: 160px 48px;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
+
         .cta-title {
             font-family: 'Space Grotesk', sans-serif;
             font-weight: 500;
@@ -259,22 +386,27 @@
             letter-spacing: -0.02em;
             margin-bottom: 64px;
         }
+
         .cta-links {
             display: flex;
             gap: 48px;
             flex-wrap: wrap;
         }
+
         .cta-link {
             font-size: 10px;
             letter-spacing: 0.4em;
             text-transform: uppercase;
             color: var(--white);
             text-decoration: none;
-            border-bottom: 1px solid rgba(255,255,255,0.25);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.25);
             padding-bottom: 8px;
             transition: border-color 0.3s;
         }
-        .cta-link:hover { border-color: var(--white); }
+
+        .cta-link:hover {
+            border-color: var(--white);
+        }
 
         footer {
             padding: 120px 48px 64px;
@@ -282,18 +414,20 @@
             flex-direction: column;
             gap: 80px;
         }
+
         .flogo {
             font-family: 'Space Grotesk', sans-serif;
             font-weight: 500;
             font-size: clamp(80px, 14vw, 220px);
             line-height: 0.9;
             letter-spacing: -0.03em;
-            color: rgba(255,255,255,0.05);
+            color: rgba(255, 255, 255, 0.25);
             transition: color 0.8s;
             user-select: none;
             text-align: center;
         }
-        .flogo:hover { color: rgba(255,255,255,0.12); }
+
+
         .fbottom {
             display: flex;
             justify-content: space-between;
@@ -301,26 +435,33 @@
             flex-wrap: wrap;
             gap: 24px;
         }
+
         .fcopy {
             font-size: 9px;
             letter-spacing: 0.3em;
             color: var(--dim);
         }
+
         .fnav {
             display: flex;
             gap: 40px;
             flex-wrap: wrap;
         }
+
         .fnav a {
             font-family: 'Space Grotesk', sans-serif;
             font-weight: 500;
             font-size: clamp(20px, 3vw, 40px);
             letter-spacing: -0.01em;
-            color: rgba(255,255,255,0.12);
+            color: rgba(255, 255, 255, 0.12);
             text-decoration: none;
             transition: color 0.3s;
         }
-        .fnav a:hover { color: var(--white); }
+
+        .fnav a:hover {
+            color: var(--white);
+        }
+
         .fstatus {
             display: flex;
             align-items: center;
@@ -329,145 +470,188 @@
             letter-spacing: 0.35em;
             color: var(--dim);
         }
-        .fdot { width: 5px; height: 5px; border-radius: 50%; background: var(--white); animation: blink 2s infinite; }
+
+        .fdot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--white);
+            animation: blink 2s infinite;
+        }
 
         @media(max-width:860px) {
-            .topbar .tb-right { display: none; }
-            .hero-top { padding: 100px 24px 60px; }
-            .section { padding: 80px 24px; }
-            .project-row { flex-direction: column; gap: 20px; align-items: flex-start; }
-            .pright { align-items: flex-start; }
-            .cta-section { padding: 100px 24px; }
-            footer { padding: 80px 24px 48px; }
+            .topbar .tb-right {
+                display: none;
+            }
+
+            .hero-top {
+                padding: 100px 24px 60px;
+            }
+
+            .section {
+                padding: 80px 24px;
+            }
+
+            .project-row {
+                flex-direction: column;
+                gap: 20px;
+                align-items: flex-start;
+            }
+
+            .pright {
+                align-items: flex-start;
+            }
+
+            .cta-section {
+                padding: 100px 24px;
+            }
+
+            footer {
+                padding: 80px 24px 48px;
+            }
         }
     </style>
 </head>
+
 <body>
 
-<header class="topbar">
-    <div class="tb-left">BUILDING INFRASTRUCTURE</div>
-    <div class="tb-center">PAZATOR</div>
-    <nav class="tb-right">
-        <a href="https://discord.gg/74c9RBYD4R" target="_blank">Discord</a>
-        <a href="./docs/">Docs</a>
-    </nav>
-</header>
-
-<section class="hero">
-    <div class="hero-top">
-        <div class="hero-wordmark" id="wm">
-            <span class="wm-line" id="wmLine1">PAZA</span>
-            <span class="wm-line" id="wmLine2">TOR.</span>
-        </div>
-        <div class="hero-slogan" id="slogan">"Heaven is his, and the world is ours to end."</div>
-    </div>
-    <div class="ticker-wrap">
-        <span class="ticker-inner">MASS DATA INFRASTRUCTURE · DATA FUSION · AI ANALYSIS · ENTITY TRACKING · GRAPH EXPLORATION · PIPELINE AUTOMATION · MASS DATA INFRASTRUCTURE · DATA FUSION · AI ANALYSIS · ENTITY TRACKING · GRAPH EXPLORATION · PIPELINE AUTOMATION ·</span>
-    </div>
-</section>
-
-<section class="mission section">
-    <div class="sec-label">MISSION</div>
-    <h2 class="sec-title st-left">We build what big tech overcharges for.</h2>
-    <p class="mission-body st-right">Pazator builds mass data infrastructure for surveillance, intelligence, and operational systems. We build tools that process thousands of data points at scale, delivering affordable alternatives to expensive enterprise software, with your data kept where it belongs: in your hands.</p>
-</section>
-
-<section class="projects section">
-    <div class="sec-label">PROJECTS</div>
-    <h2 class="sec-title st-left" style="font-family:'Anton',sans-serif;">Our work<span class="sec-italic">.</span></h2>
-    <div class="projects-list">
-        <a href="https://github.com/aix-32/sarparast" target="_blank" class="project-row" style="transition-delay:0.1s">
-            <div class="pleft">
-                <div class="pname">SARPARAST</div>
-                <div class="pdesc">A self-contained, offline-first mass data container engineered for large structured datasets, with sync-on-connect and throughput tested to 60,000 data points.</div>
-            </div>
-            <div class="pright">
-                <div class="psub">MASS DATA CONTAINER</div>
-                <div class="pstat live">LIVE</div>
-            </div>
-        </a>
-
-        <a class="project-row" style="transition-delay:0.2s; cursor:default;">
-            <div class="pleft">
-                <div class="pname">MADAR</div>
-                <div class="pdesc">A ground-up rewrite of Sarparast under a clean client/server architecture, engineered to scale to millions of data points.</div>
-            </div>
-            <div class="pright">
-                <div class="psub">MASS DATA CONTAINER V2</div>
-                <div class="pstat live">WIP</div>
-            </div>
-        </a>
-
-        <a class="project-row" style="transition-delay:0.3s; cursor:default;">
-            <div class="pleft">
-                <div class="pname">KOREH</div>
-                <div class="pdesc">An operational platform for running and monitoring day-to-day data workflows at production scale.</div>
-            </div>
-            <div class="pright">
-                <div class="psub">OPERATIONAL PLATFORM</div>
-                <div class="pstat">ON HOLD</div>
-            </div>
-        </a>
-
-        <a class="project-row" style="transition-delay:0.4s; cursor:default;">
-            <div class="pleft">
-                <div class="pname">ZOR P1-27</div>
-                <div class="pdesc">The closest a machine can get to a human. Not a product, a vision in the making.</div>
-            </div>
-            <div class="pright">
-                <div class="psub">PERSON EDITION</div>
-                <div class="pstat">NOT SHIPPING</div>
-            </div>
-        </a>
-    </div>
-</section>
-
-<section class="cta-section">
-    <h2 class="cta-title st-left">Want more?</h2>
-    <div class="cta-links st-right">
-        <a href="https://aix-32.github.io/sarparast/" class="cta-link"><span>Launch Sarparast</span><span>></span></a>
-        <a href="./docs/" class="cta-link"><span>Documentation</span><span>></span></a>
-        <a href="https://discord.gg/74c9RBYD4R" target="_blank" class="cta-link"><span>Join Discord</span><span>></span></a>
-    </div>
-</section>
-
-<footer>
-    <div class="flogo">PAZATOR</div>
-    <div class="fbottom">
-        <div class="fcopy"></div>
-        <nav class="fnav">
-            <a href="https://aix-32.github.io/Xyper/" target="_blank">Port</a>
-            <a href="./docs/">Docs</a>
+    <header class="topbar">
+        <div class="tb-left">BUILDING INFRASTRUCTURE</div>
+        <div class="tb-center">PAZATOR</div>
+        <nav class="tb-right">
             <a href="https://discord.gg/74c9RBYD4R" target="_blank">Discord</a>
+            <a href="./docs/">Docs</a>
         </nav>
-        <div class="fstatus">
+    </header>
+
+    <section class="hero">
+        <div class="hero-top">
+            <div class="hero-wordmark" id="wm">
+                <span class="wm-line" id="wmLine1">PAZA</span>
+                <span class="wm-line" id="wmLine2">TOR.</span>
+            </div>
+            <div class="hero-slogan" id="slogan">"Heaven is his, and the world is ours to end."</div>
         </div>
-    </div>
-</footer>
+        <div class="ticker-wrap">
+            <span class="ticker-inner">MASS DATA INFRASTRUCTURE · DATA FUSION · AI ANALYSIS · ENTITY TRACKING · GRAPH
+                EXPLORATION · PIPELINE AUTOMATION · MASS DATA INFRASTRUCTURE · DATA FUSION · AI ANALYSIS · ENTITY
+                TRACKING · GRAPH EXPLORATION · PIPELINE AUTOMATION ·</span>
+        </div>
+    </section>
 
-<script>
-    document.querySelector('.hero-top').classList.add('revealed');
+    <section class="mission section">
+        <div class="sec-label">MISSION</div>
+        <h2 class="sec-title st-left">We build what big tech overcharges for.</h2>
+        <p class="mission-body st-right">Pazator builds mass data infrastructure for surveillance, intelligence, and
+            operational systems. We build tools that process thousands of data points at scale, delivering affordable
+            alternatives to expensive enterprise software, with your data kept where it belongs: in your hands.</p>
+    </section>
 
-    let ticking = false;
-    const plx = document.querySelectorAll('.mission, .projects, .cta-section, footer');
-    const parallax = () => {
-        ticking = false;
-        plx.forEach(el => {
-            const r = el.getBoundingClientRect();
-            const off = (r.top + r.height / 2 - innerHeight / 2) * 0.06;
-            el.style.transform = `translateY(${off}px)`;
-        });
-    };
-    addEventListener('scroll', () => {
-        if (!ticking) { ticking = true; requestAnimationFrame(parallax); }
-    }, { passive: true });
-    parallax();
+    <section class="projects section">
+        <div class="sec-label">PROJECTS</div>
+        <h2 class="sec-title st-left" style="font-family:'Anton',sans-serif;">Our work<span class="sec-italic">.</span>
+        </h2>
+        <div class="projects-list">
+            <a href="https://github.com/aix-32/sarparast" target="_blank" class="project-row"
+                style="transition-delay:0.1s">
+                <div class="pleft">
+                    <div class="pname">SARPARAST</div>
+                    <div class="pdesc">A self-contained, offline-first mass data container engineered for large
+                        structured datasets, with sync-on-connect and throughput tested to 60,000 data points.</div>
+                </div>
+                <div class="pright">
+                    <div class="psub">MASS DATA CONTAINER</div>
+                    <div class="pstat live">LIVE</div>
+                </div>
+            </a>
 
-    const obs = new IntersectionObserver(entries => {
-        entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('vis'); });
-    }, { threshold: 0.1 });
-    document.querySelectorAll('.st-left, .st-right, .project-row').forEach(el => obs.observe(el));
-</script>
+            <a href="https://aix-32.github.io/Madar/" target="_blank" class="project-row" style="transition-delay:0.2s">
+                <div class="pleft">
+                    <div class="pname">MADAR</div>
+                    <div class="pdesc">A ground-up rewrite of Sarparast under a clean client/server architecture,
+                        engineered to scale to millions of data points.</div>
+                </div>
+                <div class="pright">
+                    <div class="psub">MASS DATA CONTAINER V2</div>
+                    <div class="pstat live">WIP</div>
+                </div>
+            </a>
+
+            <a class="project-row" style="transition-delay:0.3s; cursor:default;">
+                <div class="pleft">
+                    <div class="pname">KOREH</div>
+                    <div class="pdesc">An operational platform for running and monitoring day-to-day data workflows at
+                        production scale.</div>
+                </div>
+                <div class="pright">
+                    <div class="psub">OPERATIONAL PLATFORM</div>
+                    <div class="pstat">ON HOLD</div>
+                </div>
+            </a>
+
+            <a class="project-row" style="transition-delay:0.4s; cursor:default;">
+                <div class="pleft">
+                    <div class="pname">ZOR P1-27</div>
+                    <div class="pdesc">The closest a machine can get to a human. Not a product, a vision in the making.
+                    </div>
+                </div>
+                <div class="pright">
+                    <div class="psub">PERSON EDITION</div>
+                    <div class="pstat">NOT SHIPPING</div>
+                </div>
+            </a>
+        </div>
+    </section>
+
+    <section class="cta-section">
+        <h2 class="cta-title st-left">Want more?</h2>
+        <div class="cta-links st-right">
+            <a href="https://aix-32.github.io/sarparast/" class="cta-link"><span>Launch
+                    Sarparast</span><span>></span></a>
+            <a href="./docs/" class="cta-link"><span>Documentation</span><span>></span></a>
+            <a href="https://discord.gg/74c9RBYD4R" target="_blank" class="cta-link"><span>Join
+                    Discord</span><span>></span></a>
+        </div>
+    </section>
+
+    <footer>
+        <div class="flogo">PAZATOR</div>
+        <div class="fbottom">
+            <div class="fcopy"></div>
+            <nav class="fnav">
+                <a href="https://aix-32.github.io/Xyper/" target="_blank">Port</a>
+                <a href="./docs/">Docs</a>
+                <a href="https://discord.gg/74c9RBYD4R" target="_blank">Discord</a>
+            </nav>
+            <div class="fstatus">
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.querySelector('.hero-top').classList.add('revealed');
+
+        let ticking = false;
+        const plx = document.querySelectorAll('.mission, .projects, .cta-section, footer');
+        const parallax = () => {
+            ticking = false;
+            plx.forEach(el => {
+                const r = el.getBoundingClientRect();
+                const off = (r.top + r.height / 2 - innerHeight / 2) * 0.06;
+                el.style.transform = `translateY(${off}px)`;
+            });
+        };
+        addEventListener('scroll', () => {
+            if (!ticking) { ticking = true; requestAnimationFrame(parallax); }
+        }, { passive: true });
+        parallax();
+
+        const obs = new IntersectionObserver(entries => {
+            entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('vis'); });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.st-left, .st-right, .project-row').forEach(el => obs.observe(el));
+    </script>
 
 </body>
+
 </html>
