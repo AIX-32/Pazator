@@ -384,7 +384,17 @@
             font-size: clamp(48px, 8vw, 128px);
             line-height: 0.95;
             letter-spacing: -0.02em;
+            margin-bottom: 16px;
+        }
+
+        .cta-subtitle {
+            font-size: 13px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
             margin-bottom: 64px;
+            max-width: 820px;
+            line-height: 1.8;
         }
 
         .cta-links {
@@ -545,7 +555,8 @@
         <p class="mission-body st-right">Pazator builds infrastructure for surveillance, intelligence, and
             operational systems. We build tools that process thousands of data points at scale, delivering affordable
             alternatives to expensive enterprise software, with your data kept where it belongs: in your hands.</p>
-            <p class="mission-body st-right" style="margin-top: 8px;">We build for scenarios where traditional enterprise vendors are off the table."</p>
+        <p class="mission-body st-right" style="margin-top: 8px;">We build for scenarios where traditional enterprise
+            vendors are off the table."</p>
     </section>
 
     <section class="projects section">
@@ -557,7 +568,8 @@
                 <div class="pleft">
                     <div class="pname">MADAR</div>
                     <div class="pdesc">A ground-up rewrite of Sarparast under a clean client/server architecture,
-                        engineered to scale to millions of data points. The star project. Everything in Sarparast and more.</div>
+                        engineered to scale to millions of data points. The star project. Everything in Sarparast and
+                        more.</div>
                 </div>
                 <div class="pright">
                     <div class="psub">MASS DATA CONTAINER</div>
@@ -593,13 +605,15 @@
 
             <a class="project-row" style="transition-delay:0.5s; cursor:default;">
                 <div class="pleft">
-                    <div class="pname">ZOR P1-27</div>
-                    <div class="pdesc">The closest a machine can get to a human. Seprate from other Zors in our apps. P3 right now. 
-                    </div>
+                    <div class="pname">NĀZER</div>
+                    <div class="pdesc">Standalone air-gapped face-matching system with a native control app. Pooled
+                        camera workers run continuous or motion-scheduled detection, match 512-d embeddings locally
+                        through pgvector or against Madar, and push watchlist hits while biometric data stays inside the
+                        camera VLAN.</div>
                 </div>
                 <div class="pright">
-                    <div class="psub">PERSON EDITION</div>
-                    <div class="pstat">NOT SHIPPING</div>
+                    <div class="psub">FACE MATCHING</div>
+                    <div class="pstat live">WIP</div>
                 </div>
             </a>
         </div>
@@ -607,10 +621,9 @@
 
     <section class="cta-section">
         <h2 class="cta-title st-left">Want more?</h2>
+        <p class="cta-subtitle st-right">Join the Discord for demos and previews of the systems.</p>
         <div class="cta-links st-right">
-            <a href="https://aix-32.github.io/sarparast/" class="cta-link"><span>Launch
-                    Sarparast </span><span>></span></a>
-            <a href="https://aix-32.github.io/Madar/" class="cta-link"><span>Madar </span><span>></span></a>
+    
             <a href="https://discord.gg/jX4Nm9Hq8P" target="_blank" class="cta-link"><span>Join
                     Discord </span><span>></span></a>
         </div>
