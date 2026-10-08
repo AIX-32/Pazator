@@ -87,7 +87,6 @@
             padding: 0 40px;
         }
 
-        /* ---------- intro ---------- */
         .intro {
             position: fixed;
             inset: 0;
@@ -231,7 +230,6 @@
             }
         }
 
-        /* ---------- buttons ---------- */
         .btn {
             display: inline-block;
             padding: 16px 32px;
@@ -264,7 +262,6 @@
             color: var(--bg);
         }
 
-        /* ---------- mini nav ---------- */
         .mini-nav {
             position: fixed;
             top: 20px;
@@ -304,7 +301,6 @@
             background: rgba(0, 0, 0, 0.16);
         }
 
-        /* ---------- hero ---------- */
         .hero {
             min-height: 100vh;
             display: flex;
@@ -407,7 +403,6 @@
             }
         }
 
-        /* ---------- sections ---------- */
         .section {
             padding: 120px 0;
             border-bottom: 1px solid var(--line);
@@ -446,7 +441,6 @@
             margin-top: 20px;
         }
 
-        /* ---------- principles ---------- */
         .principles-head {
             display: flex;
             justify-content: space-between;
@@ -519,7 +513,6 @@
             color: rgba(242, 242, 240, 0.75);
         }
 
-        /* ---------- projects ---------- */
         .projects-head {
             display: flex;
             justify-content: space-between;
@@ -617,7 +610,6 @@
             background: transparent;
         }
 
-        /* ---------- cta ---------- */
         .cta {
             background: var(--dark);
             color: var(--bg);
@@ -643,7 +635,6 @@
             margin-top: 48px;
         }
 
-        /* ---------- footer ---------- */
         footer {
             background: var(--dark);
             color: var(--bg);
@@ -694,7 +685,6 @@
             color: rgba(242, 242, 240, 0.4);
         }
 
-        /* ---------- responsive ---------- */
         @media (max-width: 900px) {
             .wrap {
                 padding: 0 24px;
@@ -744,6 +734,206 @@
                 padding: 80px 0;
             }
         }
+        .drawer-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 290;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .drawer-backdrop.open {
+            opacity: 1;
+        }
+
+        .drawer {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 300;
+            width: min(480px, 100vw);
+            background: var(--bg);
+            border-left: 1px solid var(--line);
+            transform: translateX(101%);
+            transition: transform 0.4s cubic-bezier(0.76, 0, 0.24, 1);
+        }
+
+        .drawer.open {
+            transform: none;
+        }
+
+        .drawer-close {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            z-index: 2;
+            width: 36px;
+            height: 36px;
+            display: grid;
+            place-items: center;
+            background: none;
+            border: 1px solid var(--line);
+            color: var(--muted);
+            cursor: pointer;
+        }
+
+        .drawer-close:hover {
+            color: var(--ink);
+            border-color: var(--ink);
+        }
+
+        .drawer-scroll {
+            height: 100%;
+            overflow-y: auto;
+            padding: 56px 36px 48px;
+        }
+
+        .drawer-earmark {
+            font-size: 11px;
+            letter-spacing: 0.24em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 20px;
+        }
+
+        .drawer-title {
+            font-size: clamp(26px, 5vw, 34px);
+            font-weight: 300;
+            line-height: 1.05;
+            letter-spacing: -0.02em;
+            color: var(--ink);
+            margin-bottom: 32px;
+        }
+
+        .drawer-form {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .drawer-form label {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            font-size: 11px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .drawer-form label span {
+            color: var(--accent);
+        }
+
+        .drawer-form input,
+        .drawer-form select,
+        .drawer-form textarea {
+            font: inherit;
+            font-size: 15px;
+            color: var(--ink);
+            background: var(--bg);
+            border: 1px solid var(--line);
+            padding: 11px 12px;
+            letter-spacing: normal;
+            border-radius: 0;
+        }
+
+        .drawer-form input:focus,
+        .drawer-form select:focus,
+        .drawer-form textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .drawer-form textarea {
+            resize: vertical;
+        }
+
+        .d-hp {
+            position: absolute;
+            left: -9999px;
+            height: 0;
+            width: 0;
+            opacity: 0;
+        }
+
+        .d-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .d-submit {
+            font-family: inherit;
+            font-size: 13px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--accent-ink);
+            background: var(--accent);
+            border: 1px solid var(--accent);
+            padding: 15px 20px;
+            cursor: pointer;
+            margin-top: 6px;
+        }
+
+        .d-submit:hover {
+            background: #4d5730;
+        }
+
+        .d-submit[disabled] {
+            opacity: 0.55;
+            cursor: default;
+        }
+
+        .d-note {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .d-note a,
+        .d-error a {
+            text-decoration: underline;
+        }
+
+        .d-error {
+            font-size: 13px;
+            color: #8a2b1d;
+        }
+
+        .drawer-success {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .ds-mark {
+            font-size: 11px;
+            letter-spacing: 0.24em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+
+        .ds-lead {
+            font-size: 30px;
+            font-weight: 300;
+            color: var(--ink);
+        }
+
+        .ds-sub {
+            color: var(--muted);
+            font-size: 15px;
+            margin-bottom: 18px;
+        }
+
+        @media (max-width: 680px) {
+            .drawer-scroll {
+                padding: 56px 22px 40px;
+            }
+        }
     </style>
 </head>
 
@@ -761,7 +951,7 @@
 
     <nav class="mini-nav">
         <a class="mini-logo" href="./"><img src="assets/logo.png" alt="Pazator" /></a>
-        <a class="mini-btn" href="https://discord.gg/jX4Nm9Hq8P" target="_blank">Contact</a>
+        <a class="mini-btn js-demo" href="#">Get a demo</a>
     </nav>
 
     <section class="hero">
@@ -873,7 +1063,9 @@
             <h2 class="cta-title">Want more?</h2>
             <p class="cta-sub">Join the Discord for demos and previews of the systems.</p>
             <div class="cta-actions">
-                <a class="btn btn-primary" href="https://discord.gg/jX4Nm9Hq8P" target="_blank">Join Discord</a>
+                <a class="btn btn-primary js-demo" href="#">Get a demo</a>
+                <a class="btn btn-ghost" href="https://discord.gg/jX4Nm9Hq8P" target="_blank"
+                    style="margin-left:12px">Join Discord</a>
             </div>
         </div>
     </section>
@@ -885,12 +1077,135 @@
                 <nav class="foot-nav">
                     <a href="https://aix-32.github.io/Xyper/" target="_blank">Port</a>
                     <a href="./docs/">Docs</a>
+                    <a href="privacy.html">Privacy</a>
                     <a href="https://discord.gg/jX4Nm9Hq8P" target="_blank">Discord</a>
                 </nav>
             </div>
             <div class="foot-copy">PAZATOR · A faithful independent ecosystem</div>
         </div>
     </footer>
+
+    <div class="drawer-backdrop" id="drawerBackdrop" hidden></div>
+    <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle" hidden>
+        <button class="drawer-close" type="button" aria-label="Close" data-close>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 17 17" width="14" height="14">
+                <title>Close</title>
+                <path stroke="currentColor" d="M1.5 1.5l14 14M15.5 1.5l-14 14" />
+            </svg>
+        </button>
+        <div class="drawer-scroll">
+            <div class="drawer-earmark">Contact / Demo request</div>
+            <h2 class="drawer-title" id="drawerTitle">Interested in our<br />software?</h2>
+            <form class="drawer-form" id="demoForm" novalidate>
+                <input type="text" name="website" class="d-hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
+                <div class="d-row">
+                    <label>First Name<span>*</span>
+                        <input type="text" name="firstName" required maxlength="100" autocomplete="given-name" /></label>
+                    <label>Last Name<span>*</span>
+                        <input type="text" name="lastName" required maxlength="100" autocomplete="family-name" /></label>
+                </div>
+                <label>Business Email<span>*</span>
+                    <input type="email" name="email" required maxlength="200" autocomplete="email" /></label>
+                <label>Company / Institution<span>*</span>
+                    <input type="text" name="company" required maxlength="200" autocomplete="organization" /></label>
+                <label>Job Title
+                    <input type="text" name="title" maxlength="200" autocomplete="organization-title" /></label>
+                <label>Phone
+                    <input type="tel" name="phone" maxlength="40" autocomplete="tel" /></label>
+                <label>Country<span>*</span>
+                    <select name="country" required autocomplete="country-name"><option value="">Select…</option></select></label>
+                <label>Tell us about your project
+                    <textarea name="message" rows="3" maxlength="5000"></textarea></label>
+                <button type="submit" class="d-submit">Request a demo →</button>
+                <p class="d-note">Or reach us on the <a href="https://discord.gg/jX4Nm9Hq8P" target="_blank"
+                        rel="noopener">Discord</a>. See our <a href="privacy.html">Privacy &amp; Terms</a>.</p>
+                <p class="d-error" hidden>Something went wrong. Reach us directly on the
+                    <a href="https://discord.gg/jX4Nm9Hq8P" target="_blank" rel="noopener">Discord</a>.
+                </p>
+            </form>
+            <div class="drawer-success" id="drawerSuccess" hidden>
+                <div class="ds-mark">Received</div>
+                <p class="ds-lead">Request received.</p>
+                <p class="ds-sub">We&rsquo;ll get back to you within 48 hours to set up a demo.</p>
+                <button type="button" class="btn btn-ghost" data-close>Close</button>
+            </div>
+        </div>
+    </aside>
+
+    <script>
+        var COUNTRIES = ("Afghanistan,Albania,Algeria,Andorra,Angola,Argentina,Armenia,Australia,Austria,Azerbaijan,Bahamas,Bahrain,Bangladesh,Barbados,Belarus,Belgium,Belize,Benin,Bhutan,Bolivia,Bosnia and Herzegovina,Botswana,Brazil,Brunei,Bulgaria,Burkina Faso,Burundi,Cambodia,Cameroon,Canada,Cape Verde,Central African Republic,Chad,Chile,China,Colombia,Comoros,Congo (Brazzaville),Congo (Kinshasa),Costa Rica,Croatia,Cuba,Cyprus,Czechia,Denmark,Djibouti,Dominica,Dominican Republic,Ecuador,Egypt,El Salvador,Equatorial Guinea,Eritrea,Estonia,Eswatini,Ethiopia,Fiji,Finland,France,Gabon,Gambia,Georgia,Germany,Ghana,Greece,Greenland,Guatemala,Guinea,Guinea-Bissau,Guyana,Haiti,Honduras,Hong Kong,Hungary,Iceland,India,Indonesia,Iran,Iraq,Ireland,Israel,Italy,Jamaica,Japan,Jordan,Kazakhstan,Kenya,Kiribati,Kuwait,Kyrgyzstan,Laos,Latvia,Lebanon,Lesotho,Liberia,Libya,Liechtenstein,Lithuania,Luxembourg,Macao,Madagascar,Malawi,Malaysia,Maldives,Mali,Malta,Mauritania,Mauritius,Mexico,Moldova,Monaco,Mongolia,Montenegro,Morocco,Mozambique,Myanmar,Namibia,Nauru,Nepal,Netherlands,New Zealand,Nicaragua,Niger,Nigeria,North Korea,North Macedonia,Norway,Oman,Pakistan,Palau,Palestine,Panama,Papua New Guinea,Paraguay,Peru,Philippines,Poland,Portugal,Qatar,Romania,Russia,Rwanda,Samoa,San Marino,Saudi Arabia,Senegal,Serbia,Seychelles,Sierra Leone,Singapore,Slovakia,Slovenia,Solomon Islands,Somalia,South Africa,South Korea,South Sudan,Spain,Sri Lanka,Sudan,Suriname,Sweden,Switzerland,Syria,Taiwan,Tajikistan,Tanzania,Thailand,Togo,Tonga,Trinidad and Tobago,Tunisia,Turkey,Turkmenistan,Tuvalu,Uganda,Ukraine,United Arab Emirates,United Kingdom,United States,Uruguay,Uzbekistan,Vanuatu,Vatican City,Venezuela,Vietnam,Yemen,Zambia,Zimbabwe").split(",");
+
+        var countrySel = document.querySelector("#demoForm select[name=country]");
+        if (countrySel) {
+            countrySel.insertAdjacentHTML("beforeend",
+                COUNTRIES.map(function (c) { return '<option value="' + c + '">' + c + "</option>"; }).join(""));
+        }
+
+        var drawer = document.getElementById("drawer");
+        var backdrop = document.getElementById("drawerBackdrop");
+        var lastFocus = null;
+
+        function openDrawer() {
+            lastFocus = document.activeElement;
+            drawer.hidden = false;
+            backdrop.hidden = false;
+            requestAnimationFrame(function () {
+                drawer.classList.add("open");
+                backdrop.classList.add("open");
+            });
+            var first = drawer.querySelector("input[name=firstName]");
+            if (first) first.focus();
+        }
+
+        function closeDrawer() {
+            drawer.classList.remove("open");
+            backdrop.classList.remove("open");
+            if (lastFocus) lastFocus.focus();
+            setTimeout(function () { drawer.hidden = true; backdrop.hidden = true; }, 400);
+        }
+
+        document.querySelectorAll(".js-demo").forEach(function (el) {
+            el.addEventListener("click", function (e) {
+                e.preventDefault();
+                openDrawer();
+            });
+        });
+        drawer.addEventListener("click", function (e) {
+            if (e.target.closest("[data-close]")) closeDrawer();
+        });
+        backdrop.addEventListener("click", closeDrawer);
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape" && !drawer.hidden) closeDrawer();
+        });
+
+        var demoForm = document.getElementById("demoForm");
+        var dError = demoForm.querySelector(".d-error");
+        demoForm.addEventListener("submit", function (e) {
+            e.preventDefault();
+            dError.hidden = true;
+            if (!demoForm.checkValidity()) { demoForm.reportValidity(); return; }
+            var btn = demoForm.querySelector(".d-submit");
+            btn.disabled = true;
+            var data = Object.fromEntries(new FormData(demoForm).entries());
+            if (data.website) { showSuccess(); return; }
+            fetch("/api/demo", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            }).then(function (r) {
+                if (!r.ok) throw new Error("bad status " + r.status);
+                showSuccess();
+            }).catch(function () {
+                btn.disabled = false;
+                dError.hidden = false;
+            });
+        });
+
+        function showSuccess() {
+            demoForm.hidden = true;
+            document.getElementById("drawerSuccess").hidden = false;
+        }
+    </script>
 
 </body>
 
