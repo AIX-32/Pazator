@@ -610,6 +610,11 @@
             cursor: default;
         }
 
+        .card.wide {
+            grid-column: 1 / -1;
+            min-height: 0;
+        }
+
         .card.soon:hover {
             background: transparent;
         }
@@ -1020,7 +1025,7 @@
                     <div class="sec-label">Projects</div>
                     <h2 class="sec-title">Our work.</h2>
                 </div>
-                <div class="status">3 systems</div>
+                <div class="status">4 systems</div>
             </div>
 
             <div class="projects-grid">
@@ -1038,7 +1043,7 @@
                 <div class="card soon">
                     <div class="card-top">
                         <img class="tile" src="assets/jon.png" alt="JON" />
-                        <div class="status live">In development</div>
+                        <div class="status live">WIP</div>
                     </div>
                     <h3>JON</h3>
                     <p>The military arm of the ecosystem. Turns Madar's intelligence into operational plans: a
@@ -1058,6 +1063,16 @@
                         inside the camera VLAN.</p>
                     <div class="card-go">Face matching &rarr;</div>
                 </a>
+
+                <div class="card wide soon">
+                    <div class="card-top">
+                        <img class="tile" src="assets/foolad.png" alt="Foolad" />
+                        <div class="status live">Live</div>
+                    </div>
+                    <h3>Foolad</h3>
+                    <p>The backbone of the ecosystem. It handles updates, accounts, nural providers, models, and usage data.</p>
+                    <div class="card-go" style="color:var(--muted)">Accounts and updates</div>
+                </div>
             </div>
         </div>
     </section>
