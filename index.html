@@ -441,7 +441,7 @@
             max-width: 52ch;
         }
 
-        .mission-body + .mission-body {
+        .mission-body+.mission-body {
             margin-top: 20px;
         }
 
@@ -743,6 +743,7 @@
                 padding: 80px 0;
             }
         }
+
         .drawer-backdrop {
             position: fixed;
             inset: 0;
@@ -1035,8 +1036,10 @@
                         <div class="status live">Live</div>
                     </div>
                     <h3>Madar</h3>
-                    <p>A rewrite of Sarparast with a clean client/server architecture, built to scale to millions
-                        of data points.</p>
+                    <p>Everything you know lives here: people, vehicles, events, faces, plates, risk flags, alerts,
+                        cases and watchlists, all scoped by org and clearance so you only ever see what you're cleared
+                        for. Other apps in the ecosystem report into it and read back from it, which makes it the shared
+                        source of truth.</p>
                     <div class="card-go">Data platform &rarr;</div>
                 </a>
 
@@ -1070,7 +1073,8 @@
                         <div class="status live">Live</div>
                     </div>
                     <h3>Foolad</h3>
-                    <p>The backbone of the ecosystem. It handles updates, accounts, nural providers, models, and usage data.</p>
+                    <p>The backbone of the ecosystem. It handles updates, accounts, nural providers, models, and usage
+                        data.</p>
                     <div class="card-go" style="color:var(--muted)">Accounts and updates</div>
                 </div>
             </div>
@@ -1119,9 +1123,11 @@
                 <input type="text" name="website" class="d-hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
                 <div class="d-row">
                     <label>First Name<span>*</span>
-                        <input type="text" name="firstName" required maxlength="100" autocomplete="given-name" /></label>
+                        <input type="text" name="firstName" required maxlength="100"
+                            autocomplete="given-name" /></label>
                     <label>Last Name<span>*</span>
-                        <input type="text" name="lastName" required maxlength="100" autocomplete="family-name" /></label>
+                        <input type="text" name="lastName" required maxlength="100"
+                            autocomplete="family-name" /></label>
                 </div>
                 <label>Business Email<span>*</span>
                     <input type="email" name="email" required maxlength="200" autocomplete="email" /></label>
@@ -1132,7 +1138,9 @@
                 <label>Phone
                     <input type="tel" name="phone" maxlength="40" autocomplete="tel" /></label>
                 <label>Country<span>*</span>
-                    <select name="country" required autocomplete="country-name"><option value="">Select…</option></select></label>
+                    <select name="country" required autocomplete="country-name">
+                        <option value="">Select…</option>
+                    </select></label>
                 <label>Tell us about your project
                     <textarea name="message" rows="3" maxlength="5000"></textarea></label>
                 <button type="submit" class="d-submit">Request a demo →</button>
